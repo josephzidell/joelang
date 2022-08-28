@@ -5,15 +5,15 @@ A scripting language focused on easy reading
 
 ```bash
 # run the lexer
-npm run --silent run -- 'your expression' # run with an expression
-npm run --silent run -- "$(cat path/to/file.joe)" # run on a .joe file
-npm run --silent run -- '...' file.out # send the output to a file
+npm run --silent lexify -- 'your expression' # run with an expression
+npm run --silent lexify -- "$(cat path/to/file.joe)" # run on a .joe file
+npm run --silent lexify -- '...' file.out # send the output to a file
 
 # run unit tests
 npx jest
 
 # run lexer sample
-npm run --silent run -- "$(cat tests/fixtures/lexer_sample.joe)" tests/fixtures/lexer_sample.joe.out
+npm run --silent lexify -- "$(cat tests/fixtures/lexer_sample.joe)" tests/fixtures/lexer_sample.out
 ```
 
 ## Challenge

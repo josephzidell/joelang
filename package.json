@@ -4,7 +4,7 @@
   "description": "A scripting lang that aims to be simple to read",
   "main": "index.js",
   "scripts": {
-    "run": "ts-node index.ts",
+    "lexify": "ts-node lexer.ts",
     "test": "jest"
   },
   "repository": {
