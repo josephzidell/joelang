@@ -41,14 +41,60 @@ In reality, simplicity is hard. But we do the hard work so you can do the easy w
 - Filepath `/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `/code/joe/file` instead of `\code\joe\file`
 - Tuple `[1, 2, 3]`, `['a', 'b']`, `[1, 2 if condition, 3]`
 - POJO (Plain Old Joe Object) `{a: 1, b: 2 if condition, c: 3}`
-- Switch statements return a value (if not default case, returns `nil`)
-    ```joelang
-	const size = switch someNumber {
-		is 1, is 2: 'small';
-		is in 3..10: 'medium';
-		is 11: 'large';
-		else: 'off the charts';
-	}
-	```
+- Switch statements return a value (returns `nil` if no else case)
+
+## Comparison
+
+<table>
+	<tr>
+		<th>Use Case</th>
+		<th>joelang</th>
+		<th>Other Langs</th>
+	</tr>
+	<tr><th colspan="3">Conditions</th></tr>
+	<tr>
+		<td>Conditions to set a variable</td>
+		<td>
+
+![image](examples/joelang-switch.svg)
+
+</td>
+<td>
+
+![image](examples/js-switch.svg)
+
+</td>
+</tr>
+
+<tr>
+	<td>Conditionally add an item to array</td>
+	<td>
+
+![image](examples/joelang-conditional-arrays.svg)
+
+</td>
+<td>
+
+![image](examples/js-conditional-arrays.svg)
+
+</td>
+</tr>
+<tr><th colspan="3">Tuple / Array / Object / String access and splicing</th></tr>
+<tr><td>Get some items from array</td><td>
+
+![image](examples/joelang-access.svg)
+
+- also works on tuples ...
+- and on strings ...
+- and objects too ... (the selective syntax)
+
+</td>
+<td>
+
+![image](examples/js-access.svg)
+
+</td>
+</tr>
+</table>
 
 More to come...

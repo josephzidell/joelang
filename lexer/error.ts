@@ -1,4 +1,4 @@
-import type { Token } from './lexer';
+import { Token } from './types';
 
 /**
  * Custom error class so that we can display the already-extracted tokens
