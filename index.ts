@@ -1,9 +1,25 @@
 import lexer from "./lexer";
+import LexerError from "./lexer_error";
+import fs from 'fs-extra';
 
 void (async (): Promise<void> => {
     try {
-		console.log(lexer(process.argv[2]));
+		const tokens = lexer(process.argv[2]);
+
+		// filename is 3rd arg
+		if (process.argv[3]) {
+			await fs.writeFile(process.argv[3], JSON.stringify(tokens, undefined, '\t'));
+		} else {
+			console.log(tokens);
+		}
 	} catch (e) {
-		console.log(`Error: ${(e as Error).message}, ${(e as Error).stack}`)
+		const error = e as LexerError;
+
+		console.log(`Error: ${error.message}`);
+		console.debug('Extracted tokens:');
+		console.table(error.getTokens());
+
+		console.log('Stack Trace:');
+		console.error(error.stack);
 	}
 })();

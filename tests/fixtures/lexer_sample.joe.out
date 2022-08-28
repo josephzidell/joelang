@@ -1,0 +1,1490 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 52,
+		"value": "# This is sample .joe file to prove the lexer works."
+	},
+	{
+		"type": "comment",
+		"start": 53,
+		"end": 105,
+		"value": "# Please note this file is not syntatically correct."
+	},
+	{
+		"type": "keyword",
+		"start": 107,
+		"end": 113,
+		"value": "import"
+	},
+	{
+		"type": "name",
+		"start": 114,
+		"end": 119,
+		"value": "lexer"
+	},
+	{
+		"type": "keyword",
+		"start": 120,
+		"end": 124,
+		"value": "from"
+	},
+	{
+		"type": "filepath",
+		"start": 125,
+		"end": 132,
+		"value": "./lexer"
+	},
+	{
+		"type": "separator",
+		"start": 132,
+		"end": 133,
+		"value": ";"
+	},
+	{
+		"type": "keyword",
+		"start": 134,
+		"end": 140,
+		"value": "import"
+	},
+	{
+		"type": "name",
+		"start": 141,
+		"end": 147,
+		"value": "lexer2"
+	},
+	{
+		"type": "keyword",
+		"start": 148,
+		"end": 152,
+		"value": "from"
+	},
+	{
+		"type": "filepath",
+		"start": 153,
+		"end": 159,
+		"value": "/lexer"
+	},
+	{
+		"type": "separator",
+		"start": 159,
+		"end": 160,
+		"value": ";"
+	},
+	{
+		"type": "keyword",
+		"start": 162,
+		"end": 167,
+		"value": "class"
+	},
+	{
+		"type": "name",
+		"start": 168,
+		"end": 171,
+		"value": "Foo"
+	},
+	{
+		"type": "keyword",
+		"start": 172,
+		"end": 179,
+		"value": "extends"
+	},
+	{
+		"type": "name",
+		"start": 180,
+		"end": 183,
+		"value": "Bar"
+	},
+	{
+		"type": "separator",
+		"start": 183,
+		"end": 184,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 185,
+		"end": 188,
+		"value": "Baz"
+	},
+	{
+		"type": "keyword",
+		"start": 189,
+		"end": 199,
+		"value": "implements"
+	},
+	{
+		"type": "name",
+		"start": 200,
+		"end": 214,
+		"value": "AbstractFooBar"
+	},
+	{
+		"type": "separator",
+		"start": 214,
+		"end": 215,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 216,
+		"end": 236,
+		"value": "AnotherAbstractClass"
+	},
+	{
+		"type": "brace",
+		"start": 237,
+		"end": 238,
+		"value": "{"
+	},
+	{
+		"type": "keyword",
+		"start": 243,
+		"end": 249,
+		"value": "static"
+	},
+	{
+		"type": "name",
+		"start": 250,
+		"end": 253,
+		"value": "bar"
+	},
+	{
+		"type": "operator",
+		"start": 254,
+		"end": 255,
+		"value": "="
+	},
+	{
+		"type": "string",
+		"start": 256,
+		"end": 261,
+		"value": "baz"
+	},
+	{
+		"type": "separator",
+		"start": 261,
+		"end": 262,
+		"value": ";"
+	},
+	{
+		"type": "comment",
+		"start": 263,
+		"end": 288,
+		"value": "// public static property"
+	},
+	{
+		"type": "keyword",
+		"start": 293,
+		"end": 300,
+		"value": "private"
+	},
+	{
+		"type": "name",
+		"start": 301,
+		"end": 308,
+		"value": "isDone?"
+	},
+	{
+		"type": "operator",
+		"start": 309,
+		"end": 310,
+		"value": "="
+	},
+	{
+		"type": "bool",
+		"start": 311,
+		"end": 315,
+		"value": "true"
+	},
+	{
+		"type": "comment",
+		"start": 316,
+		"end": 344,
+		"value": "// private instance property"
+	},
+	{
+		"type": "comment",
+		"start": 350,
+		"end": 390,
+		"value": "/** method with no args and no return */"
+	},
+	{
+		"type": "name",
+		"start": 395,
+		"end": 398,
+		"value": "foo"
+	},
+	{
+		"type": "brace",
+		"start": 399,
+		"end": 400,
+		"value": "{"
+	},
+	{
+		"type": "keyword",
+		"start": 409,
+		"end": 414,
+		"value": "const"
+	},
+	{
+		"type": "name",
+		"start": 415,
+		"end": 419,
+		"value": "size"
+	},
+	{
+		"type": "operator",
+		"start": 420,
+		"end": 421,
+		"value": "="
+	},
+	{
+		"type": "keyword",
+		"start": 422,
+		"end": 428,
+		"value": "switch"
+	},
+	{
+		"type": "name",
+		"start": 429,
+		"end": 439,
+		"value": "someNumber"
+	},
+	{
+		"type": "brace",
+		"start": 440,
+		"end": 441,
+		"value": "{"
+	},
+	{
+		"type": "keyword",
+		"start": 454,
+		"end": 456,
+		"value": "is"
+	},
+	{
+		"type": "number",
+		"start": 457,
+		"end": 458,
+		"value": "1"
+	},
+	{
+		"type": "separator",
+		"start": 458,
+		"end": 459,
+		"value": ","
+	},
+	{
+		"type": "keyword",
+		"start": 460,
+		"end": 462,
+		"value": "is"
+	},
+	{
+		"type": "number",
+		"start": 463,
+		"end": 464,
+		"value": "2"
+	},
+	{
+		"type": "separator",
+		"start": 464,
+		"end": 465,
+		"value": ":"
+	},
+	{
+		"type": "string",
+		"start": 466,
+		"end": 473,
+		"value": "small"
+	},
+	{
+		"type": "separator",
+		"start": 473,
+		"end": 474,
+		"value": ";"
+	},
+	{
+		"type": "keyword",
+		"start": 487,
+		"end": 489,
+		"value": "is"
+	},
+	{
+		"type": "keyword",
+		"start": 490,
+		"end": 492,
+		"value": "in"
+	},
+	{
+		"type": "number",
+		"start": 493,
+		"end": 494,
+		"value": "3"
+	},
+	{
+		"type": "operator",
+		"start": 494,
+		"end": 496,
+		"value": ".."
+	},
+	{
+		"type": "number",
+		"start": 496,
+		"end": 498,
+		"value": "10"
+	},
+	{
+		"type": "separator",
+		"start": 498,
+		"end": 499,
+		"value": ":"
+	},
+	{
+		"type": "string",
+		"start": 500,
+		"end": 508,
+		"value": "medium"
+	},
+	{
+		"type": "separator",
+		"start": 508,
+		"end": 509,
+		"value": ";"
+	},
+	{
+		"type": "keyword",
+		"start": 522,
+		"end": 524,
+		"value": "is"
+	},
+	{
+		"type": "number",
+		"start": 525,
+		"end": 527,
+		"value": "11"
+	},
+	{
+		"type": "separator",
+		"start": 527,
+		"end": 528,
+		"value": ":"
+	},
+	{
+		"type": "string",
+		"start": 529,
+		"end": 536,
+		"value": "large"
+	},
+	{
+		"type": "separator",
+		"start": 536,
+		"end": 537,
+		"value": ";"
+	},
+	{
+		"type": "name",
+		"start": 550,
+		"end": 554,
+		"value": "else"
+	},
+	{
+		"type": "separator",
+		"start": 554,
+		"end": 555,
+		"value": ":"
+	},
+	{
+		"type": "string",
+		"start": 556,
+		"end": 572,
+		"value": "off the charts"
+	},
+	{
+		"type": "separator",
+		"start": 572,
+		"end": 573,
+		"value": ";"
+	},
+	{
+		"type": "brace",
+		"start": 582,
+		"end": 583,
+		"value": "}"
+	},
+	{
+		"type": "keyword",
+		"start": 593,
+		"end": 596,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 597,
+		"end": 604,
+		"value": "myTuple"
+	},
+	{
+		"type": "operator",
+		"start": 605,
+		"end": 606,
+		"value": "="
+	},
+	{
+		"type": "bracket",
+		"start": 607,
+		"end": 608,
+		"value": "["
+	},
+	{
+		"type": "number",
+		"start": 621,
+		"end": 622,
+		"value": "1"
+	},
+	{
+		"type": "separator",
+		"start": 622,
+		"end": 623,
+		"value": ","
+	},
+	{
+		"type": "number",
+		"start": 636,
+		"end": 638,
+		"value": "10"
+	},
+	{
+		"type": "keyword",
+		"start": 639,
+		"end": 641,
+		"value": "if"
+	},
+	{
+		"type": "keyword",
+		"start": 642,
+		"end": 646,
+		"value": "this"
+	},
+	{
+		"type": "operator",
+		"start": 646,
+		"end": 647,
+		"value": "."
+	},
+	{
+		"type": "name",
+		"start": 647,
+		"end": 654,
+		"value": "isDone?"
+	},
+	{
+		"type": "separator",
+		"start": 654,
+		"end": 655,
+		"value": ","
+	},
+	{
+		"type": "comment",
+		"start": 656,
+		"end": 697,
+		"value": "// if false, element will not be in tuple"
+	},
+	{
+		"type": "number",
+		"start": 710,
+		"end": 711,
+		"value": "3"
+	},
+	{
+		"type": "bracket",
+		"start": 720,
+		"end": 721,
+		"value": "]"
+	},
+	{
+		"type": "separator",
+		"start": 721,
+		"end": 722,
+		"value": ";"
+	},
+	{
+		"type": "keyword",
+		"start": 732,
+		"end": 735,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 736,
+		"end": 741,
+		"value": "count"
+	},
+	{
+		"type": "operator",
+		"start": 742,
+		"end": 743,
+		"value": "="
+	},
+	{
+		"type": "number",
+		"start": 744,
+		"end": 745,
+		"value": "1"
+	},
+	{
+		"type": "operator",
+		"start": 745,
+		"end": 747,
+		"value": ".."
+	},
+	{
+		"type": "name",
+		"start": 747,
+		"end": 754,
+		"value": "myTuple"
+	},
+	{
+		"type": "bracket",
+		"start": 754,
+		"end": 755,
+		"value": "["
+	},
+	{
+		"type": "number",
+		"start": 755,
+		"end": 756,
+		"value": "2"
+	},
+	{
+		"type": "bracket",
+		"start": 756,
+		"end": 757,
+		"value": "]"
+	},
+	{
+		"type": "comment",
+		"start": 758,
+		"end": 780,
+		"value": "// new Tuple [1, 2, 3]"
+	},
+	{
+		"type": "keyword",
+		"start": 789,
+		"end": 792,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 793,
+		"end": 802,
+		"value": "countDown"
+	},
+	{
+		"type": "operator",
+		"start": 803,
+		"end": 804,
+		"value": "="
+	},
+	{
+		"type": "name",
+		"start": 805,
+		"end": 812,
+		"value": "myTuple"
+	},
+	{
+		"type": "bracket",
+		"start": 812,
+		"end": 813,
+		"value": "["
+	},
+	{
+		"type": "number",
+		"start": 813,
+		"end": 814,
+		"value": "1"
+	},
+	{
+		"type": "bracket",
+		"start": 814,
+		"end": 815,
+		"value": "]"
+	},
+	{
+		"type": "operator",
+		"start": 815,
+		"end": 817,
+		"value": ".."
+	},
+	{
+		"type": "number",
+		"start": 817,
+		"end": 818,
+		"value": "0"
+	},
+	{
+		"type": "comment",
+		"start": 819,
+		"end": 866,
+		"value": "// new Tuple [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]"
+	},
+	{
+		"type": "keyword",
+		"start": 875,
+		"end": 878,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 879,
+		"end": 895,
+		"value": "partitionedTuple"
+	},
+	{
+		"type": "operator",
+		"start": 896,
+		"end": 897,
+		"value": "="
+	},
+	{
+		"type": "bracket",
+		"start": 898,
+		"end": 899,
+		"value": "["
+	},
+	{
+		"type": "name",
+		"start": 912,
+		"end": 921,
+		"value": "countDown"
+	},
+	{
+		"type": "bracket",
+		"start": 921,
+		"end": 922,
+		"value": "["
+	},
+	{
+		"type": "separator",
+		"start": 922,
+		"end": 923,
+		"value": ":"
+	},
+	{
+		"type": "number",
+		"start": 923,
+		"end": 924,
+		"value": "1"
+	},
+	{
+		"type": "bracket",
+		"start": 924,
+		"end": 925,
+		"value": "]"
+	},
+	{
+		"type": "separator",
+		"start": 925,
+		"end": 926,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 939,
+		"end": 948,
+		"value": "countDown"
+	},
+	{
+		"type": "bracket",
+		"start": 948,
+		"end": 949,
+		"value": "["
+	},
+	{
+		"type": "number",
+		"start": 949,
+		"end": 950,
+		"value": "2"
+	},
+	{
+		"type": "separator",
+		"start": 950,
+		"end": 951,
+		"value": ":"
+	},
+	{
+		"type": "number",
+		"start": 951,
+		"end": 952,
+		"value": "6"
+	},
+	{
+		"type": "bracket",
+		"start": 952,
+		"end": 953,
+		"value": "]"
+	},
+	{
+		"type": "separator",
+		"start": 953,
+		"end": 954,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 967,
+		"end": 976,
+		"value": "countDown"
+	},
+	{
+		"type": "bracket",
+		"start": 976,
+		"end": 977,
+		"value": "["
+	},
+	{
+		"type": "number",
+		"start": 977,
+		"end": 978,
+		"value": "7"
+	},
+	{
+		"type": "separator",
+		"start": 978,
+		"end": 979,
+		"value": ":"
+	},
+	{
+		"type": "bracket",
+		"start": 979,
+		"end": 980,
+		"value": "]"
+	},
+	{
+		"type": "separator",
+		"start": 980,
+		"end": 981,
+		"value": ","
+	},
+	{
+		"type": "bracket",
+		"start": 990,
+		"end": 991,
+		"value": "]"
+	},
+	{
+		"type": "separator",
+		"start": 991,
+		"end": 992,
+		"value": ";"
+	},
+	{
+		"type": "comment",
+		"start": 993,
+		"end": 1053,
+		"value": "// new nested Tuple [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]"
+	},
+	{
+		"type": "keyword",
+		"start": 1062,
+		"end": 1065,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 1066,
+		"end": 1084,
+		"value": "selectedTupleItems"
+	},
+	{
+		"type": "operator",
+		"start": 1085,
+		"end": 1086,
+		"value": "="
+	},
+	{
+		"type": "name",
+		"start": 1087,
+		"end": 1096,
+		"value": "countDown"
+	},
+	{
+		"type": "bracket",
+		"start": 1096,
+		"end": 1097,
+		"value": "["
+	},
+	{
+		"type": "number",
+		"start": 1097,
+		"end": 1098,
+		"value": "1"
+	},
+	{
+		"type": "separator",
+		"start": 1098,
+		"end": 1099,
+		"value": ","
+	},
+	{
+		"type": "number",
+		"start": 1100,
+		"end": 1101,
+		"value": "4"
+	},
+	{
+		"type": "separator",
+		"start": 1101,
+		"end": 1102,
+		"value": ","
+	},
+	{
+		"type": "number",
+		"start": 1103,
+		"end": 1104,
+		"value": "9"
+	},
+	{
+		"type": "bracket",
+		"start": 1104,
+		"end": 1105,
+		"value": "]"
+	},
+	{
+		"type": "comment",
+		"start": 1106,
+		"end": 1128,
+		"value": "// new Tuple [9, 6, 1]"
+	},
+	{
+		"type": "keyword",
+		"start": 1138,
+		"end": 1141,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 1142,
+		"end": 1150,
+		"value": "myObject"
+	},
+	{
+		"type": "operator",
+		"start": 1151,
+		"end": 1152,
+		"value": "="
+	},
+	{
+		"type": "brace",
+		"start": 1153,
+		"end": 1154,
+		"value": "{"
+	},
+	{
+		"type": "name",
+		"start": 1167,
+		"end": 1168,
+		"value": "a"
+	},
+	{
+		"type": "separator",
+		"start": 1168,
+		"end": 1169,
+		"value": ":"
+	},
+	{
+		"type": "number",
+		"start": 1170,
+		"end": 1171,
+		"value": "1"
+	},
+	{
+		"type": "separator",
+		"start": 1171,
+		"end": 1172,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1185,
+		"end": 1186,
+		"value": "b"
+	},
+	{
+		"type": "separator",
+		"start": 1186,
+		"end": 1187,
+		"value": ":"
+	},
+	{
+		"type": "string",
+		"start": 1188,
+		"end": 1194,
+		"value": "coat"
+	},
+	{
+		"type": "keyword",
+		"start": 1195,
+		"end": 1197,
+		"value": "if"
+	},
+	{
+		"type": "keyword",
+		"start": 1198,
+		"end": 1202,
+		"value": "this"
+	},
+	{
+		"type": "operator",
+		"start": 1202,
+		"end": 1203,
+		"value": "."
+	},
+	{
+		"type": "name",
+		"start": 1203,
+		"end": 1210,
+		"value": "isDone?"
+	},
+	{
+		"type": "separator",
+		"start": 1210,
+		"end": 1211,
+		"value": ","
+	},
+	{
+		"type": "comment",
+		"start": 1212,
+		"end": 1255,
+		"value": "// if false, property will not be in object"
+	},
+	{
+		"type": "name",
+		"start": 1268,
+		"end": 1269,
+		"value": "c"
+	},
+	{
+		"type": "separator",
+		"start": 1269,
+		"end": 1270,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1271,
+		"end": 1275,
+		"value": "cond"
+	},
+	{
+		"type": "operator",
+		"start": 1276,
+		"end": 1277,
+		"value": "?"
+	},
+	{
+		"type": "bool",
+		"start": 1278,
+		"end": 1282,
+		"value": "true"
+	},
+	{
+		"type": "separator",
+		"start": 1283,
+		"end": 1284,
+		"value": ":"
+	},
+	{
+		"type": "bool",
+		"start": 1285,
+		"end": 1290,
+		"value": "false"
+	},
+	{
+		"type": "separator",
+		"start": 1290,
+		"end": 1291,
+		"value": ","
+	},
+	{
+		"type": "comment",
+		"start": 1292,
+		"end": 1357,
+		"value": "// regular ternary - property will always be there, value differs"
+	},
+	{
+		"type": "name",
+		"start": 1370,
+		"end": 1371,
+		"value": "d"
+	},
+	{
+		"type": "separator",
+		"start": 1371,
+		"end": 1372,
+		"value": ":"
+	},
+	{
+		"type": "nil",
+		"start": 1373,
+		"end": 1376,
+		"value": "nil"
+	},
+	{
+		"type": "separator",
+		"start": 1376,
+		"end": 1377,
+		"value": ","
+	},
+	{
+		"type": "brace",
+		"start": 1386,
+		"end": 1387,
+		"value": "}"
+	},
+	{
+		"type": "separator",
+		"start": 1387,
+		"end": 1388,
+		"value": ";"
+	},
+	{
+		"type": "keyword",
+		"start": 1398,
+		"end": 1401,
+		"value": "let"
+	},
+	{
+		"type": "name",
+		"start": 1402,
+		"end": 1412,
+		"value": "partialObj"
+	},
+	{
+		"type": "operator",
+		"start": 1413,
+		"end": 1414,
+		"value": "="
+	},
+	{
+		"type": "name",
+		"start": 1415,
+		"end": 1423,
+		"value": "myObject"
+	},
+	{
+		"type": "bracket",
+		"start": 1423,
+		"end": 1424,
+		"value": "["
+	},
+	{
+		"type": "name",
+		"start": 1424,
+		"end": 1425,
+		"value": "a"
+	},
+	{
+		"type": "separator",
+		"start": 1425,
+		"end": 1426,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1427,
+		"end": 1428,
+		"value": "d"
+	},
+	{
+		"type": "bracket",
+		"start": 1428,
+		"end": 1429,
+		"value": "]"
+	},
+	{
+		"type": "comment",
+		"start": 1430,
+		"end": 1458,
+		"value": "// new object {a: 1, d: nil}"
+	},
+	{
+		"type": "brace",
+		"start": 1463,
+		"end": 1464,
+		"value": "}"
+	},
+	{
+		"type": "comment",
+		"start": 1470,
+		"end": 1486,
+		"value": "/** with args */"
+	},
+	{
+		"type": "name",
+		"start": 1491,
+		"end": 1505,
+		"value": "methodWithArgs"
+	},
+	{
+		"type": "paren",
+		"start": 1506,
+		"end": 1507,
+		"value": "("
+	},
+	{
+		"type": "name",
+		"start": 1507,
+		"end": 1511,
+		"value": "arg1"
+	},
+	{
+		"type": "separator",
+		"start": 1511,
+		"end": 1512,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1513,
+		"end": 1517,
+		"value": "bool"
+	},
+	{
+		"type": "separator",
+		"start": 1517,
+		"end": 1518,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1519,
+		"end": 1523,
+		"value": "arg2"
+	},
+	{
+		"type": "separator",
+		"start": 1523,
+		"end": 1524,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1525,
+		"end": 1530,
+		"value": "Tuple"
+	},
+	{
+		"type": "separator",
+		"start": 1530,
+		"end": 1531,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1532,
+		"end": 1536,
+		"value": "arg3"
+	},
+	{
+		"type": "operator",
+		"start": 1537,
+		"end": 1538,
+		"value": "="
+	},
+	{
+		"type": "bool",
+		"start": 1539,
+		"end": 1543,
+		"value": "true"
+	},
+	{
+		"type": "separator",
+		"start": 1543,
+		"end": 1544,
+		"value": ","
+	},
+	{
+		"type": "operator",
+		"start": 1545,
+		"end": 1548,
+		"value": "..."
+	},
+	{
+		"type": "name",
+		"start": 1548,
+		"end": 1558,
+		"value": "otherStuff"
+	},
+	{
+		"type": "separator",
+		"start": 1558,
+		"end": 1559,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1560,
+		"end": 1565,
+		"value": "Thing"
+	},
+	{
+		"type": "bracket",
+		"start": 1565,
+		"end": 1566,
+		"value": "["
+	},
+	{
+		"type": "bracket",
+		"start": 1566,
+		"end": 1567,
+		"value": "]"
+	},
+	{
+		"type": "paren",
+		"start": 1567,
+		"end": 1568,
+		"value": ")"
+	},
+	{
+		"type": "brace",
+		"start": 1569,
+		"end": 1570,
+		"value": "{"
+	},
+	{
+		"type": "operator",
+		"start": 1571,
+		"end": 1574,
+		"value": "..."
+	},
+	{
+		"type": "brace",
+		"start": 1575,
+		"end": 1576,
+		"value": "}"
+	},
+	{
+		"type": "comment",
+		"start": 1582,
+		"end": 1608,
+		"value": "/** with one return val */"
+	},
+	{
+		"type": "name",
+		"start": 1613,
+		"end": 1635,
+		"value": "methodThatReturnsBool?"
+	},
+	{
+		"type": "separator",
+		"start": 1636,
+		"end": 1637,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1638,
+		"end": 1642,
+		"value": "bool"
+	},
+	{
+		"type": "brace",
+		"start": 1643,
+		"end": 1644,
+		"value": "{"
+	},
+	{
+		"type": "keyword",
+		"start": 1653,
+		"end": 1659,
+		"value": "return"
+	},
+	{
+		"type": "brace",
+		"start": 1664,
+		"end": 1665,
+		"value": "}"
+	},
+	{
+		"type": "comment",
+		"start": 1671,
+		"end": 1698,
+		"value": "/** multiple return vals */"
+	},
+	{
+		"type": "name",
+		"start": 1703,
+		"end": 1725,
+		"value": "methodThatReturnsBool?"
+	},
+	{
+		"type": "separator",
+		"start": 1726,
+		"end": 1727,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1728,
+		"end": 1732,
+		"value": "bool"
+	},
+	{
+		"type": "separator",
+		"start": 1732,
+		"end": 1733,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1734,
+		"end": 1740,
+		"value": "number"
+	},
+	{
+		"type": "separator",
+		"start": 1740,
+		"end": 1741,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1742,
+		"end": 1747,
+		"value": "Thing"
+	},
+	{
+		"type": "brace",
+		"start": 1748,
+		"end": 1749,
+		"value": "{"
+	},
+	{
+		"type": "keyword",
+		"start": 1758,
+		"end": 1764,
+		"value": "return"
+	},
+	{
+		"type": "bool",
+		"start": 1765,
+		"end": 1770,
+		"value": "false"
+	},
+	{
+		"type": "separator",
+		"start": 1770,
+		"end": 1771,
+		"value": ","
+	},
+	{
+		"type": "number",
+		"start": 1772,
+		"end": 1773,
+		"value": "5"
+	},
+	{
+		"type": "separator",
+		"start": 1773,
+		"end": 1774,
+		"value": ","
+	},
+	{
+		"type": "name",
+		"start": 1775,
+		"end": 1778,
+		"value": "new"
+	},
+	{
+		"type": "name",
+		"start": 1779,
+		"end": 1784,
+		"value": "Thing"
+	},
+	{
+		"type": "brace",
+		"start": 1789,
+		"end": 1790,
+		"value": "}"
+	},
+	{
+		"type": "comment",
+		"start": 1796,
+		"end": 1827,
+		"value": "/** method that throws error */"
+	},
+	{
+		"type": "name",
+		"start": 1832,
+		"end": 1840,
+		"value": "careful!"
+	},
+	{
+		"type": "brace",
+		"start": 1841,
+		"end": 1842,
+		"value": "{"
+	},
+	{
+		"type": "operator",
+		"start": 1843,
+		"end": 1846,
+		"value": "..."
+	},
+	{
+		"type": "brace",
+		"start": 1847,
+		"end": 1848,
+		"value": "}"
+	},
+	{
+		"type": "comment",
+		"start": 1854,
+		"end": 1902,
+		"value": "/** method with bool return that throws error */"
+	},
+	{
+		"type": "name",
+		"start": 1907,
+		"end": 1916,
+		"value": "careful?!"
+	},
+	{
+		"type": "separator",
+		"start": 1917,
+		"end": 1918,
+		"value": ":"
+	},
+	{
+		"type": "name",
+		"start": 1919,
+		"end": 1923,
+		"value": "bool"
+	},
+	{
+		"type": "brace",
+		"start": 1924,
+		"end": 1925,
+		"value": "{"
+	},
+	{
+		"type": "operator",
+		"start": 1926,
+		"end": 1929,
+		"value": "..."
+	},
+	{
+		"type": "brace",
+		"start": 1930,
+		"end": 1931,
+		"value": "}"
+	},
+	{
+		"type": "brace",
+		"start": 1932,
+		"end": 1933,
+		"value": "}"
+	}
+]

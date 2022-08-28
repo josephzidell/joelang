@@ -5,12 +5,15 @@ A scripting language focused on easy reading
 
 ```bash
 # run the lexer
+npm run --silent run -- 'your expression' # run with an expression
+npm run --silent run -- "$(cat path/to/file.joe)" # run on a .joe file
+npm run --silent run -- '...' file.out # send the output to a file
 
-npm run --silent run -- 'your expression'
-
-# run tests
-
+# run unit tests
 npx jest
+
+# run lexer sample
+npm run --silent run -- "$(cat tests/fixtures/lexer_sample.joe)" tests/fixtures/lexer_sample.joe.out
 ```
 
 ## Challenge
@@ -35,7 +38,7 @@ In reality, simplicity is hard. But we do the hard work so you can do the easy w
 - Strings `'foo'`, `"foo ${bar}"` Paritally implemented in Lexer, TODO interpolation
 - Boolean `true`, `false` :heavy_check_mark: Lexer
 - Nil `nil`
-- Filepath `/absolute/path/to/file`, `./path/relative/to/current/file`, `@/path/relative/to/project/dir` (this will be cross-OS, so Windows paths will be converted to Unix style, eg: `C:\code\joe\file` -> `/c/code/joe/file`
+- Filepath `/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `/code/joe/file` instead of `\code\joe\file`
 - Tuple `[1, 2, 3]`, `['a', 'b']`, `[1, 2 if condition, 3]`
 - POJO (Plain Old Joe Object) `{a: 1, b: 2 if condition, c: 3}`
 - Switch statements return a value (if not default case, returns `nil`)

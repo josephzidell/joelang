@@ -1,8 +1,10 @@
+import LexerError from "./lexer_error";
+
 // token types
-type TokenType = 'paren' | 'bracket' | 'brace' | 'bool' | 'number' | 'string' | 'name' | 'keyword' | 'operator' | 'nil';
+type TokenType = 'paren' | 'bracket' | 'brace' | 'bool' | 'number' | 'string' | 'name' | 'keyword' | 'operator' | 'nil' | 'filepath' | 'separator' | 'comment';
 
 // info about a token
-type Token = {
+export type Token = {
 	type: TokenType;
 	start: number; // cursor position of the beginning of this token
 	end: number; // cursor position immediately after this token
@@ -10,7 +12,7 @@ type Token = {
 };
 
 // reserved keywords
-export const keywords = ['const', 'let', 'if', 'is', 'in', 'for', 'switch', 'return'] as const;
+export const keywords = ['const', 'let', 'if', 'is', 'in', 'for', 'switch', 'return', 'import', 'from', 'class', 'extends', 'implements', 'this', 'static', 'public', 'private'] as const;
 type Keyword = typeof keywords[number];
 
 // operators
@@ -29,19 +31,29 @@ const specialValueTypes: Record<SpecialValue, TokenType> = {
 const patterns = {
 	// single characters
 	AMPERSAND: '&',
+	ASTERISK: '*',
+	BANG: '!',
 	CARET: '^',
+	COLON: ':',
 	COMMA: ',',
 	DOUBLE_QUOTE: '"',
 	EQUALS: '=',
+	FORWARD_SLASH: '/',
+	HASH: '#',
 	MINUS: '-',
 	PIPE: '|',
 	PERIOD: '.',
 	PLUS: '+',
+	QUESTION: '?',
+	SEMICOLON: ';',
 	SINGLE_QUOTE: "'",
+	UNDERSCORE: '_',
 
 	// regexes
 	DIGITS: /[0-9]/,
+	FILEPATH: /[a-zA-Z0-9-_./]/, // characters in filepath, excluding the front: @
 	LETTERS: /[a-z]/i,
+	NEWLINE: /(\r\n|\r|\n)/,
 	WHITESPACE: /\s/,
 };
 
@@ -54,7 +66,7 @@ export default function (code: string) {
 
 	// loop through all characters
 	while (currentPosition < code.length) {
-        let char = code[currentPosition];
+		let char = code[currentPosition];
 
 		// joelang ignores whitespace
 		if (patterns.WHITESPACE.test(char)) {
@@ -64,9 +76,73 @@ export default function (code: string) {
 		}
 
 		/**
-		 * Operator characters that can be single or double: + ++, - --, | ||, & &&
+		 * Forward Slash
+		 *
+		 * Forward Slash can be:
+		 * - The beginning of a comment
+		 * - A division artihmetic symbol
+		 * - The beginning of a Filepath
 		 */
-		if (char === patterns.PLUS || char === patterns.MINUS || char === patterns.PIPE || char === patterns.AMPERSAND) {
+		if (char === patterns.FORWARD_SLASH) {
+			const start = currentPosition;
+
+			// check if next char is asterisk or another forward slash - comment time
+			const nextChar = code[currentPosition + 1];
+
+			// if undefined, we're at the end of the script
+			if (typeof nextChar === 'undefined') {
+				char = code[++currentPosition];
+				tokens.push({ type: 'operator', start, end: currentPosition, value: '/'});
+				continue;
+			}
+
+			// if next char is / it's a single line comment
+			if (nextChar === char) {
+				({ currentPosition, char } = processSingleLineComment(currentPosition, code, char, tokens, start));
+
+				continue;
+			}
+
+			// if next char is * it's a multiline comment
+			if (nextChar === patterns.ASTERISK) {
+				let value = '';
+
+				// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
+				while (currentPosition < code.length && !(char === patterns.ASTERISK && code[currentPosition + 1] === patterns.FORWARD_SLASH)) {
+					value += char;
+					char = code[++currentPosition];
+				}
+
+				// skip the asterisk and slash
+				currentPosition += 2;
+				tokens.push({ type: 'comment', start, end: currentPosition, value: value + '*/'});
+				continue;
+			}
+
+			// if previous token is a number, this is a division symbol
+			if (tokens[tokens.length - 1].type === 'number') {
+				char = code[++currentPosition];
+				tokens.push({ type: 'operator', start, end: currentPosition, value: '/'});
+				continue;
+			}
+
+			// otherwise it's a filepath
+			({ char, currentPosition } = processFilepath(char, currentPosition, code, tokens));
+
+			continue;
+		}
+
+		/** Hash */
+		if (char === patterns.HASH) {
+			({ currentPosition, char } = processSingleLineComment(currentPosition, code, char, tokens, currentPosition));
+
+			continue;
+		}
+
+		/**
+		 * Operator characters that can be single or double: + ++, - --, | ||, & &&, ? ??
+		 */
+		if (char === patterns.PLUS || char === patterns.MINUS || char === patterns.PIPE || char === patterns.AMPERSAND || char === patterns.QUESTION) {
 			// peek at the next char
 			const nextChar = code[currentPosition + 1];
 			// it's the same, so we're hitting a double
@@ -160,45 +236,31 @@ export default function (code: string) {
 			continue;
 		}
 
+		/** Separators: Semicolons, Comma, Colon */
+		if (char === patterns.SEMICOLON || char === patterns.COMMA || char === patterns.COLON) {
+			tokens.push({type: 'separator', start: currentPosition, end: currentPosition + 1, value: char});
+			currentPosition++;
+			continue;
+		}
+
 		/** Braces */
 		if (char === '{' || char === '}') {
-			tokens.push({
-				type: 'brace',
-				start: currentPosition,
-				end: currentPosition + 1,
-				value: char,
-			});
-
+			tokens.push({type: 'brace', start: currentPosition, end: currentPosition + 1, value: char});
 			currentPosition++;
-
 			continue;
 		}
 
 		/** Brackets */
 		if (char === '[' || char === ']') {
-			tokens.push({
-				type: 'bracket',
-				start: currentPosition,
-				end: currentPosition + 1,
-				value: char,
-			});
-
+			tokens.push({type: 'bracket', start: currentPosition, end: currentPosition + 1, value: char});
 			currentPosition++;
-
 			continue;
 		}
 
 		/** Parens */
 		if (char === '(' || char === ')') {
-			tokens.push({
-				type: 'paren',
-				start: currentPosition,
-				end: currentPosition + 1,
-				value: char,
-			});
-
+			tokens.push({type: 'paren', start: currentPosition, end: currentPosition + 1, value: char});
 			currentPosition++;
-
 			continue;
 		}
 
@@ -206,7 +268,19 @@ export default function (code: string) {
 		if (patterns.LETTERS.test(char)) {
 			let value = '';
 			const start = currentPosition;
-			while (currentPosition < code.length && patterns.LETTERS.test(char)) {
+			while (currentPosition < code.length && (patterns.LETTERS.test(char) || patterns.DIGITS.test(char) || char === patterns.UNDERSCORE)) {
+				value += char;
+				char = code[++currentPosition];
+			}
+
+			// check for '?'
+			if (char === patterns.QUESTION) {
+				value += char;
+				char = code[++currentPosition];
+			}
+
+			// check for '!'
+			if (char === patterns.BANG) {
 				value += char;
 				char = code[++currentPosition];
 			}
@@ -236,11 +310,80 @@ export default function (code: string) {
 			continue;
 		}
 
+		/**
+		 * The Dot
+		 *
+		 * It can be one of many things:
+		 * - A singular dot, for member access
+		 * - A double dot, for a range
+		 * - A triple dot, for destructuring
+		 * - The beginning of a FileType
+		 */
+		if (char === patterns.PERIOD) {
+			const start = currentPosition;
+
+			// get next value
+			const secondChar = code[currentPosition + 1];
+
+			// if undefined, at the end of the script
+			if (typeof secondChar === 'undefined') {
+				char = code[++currentPosition];
+				tokens.push({ type: 'operator', start, end: currentPosition, value: '.'});
+				continue;
+			}
+
+			// if nextChar is a forward slash - it's a file
+			if (secondChar === patterns.FORWARD_SLASH) {
+				({ char, currentPosition } = processFilepath(char, currentPosition, code, tokens));
+
+				continue;
+			}
+
+			// check for triple dot, then for double dot, then default to single dot
+			if (secondChar === char) { // if the second one's a dot
+				const thirdChar = code[currentPosition + 2];
+				if (typeof thirdChar !== 'undefined' && thirdChar === char) { // third is a dot
+					// skip the next 2 dots
+					currentPosition += 2;
+
+					char = code[++currentPosition];
+					tokens.push({ type: 'operator', start, end: currentPosition, value: '...'});
+					continue;
+				} else {
+					// skip the next dot
+					++currentPosition;
+
+					// no third dot, we have a ..
+					char = code[++currentPosition];
+					tokens.push({ type: 'operator', start, end: currentPosition, value: '..'});
+					continue;
+				}
+			} else {
+				// no second dot, we have a .
+				char = code[++currentPosition];
+				tokens.push({ type: 'operator', start, end: currentPosition, value: '.'});
+				continue;
+			}
+		}
+
 		// something we don't recognize
-		throw new TypeError('I dont know what this character is: ' + char);
+		throw new LexerError('I dont know how to process this character yet: "' + char + '"', tokens);
     }
 
 	return tokens;
+}
+
+function processFilepath(char: string, currentPosition: number, code: string, tokens: Token[]) {
+	let value = '';
+	const start = currentPosition;
+	while (currentPosition < code.length && patterns.FILEPATH.test(char)) {
+		value += char;
+		char = code[++currentPosition];
+	}
+
+	tokens.push({type: 'filepath', start, end: currentPosition, value});
+
+	return { char, currentPosition };
 }
 
 function processNumbers(char: string, currentPosition: number, code: string, tokens: Token[]) {
@@ -251,11 +394,11 @@ function processNumbers(char: string, currentPosition: number, code: string, tok
 		 * Commas and Periods
 		 *
 		 * For a comma to be part of the number, the chars immediately before and after must also be numbers
-		 * valid: 1,234
-		 * valid 123,356
-		 * invalid 123,,456
-		 * invalid ,123
-		 * invalid 123, // this is a number following by a comma token
+		 * valid number: 1,234
+		 * valid number: 123,356
+		 * invalid number: 123,,456
+		 * invalid number: ,123
+		 * invalid number: 123, // this is a number following by a comma token
 		 *
 		 * if it's a comma or period, we check the previous and next chars
 		 */
@@ -274,7 +417,7 @@ function processNumbers(char: string, currentPosition: number, code: string, tok
 				// if the next char doesn't exist, it's a trailing comma, and is not part of the number
 				// or it does exist but isn't a number, the number is finished
 				// This takes care of cases such as '1,a', '1,.', '1,,', etc.
-				++currentPosition;
+				tokens.push({ type: 'number', start, end: currentPosition, value });
 
 				return { char, currentPosition };
 			}
@@ -284,13 +427,19 @@ function processNumbers(char: string, currentPosition: number, code: string, tok
 		char = code[++currentPosition];
 	}
 
-	tokens.push({
-		type: 'number',
-		start,
-		end: currentPosition,
-		value,
-	});
+	tokens.push({ type: 'number', start, end: currentPosition, value });
 
 	return { char, currentPosition };
 }
 
+function processSingleLineComment(currentPosition: number, code: string, char: string, tokens: Token[], start: number) {
+	let value = '';
+
+	while (currentPosition < code.length && !patterns.NEWLINE.test(char)) {
+		value += char;
+		char = code[++currentPosition];
+	}
+
+	tokens.push({ type: 'comment', start, end: currentPosition, value: value });
+	return { currentPosition, char };
+}

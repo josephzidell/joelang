@@ -29,6 +29,34 @@ describe('lexer.ts', (): void => {
 		});
 	});
 
+	describe('comments', (): void => {
+		it('single-line with hash', (): void => {
+			expect(lexer('# foo')).toStrictEqual([
+				{ type: 'comment', start: 0, end: 5, value: '# foo'},
+			]);
+		});
+
+		it('single-line with slash', (): void => {
+			expect(lexer('// foo')).toStrictEqual([
+				{ type: 'comment', start: 0, end: 6, value: '// foo'},
+			]);
+		});
+
+		it('multiline', (): void => {
+			expect(lexer('/* foo \n * bar\n */')).toStrictEqual([
+				{ type: 'comment', start: 0, end: 18, value: '/* foo \n * bar\n */'},
+			]);
+		});
+	});
+
+	describe('identifiers', (): void => {
+		it('should work with lower case letters, upper case letters, and numbers', (): void => {
+			expect(lexer('aR_g1')).toStrictEqual([
+				{ type: 'name', start: 0, end: 5, value: 'aR_g1'},
+			]);
+		});
+	});
+
 	describe('numbers', (): void => {
 		it('small number', (): void => {
 			expect(lexer('51')).toStrictEqual([
@@ -74,8 +102,7 @@ describe('lexer.ts', (): void => {
 
 			expect(lexer('100001e23')).toStrictEqual([
 				{ type: 'number', start: 0, end: 6, value: '100001' },
-				{ type: 'name', start: 6, end: 7, value: 'e' },
-				{ type: 'number', start: 7, end: 9, value: '23' },
+				{ type: 'name', start: 6, end: 9, value: 'e23' },
 			]);
 		});
 
@@ -383,6 +410,37 @@ describe('lexer.ts', (): void => {
 					{ type: 'string', start: 12, end: 15, value: '大' }, // start to end includes the quotes
 				]);
 			});
+		});
+	});
+
+	describe('bugs fixed', (): void => {
+		it('"1," should not be empty', (): void => {
+			expect(lexer('1,')).toStrictEqual([
+				{ type: 'number', start: 0, end: 1, value: '1' },
+				{ type: 'separator', start: 1, end: 2, value: ','},
+			]);
+		});
+
+		it('"3..10" should have one operator token', (): void => {
+			expect(lexer('3..10')).toStrictEqual([
+				{ type: 'number', start: 0, end: 1, value: '3' },
+				{ type: 'operator', start: 1, end: 3, value: '..'},
+				{ type: 'number', start: 3, end: 5, value: '10' },
+			]);
+		});
+
+		it('". " should have one operator token', (): void => {
+			expect(lexer('. ')).toStrictEqual([
+				{ type: 'operator', start: 0, end: 1, value: '.' },
+			]);
+		});
+
+		it('"from /lexer;" should have the semicolon token', (): void => {
+			expect(lexer('from /lexer;')).toStrictEqual([
+				{ type: 'keyword', start: 0, end: 4, value: 'from' },
+				{ type: 'filepath', start: 5, end: 11, value: '/lexer'},
+				{ type: 'separator', start: 11, end: 12, value: ';'},
+			]);
 		});
 	});
 });
