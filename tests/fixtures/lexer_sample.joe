@@ -5,59 +5,59 @@ import lexer from ./lexer;
 import lexer2 from /lexer;
 
 class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
-    static bar = 'baz'; // public static property
-    private isDone? = true // private instance property
+	static bar = 'baz'; // public static property
+	private isDone? = true // private instance property
 
-    /** method with no args and no return */
-    foo {
-        const size = switch someNumber {
-            is 1, is 2: 'small';
-            is in 3..10: 'medium';
-            is 11: 'large';
-            else: 'off the charts';
-        }
+	/** method with no args and no return */
+	foo {
+		const size = switch someNumber {
+			is 1, is 2: 'small';
+			is in 3..10: 'medium';
+			is 11: 'large';
+			else: 'off the charts';
+		}
 
-        let myTuple = [
-            1,
-            10 if this.isDone?, // if false, element will not be in tuple
-            3
-        ];
+		let myTuple = [
+			1,
+			10 if this.isDone?, // if false, element will not be in tuple
+			3
+		];
 
-        let count = 1..myTuple[2] // new Tuple [1, 2, 3]
-        let countDown = myTuple[1]..0 // new Tuple [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-        let partitionedTuple = [
-            countDown[:1],
-            countDown[2:6],
-            countDown[7:],
-        ]; // new nested Tuple [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
-        let selectedTupleItems = countDown[1, 4, 9] // new Tuple [9, 6, 1]
+		let count = 1..myTuple[2] // new Tuple [1, 2, 3]
+		let countDown = myTuple[1]..0 // new Tuple [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+		let partitionedTuple = [
+			countDown[:1],
+			countDown[2:6],
+			countDown[7:],
+		]; // new nested Tuple [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
+		let selectedTupleItems = countDown[1, 4, 9] // new Tuple [9, 6, 1]
 
-        let myObject = {
-            a: 1,
-            b: 'coat' if this.isDone?, // if false, property will not be in object
-            c: cond ? true : false, // regular ternary - property will always be there, value differs
-            d: nil,
-        };
+		let myObject = {
+			a: 1,
+			b: 'coat' if this.isDone?, // if false, property will not be in object
+			c: cond ? true : false, // regular ternary - property will always be there, value differs
+			d: nil,
+		};
 
-        let partialObj = myObject[a, d] // new object {a: 1, d: nil}
-    }
+		let partialObj = myObject[a, d] // new object {a: 1, d: nil}
+	}
 
-    /** with args */
-    methodWithArgs (arg1: bool, arg2: Tuple, arg3 = true, ...otherStuff: Thing[]) { ... }
+	/** with args */
+	methodWithArgs (arg1: bool, arg2: Tuple, arg3 = true, ...otherStuff: Thing[]) { ... }
 
-    /** with one return val */
-    methodThatReturnsBool? : bool {
-        return
-    }
+	/** with one return val */
+	methodThatReturnsBool? : bool {
+		return
+	}
 
-    /** multiple return vals */
-    methodThatReturnsBool? : bool, number, Thing {
-        return false, 5, new Thing
-    }
+	/** multiple return vals */
+	methodThatReturnsBool? : bool, number, Thing {
+		return false, 5, new Thing
+	}
 
-    /** method that throws error */
-    careful! { ... }
+	/** method that throws error */
+	careful! { ... }
 
-    /** method with bool return that throws error */
-    careful?! : bool { ... }
+	/** method with bool return that throws error */
+	careful?! : bool { ... }
 }
