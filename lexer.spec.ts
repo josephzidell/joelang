@@ -1,4 +1,4 @@
-import lexer, {keywords} from "../lexer";
+import lexer, {keywords} from "./lexer";
 
 describe('lexer.ts', (): void => {
 	describe('keywords', (): void => {
