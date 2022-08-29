@@ -3,10 +3,23 @@ export type TokenType = 'paren' | 'bracket' | 'brace' | 'bool' | 'number' | 'str
 
 // info about a token
 export type Token = {
+	/** the type of token */
 	type: TokenType;
-	start: number; // cursor position of the beginning of this token
-	end: number; // cursor position immediately after this token
+
+	/** the value, always represented as a string. The parser will take care of converting */
 	value: string;
+
+	/** cursor position of the beginning of this token, counting from the beginning of the file */
+	start: number;
+
+	/** cursor position immediately after this token */
+	end: number;
+
+	/** line number, begins at 1 */
+	line: number;
+
+	/** col position, begins at 1, within the line of the first char (similar to `start`, but within the line - if the entire file were one line, then `pos` would be the same as `start`) */
+	col: number;
 };
 
 // reserved keywords
@@ -52,6 +65,6 @@ export const patterns = {
 	DIGITS: /[0-9]/,
 	FILEPATH: /[a-zA-Z0-9-_./]/, // characters in filepath, excluding the front: @
 	LETTERS: /[a-z]/i,
-	NEWLINE: /(\r\n|\r|\n)/,
+	NEWLINE: /\n/,
 	WHITESPACE: /\s/,
 };

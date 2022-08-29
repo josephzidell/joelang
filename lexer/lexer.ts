@@ -1,389 +1,453 @@
 import LexerError from "./error";
 import {Token, TokenType, keywords, patterns, specialValueTypes} from './types';
+import { standardizeLineEndings } from "./util";
 
-export default function (code: string) {
-	// position begins at 0
-	let currentPosition = 0;
+export default class {
+	/** position begins at 0 and counts till the end of the script */
+	cursorPosition = 0;
 
-	// track all tokens
-    let tokens: Token[] = [];
+	/** line begins at 1 */
+	line = 1;
 
-	// loop through all characters
-	while (currentPosition < code.length) {
-		let char = code[currentPosition];
+	/** position on the line begins at one and resets each time the line changes */
+	col = 1;
 
-		// joelang ignores whitespace
-		if (patterns.WHITESPACE.test(char)) {
-			currentPosition++;
+	/** the source code */
+	code: string = '';
 
-			continue;
-		}
+	/** track all tokens */
+	tokens: Token[] = [];
 
-		/**
-		 * Forward Slash
-		 *
-		 * Forward Slash can be:
-		 * - The beginning of a comment
-		 * - A division artihmetic symbol
-		 * - The beginning of a Filepath
-		 */
-		if (char === patterns.FORWARD_SLASH) {
-			const start = currentPosition;
+	/** char at the cursorPosition */
+	char = '';
 
-			// check if next char is asterisk or another forward slash - comment time
-			const nextChar = code[currentPosition + 1];
+	lexify (code: string) {
+		// fix line endings
+		this.code = standardizeLineEndings(code);
 
-			// if undefined, we're at the end of the script
-			if (typeof nextChar === 'undefined') {
-				char = code[++currentPosition];
-				tokens.push({ type: 'operator', start, end: currentPosition, value: '/'});
-				continue;
-			}
+		// loop through all characters
+		while (this.cursorPosition < this.code.length) {
+			this.char = this.code[this.cursorPosition];
 
-			// if next char is / it's a single line comment
-			if (nextChar === char) {
-				({ currentPosition, char } = processSingleLineComment(currentPosition, code, char, tokens, start));
+			// capture these token must-haves at the start of a potentially multi-character token
+			const [start, line, col] = [this.cursorPosition, this.line, this.col];
+
+			// joelang ignores whitespace
+			if (this.matchesRegex(patterns.WHITESPACE, this.char)) {
+				this.next();
 
 				continue;
 			}
-
-			// if next char is * it's a multiline comment
-			if (nextChar === patterns.ASTERISK) {
-				let value = '';
-
-				// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
-				while (currentPosition < code.length && !(char === patterns.ASTERISK && code[currentPosition + 1] === patterns.FORWARD_SLASH)) {
-					value += char;
-					char = code[++currentPosition];
-				}
-
-				// skip the asterisk and slash
-				currentPosition += 2;
-				tokens.push({ type: 'comment', start, end: currentPosition, value: value + '*/'});
-				continue;
-			}
-
-			// if previous token is a number, this is a division symbol
-			if (tokens[tokens.length - 1].type === 'number') {
-				char = code[++currentPosition];
-				tokens.push({ type: 'operator', start, end: currentPosition, value: '/'});
-				continue;
-			}
-
-			// otherwise it's a filepath
-			({ char, currentPosition } = processFilepath(char, currentPosition, code, tokens));
-
-			continue;
-		}
-
-		/** Hash */
-		if (char === patterns.HASH) {
-			({ currentPosition, char } = processSingleLineComment(currentPosition, code, char, tokens, currentPosition));
-
-			continue;
-		}
-
-		/**
-		 * Operator characters that can be single or double: + ++, - --, | ||, & &&, ? ??
-		 */
-		if (char === patterns.PLUS || char === patterns.MINUS || char === patterns.PIPE || char === patterns.AMPERSAND || char === patterns.QUESTION) {
-			// peek at the next char
-			const nextChar = code[currentPosition + 1];
-			// it's the same, so we're hitting a double
-			if (char === nextChar) {
-				tokens.push({type: 'operator', start: currentPosition, end: currentPosition + 2, value: char + char});
-
-				++currentPosition; // skip next character
-
-			// single
-			} else {
-				tokens.push({type: 'operator', start: currentPosition, end: currentPosition + 1, value: char});
-			}
-
-			currentPosition++;
-
-			continue;
-		}
-
-		/** Numbers */
-		if (patterns.DIGITS.test(char)) {
-			({ char, currentPosition } = processNumbers(char, currentPosition, code, tokens));
-
-			continue;
-		}
-
-		/**
-		 * Exponents 1^e2
-		 *
-		 * For an exponent to be part of the number, the chars immediately before and after must also be numbers
-		 * valid: 1^e234
-		 * valid 123^e3
-		 * invalid 123^e,456
-		 * invalid ^e123
-		 * invalid ^123
-		 * invalid e123
-		 * invalid 123^e // this is a number followed by a caret token
-		 * invalid 123^ // this is a number followed by a caret token
-		 * invalid 123e // this is a number followed by a name token
-		 *
-		 * if it's a caret, we check the previous and next chars
-		 */
-		 if (char === patterns.CARET) {
-			const start = currentPosition;
 
 			/**
-			 * Check the previous and next chars to see if it's part of an exponent
+			 * Forward Slash
+			 *
+			 * Forward Slash can be:
+			 * - The beginning of a comment
+			 * - A division artihmetic symbol
+			 * - The beginning of a Filepath
 			 */
-			const prevChar = code[currentPosition - 1];
-			const nextChar = code[currentPosition + 1];
-			if (patterns.DIGITS.test(prevChar) && typeof nextChar !== 'undefined' && code[currentPosition + 1] === 'e') {
-				// if the next char doesn't exist, it's a trailing caret, and is not part of the number
-				// or it does exist but isn't an 'e', the number is finished
-				// This takes care of cases such as '1^a', '1^', '^1', etc.
-				++currentPosition; // skip next character
+			if (this.char === patterns.FORWARD_SLASH) {
+				// check if next char is asterisk or another forward slash - comment time
+				const nextChar = this.peek();
 
-				char = code[++currentPosition];
-
-				tokens.push({type: 'operator', start, end: currentPosition, value: '^e'});
-
-				continue;
-			}
-
-			// nope it's a caret
-			char = code[++currentPosition];
-
-			tokens.push({type: 'operator', start, end: currentPosition, value: '^'});
-
-			continue;
-		}
-
-		/** Strings */
-		if (patterns.DOUBLE_QUOTE === char || patterns.SINGLE_QUOTE === char) {
-			// TODO double-quoted strings can have interpolation
-
-			let value = '';
-			const start = currentPosition;
-			const quoteChar = char; // capture the type of quote to check for closing
-
-			char = code[++currentPosition]; // skip the quote char itself
-
-			while (currentPosition < code.length && char !== quoteChar) {
-				value += char;
-				char = code[++currentPosition];
-			}
-
-			// skip the closing quote char
-			char = code[++currentPosition];
-
-			tokens.push({type: 'string', start, end: currentPosition, value});
-
-			continue;
-		}
-
-		/** Separators: Semicolons, Comma, Colon */
-		if (char === patterns.SEMICOLON || char === patterns.COMMA || char === patterns.COLON) {
-			tokens.push({type: 'separator', start: currentPosition, end: currentPosition + 1, value: char});
-			currentPosition++;
-			continue;
-		}
-
-		/** Braces */
-		if (char === '{' || char === '}') {
-			tokens.push({type: 'brace', start: currentPosition, end: currentPosition + 1, value: char});
-			currentPosition++;
-			continue;
-		}
-
-		/** Brackets */
-		if (char === '[' || char === ']') {
-			tokens.push({type: 'bracket', start: currentPosition, end: currentPosition + 1, value: char});
-			currentPosition++;
-			continue;
-		}
-
-		/** Parens */
-		if (char === '(' || char === ')') {
-			tokens.push({type: 'paren', start: currentPosition, end: currentPosition + 1, value: char});
-			currentPosition++;
-			continue;
-		}
-
-		/** Letters */
-		if (patterns.LETTERS.test(char)) {
-			let value = '';
-			const start = currentPosition;
-			while (currentPosition < code.length && (patterns.LETTERS.test(char) || patterns.DIGITS.test(char) || char === patterns.UNDERSCORE)) {
-				value += char;
-				char = code[++currentPosition];
-			}
-
-			// check for '?'
-			if (char === patterns.QUESTION) {
-				value += char;
-				char = code[++currentPosition];
-			}
-
-			// check for '!'
-			if (char === patterns.BANG) {
-				value += char;
-				char = code[++currentPosition];
-			}
-
-			// check if it's a keyword, then check if it's a special value, otherwise fall back to 'name'
-			// keywords in joelang are case sensitive
-			if ((keywords as unknown as string[]).includes(value)) {
-				tokens.push({type: 'keyword', start, end: currentPosition, value});
-			} else {
-				let type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'name';
-
-				tokens.push({type, start, end: currentPosition, value});
-			}
-
-			continue;
-		}
-
-		if (char === patterns.EQUALS) {
-			tokens.push({
-				type: 'operator',
-				start: currentPosition,
-				end: currentPosition + 1,
-				value: char,
-			})
-
-			char = code[++currentPosition];
-			continue;
-		}
-
-		/**
-		 * The Dot
-		 *
-		 * It can be one of many things:
-		 * - A singular dot, for member access
-		 * - A double dot, for a range
-		 * - A triple dot, for destructuring
-		 * - The beginning of a FileType
-		 */
-		if (char === patterns.PERIOD) {
-			const start = currentPosition;
-
-			// get next value
-			const secondChar = code[currentPosition + 1];
-
-			// if undefined, at the end of the script
-			if (typeof secondChar === 'undefined') {
-				char = code[++currentPosition];
-				tokens.push({ type: 'operator', start, end: currentPosition, value: '.'});
-				continue;
-			}
-
-			// if nextChar is a forward slash - it's a file
-			if (secondChar === patterns.FORWARD_SLASH) {
-				({ char, currentPosition } = processFilepath(char, currentPosition, code, tokens));
-
-				continue;
-			}
-
-			// check for triple dot, then for double dot, then default to single dot
-			if (secondChar === char) { // if the second one's a dot
-				const thirdChar = code[currentPosition + 2];
-				if (typeof thirdChar !== 'undefined' && thirdChar === char) { // third is a dot
-					// skip the next 2 dots
-					currentPosition += 2;
-
-					char = code[++currentPosition];
-					tokens.push({ type: 'operator', start, end: currentPosition, value: '...'});
+				// if undefined, we're at the end of the script
+				if (typeof nextChar === 'undefined') {
+					this.next();
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '/', line, col });
 					continue;
+				}
+
+				// if next char is / it's a single line comment
+				if (nextChar === this.char) {
+					this.processSingleLineComment();
+
+					continue;
+				}
+
+				// if next char is * it's a multiline comment
+				if (nextChar === patterns.ASTERISK) {
+					// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
+					let value = this.gobbleUntil(() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH);
+
+					// skip the asterisk and slash
+					this.cursorPosition += 2;
+					this.col += 2;
+					this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col });
+					continue;
+				}
+
+				// if previous token is a number, this is a division symbol
+				if (this.tokens[this.tokens.length - 1].type === 'number') {
+					this.next();
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '/', line, col });
+					continue;
+				}
+
+				// otherwise it's a filepath
+				this.processFilepath();
+
+				continue;
+			}
+
+			/** Hash */
+			if (this.char === patterns.HASH) {
+				this.processSingleLineComment();
+
+				continue;
+			}
+
+			/**
+			 * Operator characters that can be single or double: + ++, - --, | ||, & &&, ? ??
+			 */
+			if (this.char === patterns.PLUS || this.char === patterns.MINUS || this.char === patterns.PIPE || this.char === patterns.AMPERSAND || this.char === patterns.QUESTION) {
+				// peek at the next char - it's the same, we're hitting a double
+				if (this.char === this.peek()) {
+					this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
+
+					this.skipKnownCharacter(); // skip next character
+
+				// single
 				} else {
-					// skip the next dot
-					++currentPosition;
-
-					// no third dot, we have a ..
-					char = code[++currentPosition];
-					tokens.push({ type: 'operator', start, end: currentPosition, value: '..'});
-					continue;
+					this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
 				}
-			} else {
-				// no second dot, we have a .
-				char = code[++currentPosition];
-				tokens.push({ type: 'operator', start, end: currentPosition, value: '.'});
+
+				this.next();
+
 				continue;
 			}
-		}
 
-		// something we don't recognize
-		throw new LexerError('Syntax Error. Unknown character: "' + char + '"', tokens);
-    }
+			/** Numbers */
+			if (this.matchesRegex(patterns.DIGITS, this.char)) {
+				this.processNumbers();
 
-	return tokens;
-}
-
-function processFilepath(char: string, currentPosition: number, code: string, tokens: Token[]) {
-	let value = '';
-	const start = currentPosition;
-	while (currentPosition < code.length && patterns.FILEPATH.test(char)) {
-		value += char;
-		char = code[++currentPosition];
-	}
-
-	tokens.push({type: 'filepath', start, end: currentPosition, value});
-
-	return { char, currentPosition };
-}
-
-function processNumbers(char: string, currentPosition: number, code: string, tokens: Token[]) {
-	let value = '';
-	const start = currentPosition;
-	while (currentPosition < code.length && patterns.DIGITS.test(char) || char === patterns.COMMA || char === patterns.PERIOD) {
-		/**
-		 * Commas and Periods
-		 *
-		 * For a comma to be part of the number, the chars immediately before and after must also be numbers
-		 * valid number: 1,234
-		 * valid number: 123,356
-		 * invalid number: 123,,456
-		 * invalid number: ,123
-		 * invalid number: 123, // this is a number following by a comma token
-		 *
-		 * if it's a comma or period, we check the previous and next chars
-		 */
-		if (char === patterns.COMMA || char === patterns.PERIOD) {
-			/**
-			 * Even though a comma must be preceeded by a number, we don't need to check.
-			 *
-			 * Take this case '1,,2':
-			 *
-			 * The first character is a number: good.
-			 * The second character is a comma: check the next one. Since it's a comma,
-			 * even this first comma isn't part of the number, and we exit this loop
-			 */
-			const nextChar = code[currentPosition + 1];
-			if (typeof nextChar === 'undefined' || !patterns.DIGITS.test(code[currentPosition + 1])) {
-				// if the next char doesn't exist, it's a trailing comma, and is not part of the number
-				// or it does exist but isn't a number, the number is finished
-				// This takes care of cases such as '1,a', '1,.', '1,,', etc.
-				tokens.push({ type: 'number', start, end: currentPosition, value });
-
-				return { char, currentPosition };
+				continue;
 			}
+
+			/**
+			 * Exponents 1^e2
+			 *
+			 * For an exponent to be part of the number, the chars immediately before and after must also be numbers
+			 * valid: 1^e234
+			 * valid 123^e3
+			 * invalid 123^e,456
+			 * invalid ^e123
+			 * invalid ^123
+			 * invalid e123
+			 * invalid 123^e // this is a number followed by a caret token
+			 * invalid 123^ // this is a number followed by a caret token
+			 * invalid 123e // this is a number followed by a name token
+			 *
+			 * if it's a caret, we check the previous and next chars
+			 */
+			 if (this.char === patterns.CARET) {
+				/**
+				 * Check the previous and next chars to see if it's part of an exponent
+				 */
+				if (this.matchesRegex(patterns.DIGITS, this.prev()) && this.peek() === 'e') {
+					// If the next char doesn't exist, then this is a trailing caret, and is not part of the number.
+					// Or the next char *does* exist but isn't an 'e', this is not an exponent, which makes the caret it's own thing, and the number is thus finished.
+					// This takes care of cases such as '1^a', '1^', '^1', etc.
+					this.skipKnownCharacter(); // skip next character
+
+					this.next();
+
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '^e', line, col });
+
+					continue;
+				}
+
+				// nope it's a just a plain ol' caret
+				this.next();
+
+				this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '^', line, col });
+
+				continue;
+			}
+
+			/** Strings */
+			if (patterns.DOUBLE_QUOTE === this.char || patterns.SINGLE_QUOTE === this.char) {
+				// TODO double-quoted strings can have interpolation
+
+				const quoteChar = this.char; // capture the type of quote to check for closing
+
+				this.next(); // skip the quote char itself
+
+				let value = this.gobbleUntil(() => this.char === quoteChar);
+
+				// skip the closing quote char
+				this.next();
+
+				this.tokens.push({ type: 'string', start, end: this.cursorPosition, value, line, col });
+
+				continue;
+			}
+
+			/** Separators: Semicolons, Comma, Colon */
+			if (this.char === patterns.SEMICOLON || this.char === patterns.COMMA || this.char === patterns.COLON) {
+				this.tokens.push({ type: 'separator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
+			}
+
+			/** Braces */
+			if (this.char === '{' || this.char === '}') {
+				this.tokens.push({ type: 'brace', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
+			}
+
+			/** Brackets */
+			if (this.char === '[' || this.char === ']') {
+				this.tokens.push({ type: 'bracket', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
+			}
+
+			/** Parens */
+			if (this.char === '(' || this.char === ')') {
+				this.tokens.push({ type: 'paren', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
+			}
+
+			/** Letters */
+			if (this.matchesRegex(patterns.LETTERS, this.char)) {
+				let value = this.gobbleAsLongAs(() => this.matchesRegex(patterns.LETTERS, this.char) || this.matchesRegex(patterns.DIGITS, this.char) || this.char === patterns.UNDERSCORE);
+
+				// check for '?'
+				if (this.char === patterns.QUESTION) {
+					value += this.getChar();
+				}
+
+				// check for '!'
+				if (this.char === patterns.BANG) {
+					value += this.getChar();
+				}
+
+				// check if it's a keyword, then check if it's a special value, otherwise fall back to 'name'
+				// keywords in joelang are case sensitive
+				if ((keywords as unknown as string[]).includes(value)) {
+					this.tokens.push({ type: 'keyword', start, end: this.cursorPosition, value, line, col });
+				} else {
+					let type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'name';
+
+					this.tokens.push({ type, start, end: this.cursorPosition, value, line, col });
+				}
+
+				continue;
+			}
+
+			if (this.char === patterns.EQUALS) {
+				this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
+				this.next();
+				continue;
+			}
+
+			/**
+			 * The Dot
+			 *
+			 * It can be one of many things:
+			 * - A singular dot, for member access
+			 * - A double dot, for a range
+			 * - A triple dot, for destructuring
+			 * - The beginning of a FileType
+			 */
+			if (this.char === patterns.PERIOD) {
+				// get next value
+				const secondChar = this.peek();
+
+				// if undefined, at the end of the script
+				if (typeof secondChar === 'undefined') {
+					this.next();
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '.', line, col });
+					continue;
+				}
+
+				// if nextChar is a forward slash - it's a file
+				if (secondChar === patterns.FORWARD_SLASH) {
+					this.processFilepath();
+
+					continue;
+				}
+
+				// check for triple dot, then for double dot, then default to single dot
+				if (secondChar === this.char) { // if the second one's a dot
+					const thirdChar = this.code[this.cursorPosition + 2];
+					if (typeof thirdChar !== 'undefined' && thirdChar === this.char) { // third is a dot
+						// skip the next 2 dots
+						this.cursorPosition += 2;
+						this.col += 2;
+
+						this.next();
+						this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '...', line, col });
+						continue;
+					} else {
+						// skip the next dot
+						this.skipKnownCharacter();
+
+						// no third dot, we have a ..
+						this.next();
+						this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '..', line, col });
+						continue;
+					}
+				} else {
+					// no second dot, we have a .
+					this.next();
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '.', line, col });
+					continue;
+				}
+			}
+
+			// something we don't recognize
+			throw new LexerError('Syntax Error. Unknown character: "' + this.char + '"', this.tokens);
 		}
 
-		value += char;
-		char = code[++currentPosition];
+		return this.tokens;
 	}
 
-	tokens.push({ type: 'number', start, end: currentPosition, value });
+	/** Captures the current char, advances position, and returns current char */
+	getChar () {
+		// capture the current char in a var
+		const value = this.char;
 
-	return { char, currentPosition };
-}
+		this.next();
 
-function processSingleLineComment(currentPosition: number, code: string, char: string, tokens: Token[], start: number) {
-	let value = '';
-
-	while (currentPosition < code.length && !patterns.NEWLINE.test(char)) {
-		value += char;
-		char = code[++currentPosition];
+		// finally, return the original char
+		return value;
 	}
 
-	tokens.push({ type: 'comment', start, end: currentPosition, value: value });
-	return { currentPosition, char };
+	/** Grab chars as long as the predicate evaluates to true */
+	gobbleAsLongAs(predicate: () => boolean): string {
+		let value = '';
+
+		while (this.cursorPosition < this.code.length && predicate()) {
+			value += this.getChar();
+		}
+
+		return value;
+	}
+
+	/** Grab chars until the predicate evaluates to true */
+	gobbleUntil(predicate: () => boolean): string {
+		let value = '';
+
+		while (this.cursorPosition < this.code.length && !predicate()) {
+			value += this.getChar();
+		}
+
+		return value;
+	}
+
+	/**
+	 * Checks whether the char matches the provided regex.
+	 *
+	 * This is a thin wrapper around RegExp.test(), which return true if the char is undefined, and we don't want that behavior.
+	 */
+	matchesRegex(regex: RegExp, char: string | undefined): boolean {
+		if (typeof char === 'undefined') {
+			return false;
+		}
+
+		return regex.test(char);
+	}
+
+	/** Advanced the cursorPosition and updates the current char */
+	next() {
+		// if this char is a newline, update the line and col
+		if (this.matchesRegex(patterns.NEWLINE, this.char)) {
+			this.line++;
+			this.col = 1;
+		} else {
+			// otherwise just increment the column
+			++this.col;
+		}
+
+		this.char = this.code[++this.cursorPosition];
+	}
+
+	/** Returns the previous char */
+	prev(): string {
+		return this.code[this.cursorPosition - 1];
+	}
+
+	/** Peeks ahead at the next char */
+	peek(): string | undefined {
+		return this.code[this.cursorPosition + 1];
+	}
+
+	/**
+	 * Skips the current, known, char by incrementing the position
+	 *
+	 * CAUTION: this should only be used for skipping over a known character,
+	 * when it will be handled manualy, but never anything unknown, or whitespace.
+	 * It will cause issues if this is used to skip a newline.
+	 *
+	 * For unknown chars or whitespace, use `next()`
+	 */
+	skipKnownCharacter(): void {
+		++this.col;
+		++this.cursorPosition;
+	}
+
+	processFilepath() {
+		// capture these at the start of a potentially multi-character token
+		const [start, line, col] = [this.cursorPosition, this.line, this.col];
+
+		let value = this.gobbleAsLongAs(() => this.matchesRegex(patterns.FILEPATH, this.char));
+		this.tokens.push({ type: 'filepath', start, end: this.cursorPosition, value, line, col });
+	}
+
+	processNumbers() {
+		// capture these at the start of a potentially multi-character token
+		const [start, line, col] = [this.cursorPosition, this.line, this.col];
+
+		let value = '';
+		while (this.cursorPosition < this.code.length && this.matchesRegex(patterns.DIGITS, this.char) || this.char === patterns.COMMA || this.char === patterns.PERIOD) {
+			/**
+			 * Commas and Periods
+			 *
+			 * For a comma to be part of the number, the chars immediately before and after must also be numbers
+			 * valid number: 1,234
+			 * valid number: 123,356
+			 * invalid number: 123,,456
+			 * invalid number: ,123
+			 * invalid number: 123, // this is a number following by a comma token
+			 *
+			 * if it's a comma or period, we check the previous and next chars
+			 */
+			if (this.char === patterns.COMMA || this.char === patterns.PERIOD) {
+				/**
+				 * Even though a comma must be preceeded by a number, we don't need to check.
+				 *
+				 * Take this case '1,,2':
+				 *
+				 * The first character is a number: good.
+				 * The second character is a comma: check the next one. Since it's a comma,
+				 * even this first comma isn't part of the number, and we exit this loop
+				 */
+				const nextChar = this.peek();
+				if (typeof nextChar === 'undefined' || !this.matchesRegex(patterns.DIGITS, nextChar)) {
+					// if the next char doesn't exist, it's a trailing comma, and is not part of the number
+					// or it does exist but isn't a number, the number is finished
+					// This takes care of cases such as '1,a', '1,.', '1,,', etc.
+					this.tokens.push({ type: 'number', start, end: this.cursorPosition, value, line, col });
+
+					return;
+				}
+			}
+
+			value += this.getChar();
+		}
+
+		this.tokens.push({ type: 'number', start, end: this.cursorPosition, value, line, col });
+	}
+
+	processSingleLineComment() {
+		// capture these at the start of a potentially multi-character token
+		const [start, line, col] = [this.cursorPosition, this.line, this.col];
+
+		let value = this.gobbleUntil(() => this.matchesRegex(patterns.NEWLINE, this.char));
+		this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value, line, col });
+	}
 }

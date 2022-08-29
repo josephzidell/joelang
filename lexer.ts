@@ -1,10 +1,10 @@
-import lexer from "./lexer/lexer";
+import Lexer from "./lexer/lexer";
 import LexerError from "./lexer/error";
 import fs from 'fs-extra';
 
 void (async (): Promise<void> => {
     try {
-		const tokens = lexer(process.argv[2]);
+		const tokens = new Lexer().lexify(process.argv[2]);
 
 		// filename is 3rd arg
 		if (process.argv[3]) {
