@@ -105,7 +105,7 @@ export default class {
 				if (this.char === this.peek()) {
 					this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
 
-					this.skipKnownCharacter(); // skip next character
+					this.next(); // skip next character
 
 				// single
 				} else {
@@ -148,9 +148,9 @@ export default class {
 					// If the next char doesn't exist, then this is a trailing caret, and is not part of the number.
 					// Or the next char *does* exist but isn't an 'e', this is not an exponent, which makes the caret it's own thing, and the number is thus finished.
 					// This takes care of cases such as '1^a', '1^', '^1', etc.
-					this.skipKnownCharacter(); // skip next character
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 2, value: '^e', line, col });
 
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '^e', line, col });
+					this.next(); // skip next character
 
 					this.next();
 
@@ -284,12 +284,12 @@ export default class {
 						this.next();
 						continue;
 					} else {
-						// skip the next dot
-						this.skipKnownCharacter();
-
 						// no third dot, we have a ..
-						this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '..', line, col });
+						this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 2, value: '..', line, col });
+
+						this.next(); // skip the next dot
 						this.next();
+
 						continue;
 					}
 				} else {
@@ -353,7 +353,13 @@ export default class {
 		return regex.test(char);
 	}
 
-	/** Advanced the cursorPosition and updates the current char */
+	/**
+	 * Advanced the cursorPosition and updates the current char
+	 *
+	 * This should be called right at the end of an iteration, right before `continue`.
+	 *
+	 * It can also be called if we're skipping a character.
+	 */
 	next() {
 		// if this char is a newline, update the line and col
 		if (this.matchesRegex(patterns.NEWLINE, this.char)) {
@@ -375,20 +381,6 @@ export default class {
 	/** Peeks ahead at the next char */
 	peek(): string | undefined {
 		return this.code[this.cursorPosition + 1];
-	}
-
-	/**
-	 * Skips the current, known, char by incrementing the position
-	 *
-	 * CAUTION: this should only be used for skipping over a known character,
-	 * when it will be handled manualy, but never anything unknown, or whitespace.
-	 * It will cause issues if this is used to skip a newline.
-	 *
-	 * For unknown chars or whitespace, use `next()`
-	 */
-	skipKnownCharacter(): void {
-		++this.col;
-		++this.cursorPosition;
 	}
 
 	processFilepath() {
