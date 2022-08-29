@@ -449,6 +449,24 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
+		it('"." should end at 1', (): void => {
+			expect(new Lexer().lexify('.')).toStrictEqual([
+				{ type: 'operator', start: 0, end: 1, value: '.', line: 1, col: 1 },
+			]);
+		});
+
+		it('".." should end at 2', (): void => {
+			expect(new Lexer().lexify('..')).toStrictEqual([
+				{ type: 'operator', start: 0, end: 2, value: '..', line: 1, col: 1 },
+			]);
+		});
+
+		it('"..." should end at 3', (): void => {
+			expect(new Lexer().lexify('...')).toStrictEqual([
+				{ type: 'operator', start: 0, end: 3, value: '...', line: 1, col: 1 },
+			]);
+		});
+
 		it('"from /lexer;" should have the semicolon token', (): void => {
 			expect(new Lexer().lexify('from /lexer;')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 4, value: 'from', line: 1, col: 1 },

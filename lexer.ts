@@ -10,7 +10,7 @@ void (async (): Promise<void> => {
 		if (process.argv[3]) {
 			await fs.writeFile(process.argv[3], JSON.stringify(tokens, undefined, '\t'));
 		} else {
-			console.log(tokens);
+			console.table(tokens);
 		}
 	} catch (e) {
 		const error = e as LexerError;

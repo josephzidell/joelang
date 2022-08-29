@@ -53,8 +53,8 @@ export default class {
 
 				// if undefined, we're at the end of the script
 				if (typeof nextChar === 'undefined') {
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '/', line, col });
 					this.next();
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '/', line, col });
 					continue;
 				}
 
@@ -79,8 +79,8 @@ export default class {
 
 				// if previous token is a number, this is a division symbol
 				if (this.tokens[this.tokens.length - 1].type === 'number') {
-					this.next();
 					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '/', line, col });
+					this.next();
 					continue;
 				}
 
@@ -150,17 +150,17 @@ export default class {
 					// This takes care of cases such as '1^a', '1^', '^1', etc.
 					this.skipKnownCharacter(); // skip next character
 
-					this.next();
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '^e', line, col });
 
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '^e', line, col });
+					this.next();
 
 					continue;
 				}
 
 				// nope it's a just a plain ol' caret
-				this.next();
+				this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '^', line, col });
 
-				this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '^', line, col });
+				this.next();
 
 				continue;
 			}
@@ -176,9 +176,9 @@ export default class {
 				let value = this.gobbleUntil(() => this.char === quoteChar);
 
 				// skip the closing quote char
-				this.next();
+				this.tokens.push({ type: 'string', start, end: this.cursorPosition + 1, value, line, col });
 
-				this.tokens.push({ type: 'string', start, end: this.cursorPosition, value, line, col });
+				this.next();
 
 				continue;
 			}
@@ -259,8 +259,8 @@ export default class {
 
 				// if undefined, at the end of the script
 				if (typeof secondChar === 'undefined') {
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '.', line, col });
 					this.next();
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '.', line, col });
 					continue;
 				}
 
@@ -279,22 +279,23 @@ export default class {
 						this.cursorPosition += 2;
 						this.col += 2;
 
+						this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '...', line, col });
+
 						this.next();
-						this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '...', line, col });
 						continue;
 					} else {
 						// skip the next dot
 						this.skipKnownCharacter();
 
 						// no third dot, we have a ..
+						this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '..', line, col });
 						this.next();
-						this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '..', line, col });
 						continue;
 					}
 				} else {
 					// no second dot, we have a .
+					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '.', line, col });
 					this.next();
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '.', line, col });
 					continue;
 				}
 			}
