@@ -173,7 +173,11 @@ export default class {
 
 				this.next(); // skip the quote char itself
 
-				let value = this.gobbleUntil(() => this.char === quoteChar);
+				let value = '';
+
+				while (this.cursorPosition < this.code.length && this.char !== quoteChar) {
+					value += this.getChar();
+				}
 
 				// skip the closing quote char
 				this.tokens.push({ type: 'string', start, end: this.cursorPosition + 1, value, line, col });
