@@ -50,6 +50,7 @@ export const patterns = {
 	COMMA: ',',
 	DOUBLE_QUOTE: '"',
 	EQUALS: '=',
+	ESCAPE: '\\',
 	FORWARD_SLASH: '/',
 	HASH: '#',
 	MINUS: '-',

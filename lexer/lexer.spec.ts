@@ -386,6 +386,12 @@ describe('lexer.ts', (): void => {
 					{ type: 'string', start: 12, end: 15, value: '大', line: 1, col: 13 }, // start to end includes the quotes
 				]);
 			});
+
+			it('keeps escaped quotes', (): void => {
+				expect(new Lexer().lexify("'a\\'b'")).toStrictEqual([
+					{ type: 'string', start: 0, end: 6, value: "a\\'b", line: 1, col: 1 },
+				]);
+			});
 		});
 
 		describe('single-quoted', (): void => {
@@ -422,6 +428,12 @@ describe('lexer.ts', (): void => {
 					{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 15, value: '大', line: 1, col: 13 }, // start to end includes the quotes
+				]);
+			});
+
+			it('keeps escaped quotes', (): void => {
+				expect(new Lexer().lexify('"a\\"b"')).toStrictEqual([
+					{ type: 'string', start: 0, end: 6, value: 'a\\"b', line: 1, col: 1 },
 				]);
 			});
 		});

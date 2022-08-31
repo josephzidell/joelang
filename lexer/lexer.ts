@@ -175,7 +175,21 @@ export default class {
 
 				let value = '';
 
-				while (this.cursorPosition < this.code.length && this.char !== quoteChar) {
+				while (this.cursorPosition < this.code.length) {
+					/**
+					 * this current char might be:
+					 * - [x] an escape char
+					 * - [x] an ending quote
+					 * - [ ] beginning or end of interpolation
+					 * - [x] an innocent char
+					 */
+
+					// ending quote
+					if (this.char === quoteChar && this.prev() !== patterns.ESCAPE) {
+						break;
+					}
+
+					// innocent char
 					value += this.getChar();
 				}
 
