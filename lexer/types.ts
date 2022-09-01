@@ -1,5 +1,5 @@
 // token types
-export type TokenType = 'paren' | 'bracket' | 'brace' | 'bool' | 'number' | 'string' | 'name' | 'keyword' | 'operator' | 'nil' | 'filepath' | 'separator' | 'comment';
+export type TokenType = 'paren' | 'bracket' | 'brace' | 'bool' | 'number' | 'string' | 'identifier' | 'keyword' | 'operator' | 'nil' | 'filepath' | 'separator' | 'comment';
 
 // info about a token
 export type Token = {
@@ -39,6 +39,13 @@ export const specialValueTypes: Record<SpecialValue, TokenType> = {
 	nil: 'nil',
 };
 
+export const mathematicalPatterns = {
+	PLUS: '+',
+	MINUS: '-',
+	MULTIPLICATION: '*',
+	DIVIDE: '/',
+}
+
 // syntax patterns
 export const patterns = {
 	// single characters
@@ -53,10 +60,8 @@ export const patterns = {
 	ESCAPE: '\\',
 	FORWARD_SLASH: '/',
 	HASH: '#',
-	MINUS: '-',
 	PIPE: '|',
 	PERIOD: '.',
-	PLUS: '+',
 	QUESTION: '?',
 	SEMICOLON: ';',
 	SINGLE_QUOTE: "'",
@@ -68,4 +73,6 @@ export const patterns = {
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	WHITESPACE: /\s/,
+
+	...mathematicalPatterns,
 };

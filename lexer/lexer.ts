@@ -117,6 +117,13 @@ export default class {
 				continue;
 			}
 
+			/** Other operators */
+			if ([patterns.EQUALS, patterns.MULTIPLICATION].includes(this.char)) {
+				this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
+				this.next();
+				continue;
+			}
+
 			/** Numbers */
 			if (this.matchesRegex(patterns.DIGITS, this.char)) {
 				this.processNumbers();
@@ -136,7 +143,7 @@ export default class {
 			 * invalid e123
 			 * invalid 123^e // this is a number followed by a caret token
 			 * invalid 123^ // this is a number followed by a caret token
-			 * invalid 123e // this is a number followed by a name token
+			 * invalid 123e // this is a number followed by an identifier token
 			 *
 			 * if it's a caret, we check the previous and next chars
 			 */
@@ -243,22 +250,16 @@ export default class {
 					value += this.getChar();
 				}
 
-				// check if it's a keyword, then check if it's a special value, otherwise fall back to 'name'
+				// check if it's a keyword, then check if it's a special value, otherwise it's an identifier
 				// keywords in joelang are case sensitive
 				if ((keywords as unknown as string[]).includes(value)) {
 					this.tokens.push({ type: 'keyword', start, end: this.cursorPosition, value, line, col });
 				} else {
-					let type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'name';
+					let type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'identifier';
 
 					this.tokens.push({ type, start, end: this.cursorPosition, value, line, col });
 				}
 
-				continue;
-			}
-
-			if (this.char === patterns.EQUALS) {
-				this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
-				this.next();
 				continue;
 			}
 

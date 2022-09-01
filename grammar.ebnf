@@ -1,0 +1,25 @@
+string : "'", [.*], "'" | '"', [.*], '"'
+non_zero_digit : [1-9]
+digit : "0" | non_zero_digit
+exponent : "^", "e"
+decimal : "."
+letter : [a-zA-Z]
+underscore : "_"
+hyphen : "-"
+question : "?"
+bang : "!"
+openParens : "("
+closeParens : ")"
+number_part : non_zero_digit, {digit}
+number : "0" | ["-"], number_part, [decimal, number_part], [exponent, ["-"], number_part]
+bool : "true" | "false"
+equality_operator : "==" | "!==" | "===" | "!==" | "<" | "<=" | ">" | ">="
+logical_operator : "||" | "&&"
+expression : variable | expression | string | number | bool
+variable : letter, {letter | digit | underscore | question} (* question at the end indicates a bool var *)
+assignment_keyword : "let" | "const"
+literal : string | number | bool
+assignment : assignment_keyword, variable, "=", literal // simple for now
+mathematical_operator : "+" | "-" | "*" | "/" | "%"
+simple_binary_operation : [openParens], number, mathematical_operator | logical_operator | equality_operator, number, [closeParens]
+binary_operation : simple_binary_operation, mathematical_operator, simple_binary_operation

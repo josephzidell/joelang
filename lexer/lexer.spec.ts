@@ -14,7 +14,7 @@ describe('lexer.ts', (): void => {
 		it('true', (): void => {
 			expect(new Lexer().lexify('let foo = true')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
-				{ type: 'name', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
+				{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
 				{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
 				{ type: 'bool', start: 10, end: 14, value: 'true', line: 1, col: 11 },
 			]);
@@ -23,7 +23,7 @@ describe('lexer.ts', (): void => {
 		it('false', (): void => {
 			expect(new Lexer().lexify('let foo = false')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
-				{ type: 'name', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
+				{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
 				{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
 				{ type: 'bool', start: 10, end: 15, value: 'false', line: 1, col: 11 },
 			]);
@@ -53,7 +53,7 @@ describe('lexer.ts', (): void => {
 	describe('identifiers', (): void => {
 		it('should work with lower case letters, upper case letters, and numbers', (): void => {
 			expect(new Lexer().lexify('aR_g1')).toStrictEqual([
-				{ type: 'name', start: 0, end: 5, value: 'aR_g1', line: 1, col: 1 },
+				{ type: 'identifier', start: 0, end: 5, value: 'aR_g1', line: 1, col: 1 },
 			]);
 		});
 	});
@@ -61,7 +61,7 @@ describe('lexer.ts', (): void => {
 	describe('line and col counts', (): void => {
 		it('works as it should', (): void => {
 			expect(new Lexer().lexify(" foo ??\n''\n   23^e5")).toStrictEqual([
-				{ type: 'name', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
+				{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
 				{ type: 'operator', start: 5, end: 7, value: '??', line: 1, col: 6 },
 				{ type: 'string', start: 8, end: 10, value: '', line: 2, col: 1 },
 				{ type: 'number', start: 14, end: 16, value: '23', line: 3, col: 4 },
@@ -116,14 +116,14 @@ describe('lexer.ts', (): void => {
 
 			expect(new Lexer().lexify('100001e23')).toStrictEqual([
 				{ type: 'number', start: 0, end: 6, value: '100001', line: 1, col: 1 },
-				{ type: 'name', start: 6, end: 9, value: 'e23', line: 1, col: 7 },
+				{ type: 'identifier', start: 6, end: 9, value: 'e23', line: 1, col: 7 },
 			]);
 		});
 
 		it('assigning small number', (): void => {
 			expect(new Lexer().lexify('let foo = 51')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
-				{ type: 'name', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
+				{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
 				{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
 				{ type: 'number', start: 10, end: 12, value: '51', line: 1, col: 11 },
 			]);
@@ -132,7 +132,7 @@ describe('lexer.ts', (): void => {
 		it('assigning const', (): void => {
 			expect(new Lexer().lexify('const foo = 51')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
-				{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
+				{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 				{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 				{ type: 'number', start: 12, end: 14, value: '51', line: 1, col: 13 },
 			]);
@@ -147,7 +147,7 @@ describe('lexer.ts', (): void => {
 				]);
 
 				expect(new Lexer().lexify('a | true')).toStrictEqual([
-					{ type: 'name', start: 0, end: 1, value: 'a', line: 1, col: 1 },
+					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
 					{ type: 'operator', start: 2, end: 3, value: '|', line: 1, col: 3 },
 					{ type: 'bool', start: 4, end: 8, value: 'true', line: 1, col: 5 },
 				]);
@@ -159,7 +159,7 @@ describe('lexer.ts', (): void => {
 				]);
 
 				expect(new Lexer().lexify('a || true')).toStrictEqual([
-					{ type: 'name', start: 0, end: 1, value: 'a', line: 1, col: 1 },
+					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
 					{ type: 'operator', start: 2, end: 4, value: '||', line: 1, col: 3 },
 					{ type: 'bool', start: 5, end: 9, value: 'true', line: 1, col: 6 },
 				]);
@@ -171,7 +171,7 @@ describe('lexer.ts', (): void => {
 				]);
 
 				expect(new Lexer().lexify('a & true')).toStrictEqual([
-					{ type: 'name', start: 0, end: 1, value: 'a', line: 1, col: 1 },
+					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
 					{ type: 'operator', start: 2, end: 3, value: '&', line: 1, col: 3 },
 					{ type: 'bool', start: 4, end: 8, value: 'true', line: 1, col: 5 },
 				]);
@@ -183,7 +183,7 @@ describe('lexer.ts', (): void => {
 				]);
 
 				expect(new Lexer().lexify('a || true')).toStrictEqual([
-					{ type: 'name', start: 0, end: 1, value: 'a', line: 1, col: 1 },
+					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
 					{ type: 'operator', start: 2, end: 4, value: '||', line: 1, col: 3 },
 					{ type: 'bool', start: 5, end: 9, value: 'true', line: 1, col: 6 },
 				]);
@@ -210,13 +210,13 @@ describe('lexer.ts', (): void => {
 			it('pre-decrement', (): void => {
 				expect(new Lexer().lexify('--foo')).toStrictEqual([
 					{ type: 'operator', start: 0, end: 2, value: '--', line: 1, col: 1 },
-					{ type: 'name', start: 2, end: 5, value: 'foo', line: 1, col: 3 },
+					{ type: 'identifier', start: 2, end: 5, value: 'foo', line: 1, col: 3 },
 				]);
 			});
 
 			it('post-decrement', (): void => {
 				expect(new Lexer().lexify('foo--')).toStrictEqual([
-					{ type: 'name', start: 0, end: 3, value: 'foo', line: 1, col: 1 },
+					{ type: 'identifier', start: 0, end: 3, value: 'foo', line: 1, col: 1 },
 					{ type: 'operator', start: 3, end: 5, value: '--', line: 1, col: 4 },
 				]);
 			});
@@ -224,13 +224,13 @@ describe('lexer.ts', (): void => {
 			it('pre-increment', (): void => {
 				expect(new Lexer().lexify('++foo')).toStrictEqual([
 					{ type: 'operator', start: 0, end: 2, value: '++', line: 1, col: 1 },
-					{ type: 'name', start: 2, end: 5, value: 'foo', line: 1, col: 3 },
+					{ type: 'identifier', start: 2, end: 5, value: 'foo', line: 1, col: 3 },
 				]);
 			});
 
 			it('post-increment', (): void => {
 				expect(new Lexer().lexify('foo++')).toStrictEqual([
-					{ type: 'name', start: 0, end: 3, value: 'foo', line: 1, col: 1 },
+					{ type: 'identifier', start: 0, end: 3, value: 'foo', line: 1, col: 1 },
 					{ type: 'operator', start: 3, end: 5, value: '++', line: 1, col: 4 },
 				]);
 			});
@@ -249,7 +249,7 @@ describe('lexer.ts', (): void => {
 			it('with something between', (): void => {
 				expect(new Lexer().lexify('[foo]')).toStrictEqual([
 					{ type: 'bracket', start: 0, end: 1, value: '[', line: 1, col: 1 },
-					{ type: 'name', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
+					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
 					{ type: 'bracket', start: 4, end: 5, value: ']', line: 1, col: 5 },
 				]);
 			});
@@ -277,7 +277,7 @@ describe('lexer.ts', (): void => {
 			it('with something between', (): void => {
 				expect(new Lexer().lexify('{foo}')).toStrictEqual([
 					{ type: 'brace', start: 0, end: 1, value: '{', line: 1, col: 1 },
-					{ type: 'name', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
+					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
 					{ type: 'brace', start: 4, end: 5, value: '}', line: 1, col: 5 },
 				]);
 			});
@@ -305,7 +305,7 @@ describe('lexer.ts', (): void => {
 			it('with something between', (): void => {
 				expect(new Lexer().lexify('(foo)')).toStrictEqual([
 					{ type: 'paren', start: 0, end: 1, value: '(', line: 1, col: 1 },
-					{ type: 'name', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
+					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
 					{ type: 'paren', start: 4, end: 5, value: ')', line: 1, col: 5 },
 				]);
 			});
@@ -363,7 +363,7 @@ describe('lexer.ts', (): void => {
 			it('simple', (): void => {
 				expect(new Lexer().lexify('let foo = "51"')).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
-					{ type: 'name', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
+					{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
 					{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
 					{ type: 'string', start: 10, end: 14, value: '51', line: 1, col: 11 }, // start to end includes the quotes
 				]);
@@ -372,7 +372,7 @@ describe('lexer.ts', (): void => {
 			it('empty string', (): void => {
 				expect(new Lexer().lexify('const foo = ""')).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
-					{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
+					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 14, value: '', line: 1, col: 13 }, // start to end includes the quotes
 				]);
@@ -381,7 +381,7 @@ describe('lexer.ts', (): void => {
 			it('utf-8', (): void => {
 				expect(new Lexer().lexify('const foo = "大"')).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
-					{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
+					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 15, value: '大', line: 1, col: 13 }, // start to end includes the quotes
 				]);
@@ -398,7 +398,7 @@ describe('lexer.ts', (): void => {
 			it('simple', (): void => {
 				expect(new Lexer().lexify("let foo = 'bar'")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
-					{ type: 'name', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
+					{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
 					{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
 					{ type: 'string', start: 10, end: 15, value: 'bar', line: 1, col: 11 }, // start to end includes the quotes
 				]);
@@ -407,7 +407,7 @@ describe('lexer.ts', (): void => {
 			it('empty string', (): void => {
 				expect(new Lexer().lexify("const foo = ''")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
-					{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
+					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 14, value: '', line: 1, col: 13 }, // start to end includes the quotes
 				]);
@@ -416,7 +416,7 @@ describe('lexer.ts', (): void => {
 			it('containing parens', (): void => {
 				expect(new Lexer().lexify("const foo = '()'")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
-					{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
+					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 16, value: '()', line: 1, col: 13 }, // start to end includes the quotes
 				]);
@@ -425,7 +425,7 @@ describe('lexer.ts', (): void => {
 			it('utf-8', (): void => {
 				expect(new Lexer().lexify("const foo = '大'")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
-					{ type: 'name', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
+					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
 					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 15, value: '大', line: 1, col: 13 }, // start to end includes the quotes
 				]);
