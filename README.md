@@ -7,20 +7,20 @@ A scripting language focused on easy reading
 # run the lexer
 npm run --silent lexify -- 'your expression' # run with an expression
 npm run --silent lexify -- "$(cat path/to/file.joe)" # run on a .joe file
-npm run --silent lexify -- '...' file.out # send the output to a file
+npm run --silent lexify -- '...' file.tokens # send the tokens output to a file
 
 # run the parser
 npm run --silent parse -- 'your expression' # run with an expression
 npm run --silent parse -- "$(cat path/to/file.joe)" # run on a .joe file
-npm run --silent parse -- '...' file.out # send the output to a file
+npm run --silent parse -- '...' file.ast # send the AST output to a file
 
 # run the tests
 npm test
 
 # run lexer sample
-npm run --silent lexify -- "$(cat tests/fixtures/lexer_sample.joe)" tests/fixtures/lexer_sample.tokens
+npm run --silent lexify -- "$(cat tests/fixtures/sample.joe)" tests/fixtures/sample.tokens
 # run parser sample
-npm run --silent parse -- "$(cat tests/fixtures/lexer_sample.joe)" tests/fixtures/lexer_sample.ast
+npm run --silent parse -- "$(cat tests/fixtures/sample.joe)" tests/fixtures/sample.ast
 ```
 
 ## Challenge

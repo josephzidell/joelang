@@ -1,35 +1,35 @@
 <ref *1> {
   type: 'Program',
   start: 0,
-  end: 530,
+  end: 554,
   nodes: [
     {
       type: 'Comment',
-      value: '# This is sample .joe file to prove the lexer works.',
+      value: '# This is sample .joe file to prove the lexer and parser works.',
       parent: [Circular *1],
       start: 0,
-      end: 52,
+      end: 63,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Comment',
-      value: '# Please note this file is not syntatically correct.',
+      value: '# Note this file may not necessarily be syntatically correct.',
       parent: [Circular *1],
-      start: 53,
-      end: 105,
+      start: 64,
+      end: 125,
       nodes: [ [length]: 0 ]
     },
     <ref *2> {
       type: 'ImportDeclaration',
-      start: 107,
-      end: 113,
+      start: 127,
+      end: 133,
       parent: [Circular *1],
       nodes: [
         {
           type: 'Identifier',
           name: 'lexer',
-          start: 114,
-          end: 119,
+          start: 134,
+          end: 139,
           parent: [Circular *2],
           nodes: [ [length]: 0 ]
         },
@@ -37,15 +37,15 @@
           type: 'Keyword',
           value: 'from',
           parent: [Circular *2],
-          start: 120,
-          end: 124,
+          start: 140,
+          end: 144,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'FilePath',
           value: './lexer',
-          start: 125,
-          end: 132,
+          start: 145,
+          end: 152,
           parent: [Circular *2],
           nodes: [ [length]: 0 ]
         },
@@ -53,8 +53,8 @@
           type: 'SemicolonSeparator',
           value: ';',
           parent: [Circular *2],
-          start: 132,
-          end: 133,
+          start: 152,
+          end: 153,
           nodes: [ [length]: 0 ]
         },
         [length]: 4
@@ -62,15 +62,15 @@
     },
     <ref *3> {
       type: 'ImportDeclaration',
-      start: 134,
-      end: 140,
+      start: 154,
+      end: 160,
       parent: [Circular *1],
       nodes: [
         {
           type: 'Identifier',
           name: 'lexer2',
-          start: 141,
-          end: 147,
+          start: 161,
+          end: 167,
           parent: [Circular *3],
           nodes: [ [length]: 0 ]
         },
@@ -78,15 +78,15 @@
           type: 'Keyword',
           value: 'from',
           parent: [Circular *3],
-          start: 148,
-          end: 152,
+          start: 168,
+          end: 172,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'FilePath',
-          value: '/lexer',
-          start: 153,
-          end: 159,
+          value: '/lexer.joe',
+          start: 173,
+          end: 183,
           parent: [Circular *3],
           nodes: [ [length]: 0 ]
         },
@@ -94,8 +94,8 @@
           type: 'SemicolonSeparator',
           value: ';',
           parent: [Circular *3],
-          start: 159,
-          end: 160,
+          start: 183,
+          end: 184,
           nodes: [ [length]: 0 ]
         },
         [length]: 4
@@ -105,15 +105,15 @@
       type: 'Keyword',
       value: 'class',
       parent: [Circular *1],
-      start: 162,
-      end: 167,
+      start: 186,
+      end: 191,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'Foo',
-      start: 168,
-      end: 171,
+      start: 192,
+      end: 195,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -121,15 +121,15 @@
       type: 'Keyword',
       value: 'extends',
       parent: [Circular *1],
-      start: 172,
-      end: 179,
+      start: 196,
+      end: 203,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'Bar',
-      start: 180,
-      end: 183,
+      start: 204,
+      end: 207,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -137,15 +137,15 @@
       type: 'Unknown',
       value: ',',
       parent: [Circular *1],
-      start: 183,
-      end: 184,
+      start: 207,
+      end: 208,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'Baz',
-      start: 185,
-      end: 188,
+      start: 209,
+      end: 212,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -153,15 +153,15 @@
       type: 'Keyword',
       value: 'implements',
       parent: [Circular *1],
-      start: 189,
-      end: 199,
+      start: 213,
+      end: 223,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'AbstractFooBar',
-      start: 200,
-      end: 214,
+      start: 224,
+      end: 238,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -169,15 +169,15 @@
       type: 'Unknown',
       value: ',',
       parent: [Circular *1],
-      start: 214,
-      end: 215,
+      start: 238,
+      end: 239,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'AnotherAbstractClass',
-      start: 216,
-      end: 236,
+      start: 240,
+      end: 260,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -185,22 +185,22 @@
       type: 'BlockStatement',
       value: '',
       parent: [Circular *1],
-      start: 237,
-      end: 238,
+      start: 261,
+      end: 262,
       nodes: [
         {
           type: 'Keyword',
           value: 'static',
           parent: [Circular *4],
-          start: 240,
-          end: 246,
+          start: 264,
+          end: 270,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Identifier',
           name: 'bar',
-          start: 247,
-          end: 250,
+          start: 271,
+          end: 274,
           parent: [Circular *4],
           nodes: [ [length]: 0 ]
         },
@@ -208,15 +208,15 @@
           type: 'AssignmentOperator',
           value: '=',
           parent: [Circular *4],
-          start: 251,
-          end: 252,
+          start: 275,
+          end: 276,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'StringLiteral',
           value: 'baz',
-          start: 253,
-          end: 258,
+          start: 277,
+          end: 282,
           parent: [Circular *4],
           nodes: [ [length]: 0 ]
         },
@@ -224,8 +224,8 @@
           type: 'SemicolonSeparator',
           value: ';',
           parent: [Circular *4],
-          start: 258,
-          end: 259,
+          start: 282,
+          end: 283,
           nodes: [ [length]: 0 ]
         },
         [length]: 5
@@ -235,23 +235,23 @@
       type: 'Comment',
       value: '// public static property',
       parent: [Circular *1],
-      start: 260,
-      end: 285,
+      start: 284,
+      end: 309,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Keyword',
       value: 'private',
       parent: [Circular *1],
-      start: 287,
-      end: 294,
+      start: 311,
+      end: 318,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'isDone?',
-      start: 295,
-      end: 302,
+      start: 319,
+      end: 326,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -259,15 +259,15 @@
       type: 'AssignmentOperator',
       value: '=',
       parent: [Circular *1],
-      start: 303,
-      end: 304,
+      start: 327,
+      end: 328,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'BoolLiteral',
       value: 'true',
-      start: 305,
-      end: 309,
+      start: 329,
+      end: 333,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -275,23 +275,23 @@
       type: 'Comment',
       value: '// private instance property',
       parent: [Circular *1],
-      start: 310,
-      end: 338,
+      start: 334,
+      end: 362,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Comment',
       value: '/** method with no args and no return */',
       parent: [Circular *1],
-      start: 341,
-      end: 381,
+      start: 365,
+      end: 405,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
       name: 'foo',
-      start: 383,
-      end: 386,
+      start: 407,
+      end: 410,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -299,21 +299,21 @@
       type: 'BlockStatement',
       value: '',
       parent: [Circular *1],
-      start: 387,
-      end: 423,
+      start: 411,
+      end: 447,
       nodes: [
         <ref *6> {
           type: 'VariableDeclaration',
           kind: 'const',
-          start: 391,
-          end: 423,
+          start: 415,
+          end: 447,
           parent: [Circular *5],
           nodes: [
             {
               type: 'Identifier',
               name: 'size',
-              start: 397,
-              end: 401,
+              start: 421,
+              end: 425,
               parent: [Circular *6],
               nodes: [ [length]: 0 ]
             },
@@ -321,23 +321,23 @@
               type: 'AssignmentOperator',
               value: '=',
               parent: [Circular *6],
-              start: 402,
-              end: 403,
+              start: 426,
+              end: 427,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'Keyword',
               value: 'switch',
               parent: [Circular *6],
-              start: 404,
-              end: 410,
+              start: 428,
+              end: 434,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'Identifier',
               name: 'someNumber',
-              start: 411,
-              end: 421,
+              start: 435,
+              end: 445,
               parent: [Circular *6],
               nodes: [ [length]: 0 ]
             },
@@ -345,22 +345,22 @@
               type: 'BlockStatement',
               value: '',
               parent: [Circular *6],
-              start: 422,
-              end: 423,
+              start: 446,
+              end: 447,
               nodes: [
                 {
                   type: 'Keyword',
                   value: 'is',
                   parent: [Circular *7],
-                  start: 427,
-                  end: 429,
+                  start: 451,
+                  end: 453,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '1',
-                  start: 430,
-                  end: 431,
+                  start: 454,
+                  end: 455,
                   parent: [Circular *7],
                   nodes: [ [length]: 0 ]
                 },
@@ -368,23 +368,23 @@
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *7],
-                  start: 431,
-                  end: 432,
+                  start: 455,
+                  end: 456,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Keyword',
                   value: 'is',
                   parent: [Circular *7],
-                  start: 433,
-                  end: 435,
+                  start: 457,
+                  end: 459,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '2',
-                  start: 436,
-                  end: 437,
+                  start: 460,
+                  end: 461,
                   parent: [Circular *7],
                   nodes: [ [length]: 0 ]
                 },
@@ -392,15 +392,15 @@
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *7],
-                  start: 437,
-                  end: 438,
+                  start: 461,
+                  end: 462,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'StringLiteral',
                   value: 'small',
-                  start: 439,
-                  end: 446,
+                  start: 463,
+                  end: 470,
                   parent: [Circular *7],
                   nodes: [ [length]: 0 ]
                 },
@@ -408,8 +408,8 @@
                   type: 'SemicolonSeparator',
                   value: ';',
                   parent: [Circular *7],
-                  start: 446,
-                  end: 447,
+                  start: 470,
+                  end: 471,
                   nodes: [ [length]: 0 ]
                 },
                 [length]: 8
@@ -419,23 +419,23 @@
               type: 'Keyword',
               value: 'is',
               parent: [Circular *6],
-              start: 451,
-              end: 453,
+              start: 475,
+              end: 477,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'Keyword',
               value: 'in',
               parent: [Circular *6],
-              start: 454,
-              end: 456,
+              start: 478,
+              end: 480,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'NumberLiteral',
               value: '3',
-              start: 457,
-              end: 458,
+              start: 481,
+              end: 482,
               parent: [Circular *6],
               nodes: [ [length]: 0 ]
             },
@@ -443,15 +443,15 @@
               type: 'Unknown',
               value: '..',
               parent: [Circular *6],
-              start: 458,
-              end: 460,
+              start: 482,
+              end: 484,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'NumberLiteral',
               value: '10',
-              start: 460,
-              end: 462,
+              start: 484,
+              end: 486,
               parent: [Circular *6],
               nodes: [ [length]: 0 ]
             },
@@ -459,15 +459,15 @@
               type: 'Unknown',
               value: ':',
               parent: [Circular *6],
-              start: 462,
-              end: 463,
+              start: 486,
+              end: 487,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'StringLiteral',
               value: 'medium',
-              start: 464,
-              end: 472,
+              start: 488,
+              end: 496,
               parent: [Circular *6],
               nodes: [ [length]: 0 ]
             },
@@ -475,8 +475,8 @@
               type: 'SemicolonSeparator',
               value: ';',
               parent: [Circular *6],
-              start: 472,
-              end: 473,
+              start: 496,
+              end: 497,
               nodes: [ [length]: 0 ]
             },
             [length]: 13
@@ -486,15 +486,15 @@
           type: 'Keyword',
           value: 'is',
           parent: [Circular *5],
-          start: 477,
-          end: 479,
+          start: 501,
+          end: 503,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'NumberLiteral',
           value: '11',
-          start: 480,
-          end: 482,
+          start: 504,
+          end: 506,
           parent: [Circular *5],
           nodes: [ [length]: 0 ]
         },
@@ -502,15 +502,15 @@
           type: 'Unknown',
           value: ':',
           parent: [Circular *5],
-          start: 482,
-          end: 483,
+          start: 506,
+          end: 507,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'StringLiteral',
           value: 'large',
-          start: 484,
-          end: 491,
+          start: 508,
+          end: 515,
           parent: [Circular *5],
           nodes: [ [length]: 0 ]
         },
@@ -518,8 +518,8 @@
           type: 'SemicolonSeparator',
           value: ';',
           parent: [Circular *5],
-          start: 491,
-          end: 492,
+          start: 515,
+          end: 516,
           nodes: [ [length]: 0 ]
         },
         [length]: 6
@@ -528,8 +528,8 @@
     {
       type: 'Identifier',
       name: 'else',
-      start: 496,
-      end: 500,
+      start: 520,
+      end: 524,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -537,15 +537,15 @@
       type: 'Unknown',
       value: ':',
       parent: [Circular *1],
-      start: 500,
-      end: 501,
+      start: 524,
+      end: 525,
       nodes: [ [length]: 0 ]
     },
     {
       type: 'StringLiteral',
       value: 'off the charts',
-      start: 502,
-      end: 518,
+      start: 526,
+      end: 542,
       parent: [Circular *1],
       nodes: [ [length]: 0 ]
     },
@@ -553,22 +553,22 @@
       type: 'SemicolonSeparator',
       value: ';',
       parent: [Circular *1],
-      start: 518,
-      end: 519,
+      start: 542,
+      end: 543,
       nodes: [ [length]: 0 ]
     },
     <ref *8> {
       type: 'VariableDeclaration',
       kind: 'let',
-      start: 527,
-      end: 530,
+      start: 551,
+      end: 554,
       parent: [Circular *1],
       nodes: [
         {
           type: 'Identifier',
           name: 'myTuple',
-          start: 531,
-          end: 538,
+          start: 555,
+          end: 562,
           parent: [Circular *8],
           nodes: [ [length]: 0 ]
         },
@@ -576,23 +576,23 @@
           type: 'AssignmentOperator',
           value: '=',
           parent: [Circular *8],
-          start: 539,
-          end: 540,
+          start: 563,
+          end: 564,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Unknown',
           value: '[',
           parent: [Circular *8],
-          start: 541,
-          end: 542,
+          start: 565,
+          end: 566,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'NumberLiteral',
           value: '1',
-          start: 546,
-          end: 547,
+          start: 570,
+          end: 571,
           parent: [Circular *8],
           nodes: [ [length]: 0 ]
         },
@@ -600,15 +600,15 @@
           type: 'Unknown',
           value: ',',
           parent: [Circular *8],
-          start: 547,
-          end: 548,
+          start: 571,
+          end: 572,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'NumberLiteral',
           value: '10',
-          start: 552,
-          end: 554,
+          start: 576,
+          end: 578,
           parent: [Circular *8],
           nodes: [ [length]: 0 ]
         },
@@ -616,31 +616,31 @@
           type: 'Keyword',
           value: 'if',
           parent: [Circular *8],
-          start: 555,
-          end: 557,
+          start: 579,
+          end: 581,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Keyword',
           value: 'this',
           parent: [Circular *8],
-          start: 558,
-          end: 562,
+          start: 582,
+          end: 586,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Unknown',
           value: '.',
           parent: [Circular *8],
-          start: 562,
-          end: 563,
+          start: 586,
+          end: 587,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Identifier',
           name: 'isDone?',
-          start: 563,
-          end: 570,
+          start: 587,
+          end: 594,
           parent: [Circular *8],
           nodes: [ [length]: 0 ]
         },
@@ -648,23 +648,23 @@
           type: 'Unknown',
           value: ',',
           parent: [Circular *8],
-          start: 570,
-          end: 571,
+          start: 594,
+          end: 595,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Comment',
           value: '// if false, element will not be in tuple',
           parent: [Circular *8],
-          start: 572,
-          end: 613,
+          start: 596,
+          end: 637,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'NumberLiteral',
           value: '3',
-          start: 617,
-          end: 618,
+          start: 641,
+          end: 642,
           parent: [Circular *8],
           nodes: [ [length]: 0 ]
         },
@@ -672,16 +672,16 @@
           type: 'Unknown',
           value: ']',
           parent: [Circular *8],
-          start: 621,
-          end: 622,
+          start: 645,
+          end: 646,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'SemicolonSeparator',
           value: ';',
           parent: [Circular *8],
-          start: 622,
-          end: 623,
+          start: 646,
+          end: 647,
           nodes: [ [length]: 0 ]
         },
         [length]: 15
@@ -690,15 +690,15 @@
     <ref *9> {
       type: 'VariableDeclaration',
       kind: 'let',
-      start: 627,
-      end: 630,
+      start: 651,
+      end: 654,
       parent: [Circular *1],
       nodes: [
         {
           type: 'Identifier',
           name: 'count',
-          start: 631,
-          end: 636,
+          start: 655,
+          end: 660,
           parent: [Circular *9],
           nodes: [ [length]: 0 ]
         },
@@ -706,15 +706,15 @@
           type: 'AssignmentOperator',
           value: '=',
           parent: [Circular *9],
-          start: 637,
-          end: 638,
+          start: 661,
+          end: 662,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'NumberLiteral',
           value: '1',
-          start: 639,
-          end: 640,
+          start: 663,
+          end: 664,
           parent: [Circular *9],
           nodes: [ [length]: 0 ]
         },
@@ -722,15 +722,15 @@
           type: 'Unknown',
           value: '..',
           parent: [Circular *9],
-          start: 640,
-          end: 642,
+          start: 664,
+          end: 666,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Identifier',
           name: 'myTuple',
-          start: 642,
-          end: 649,
+          start: 666,
+          end: 673,
           parent: [Circular *9],
           nodes: [ [length]: 0 ]
         },
@@ -738,15 +738,15 @@
           type: 'Unknown',
           value: '[',
           parent: [Circular *9],
-          start: 649,
-          end: 650,
+          start: 673,
+          end: 674,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'NumberLiteral',
           value: '2',
-          start: 650,
-          end: 651,
+          start: 674,
+          end: 675,
           parent: [Circular *9],
           nodes: [ [length]: 0 ]
         },
@@ -754,30 +754,30 @@
           type: 'Unknown',
           value: ']',
           parent: [Circular *9],
-          start: 651,
-          end: 652,
+          start: 675,
+          end: 676,
           nodes: [ [length]: 0 ]
         },
         {
           type: 'Comment',
           value: '// new Tuple [1, 2, 3]',
           parent: [Circular *9],
-          start: 653,
-          end: 675,
+          start: 677,
+          end: 699,
           nodes: [ [length]: 0 ]
         },
         <ref *10> {
           type: 'VariableDeclaration',
           kind: 'let',
-          start: 678,
-          end: 1664,
+          start: 702,
+          end: 1688,
           parent: [Circular *9],
           nodes: [
             {
               type: 'Identifier',
               name: 'countDown',
-              start: 682,
-              end: 691,
+              start: 706,
+              end: 715,
               parent: [Circular *10],
               nodes: [ [length]: 0 ]
             },
@@ -785,15 +785,15 @@
               type: 'AssignmentOperator',
               value: '=',
               parent: [Circular *10],
-              start: 692,
-              end: 693,
+              start: 716,
+              end: 717,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'Identifier',
               name: 'myTuple',
-              start: 694,
-              end: 701,
+              start: 718,
+              end: 725,
               parent: [Circular *10],
               nodes: [ [length]: 0 ]
             },
@@ -801,15 +801,15 @@
               type: 'Unknown',
               value: '[',
               parent: [Circular *10],
-              start: 701,
-              end: 702,
+              start: 725,
+              end: 726,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'NumberLiteral',
               value: '1',
-              start: 702,
-              end: 703,
+              start: 726,
+              end: 727,
               parent: [Circular *10],
               nodes: [ [length]: 0 ]
             },
@@ -817,23 +817,23 @@
               type: 'Unknown',
               value: ']',
               parent: [Circular *10],
-              start: 703,
-              end: 704,
+              start: 727,
+              end: 728,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'Unknown',
               value: '..',
               parent: [Circular *10],
-              start: 704,
-              end: 706,
+              start: 728,
+              end: 730,
               nodes: [ [length]: 0 ]
             },
             {
               type: 'NumberLiteral',
               value: '0',
-              start: 706,
-              end: 707,
+              start: 730,
+              end: 731,
               parent: [Circular *10],
               nodes: [ [length]: 0 ]
             },
@@ -841,22 +841,22 @@
               type: 'Comment',
               value: '// new Tuple [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]',
               parent: [Circular *10],
-              start: 708,
-              end: 755,
+              start: 732,
+              end: 779,
               nodes: [ [length]: 0 ]
             },
             <ref *11> {
               type: 'VariableDeclaration',
               kind: 'let',
-              start: 758,
-              end: 761,
+              start: 782,
+              end: 785,
               parent: [Circular *10],
               nodes: [
                 {
                   type: 'Identifier',
                   name: 'partitionedTuple',
-                  start: 762,
-                  end: 778,
+                  start: 786,
+                  end: 802,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -864,23 +864,23 @@
                   type: 'AssignmentOperator',
                   value: '=',
                   parent: [Circular *11],
-                  start: 779,
-                  end: 780,
+                  start: 803,
+                  end: 804,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: '[',
                   parent: [Circular *11],
-                  start: 781,
-                  end: 782,
+                  start: 805,
+                  end: 806,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'countDown',
-                  start: 786,
-                  end: 795,
+                  start: 810,
+                  end: 819,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -888,23 +888,23 @@
                   type: 'Unknown',
                   value: '[',
                   parent: [Circular *11],
-                  start: 795,
-                  end: 796,
+                  start: 819,
+                  end: 820,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *11],
-                  start: 796,
-                  end: 797,
+                  start: 820,
+                  end: 821,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '1',
-                  start: 797,
-                  end: 798,
+                  start: 821,
+                  end: 822,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -912,23 +912,23 @@
                   type: 'Unknown',
                   value: ']',
                   parent: [Circular *11],
-                  start: 798,
-                  end: 799,
+                  start: 822,
+                  end: 823,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *11],
-                  start: 799,
-                  end: 800,
+                  start: 823,
+                  end: 824,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'countDown',
-                  start: 804,
-                  end: 813,
+                  start: 828,
+                  end: 837,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -936,15 +936,15 @@
                   type: 'Unknown',
                   value: '[',
                   parent: [Circular *11],
-                  start: 813,
-                  end: 814,
+                  start: 837,
+                  end: 838,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '2',
-                  start: 814,
-                  end: 815,
+                  start: 838,
+                  end: 839,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -952,15 +952,15 @@
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *11],
-                  start: 815,
-                  end: 816,
+                  start: 839,
+                  end: 840,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '6',
-                  start: 816,
-                  end: 817,
+                  start: 840,
+                  end: 841,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -968,23 +968,23 @@
                   type: 'Unknown',
                   value: ']',
                   parent: [Circular *11],
-                  start: 817,
-                  end: 818,
+                  start: 841,
+                  end: 842,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *11],
-                  start: 818,
-                  end: 819,
+                  start: 842,
+                  end: 843,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'countDown',
-                  start: 823,
-                  end: 832,
+                  start: 847,
+                  end: 856,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -992,15 +992,15 @@
                   type: 'Unknown',
                   value: '[',
                   parent: [Circular *11],
-                  start: 832,
-                  end: 833,
+                  start: 856,
+                  end: 857,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '7',
-                  start: 833,
-                  end: 834,
+                  start: 857,
+                  end: 858,
                   parent: [Circular *11],
                   nodes: [ [length]: 0 ]
                 },
@@ -1008,40 +1008,40 @@
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *11],
-                  start: 834,
-                  end: 835,
+                  start: 858,
+                  end: 859,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: ']',
                   parent: [Circular *11],
-                  start: 835,
-                  end: 836,
+                  start: 859,
+                  end: 860,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *11],
-                  start: 836,
-                  end: 837,
+                  start: 860,
+                  end: 861,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Unknown',
                   value: ']',
                   parent: [Circular *11],
-                  start: 840,
-                  end: 841,
+                  start: 864,
+                  end: 865,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'SemicolonSeparator',
                   value: ';',
                   parent: [Circular *11],
-                  start: 841,
-                  end: 842,
+                  start: 865,
+                  end: 866,
                   nodes: [ [length]: 0 ]
                 },
                 [length]: 24
@@ -1051,22 +1051,22 @@
               type: 'Comment',
               value: '// new nested Tuple [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]',
               parent: [Circular *10],
-              start: 843,
-              end: 903,
+              start: 867,
+              end: 927,
               nodes: [ [length]: 0 ]
             },
             <ref *12> {
               type: 'VariableDeclaration',
               kind: 'let',
-              start: 906,
-              end: 1664,
+              start: 930,
+              end: 1688,
               parent: [Circular *10],
               nodes: [
                 {
                   type: 'Identifier',
                   name: 'selectedTupleItems',
-                  start: 910,
-                  end: 928,
+                  start: 934,
+                  end: 952,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1074,15 +1074,15 @@
                   type: 'AssignmentOperator',
                   value: '=',
                   parent: [Circular *12],
-                  start: 929,
-                  end: 930,
+                  start: 953,
+                  end: 954,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'countDown',
-                  start: 931,
-                  end: 940,
+                  start: 955,
+                  end: 964,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1090,15 +1090,15 @@
                   type: 'Unknown',
                   value: '[',
                   parent: [Circular *12],
-                  start: 940,
-                  end: 941,
+                  start: 964,
+                  end: 965,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '1',
-                  start: 941,
-                  end: 942,
+                  start: 965,
+                  end: 966,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1106,15 +1106,15 @@
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *12],
-                  start: 942,
-                  end: 943,
+                  start: 966,
+                  end: 967,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '4',
-                  start: 944,
-                  end: 945,
+                  start: 968,
+                  end: 969,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1122,15 +1122,15 @@
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *12],
-                  start: 945,
-                  end: 946,
+                  start: 969,
+                  end: 970,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'NumberLiteral',
                   value: '9',
-                  start: 947,
-                  end: 948,
+                  start: 971,
+                  end: 972,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1138,30 +1138,30 @@
                   type: 'Unknown',
                   value: ']',
                   parent: [Circular *12],
-                  start: 948,
-                  end: 949,
+                  start: 972,
+                  end: 973,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Comment',
                   value: '// new Tuple [9, 6, 1]',
                   parent: [Circular *12],
-                  start: 950,
-                  end: 972,
+                  start: 974,
+                  end: 996,
                   nodes: [ [length]: 0 ]
                 },
                 <ref *13> {
                   type: 'VariableDeclaration',
                   kind: 'let',
-                  start: 976,
-                  end: 992,
+                  start: 1000,
+                  end: 1016,
                   parent: [Circular *12],
                   nodes: [
                     {
                       type: 'Identifier',
                       name: 'myObject',
-                      start: 980,
-                      end: 988,
+                      start: 1004,
+                      end: 1012,
                       parent: [Circular *13],
                       nodes: [ [length]: 0 ]
                     },
@@ -1169,22 +1169,22 @@
                       type: 'AssignmentOperator',
                       value: '=',
                       parent: [Circular *13],
-                      start: 989,
-                      end: 990,
+                      start: 1013,
+                      end: 1014,
                       nodes: [ [length]: 0 ]
                     },
                     <ref *14> {
                       type: 'BlockStatement',
                       value: '',
                       parent: [Circular *13],
-                      start: 991,
-                      end: 992,
+                      start: 1015,
+                      end: 1016,
                       nodes: [
                         {
                           type: 'Identifier',
                           name: 'a',
-                          start: 996,
-                          end: 997,
+                          start: 1020,
+                          end: 1021,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1192,15 +1192,15 @@
                           type: 'Unknown',
                           value: ':',
                           parent: [Circular *14],
-                          start: 997,
-                          end: 998,
+                          start: 1021,
+                          end: 1022,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'NumberLiteral',
                           value: '1',
-                          start: 999,
-                          end: 1000,
+                          start: 1023,
+                          end: 1024,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1208,15 +1208,15 @@
                           type: 'Unknown',
                           value: ',',
                           parent: [Circular *14],
-                          start: 1000,
-                          end: 1001,
+                          start: 1024,
+                          end: 1025,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Identifier',
                           name: 'b',
-                          start: 1005,
-                          end: 1006,
+                          start: 1029,
+                          end: 1030,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1224,15 +1224,15 @@
                           type: 'Unknown',
                           value: ':',
                           parent: [Circular *14],
-                          start: 1006,
-                          end: 1007,
+                          start: 1030,
+                          end: 1031,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'StringLiteral',
                           value: 'coat',
-                          start: 1008,
-                          end: 1014,
+                          start: 1032,
+                          end: 1038,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1240,31 +1240,31 @@
                           type: 'Keyword',
                           value: 'if',
                           parent: [Circular *14],
-                          start: 1015,
-                          end: 1017,
+                          start: 1039,
+                          end: 1041,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Keyword',
                           value: 'this',
                           parent: [Circular *14],
-                          start: 1018,
-                          end: 1022,
+                          start: 1042,
+                          end: 1046,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Unknown',
                           value: '.',
                           parent: [Circular *14],
-                          start: 1022,
-                          end: 1023,
+                          start: 1046,
+                          end: 1047,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Identifier',
                           name: 'isDone?',
-                          start: 1023,
-                          end: 1030,
+                          start: 1047,
+                          end: 1054,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1272,23 +1272,23 @@
                           type: 'Unknown',
                           value: ',',
                           parent: [Circular *14],
-                          start: 1030,
-                          end: 1031,
+                          start: 1054,
+                          end: 1055,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Comment',
                           value: '// if false, property will not be in object',
                           parent: [Circular *14],
-                          start: 1032,
-                          end: 1075,
+                          start: 1056,
+                          end: 1099,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Identifier',
                           name: 'c',
-                          start: 1079,
-                          end: 1080,
+                          start: 1103,
+                          end: 1104,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1296,15 +1296,15 @@
                           type: 'Unknown',
                           value: ':',
                           parent: [Circular *14],
-                          start: 1080,
-                          end: 1081,
+                          start: 1104,
+                          end: 1105,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Identifier',
                           name: 'cond',
-                          start: 1082,
-                          end: 1086,
+                          start: 1106,
+                          end: 1110,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1312,15 +1312,15 @@
                           type: 'Unknown',
                           value: '?',
                           parent: [Circular *14],
-                          start: 1087,
-                          end: 1088,
+                          start: 1111,
+                          end: 1112,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'BoolLiteral',
                           value: 'true',
-                          start: 1089,
-                          end: 1093,
+                          start: 1113,
+                          end: 1117,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1328,15 +1328,15 @@
                           type: 'Unknown',
                           value: ':',
                           parent: [Circular *14],
-                          start: 1094,
-                          end: 1095,
+                          start: 1118,
+                          end: 1119,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'BoolLiteral',
                           value: 'false',
-                          start: 1096,
-                          end: 1101,
+                          start: 1120,
+                          end: 1125,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1344,23 +1344,23 @@
                           type: 'Unknown',
                           value: ',',
                           parent: [Circular *14],
-                          start: 1101,
-                          end: 1102,
+                          start: 1125,
+                          end: 1126,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Comment',
                           value: '// regular ternary - property will always be there, value differs',
                           parent: [Circular *14],
-                          start: 1103,
-                          end: 1168,
+                          start: 1127,
+                          end: 1192,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Identifier',
                           name: 'd',
-                          start: 1172,
-                          end: 1173,
+                          start: 1196,
+                          end: 1197,
                           parent: [Circular *14],
                           nodes: [ [length]: 0 ]
                         },
@@ -1368,24 +1368,24 @@
                           type: 'Unknown',
                           value: ':',
                           parent: [Circular *14],
-                          start: 1173,
-                          end: 1174,
+                          start: 1197,
+                          end: 1198,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Unknown',
                           value: 'nil',
                           parent: [Circular *14],
-                          start: 1175,
-                          end: 1178,
+                          start: 1199,
+                          end: 1202,
                           nodes: [ [length]: 0 ]
                         },
                         {
                           type: 'Unknown',
                           value: ',',
                           parent: [Circular *14],
-                          start: 1178,
-                          end: 1179,
+                          start: 1202,
+                          end: 1203,
                           nodes: [ [length]: 0 ]
                         },
                         [length]: 26
@@ -1395,8 +1395,8 @@
                       type: 'SemicolonSeparator',
                       value: ';',
                       parent: [Circular *13],
-                      start: 1183,
-                      end: 1184,
+                      start: 1207,
+                      end: 1208,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 4
@@ -1405,15 +1405,15 @@
                 <ref *15> {
                   type: 'VariableDeclaration',
                   kind: 'let',
-                  start: 1188,
-                  end: 1191,
+                  start: 1212,
+                  end: 1215,
                   parent: [Circular *12],
                   nodes: [
                     {
                       type: 'Identifier',
                       name: 'partialObj',
-                      start: 1192,
-                      end: 1202,
+                      start: 1216,
+                      end: 1226,
                       parent: [Circular *15],
                       nodes: [ [length]: 0 ]
                     },
@@ -1421,15 +1421,15 @@
                       type: 'AssignmentOperator',
                       value: '=',
                       parent: [Circular *15],
-                      start: 1203,
-                      end: 1204,
+                      start: 1227,
+                      end: 1228,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'myObject',
-                      start: 1205,
-                      end: 1213,
+                      start: 1229,
+                      end: 1237,
                       parent: [Circular *15],
                       nodes: [ [length]: 0 ]
                     },
@@ -1437,15 +1437,15 @@
                       type: 'Unknown',
                       value: '[',
                       parent: [Circular *15],
-                      start: 1213,
-                      end: 1214,
+                      start: 1237,
+                      end: 1238,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'a',
-                      start: 1214,
-                      end: 1215,
+                      start: 1238,
+                      end: 1239,
                       parent: [Circular *15],
                       nodes: [ [length]: 0 ]
                     },
@@ -1453,15 +1453,15 @@
                       type: 'Unknown',
                       value: ',',
                       parent: [Circular *15],
-                      start: 1215,
-                      end: 1216,
+                      start: 1239,
+                      end: 1240,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'd',
-                      start: 1217,
-                      end: 1218,
+                      start: 1241,
+                      end: 1242,
                       parent: [Circular *15],
                       nodes: [ [length]: 0 ]
                     },
@@ -1469,16 +1469,16 @@
                       type: 'Unknown',
                       value: ']',
                       parent: [Circular *15],
-                      start: 1218,
-                      end: 1219,
+                      start: 1242,
+                      end: 1243,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Comment',
                       value: '// new object {a: 1, d: nil}',
                       parent: [Circular *15],
-                      start: 1220,
-                      end: 1248,
+                      start: 1244,
+                      end: 1272,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 9
@@ -1488,15 +1488,15 @@
                   type: 'Comment',
                   value: '/** with args */',
                   parent: [Circular *12],
-                  start: 1254,
-                  end: 1270,
+                  start: 1278,
+                  end: 1294,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'methodWithArgs',
-                  start: 1272,
-                  end: 1286,
+                  start: 1296,
+                  end: 1310,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1504,14 +1504,14 @@
                   type: 'Parenthesized',
                   value: '(',
                   parent: [Circular *12],
-                  start: 1287,
-                  end: 1287,
+                  start: 1311,
+                  end: 1311,
                   nodes: [
                     {
                       type: 'Identifier',
                       name: 'arg1',
-                      start: 1288,
-                      end: 1292,
+                      start: 1312,
+                      end: 1316,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1519,15 +1519,15 @@
                       type: 'Unknown',
                       value: ':',
                       parent: [Circular *16],
-                      start: 1292,
-                      end: 1293,
+                      start: 1316,
+                      end: 1317,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'bool',
-                      start: 1294,
-                      end: 1298,
+                      start: 1318,
+                      end: 1322,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1535,15 +1535,15 @@
                       type: 'Unknown',
                       value: ',',
                       parent: [Circular *16],
-                      start: 1298,
-                      end: 1299,
+                      start: 1322,
+                      end: 1323,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'arg2',
-                      start: 1300,
-                      end: 1304,
+                      start: 1324,
+                      end: 1328,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1551,15 +1551,15 @@
                       type: 'Unknown',
                       value: ':',
                       parent: [Circular *16],
-                      start: 1304,
-                      end: 1305,
+                      start: 1328,
+                      end: 1329,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'Tuple',
-                      start: 1306,
-                      end: 1311,
+                      start: 1330,
+                      end: 1335,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1567,15 +1567,15 @@
                       type: 'Unknown',
                       value: ',',
                       parent: [Circular *16],
-                      start: 1311,
-                      end: 1312,
+                      start: 1335,
+                      end: 1336,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'arg3',
-                      start: 1313,
-                      end: 1317,
+                      start: 1337,
+                      end: 1341,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1583,15 +1583,15 @@
                       type: 'AssignmentOperator',
                       value: '=',
                       parent: [Circular *16],
-                      start: 1318,
-                      end: 1319,
+                      start: 1342,
+                      end: 1343,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'BoolLiteral',
                       value: 'true',
-                      start: 1320,
-                      end: 1324,
+                      start: 1344,
+                      end: 1348,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1599,23 +1599,23 @@
                       type: 'Unknown',
                       value: ',',
                       parent: [Circular *16],
-                      start: 1324,
-                      end: 1325,
+                      start: 1348,
+                      end: 1349,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Unknown',
                       value: '...',
                       parent: [Circular *16],
-                      start: 1326,
-                      end: 1329,
+                      start: 1350,
+                      end: 1353,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'otherStuff',
-                      start: 1329,
-                      end: 1339,
+                      start: 1353,
+                      end: 1363,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1623,15 +1623,15 @@
                       type: 'Unknown',
                       value: ':',
                       parent: [Circular *16],
-                      start: 1339,
-                      end: 1340,
+                      start: 1363,
+                      end: 1364,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'Thing',
-                      start: 1341,
-                      end: 1346,
+                      start: 1365,
+                      end: 1370,
                       parent: [Circular *16],
                       nodes: [ [length]: 0 ]
                     },
@@ -1639,16 +1639,16 @@
                       type: 'Unknown',
                       value: '[',
                       parent: [Circular *16],
-                      start: 1346,
-                      end: 1347,
+                      start: 1370,
+                      end: 1371,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Unknown',
                       value: ']',
                       parent: [Circular *16],
-                      start: 1347,
-                      end: 1348,
+                      start: 1371,
+                      end: 1372,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 18
@@ -1658,15 +1658,15 @@
                   type: 'BlockStatement',
                   value: '',
                   parent: [Circular *12],
-                  start: 1350,
-                  end: 1351,
+                  start: 1374,
+                  end: 1375,
                   nodes: [
                     {
                       type: 'Unknown',
                       value: '...',
                       parent: [Circular *17],
-                      start: 1352,
-                      end: 1355,
+                      start: 1376,
+                      end: 1379,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 1
@@ -1676,15 +1676,15 @@
                   type: 'Comment',
                   value: '/** with one return val */',
                   parent: [Circular *12],
-                  start: 1360,
-                  end: 1386,
+                  start: 1384,
+                  end: 1410,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'methodThatReturnsBool?',
-                  start: 1388,
-                  end: 1410,
+                  start: 1412,
+                  end: 1434,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1692,15 +1692,15 @@
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *12],
-                  start: 1411,
-                  end: 1412,
+                  start: 1435,
+                  end: 1436,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'bool',
-                  start: 1413,
-                  end: 1417,
+                  start: 1437,
+                  end: 1441,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1708,15 +1708,15 @@
                   type: 'BlockStatement',
                   value: '',
                   parent: [Circular *12],
-                  start: 1418,
-                  end: 1419,
+                  start: 1442,
+                  end: 1443,
                   nodes: [
                     {
                       type: 'Keyword',
                       value: 'return',
                       parent: [Circular *18],
-                      start: 1422,
-                      end: 1428,
+                      start: 1446,
+                      end: 1452,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 1
@@ -1726,15 +1726,15 @@
                   type: 'Comment',
                   value: '/** multiple return vals */',
                   parent: [Circular *12],
-                  start: 1434,
-                  end: 1461,
+                  start: 1458,
+                  end: 1485,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'methodThatReturnsBool?',
-                  start: 1463,
-                  end: 1485,
+                  start: 1487,
+                  end: 1509,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1742,15 +1742,15 @@
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *12],
-                  start: 1486,
-                  end: 1487,
+                  start: 1510,
+                  end: 1511,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'bool',
-                  start: 1488,
-                  end: 1492,
+                  start: 1512,
+                  end: 1516,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1758,15 +1758,15 @@
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *12],
-                  start: 1492,
-                  end: 1493,
+                  start: 1516,
+                  end: 1517,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'number',
-                  start: 1494,
-                  end: 1500,
+                  start: 1518,
+                  end: 1524,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1774,15 +1774,15 @@
                   type: 'Unknown',
                   value: ',',
                   parent: [Circular *12],
-                  start: 1500,
-                  end: 1501,
+                  start: 1524,
+                  end: 1525,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'Thing',
-                  start: 1502,
-                  end: 1507,
+                  start: 1526,
+                  end: 1531,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1790,22 +1790,22 @@
                   type: 'BlockStatement',
                   value: '',
                   parent: [Circular *12],
-                  start: 1508,
-                  end: 1509,
+                  start: 1532,
+                  end: 1533,
                   nodes: [
                     {
                       type: 'Keyword',
                       value: 'return',
                       parent: [Circular *19],
-                      start: 1512,
-                      end: 1518,
+                      start: 1536,
+                      end: 1542,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'BoolLiteral',
                       value: 'false',
-                      start: 1519,
-                      end: 1524,
+                      start: 1543,
+                      end: 1548,
                       parent: [Circular *19],
                       nodes: [ [length]: 0 ]
                     },
@@ -1813,15 +1813,15 @@
                       type: 'Unknown',
                       value: ',',
                       parent: [Circular *19],
-                      start: 1524,
-                      end: 1525,
+                      start: 1548,
+                      end: 1549,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'NumberLiteral',
                       value: '5',
-                      start: 1526,
-                      end: 1527,
+                      start: 1550,
+                      end: 1551,
                       parent: [Circular *19],
                       nodes: [ [length]: 0 ]
                     },
@@ -1829,23 +1829,23 @@
                       type: 'Unknown',
                       value: ',',
                       parent: [Circular *19],
-                      start: 1527,
-                      end: 1528,
+                      start: 1551,
+                      end: 1552,
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'new',
-                      start: 1529,
-                      end: 1532,
+                      start: 1553,
+                      end: 1556,
                       parent: [Circular *19],
                       nodes: [ [length]: 0 ]
                     },
                     {
                       type: 'Identifier',
                       name: 'Thing',
-                      start: 1533,
-                      end: 1538,
+                      start: 1557,
+                      end: 1562,
                       parent: [Circular *19],
                       nodes: [ [length]: 0 ]
                     },
@@ -1856,15 +1856,15 @@
                   type: 'Comment',
                   value: '/** method that throws error */',
                   parent: [Circular *12],
-                  start: 1544,
-                  end: 1575,
+                  start: 1568,
+                  end: 1599,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'careful!',
-                  start: 1577,
-                  end: 1585,
+                  start: 1601,
+                  end: 1609,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1872,15 +1872,15 @@
                   type: 'BlockStatement',
                   value: '',
                   parent: [Circular *12],
-                  start: 1586,
-                  end: 1587,
+                  start: 1610,
+                  end: 1611,
                   nodes: [
                     {
                       type: 'Unknown',
                       value: '...',
                       parent: [Circular *20],
-                      start: 1588,
-                      end: 1591,
+                      start: 1612,
+                      end: 1615,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 1
@@ -1890,15 +1890,15 @@
                   type: 'Comment',
                   value: '/** method with bool return that throws error */',
                   parent: [Circular *12],
-                  start: 1596,
-                  end: 1644,
+                  start: 1620,
+                  end: 1668,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'careful?!',
-                  start: 1646,
-                  end: 1655,
+                  start: 1670,
+                  end: 1679,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1906,15 +1906,15 @@
                   type: 'Unknown',
                   value: ':',
                   parent: [Circular *12],
-                  start: 1656,
-                  end: 1657,
+                  start: 1680,
+                  end: 1681,
                   nodes: [ [length]: 0 ]
                 },
                 {
                   type: 'Identifier',
                   name: 'bool',
-                  start: 1658,
-                  end: 1662,
+                  start: 1682,
+                  end: 1686,
                   parent: [Circular *12],
                   nodes: [ [length]: 0 ]
                 },
@@ -1922,15 +1922,15 @@
                   type: 'BlockStatement',
                   value: '',
                   parent: [Circular *12],
-                  start: 1663,
-                  end: 1664,
+                  start: 1687,
+                  end: 1688,
                   nodes: [
                     {
                       type: 'Unknown',
                       value: '...',
                       parent: [Circular *21],
-                      start: 1665,
-                      end: 1668,
+                      start: 1689,
+                      end: 1692,
                       nodes: [ [length]: 0 ]
                     },
                     [length]: 1

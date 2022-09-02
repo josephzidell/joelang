@@ -1,8 +1,8 @@
-# This is sample .joe file to prove the lexer works.
-# Please note this file is not syntatically correct.
+# This is sample .joe file to prove the lexer and parser works.
+# Note this file may not necessarily be syntatically correct.
 
 import lexer from ./lexer;
-import lexer2 from /lexer;
+import lexer2 from /lexer.joe;
 
 class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	static bar = 'baz'; // public static property
