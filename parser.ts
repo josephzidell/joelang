@@ -11,15 +11,15 @@ void (async (): Promise<void> => {
 
 		// filename is 3rd arg
 		if (process.argv[3]) {
-			await fs.writeFile(process.argv[3], JSON.stringify(ast, undefined, '\t'));
+			await fs.writeFile(process.argv[3], inspect(ast, { showHidden: true, depth: null }));
 		} else {
-			console.debug(inspect(ast, true, 100));
+			console.debug(inspect(ast, { showHidden: true, depth: null }));
 		}
 	} catch (e) {
 		const error = e as ParserError;
 
 		console.log(`Error: ${error.message}`);
-		console.debug('Dereived AST:');
+		console.debug('Derived AST:');
 		console.debug(error.getTree());
 
 		console.log('Stack Trace:');

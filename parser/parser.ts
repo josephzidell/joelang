@@ -1,14 +1,16 @@
-import { mathematicalPatterns, Token, TokenType } from "../lexer/types";
-import { IdentifierNode, LiteralNode, Node } from './types';
+import { Token, TokenType } from "../lexer/types";
+import { Node, NodeType } from './types';
 import ParserError from './error';
-import { Identifier, Literal, EnterVariableDeclaration, EnterExpression, EnterBinaryOperation } from './expressions';
+import { AdditionOperatorNode, AssignmentOperatorNode, CommentNode, DivisionOperatorNode, FilePathNode, KeywordNode, GenericNode, IdentifierNode, ImportDeclarationNode, LiteralNode, ModulusOperatorNode, MultiplicationOperatorNode, ParenthesizedNode, SemicolonSeparatorNode, SubtractionOperatorNode, UnaryExpressionNode, VariableDeclarationNode, BlockStatementNode } from './expressions';
+import { inspect } from 'util';
 
 export default class {
 	tokens: Token[] = [];
 	root: Node;
-	currentLeaf;
+	currentLeaf: Node;
+	debug = false; // if on, will output the AST at the end
 
-	constructor(tokens: Token[]) {
+	constructor(tokens: Token[], debug = false) {
 		this.tokens = tokens;
 		this.root = {
 			type: 'Program',
@@ -18,186 +20,147 @@ export default class {
 		};
 
 		this.currentLeaf = this.root;
+
+		this.debug = debug;
 	}
 
-	parse () {
+	public parse () {
+		// node types that would come before a minus `-` symbol indicating it's a subtraction operator, rather than a unary operator
+		const nodeTypesPrecedingSubtraction: NodeType[] = ['NumberLiteral', 'Identifier'];
+
 		for (let i = 0; i < this.tokens.length; i++) {
 			const token = this.tokens[i];
 
-			if (token.type === 'keyword') {
-				if (token.value === 'let' || token.value === 'const') {
-					// we expect 3 nodes followed by a semicolon:
-					// the var name
-					// the assignment operator, equal sign
-					// the value
-
-					// create variable declaration and attach to current leaf
-					const variableDeclarationNode = EnterVariableDeclaration(token.value, token.start, this.currentLeaf);
-					this.currentLeaf.nodes.push(variableDeclarationNode);
-					this.currentLeaf = variableDeclarationNode;
-
-					// update root.end
-					this.root.end = semicolon.end;
-				}
-			} else if (token.type === 'identifier') {
-				// get identifier and attach to current leaf
-				this.getIdentifier(i, this.currentLeaf);
-			} else if (token.type === 'paren') {
+			if (token.type === 'paren') {
 				if (token.value === '(') {
-					const node = Enter
+					this.beginExpressionWith(ParenthesizedNode(this.currentLeaf, token.start));
+				} else {
+					this.endExpression();
+
+					// check if current leaf is a unary, if so, it's finished
+					this.ifInUnaryExpressionEndIt();
 				}
+			} else if (token.type === 'brace') {
+				if (token.value === '{') {
+					this.beginExpressionWith(BlockStatementNode(token, this.currentLeaf));
+				} else {
+					this.endExpression();
+				}
+			} else if (token.type === 'bool') {
+				this.currentLeaf.nodes.push(LiteralNode(token, this.currentLeaf, this.currentLeaf));
+			} else if (token.type === 'number') {
+				this.currentLeaf.nodes.push(LiteralNode(token, this.currentLeaf, this.currentLeaf));
+
+				// check if current leaf is a unary, if so, it's finished
+				this.ifInUnaryExpressionEndIt();
+			} else if (token.type === 'string') {
+				this.currentLeaf.nodes.push(LiteralNode(token, this.currentLeaf, this.currentLeaf));
+			} else if (token.type === 'identifier') {
+				this.currentLeaf.nodes.push(IdentifierNode(token, this.currentLeaf));
+
+				// check if current leaf is a unary, if so, it's finished
+				this.ifInUnaryExpressionEndIt();
+			} else if (token.type === 'comment') {
+				this.currentLeaf.nodes.push(CommentNode(token, this.currentLeaf));
 			} else if (token.type === 'operator') {
 				switch (token.value) {
-					case '=':
-						if (this.currentLeaf.type === 'VariableDeclaration') {
-							this.currentLeaf.equals = '=';
-						}
-						break;
-					case '+':
+					case '=': this.currentLeaf.nodes.push(AssignmentOperatorNode(token, this.currentLeaf)); break;
+					case '+': this.currentLeaf.nodes.push(AdditionOperatorNode(token, this.currentLeaf)); break;
 					case '-':
-					case '*':
-					case '/':
-					case '%':
-						// in foo = 1 + (2 * 3), we could be in the first or second operator
-						// if in first, the currentLeaf is a VariableDeclaration
-						// if in second, the currentLeaf is an Expression
-
-						const node = EnterBinaryOperation(token.start, this.currentLeaf);
-
-						if (this.currentLeaf.type === 'VariableDeclaration') {
-							// move the rhs to here
-							node.lhs = this.currentLeaf.rhs;
-
-							// and this takes its place
-							this.currentLeaf.rhs = node;
-						} else if (this.currentLeaf.type === 'BinaryOperation') {
-							// move the rhs to here
-							node.lhs = this.currentLeaf.rhs;
-
-							// and this takes its place
-							this.currentLeaf.rhs = node;
+						// if previous node is a number, then this is subtraction
+						if (this.currentLeaf.nodes.length > 0 && nodeTypesPrecedingSubtraction.includes(this.currentLeaf.nodes[this.currentLeaf.nodes.length - 1].type)) {
+							this.currentLeaf.nodes.push(SubtractionOperatorNode(token, this.currentLeaf));
+						} else {
+							// otherwise this is a unary operator
+							this.beginExpressionWith(UnaryExpressionNode(token, this.currentLeaf));
 						}
 						break;
+					case '*': this.currentLeaf.nodes.push(MultiplicationOperatorNode(token, this.currentLeaf)); break;
+					case '/': this.currentLeaf.nodes.push(DivisionOperatorNode(token, this.currentLeaf)); break;
+					case '%': this.currentLeaf.nodes.push(ModulusOperatorNode(token, this.currentLeaf)); break;
+					default: this.currentLeaf.nodes.push(GenericNode(token, this.currentLeaf)); break;
 				}
-			} else if (token.type === 'bool' || token.type === 'number' || token.type === 'string') {
-				const node = Literal(token, this.currentLeaf, this.root)
-				if (this.currentLeaf.type === 'VariableDeclaration') {
-					this.currentLeaf.rhs = node;
+			} else if (token.type === 'separator') {
+				switch (token.value) {
+					case ';':
+						this.currentLeaf.nodes.push(SemicolonSeparatorNode(token, this.currentLeaf));
+						this.endExpression();
+						break;
+					case ':':
+						// TODO do this
+						this.currentLeaf.nodes.push(GenericNode(token, this.currentLeaf));
+						break;
+					case ',':
+						// TODO do this
+						this.currentLeaf.nodes.push(GenericNode(token, this.currentLeaf));
+						break;
+					default:
+						this.currentLeaf.nodes.push(GenericNode(token, this.currentLeaf));
+						break;
 				}
+			} else if (token.type === 'keyword') {
+				switch (token.value) {
+					case 'const':
+					case 'let':
+						this.beginExpressionWith(VariableDeclarationNode(token, this.currentLeaf));
+						break;
+					case 'import':
+						this.beginExpressionWith(ImportDeclarationNode(token, this.currentLeaf));
+						break;
+					default:
+						this.currentLeaf.nodes.push(KeywordNode('Keyword', token, this.currentLeaf));
+						break;
+
+				}
+			} else if (token.type === 'filepath') {
+				this.currentLeaf.nodes.push(FilePathNode(token, this.currentLeaf));
+			} else {
+				this.currentLeaf.nodes.push(GenericNode(token, this.currentLeaf));
 			}
+		}
 
-
-
-					const rhs = this.getTokenOfTypes(++i, ['paren', 'bool', 'number', 'string']); // TODO add method invocation
-					if (rhs.type === 'paren') {
-						// create parens node and attach to leaf
-						const expressionNode = EnterExpression(rhs.start, variableDeclarationNode);
-						variableDeclarationNode.rhs = expressionNode;
-					}
-					const valueNode = this.getLiteral(i + 3);
-					const semicolon = this.getTokenOfTypeAndValue(i + 4, 'separator', ';');
-
-					(this.root.nodes = this.root.nodes || []).push(VariableDeclaration(
-						token.value,
-						identifierNodeLHS,
-						valueNode,
-						identifierNodeLHS.start,
-						semicolon.end,
-						this.root,
-					));
-
+		if (this.debug) {
+			console.debug(inspect(this.root, { showHidden: true, depth: null }));
 		}
 
 		return this.root;
 	}
 
-	getIdentifier (index: number, parent?: Node): IdentifierNode {
-		const token = this.getTokenOfType(index, 'identifier');
-
-		return {
-			type: 'Identifier',
-			name: token.value,
-			start: token.start,
-			end: token.end,
-			parent,
-			nodes: [],
-		}
-	}
-
-	getLiteral (index: number): LiteralNode {
-		const token = this.getTokenOfTypes(index, ['bool', 'number', 'string']);
-
-		return Literal(token, undefined, this.root);
-
-		// return {
-		// 	type: 'Literal',
-		// 	name: token.value,
-		// 	start: token.start,
-		// 	end: token.end,
-		// }
+	/**
+	 * Begins an expression with a node
+	 *
+	 * @param node - To push
+	 */
+	private beginExpressionWith(node: Node) {
+		this.currentLeaf.nodes.push(node);
+		this.currentLeaf = node;
 	}
 
 	/**
-	 * attempts to get a token of one of the specified types at the specifed index.
-	 * if undefined or incorrect type, throw an error
-	 *
-	 * @param index of the token
+	 * Runs when an expression has ended
 	 */
-	getTokenOfTypes (index: number, types: TokenType[]) {
-		const token = this.tokens[index];
-		const prevToken = this.tokens[index - 1];
-		if (typeof token === 'undefined') {
-			throw new ParserError(`one of ${types.join(' or ')} expected at line ${prevToken.line}:${prevToken.end}`, this.root);
+	private endExpression() {
+		// capure this one's end
+		const nigh = this.currentLeaf.end;
+
+		// go up one level by setting the current leaf to the current leaf's parent
+		this.currentLeaf = this.currentLeaf.parent as Node;
+
+		// this should never happen, but it's here as a fallback
+		if (typeof this.currentLeaf === 'undefined') {
+			this.currentLeaf = this.root;
 		}
 
-		if (!types.includes(token.type)) {
-			throw new ParserError(`one of ${types.join(' or ')} expected at line ${prevToken.line}:${prevToken.end}, ${token.type} found`, this.root);
-		}
-
-		return token;
+		// once up, update the currentLeaf's .end with this one's end
+		this.currentLeaf.end = nigh;
 	}
 
 	/**
-	 * attempts to get a token of specified type at the specifed index.
-	 * if undefined or incorrect type, throw an error
-	 *
-	 * @param index of the token
+	 * check if current leaf is a unary, if so, it's finished
 	 */
-	getTokenOfType (index: number, type: TokenType) {
-		const token = this.tokens[index];
-		const prevToken = this.tokens[index - 1];
-		if (typeof token === 'undefined') {
-			throw new ParserError(`${type} expected at line ${prevToken.line}:${prevToken.end}`, this.root);
+	private ifInUnaryExpressionEndIt () {
+		if (this.currentLeaf.type === 'UnaryExpression') {
+			this.endExpression();
 		}
-
-		if (token.type !== type) {
-			throw new ParserError(`${type} expected at line ${prevToken.line}:${prevToken.end}, ${token.type} found`, this.root);
-		}
-
-		return token;
-	}
-
-	/**
-	 * attempts to get a token of specified type and value at the specifed index.
-	 * if undefined or incorrect type or value, throw an error
-	 *
-	 * @param index of the token
-	 */
-	 getTokenOfTypeAndValue (index: number, type: TokenType, value: string) {
-		const token = this.tokens[index];
-		const prevToken = this.tokens[index - 1];
-		if (typeof token === 'undefined') {
-			throw new ParserError(`${type} expected at line ${prevToken.line}:${prevToken.end}`, this.root);
-		}
-
-		if (token.type !== type) {
-			throw new ParserError(`${type} expected at line ${prevToken.line}:${prevToken.end}, ${token.type} found`, this.root);
-		}
-
-		if (token.value !== value) {
-			throw new ParserError(`${value} expected at line ${prevToken.line}:${prevToken.end}, ${value} found`, this.root);
-		}
-
-		return token;
 	}
 }

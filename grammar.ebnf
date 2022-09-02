@@ -15,10 +15,10 @@ number : "0" | ["-"], number_part, [decimal, number_part], [exponent, ["-"], num
 bool : "true" | "false"
 equality_operator : "==" | "!==" | "===" | "!==" | "<" | "<=" | ">" | ">="
 logical_operator : "||" | "&&"
-expression : variable | expression | string | number | bool
+literal : string | number | bool
+mathematical_expression : number, mathematical_operator, number
 variable : letter, {letter | digit | underscore | question} (* question at the end indicates a bool var *)
 assignment_keyword : "let" | "const"
-literal : string | number | bool
 assignment : assignment_keyword, variable, "=", literal // simple for now
 mathematical_operator : "+" | "-" | "*" | "/" | "%"
 simple_binary_operation : [openParens], number, mathematical_operator | logical_operator | equality_operator, number, [closeParens]

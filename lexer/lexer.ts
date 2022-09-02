@@ -118,7 +118,7 @@ export default class {
 			}
 
 			/** Other operators */
-			if ([patterns.EQUALS, patterns.MULTIPLICATION].includes(this.char)) {
+			if ([patterns.EQUALS, patterns.MULTIPLICATION, patterns.MODULUS].includes(this.char)) {
 				this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
 				this.next();
 				continue;
@@ -208,8 +208,8 @@ export default class {
 				continue;
 			}
 
-			/** Separators: Semicolons, Comma, Colon */
-			if (this.char === patterns.SEMICOLON || this.char === patterns.COMMA || this.char === patterns.COLON) {
+			/** Separators: Semicolon, Colon, Comma */
+			if (this.char === patterns.SEMICOLON || this.char === patterns.COLON || this.char === patterns.COMMA) {
 				this.tokens.push({ type: 'separator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
 				this.next();
 				continue;

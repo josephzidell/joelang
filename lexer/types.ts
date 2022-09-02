@@ -44,6 +44,7 @@ export const mathematicalPatterns = {
 	MINUS: '-',
 	MULTIPLICATION: '*',
 	DIVIDE: '/',
+	MODULUS: '%',
 }
 
 // syntax patterns

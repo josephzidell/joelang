@@ -6,7 +6,8 @@
   "scripts": {
     "lexify": "ts-node lexer.ts",
     "parse": "ts-node parser.ts",
-    "test": "jest"
+    "test": "jest --detectOpenHandles && npm run --silent test-integration",
+    "test-integration": "npm run --silent lexify -- \"$(cat tests/fixtures/lexer_sample.joe)\" tests/fixtures/lexer_sample.tokens && npm run --silent parse -- \"$(cat tests/fixtures/lexer_sample.joe)\" tests/fixtures/lexer_sample.ast"
   },
   "repository": {
     "type": "git",
