@@ -24,7 +24,7 @@
 		"col": 1
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 114,
 		"end": 119,
 		"value": "lexer",
@@ -64,7 +64,7 @@
 		"col": 1
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 141,
 		"end": 147,
 		"value": "lexer2",
@@ -104,7 +104,7 @@
 		"col": 1
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 168,
 		"end": 171,
 		"value": "Foo",
@@ -120,7 +120,7 @@
 		"col": 11
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 180,
 		"end": 183,
 		"value": "Bar",
@@ -136,7 +136,7 @@
 		"col": 22
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 185,
 		"end": 188,
 		"value": "Baz",
@@ -152,7 +152,7 @@
 		"col": 28
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 200,
 		"end": 214,
 		"value": "AbstractFooBar",
@@ -168,7 +168,7 @@
 		"col": 53
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 216,
 		"end": 236,
 		"value": "AnotherAbstractClass",
@@ -192,7 +192,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 247,
 		"end": 250,
 		"value": "bar",
@@ -240,7 +240,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 295,
 		"end": 302,
 		"value": "isDone?",
@@ -280,7 +280,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 383,
 		"end": 386,
 		"value": "foo",
@@ -304,7 +304,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 397,
 		"end": 401,
 		"value": "size",
@@ -328,7 +328,7 @@
 		"col": 16
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 411,
 		"end": 421,
 		"value": "someNumber",
@@ -512,7 +512,7 @@
 		"col": 18
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 496,
 		"end": 500,
 		"value": "else",
@@ -560,7 +560,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 531,
 		"end": 538,
 		"value": "myTuple",
@@ -632,7 +632,7 @@
 		"col": 14
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 563,
 		"end": 570,
 		"value": "isDone?",
@@ -688,7 +688,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 631,
 		"end": 636,
 		"value": "count",
@@ -720,7 +720,7 @@
 		"col": 16
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 642,
 		"end": 649,
 		"value": "myTuple",
@@ -768,7 +768,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 682,
 		"end": 691,
 		"value": "countDown",
@@ -784,7 +784,7 @@
 		"col": 17
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 694,
 		"end": 701,
 		"value": "myTuple",
@@ -848,7 +848,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 762,
 		"end": 778,
 		"value": "partitionedTuple",
@@ -872,7 +872,7 @@
 		"col": 26
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 786,
 		"end": 795,
 		"value": "countDown",
@@ -920,7 +920,7 @@
 		"col": 17
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 804,
 		"end": 813,
 		"value": "countDown",
@@ -976,7 +976,7 @@
 		"col": 18
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 823,
 		"end": 832,
 		"value": "countDown",
@@ -1056,7 +1056,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 910,
 		"end": 928,
 		"value": "selectedTupleItems",
@@ -1072,7 +1072,7 @@
 		"col": 26
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 931,
 		"end": 940,
 		"value": "countDown",
@@ -1152,7 +1152,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 980,
 		"end": 988,
 		"value": "myObject",
@@ -1176,7 +1176,7 @@
 		"col": 18
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 996,
 		"end": 997,
 		"value": "a",
@@ -1208,7 +1208,7 @@
 		"col": 8
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1005,
 		"end": 1006,
 		"value": "b",
@@ -1256,7 +1256,7 @@
 		"col": 21
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1023,
 		"end": 1030,
 		"value": "isDone?",
@@ -1280,7 +1280,7 @@
 		"col": 31
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1079,
 		"end": 1080,
 		"value": "c",
@@ -1296,7 +1296,7 @@
 		"col": 5
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1082,
 		"end": 1086,
 		"value": "cond",
@@ -1352,7 +1352,7 @@
 		"col": 28
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1172,
 		"end": 1173,
 		"value": "d",
@@ -1408,7 +1408,7 @@
 		"col": 3
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1192,
 		"end": 1202,
 		"value": "partialObj",
@@ -1424,7 +1424,7 @@
 		"col": 18
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1205,
 		"end": 1213,
 		"value": "myObject",
@@ -1440,7 +1440,7 @@
 		"col": 28
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1214,
 		"end": 1215,
 		"value": "a",
@@ -1456,7 +1456,7 @@
 		"col": 30
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1217,
 		"end": 1218,
 		"value": "d",
@@ -1496,7 +1496,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1272,
 		"end": 1286,
 		"value": "methodWithArgs",
@@ -1512,7 +1512,7 @@
 		"col": 17
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1288,
 		"end": 1292,
 		"value": "arg1",
@@ -1528,7 +1528,7 @@
 		"col": 22
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1294,
 		"end": 1298,
 		"value": "bool",
@@ -1544,7 +1544,7 @@
 		"col": 28
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1300,
 		"end": 1304,
 		"value": "arg2",
@@ -1560,7 +1560,7 @@
 		"col": 34
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1306,
 		"end": 1311,
 		"value": "Tuple",
@@ -1576,7 +1576,7 @@
 		"col": 41
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1313,
 		"end": 1317,
 		"value": "arg3",
@@ -1616,7 +1616,7 @@
 		"col": 56
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1329,
 		"end": 1339,
 		"value": "otherStuff",
@@ -1632,7 +1632,7 @@
 		"col": 69
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1341,
 		"end": 1346,
 		"value": "Thing",
@@ -1696,7 +1696,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1388,
 		"end": 1410,
 		"value": "methodThatReturnsBool?",
@@ -1712,7 +1712,7 @@
 		"col": 25
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1413,
 		"end": 1417,
 		"value": "bool",
@@ -1752,7 +1752,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1463,
 		"end": 1485,
 		"value": "methodThatReturnsBool?",
@@ -1768,7 +1768,7 @@
 		"col": 25
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1488,
 		"end": 1492,
 		"value": "bool",
@@ -1784,7 +1784,7 @@
 		"col": 31
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1494,
 		"end": 1500,
 		"value": "number",
@@ -1800,7 +1800,7 @@
 		"col": 39
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1502,
 		"end": 1507,
 		"value": "Thing",
@@ -1856,7 +1856,7 @@
 		"col": 18
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1529,
 		"end": 1532,
 		"value": "new",
@@ -1864,7 +1864,7 @@
 		"col": 20
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1533,
 		"end": 1538,
 		"value": "Thing",
@@ -1888,7 +1888,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1577,
 		"end": 1585,
 		"value": "careful!",
@@ -1928,7 +1928,7 @@
 		"col": 2
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1646,
 		"end": 1655,
 		"value": "careful?!",
@@ -1944,7 +1944,7 @@
 		"col": 12
 	},
 	{
-		"type": "name",
+		"type": "identifier",
 		"start": 1658,
 		"end": 1662,
 		"value": "bool",
