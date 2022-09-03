@@ -1,7 +1,7 @@
 import Lexer from "../lexer/lexer";
 import { Token } from "../lexer/types";
 import Parser from "./parser";
-import { IdentifierNode, Node, UnaryExpressionNode, VariableDeclarationNode } from "./types";
+import { Node } from "./types";
 
 interface CustomMatchers<R = unknown> {
 	toMatchAST(simplifiedVersion: SAST): R;
@@ -61,21 +61,21 @@ function matchAST (tree: Node, simplifiedVersion: SAST): CustomMatcherResult {
 		// has value and children
 		} else if (node.type === 'UnaryExpression') {
 			// match operator
-			const result = matchValueAndChildren(node, (node as UnaryExpressionNode).operator, simplifiedVersion, index);
+			const result = matchValueAndChildren(node, node.value as string, simplifiedVersion, index);
 			if (!result.pass) {
 				return result;
 			}
 
 		} else if (node.type === 'VariableDeclaration') {
 			// match operator
-			const result = matchValueAndChildren(node, (node as VariableDeclarationNode).kind, simplifiedVersion, index);
+			const result = matchValueAndChildren(node, node.value as string, simplifiedVersion, index);
 			if (!result.pass) {
 				return result;
 			}
 
 		// has value but no children
 		} else if (node.type === 'Identifier') {
-			const result = expectSingleNodeToMatch(simplifiedVersion[index][1] as string, (node as IdentifierNode).name);
+			const result = expectSingleNodeToMatch(simplifiedVersion[index][1] as string, node.value as string);
 			if (!result.pass) {
 				return result;
 			}
@@ -229,7 +229,7 @@ describe('lexer.ts', (): void => {
 									['NumberLiteral', '4'],
 								]],
 							]],
-							['ModulusOperator', '%'],
+							['ModOperator', '%'],
 							['NumberLiteral', '9'],
 						]]
 					]]

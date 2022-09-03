@@ -13,7 +13,7 @@ const nodeTypes = [
 	'Identifier',
 	'ImportDeclaration',
 	'Keyword',
-	'ModulusOperator',
+	'ModOperator',
 	'MultiplicationOperator',
 	'NumberLiteral',
 	'Parenthesized',
@@ -35,49 +35,3 @@ export type Node = {
 	parent?: Node;
 	nodes: Node[];
 }
-
-export type BinaryOperationNode = Node & {
-	type: 'BinaryOperation';
-	lhs?: IdentifierNode;
-	operator?: OperatorNode;
-	rhs?: ExpressionNode;
-}
-
-export type FilePathNode = Node & {
-	type: 'FilePath';
-}
-
-export type IdentifierNode = Node & {
-	name: string;
-}
-
-export type OperatorNode = Node & {
-	operator: string;
-}
-
-export type ExpressionNode = Node & {
-	type: 'Expression';
-}
-
-export type ImportDeclarationNode = Node & {
-	type: 'ImportDeclaration';
-}
-
-export type UnaryExpressionNode = Node & {
-	type: 'UnaryExpression';
-	operator: string;
-}
-
-export type VariableDeclarationKind = 'let' | 'const';
-export type VariableDeclarationNode = Node & {
-	type: 'VariableDeclaration';
-	kind: VariableDeclarationKind;
-}
-
-type LiteralValue<T> = Node & {
-	value: T;
-}
-export type BoolLiteralNode = LiteralValue<boolean>;
-export type NumberLiteralNode = LiteralValue<number>;
-export type StringLiteralNode = LiteralValue<string>;
-export type LiteralNode = BoolLiteralNode | NumberLiteralNode | StringLiteralNode;

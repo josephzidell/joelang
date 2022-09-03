@@ -1,5 +1,56 @@
 // token types
-export type TokenType = 'paren' | 'bracket' | 'brace' | 'bool' | 'number' | 'string' | 'identifier' | 'keyword' | 'operator' | 'nil' | 'filepath' | 'separator' | 'comment';
+export const tokenTypesUsingSymbols = {
+	'and': '&&',
+	'assign': '=',
+	'asterisk_equals': '*=',
+	'asterisk': '*',
+	'bang': '!',
+	'brace_close': '}',
+	'brace_open': '{',
+	'bracket_close': ']',
+	'bracket_open': '[',
+	'caret_exponent': '^e',
+	'caret': '^',
+	'colon': ':',
+	'comma': ',',
+	'compare': '<=>',
+	'dot': '.',
+	'dotdot': '..',
+	'dotdotdot': '...',
+	'equals': '==',
+	'forward_slash_equals': '/=',
+	'forward_slash': '/',
+	'greater_than_equals': '>=',
+	'greater_than': '>',
+	'less_than_equals': '<=',
+	'less_than': '<',
+	'minus_equals': '-=',
+	'minus_minus': '--',
+	'minus': '-',
+	'mod_equals': '%=',
+	'mod': '%',
+	'not_equals': '!=',
+	'or': '||',
+	'paren_close': ')',
+	'paren_open': '(',
+	'plus_equals': '+=',
+	'plus_plus': '++',
+	'plus': '+',
+	'question': '?',
+	'semicolon': ';',
+};
+const complexTokenTypes = [
+	'bool',
+	'comment',
+	'filepath',
+	'identifier',
+	'keyword',
+	'nil',
+	'number',
+	'regex',
+	'string',
+] as const;
+export type TokenType = keyof typeof tokenTypesUsingSymbols | typeof complexTokenTypes[number];
 
 // info about a token
 export type Token = {
@@ -23,12 +74,26 @@ export type Token = {
 };
 
 // reserved keywords
-export const keywords = ['const', 'let', 'if', 'is', 'in', 'for', 'switch', 'return', 'import', 'from', 'class', 'extends', 'implements', 'this', 'static', 'public', 'private'] as const;
+export const keywords = [
+	'class',
+	'const',
+	'extends',
+	'for',
+	'from',
+	'if',
+	'implements',
+	'import',
+	'in',
+	'is',
+	'let',
+	'private',
+	'public',
+	'return',
+	'static',
+	'switch',
+	'this',
+] as const;
 type Keyword = typeof keywords[number];
-
-// operators
-export const operators = ['+', '++', '-', '--', '*', '/', '%', '^e', '^^', '|', '||', '&', '&&', '.', '..', '...', '!', ':', ';', ',', '<', '>', '=', '==', '!=', '===', '!==', '<=>'] as const;
-type Operator = typeof operators[number];
 
 // special Values
 const specialValues = ['true', 'false', 'nil'] as const;
@@ -38,14 +103,6 @@ export const specialValueTypes: Record<SpecialValue, TokenType> = {
 	false: 'bool',
 	nil: 'nil',
 };
-
-export const mathematicalPatterns = {
-	PLUS: '+',
-	MINUS: '-',
-	MULTIPLICATION: '*',
-	DIVIDE: '/',
-	MODULUS: '%',
-}
 
 // syntax patterns
 export const patterns = {
@@ -61,8 +118,11 @@ export const patterns = {
 	ESCAPE: '\\',
 	FORWARD_SLASH: '/',
 	HASH: '#',
-	PIPE: '|',
+	MINUS: '-',
+	MOD: '%',
 	PERIOD: '.',
+	PIPE: '|',
+	PLUS: '+',
 	QUESTION: '?',
 	SEMICOLON: ';',
 	SINGLE_QUOTE: "'",
@@ -74,6 +134,4 @@ export const patterns = {
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	WHITESPACE: /\s/,
-
-	...mathematicalPatterns,
 };

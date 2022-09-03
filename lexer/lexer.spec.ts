@@ -15,7 +15,7 @@ describe('lexer.ts', (): void => {
 			expect(new Lexer().lexify('let foo = true')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
 				{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
-				{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
+				{ type: 'assign', start: 8, end: 9, value: '=', line: 1, col: 9 },
 				{ type: 'bool', start: 10, end: 14, value: 'true', line: 1, col: 11 },
 			]);
 		});
@@ -24,7 +24,7 @@ describe('lexer.ts', (): void => {
 			expect(new Lexer().lexify('let foo = false')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
 				{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
-				{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
+				{ type: 'assign', start: 8, end: 9, value: '=', line: 1, col: 9 },
 				{ type: 'bool', start: 10, end: 15, value: 'false', line: 1, col: 11 },
 			]);
 		});
@@ -60,12 +60,12 @@ describe('lexer.ts', (): void => {
 
 	describe('line and col counts', (): void => {
 		it('works as it should', (): void => {
-			expect(new Lexer().lexify(" foo ??\n''\n   23^e5")).toStrictEqual([
+			expect(new Lexer().lexify(" foo ? \n''\n   23^e5")).toStrictEqual([
 				{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
-				{ type: 'operator', start: 5, end: 7, value: '??', line: 1, col: 6 },
+				{ type: 'question', start: 5, end: 6, value: '?', line: 1, col: 6 },
 				{ type: 'string', start: 8, end: 10, value: '', line: 2, col: 1 },
 				{ type: 'number', start: 14, end: 16, value: '23', line: 3, col: 4 },
-				{ type: 'operator', start: 16, end: 18, value: '^e', line: 3, col: 6 },
+				{ type: 'caret_exponent', start: 16, end: 18, value: '^e', line: 3, col: 6 },
 				{ type: 'number', start: 18, end: 19, value: '5', line: 3, col: 8 },
 			])
 		});
@@ -93,7 +93,7 @@ describe('lexer.ts', (): void => {
 		it('number with exponent', (): void => {
 			expect(new Lexer().lexify('100001^e23')).toStrictEqual([
 				{ type: 'number', start: 0, end: 6, value: '100001', line: 1, col: 1 },
-				{ type: 'operator', start: 6, end: 8, value: '^e', line: 1, col: 7 },
+				{ type: 'caret_exponent', start: 6, end: 8, value: '^e', line: 1, col: 7 },
 				{ type: 'number', start: 8, end: 10, value: '23', line: 1, col: 9 },
 			]);
 		});
@@ -101,8 +101,8 @@ describe('lexer.ts', (): void => {
 		it('number with negative exponent', (): void => {
 			expect(new Lexer().lexify('100001^e-23')).toStrictEqual([
 				{ type: 'number', start: 0, end: 6, value: '100001', line: 1, col: 1 },
-				{ type: 'operator', start: 6, end: 8, value: '^e', line: 1, col: 7 },
-				{ type: 'operator', start: 8, end: 9, value: '-', line: 1, col: 9 },
+				{ type: 'caret_exponent', start: 6, end: 8, value: '^e', line: 1, col: 7 },
+				{ type: 'minus', start: 8, end: 9, value: '-', line: 1, col: 9 },
 				{ type: 'number', start: 9, end: 11, value: '23', line: 1, col: 10 },
 			]);
 		});
@@ -110,7 +110,7 @@ describe('lexer.ts', (): void => {
 		it('number with broken exponent', (): void => {
 			expect(new Lexer().lexify('100001^23')).toStrictEqual([
 				{ type: 'number', start: 0, end: 6, value: '100001', line: 1, col: 1 },
-				{ type: 'operator', start: 6, end: 7, value: '^', line: 1, col: 7 },
+				{ type: 'caret', start: 6, end: 7, value: '^', line: 1, col: 7 },
 				{ type: 'number', start: 7, end: 9, value: '23', line: 1, col: 8 },
 			]);
 
@@ -124,7 +124,7 @@ describe('lexer.ts', (): void => {
 			expect(new Lexer().lexify('let foo = 51')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
 				{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
-				{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
+				{ type: 'assign', start: 8, end: 9, value: '=', line: 1, col: 9 },
 				{ type: 'number', start: 10, end: 12, value: '51', line: 1, col: 11 },
 			]);
 		});
@@ -133,7 +133,7 @@ describe('lexer.ts', (): void => {
 			expect(new Lexer().lexify('const foo = 51')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
 				{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
-				{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
+				{ type: 'assign', start: 10, end: 11, value: '=', line: 1, col: 11 },
 				{ type: 'number', start: 12, end: 14, value: '51', line: 1, col: 13 },
 			]);
 		});
@@ -141,50 +141,26 @@ describe('lexer.ts', (): void => {
 
 	describe('operators', (): void => {
 		describe('logic', (): void => {
-			it('single pipe', (): void => {
-				expect(new Lexer().lexify('|')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 1, value: '|', line: 1, col: 1 },
-				]);
-
-				expect(new Lexer().lexify('a | true')).toStrictEqual([
-					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
-					{ type: 'operator', start: 2, end: 3, value: '|', line: 1, col: 3 },
-					{ type: 'bool', start: 4, end: 8, value: 'true', line: 1, col: 5 },
-				]);
-			});
-
 			it('double pipe', (): void => {
 				expect(new Lexer().lexify('||')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 2, value: '||', line: 1, col: 1 },
+					{ type: 'or', start: 0, end: 2, value: '||', line: 1, col: 1 },
 				]);
 
 				expect(new Lexer().lexify('a || true')).toStrictEqual([
 					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
-					{ type: 'operator', start: 2, end: 4, value: '||', line: 1, col: 3 },
+					{ type: 'or', start: 2, end: 4, value: '||', line: 1, col: 3 },
 					{ type: 'bool', start: 5, end: 9, value: 'true', line: 1, col: 6 },
-				]);
-			});
-
-			it('single ampersand', (): void => {
-				expect(new Lexer().lexify('&')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 1, value: '&', line: 1, col: 1 },
-				]);
-
-				expect(new Lexer().lexify('a & true')).toStrictEqual([
-					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
-					{ type: 'operator', start: 2, end: 3, value: '&', line: 1, col: 3 },
-					{ type: 'bool', start: 4, end: 8, value: 'true', line: 1, col: 5 },
 				]);
 			});
 
 			it('double ampersand', (): void => {
 				expect(new Lexer().lexify('&&')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 2, value: '&&', line: 1, col: 1 },
+					{ type: 'and', start: 0, end: 2, value: '&&', line: 1, col: 1 },
 				]);
 
-				expect(new Lexer().lexify('a || true')).toStrictEqual([
+				expect(new Lexer().lexify('a && true')).toStrictEqual([
 					{ type: 'identifier', start: 0, end: 1, value: 'a', line: 1, col: 1 },
-					{ type: 'operator', start: 2, end: 4, value: '||', line: 1, col: 3 },
+					{ type: 'and', start: 2, end: 4, value: '&&', line: 1, col: 3 },
 					{ type: 'bool', start: 5, end: 9, value: 'true', line: 1, col: 6 },
 				]);
 			});
@@ -193,23 +169,23 @@ describe('lexer.ts', (): void => {
 		describe('unary expressions', (): void => {
 			it('negative number', (): void => {
 				expect(new Lexer().lexify('-1')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 1, value: '-', line: 1, col: 1 },
+					{ type: 'minus', start: 0, end: 1, value: '-', line: 1, col: 1 },
 					{ type: 'number', start: 1, end: 2, value: '1', line: 1, col: 2 },
 				]);
 			});
 
 			it('negative number with parens', (): void => {
 				expect(new Lexer().lexify('(-1)')).toStrictEqual([
-					{ type: 'paren', start: 0, end: 1, value: '(', line: 1, col: 1 },
-					{ type: 'operator', start: 1, end: 2, value: '-', line: 1, col: 2 },
+					{ type: 'paren_open', start: 0, end: 1, value: '(', line: 1, col: 1 },
+					{ type: 'minus', start: 1, end: 2, value: '-', line: 1, col: 2 },
 					{ type: 'number', start: 2, end: 3, value: '1', line: 1, col: 3 },
-					{ type: 'paren', start: 3, end: 4, value: ')', line: 1, col: 4 },
+					{ type: 'paren_close', start: 3, end: 4, value: ')', line: 1, col: 4 },
 				]);
 			});
 
 			it('pre-decrement', (): void => {
 				expect(new Lexer().lexify('--foo')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 2, value: '--', line: 1, col: 1 },
+					{ type: 'minus_minus', start: 0, end: 2, value: '--', line: 1, col: 1 },
 					{ type: 'identifier', start: 2, end: 5, value: 'foo', line: 1, col: 3 },
 				]);
 			});
@@ -217,13 +193,13 @@ describe('lexer.ts', (): void => {
 			it('post-decrement', (): void => {
 				expect(new Lexer().lexify('foo--')).toStrictEqual([
 					{ type: 'identifier', start: 0, end: 3, value: 'foo', line: 1, col: 1 },
-					{ type: 'operator', start: 3, end: 5, value: '--', line: 1, col: 4 },
+					{ type: 'minus_minus', start: 3, end: 5, value: '--', line: 1, col: 4 },
 				]);
 			});
 
 			it('pre-increment', (): void => {
 				expect(new Lexer().lexify('++foo')).toStrictEqual([
-					{ type: 'operator', start: 0, end: 2, value: '++', line: 1, col: 1 },
+					{ type: 'plus_plus', start: 0, end: 2, value: '++', line: 1, col: 1 },
 					{ type: 'identifier', start: 2, end: 5, value: 'foo', line: 1, col: 3 },
 				]);
 			});
@@ -231,7 +207,7 @@ describe('lexer.ts', (): void => {
 			it('post-increment', (): void => {
 				expect(new Lexer().lexify('foo++')).toStrictEqual([
 					{ type: 'identifier', start: 0, end: 3, value: 'foo', line: 1, col: 1 },
-					{ type: 'operator', start: 3, end: 5, value: '++', line: 1, col: 4 },
+					{ type: 'plus_plus', start: 3, end: 5, value: '++', line: 1, col: 4 },
 				]);
 			});
 		});
@@ -241,27 +217,27 @@ describe('lexer.ts', (): void => {
 		describe('brackets', (): void => {
 			it('with nothing between', (): void => {
 				expect(new Lexer().lexify('[]')).toStrictEqual([
-					{ type: 'bracket', start: 0, end: 1, value: '[', line: 1, col: 1 },
-					{ type: 'bracket', start: 1, end: 2, value: ']', line: 1, col: 2 },
+					{ type: 'bracket_open', start: 0, end: 1, value: '[', line: 1, col: 1 },
+					{ type: 'bracket_close', start: 1, end: 2, value: ']', line: 1, col: 2 },
 				]);
 			});
 
 			it('with something between', (): void => {
 				expect(new Lexer().lexify('[foo]')).toStrictEqual([
-					{ type: 'bracket', start: 0, end: 1, value: '[', line: 1, col: 1 },
+					{ type: 'bracket_open', start: 0, end: 1, value: '[', line: 1, col: 1 },
 					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
-					{ type: 'bracket', start: 4, end: 5, value: ']', line: 1, col: 5 },
+					{ type: 'bracket_close', start: 4, end: 5, value: ']', line: 1, col: 5 },
 				]);
 			});
 
 			it('two sets with nested', (): void => {
 				expect(new Lexer().lexify('[[]][]')).toStrictEqual([
-					{ type: 'bracket', start: 0, end: 1, value: '[', line: 1, col: 1 },
-					{ type: 'bracket', start: 1, end: 2, value: '[', line: 1, col: 2 },
-					{ type: 'bracket', start: 2, end: 3, value: ']', line: 1, col: 3 },
-					{ type: 'bracket', start: 3, end: 4, value: ']', line: 1, col: 4 },
-					{ type: 'bracket', start: 4, end: 5, value: '[', line: 1, col: 5 },
-					{ type: 'bracket', start: 5, end: 6, value: ']', line: 1, col: 6 },
+					{ type: 'bracket_open', start: 0, end: 1, value: '[', line: 1, col: 1 },
+					{ type: 'bracket_open', start: 1, end: 2, value: '[', line: 1, col: 2 },
+					{ type: 'bracket_close', start: 2, end: 3, value: ']', line: 1, col: 3 },
+					{ type: 'bracket_close', start: 3, end: 4, value: ']', line: 1, col: 4 },
+					{ type: 'bracket_open', start: 4, end: 5, value: '[', line: 1, col: 5 },
+					{ type: 'bracket_close', start: 5, end: 6, value: ']', line: 1, col: 6 },
 				]);
 			});
 		});
@@ -269,27 +245,27 @@ describe('lexer.ts', (): void => {
 		describe('braces', (): void => {
 			it('with nothing between', (): void => {
 				expect(new Lexer().lexify('{}')).toStrictEqual([
-					{ type: 'brace', start: 0, end: 1, value: '{', line: 1, col: 1 },
-					{ type: 'brace', start: 1, end: 2, value: '}', line: 1, col: 2 },
+					{ type: 'brace_open', start: 0, end: 1, value: '{', line: 1, col: 1 },
+					{ type: 'brace_close', start: 1, end: 2, value: '}', line: 1, col: 2 },
 				]);
 			});
 
 			it('with something between', (): void => {
 				expect(new Lexer().lexify('{foo}')).toStrictEqual([
-					{ type: 'brace', start: 0, end: 1, value: '{', line: 1, col: 1 },
+					{ type: 'brace_open', start: 0, end: 1, value: '{', line: 1, col: 1 },
 					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
-					{ type: 'brace', start: 4, end: 5, value: '}', line: 1, col: 5 },
+					{ type: 'brace_close', start: 4, end: 5, value: '}', line: 1, col: 5 },
 				]);
 			});
 
 			it('two sets with nested', (): void => {
 				expect(new Lexer().lexify('{{}}{}')).toStrictEqual([
-					{ type: 'brace', start: 0, end: 1, value: '{', line: 1, col: 1 },
-					{ type: 'brace', start: 1, end: 2, value: '{', line: 1, col: 2 },
-					{ type: 'brace', start: 2, end: 3, value: '}', line: 1, col: 3 },
-					{ type: 'brace', start: 3, end: 4, value: '}', line: 1, col: 4 },
-					{ type: 'brace', start: 4, end: 5, value: '{', line: 1, col: 5 },
-					{ type: 'brace', start: 5, end: 6, value: '}', line: 1, col: 6 },
+					{ type: 'brace_open', start: 0, end: 1, value: '{', line: 1, col: 1 },
+					{ type: 'brace_open', start: 1, end: 2, value: '{', line: 1, col: 2 },
+					{ type: 'brace_close', start: 2, end: 3, value: '}', line: 1, col: 3 },
+					{ type: 'brace_close', start: 3, end: 4, value: '}', line: 1, col: 4 },
+					{ type: 'brace_open', start: 4, end: 5, value: '{', line: 1, col: 5 },
+					{ type: 'brace_close', start: 5, end: 6, value: '}', line: 1, col: 6 },
 				]);
 			});
 		});
@@ -297,27 +273,27 @@ describe('lexer.ts', (): void => {
 		describe('parens', (): void => {
 			it('with nothing between', (): void => {
 				expect(new Lexer().lexify('()')).toStrictEqual([
-					{ type: 'paren', start: 0, end: 1, value: '(', line: 1, col: 1 },
-					{ type: 'paren', start: 1, end: 2, value: ')', line: 1, col: 2 },
+					{ type: 'paren_open', start: 0, end: 1, value: '(', line: 1, col: 1 },
+					{ type: 'paren_close', start: 1, end: 2, value: ')', line: 1, col: 2 },
 				]);
 			});
 
 			it('with something between', (): void => {
 				expect(new Lexer().lexify('(foo)')).toStrictEqual([
-					{ type: 'paren', start: 0, end: 1, value: '(', line: 1, col: 1 },
+					{ type: 'paren_open', start: 0, end: 1, value: '(', line: 1, col: 1 },
 					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
-					{ type: 'paren', start: 4, end: 5, value: ')', line: 1, col: 5 },
+					{ type: 'paren_close', start: 4, end: 5, value: ')', line: 1, col: 5 },
 				]);
 			});
 
 			it('two sets with nested', (): void => {
 				expect(new Lexer().lexify('(())()')).toStrictEqual([
-					{ type: 'paren', start: 0, end: 1, value: '(', line: 1, col: 1 },
-					{ type: 'paren', start: 1, end: 2, value: '(', line: 1, col: 2 },
-					{ type: 'paren', start: 2, end: 3, value: ')', line: 1, col: 3 },
-					{ type: 'paren', start: 3, end: 4, value: ')', line: 1, col: 4 },
-					{ type: 'paren', start: 4, end: 5, value: '(', line: 1, col: 5 },
-					{ type: 'paren', start: 5, end: 6, value: ')', line: 1, col: 6 },
+					{ type: 'paren_open', start: 0, end: 1, value: '(', line: 1, col: 1 },
+					{ type: 'paren_open', start: 1, end: 2, value: '(', line: 1, col: 2 },
+					{ type: 'paren_close', start: 2, end: 3, value: ')', line: 1, col: 3 },
+					{ type: 'paren_close', start: 3, end: 4, value: ')', line: 1, col: 4 },
+					{ type: 'paren_open', start: 4, end: 5, value: '(', line: 1, col: 5 },
+					{ type: 'paren_close', start: 5, end: 6, value: ')', line: 1, col: 6 },
 				]);
 			});
 		});
@@ -325,34 +301,34 @@ describe('lexer.ts', (): void => {
 		describe('mixtures', (): void => {
 			it('works', (): void => {
 				expect(new Lexer().lexify('([])')).toStrictEqual([
-					{ type: 'paren', start: 0, end: 1, value: '(', line: 1, col: 1 },
-					{ type: 'bracket', start: 1, end: 2, value: '[', line: 1, col: 2 },
-					{ type: 'bracket', start: 2, end: 3, value: ']', line: 1, col: 3 },
-					{ type: 'paren', start: 3, end: 4, value: ')', line: 1, col: 4 },
+					{ type: 'paren_open', start: 0, end: 1, value: '(', line: 1, col: 1 },
+					{ type: 'bracket_open', start: 1, end: 2, value: '[', line: 1, col: 2 },
+					{ type: 'bracket_close', start: 2, end: 3, value: ']', line: 1, col: 3 },
+					{ type: 'paren_close', start: 3, end: 4, value: ')', line: 1, col: 4 },
 				]);
 
 				expect(new Lexer().lexify('[()]')).toStrictEqual([
-					{ type: 'bracket', start: 0, end: 1, value: '[', line: 1, col: 1 },
-					{ type: 'paren', start: 1, end: 2, value: '(', line: 1, col: 2 },
-					{ type: 'paren', start: 2, end: 3, value: ')', line: 1, col: 3 },
-					{ type: 'bracket', start: 3, end: 4, value: ']', line: 1, col: 4 },
+					{ type: 'bracket_open', start: 0, end: 1, value: '[', line: 1, col: 1 },
+					{ type: 'paren_open', start: 1, end: 2, value: '(', line: 1, col: 2 },
+					{ type: 'paren_close', start: 2, end: 3, value: ')', line: 1, col: 3 },
+					{ type: 'bracket_close', start: 3, end: 4, value: ']', line: 1, col: 4 },
 				]);
 
 				expect(new Lexer().lexify('{[]}')).toStrictEqual([
-					{ type: 'brace', start: 0, end: 1, value: '{', line: 1, col: 1 },
-					{ type: 'bracket', start: 1, end: 2, value: '[', line: 1, col: 2 },
-					{ type: 'bracket', start: 2, end: 3, value: ']', line: 1, col: 3 },
-					{ type: 'brace', start: 3, end: 4, value: '}', line: 1, col: 4 },
+					{ type: 'brace_open', start: 0, end: 1, value: '{', line: 1, col: 1 },
+					{ type: 'bracket_open', start: 1, end: 2, value: '[', line: 1, col: 2 },
+					{ type: 'bracket_close', start: 2, end: 3, value: ']', line: 1, col: 3 },
+					{ type: 'brace_close', start: 3, end: 4, value: '}', line: 1, col: 4 },
 				]);
 
 				// invalid syntax, but the lexer should report accruately
 				expect(new Lexer().lexify('[({])}')).toStrictEqual([
-					{ type: 'bracket', start: 0, end: 1, value: '[', line: 1, col: 1 },
-					{ type: 'paren', start: 1, end: 2, value: '(', line: 1, col: 2 },
-					{ type: 'brace', start: 2, end: 3, value: '{', line: 1, col: 3 },
-					{ type: 'bracket', start: 3, end: 4, value: ']', line: 1, col: 4 },
-					{ type: 'paren', start: 4, end: 5, value: ')', line: 1, col: 5 },
-					{ type: 'brace', start: 5, end: 6, value: '}', line: 1, col: 6 },
+					{ type: 'bracket_open', start: 0, end: 1, value: '[', line: 1, col: 1 },
+					{ type: 'paren_open', start: 1, end: 2, value: '(', line: 1, col: 2 },
+					{ type: 'brace_open', start: 2, end: 3, value: '{', line: 1, col: 3 },
+					{ type: 'bracket_close', start: 3, end: 4, value: ']', line: 1, col: 4 },
+					{ type: 'paren_close', start: 4, end: 5, value: ')', line: 1, col: 5 },
+					{ type: 'brace_close', start: 5, end: 6, value: '}', line: 1, col: 6 },
 				]);
 			});
 		});
@@ -364,7 +340,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify('let foo = "51"')).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
 					{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
-					{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
+					{ type: 'assign', start: 8, end: 9, value: '=', line: 1, col: 9 },
 					{ type: 'string', start: 10, end: 14, value: '51', line: 1, col: 11 }, // start to end includes the quotes
 				]);
 			});
@@ -373,7 +349,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify('const foo = ""')).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
 					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
-					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
+					{ type: 'assign', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 14, value: '', line: 1, col: 13 }, // start to end includes the quotes
 				]);
 			});
@@ -382,7 +358,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify('const foo = "大"')).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
 					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
-					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
+					{ type: 'assign', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 15, value: '大', line: 1, col: 13 }, // start to end includes the quotes
 				]);
 			});
@@ -399,7 +375,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify("let foo = 'bar'")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 3, value: 'let', line: 1, col: 1 },
 					{ type: 'identifier', start: 4, end: 7, value: 'foo', line: 1, col: 5 },
-					{ type: 'operator', start: 8, end: 9, value: '=', line: 1, col: 9 },
+					{ type: 'assign', start: 8, end: 9, value: '=', line: 1, col: 9 },
 					{ type: 'string', start: 10, end: 15, value: 'bar', line: 1, col: 11 }, // start to end includes the quotes
 				]);
 			});
@@ -408,7 +384,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify("const foo = ''")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
 					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
-					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
+					{ type: 'assign', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 14, value: '', line: 1, col: 13 }, // start to end includes the quotes
 				]);
 			});
@@ -417,7 +393,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify("const foo = '()'")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
 					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
-					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
+					{ type: 'assign', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 16, value: '()', line: 1, col: 13 }, // start to end includes the quotes
 				]);
 			});
@@ -426,7 +402,7 @@ describe('lexer.ts', (): void => {
 				expect(new Lexer().lexify("const foo = '大'")).toStrictEqual([
 					{ type: 'keyword', start: 0, end: 5, value: 'const', line: 1, col: 1 },
 					{ type: 'identifier', start: 6, end: 9, value: 'foo', line: 1, col: 7 },
-					{ type: 'operator', start: 10, end: 11, value: '=', line: 1, col: 11 },
+					{ type: 'assign', start: 10, end: 11, value: '=', line: 1, col: 11 },
 					{ type: 'string', start: 12, end: 15, value: '大', line: 1, col: 13 }, // start to end includes the quotes
 				]);
 			});
@@ -443,39 +419,39 @@ describe('lexer.ts', (): void => {
 		it('"1," should not be empty', (): void => {
 			expect(new Lexer().lexify('1,')).toStrictEqual([
 				{ type: 'number', start: 0, end: 1, value: '1', line: 1, col: 1 },
-				{ type: 'separator', start: 1, end: 2, value: ',', line: 1, col: 2 },
+				{ type: 'comma', start: 1, end: 2, value: ',', line: 1, col: 2 },
 			]);
 		});
 
-		it('"3..10" should have one operator token', (): void => {
+		it('"3..10" should have dotdot token', (): void => {
 			expect(new Lexer().lexify('3..10')).toStrictEqual([
 				{ type: 'number', start: 0, end: 1, value: '3', line: 1, col: 1 },
-				{ type: 'operator', start: 1, end: 3, value: '..', line: 1, col: 2 },
+				{ type: 'dotdot', start: 1, end: 3, value: '..', line: 1, col: 2 },
 				{ type: 'number', start: 3, end: 5, value: '10', line: 1, col: 4 },
 			]);
 		});
 
-		it('". " should have one operator token', (): void => {
+		it('". " should have dot token', (): void => {
 			expect(new Lexer().lexify('. ')).toStrictEqual([
-				{ type: 'operator', start: 0, end: 1, value: '.', line: 1, col: 1 },
+				{ type: 'dot', start: 0, end: 1, value: '.', line: 1, col: 1 },
 			]);
 		});
 
 		it('"." should end at 1', (): void => {
 			expect(new Lexer().lexify('.')).toStrictEqual([
-				{ type: 'operator', start: 0, end: 1, value: '.', line: 1, col: 1 },
+				{ type: 'dot', start: 0, end: 1, value: '.', line: 1, col: 1 },
 			]);
 		});
 
 		it('".." should end at 2', (): void => {
 			expect(new Lexer().lexify('..')).toStrictEqual([
-				{ type: 'operator', start: 0, end: 2, value: '..', line: 1, col: 1 },
+				{ type: 'dotdot', start: 0, end: 2, value: '..', line: 1, col: 1 },
 			]);
 		});
 
 		it('"..." should end at 3', (): void => {
 			expect(new Lexer().lexify('...')).toStrictEqual([
-				{ type: 'operator', start: 0, end: 3, value: '...', line: 1, col: 1 },
+				{ type: 'dotdotdot', start: 0, end: 3, value: '...', line: 1, col: 1 },
 			]);
 		});
 
@@ -483,7 +459,7 @@ describe('lexer.ts', (): void => {
 			expect(new Lexer().lexify('from /lexer;')).toStrictEqual([
 				{ type: 'keyword', start: 0, end: 4, value: 'from', line: 1, col: 1 },
 				{ type: 'filepath', start: 5, end: 11, value: '/lexer', line: 1, col: 6 },
-				{ type: 'separator', start: 11, end: 12, value: ';', line: 1, col: 12 },
+				{ type: 'semicolon', start: 11, end: 12, value: ';', line: 1, col: 12 },
 			]);
 		});
 	});

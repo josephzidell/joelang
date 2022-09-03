@@ -25,6 +25,18 @@ export default class {
 		// fix line endings
 		this.code = standardizeLineEndings(code);
 
+		const singleCharTokens: Record<string, TokenType> = {
+			[patterns.SEMICOLON]: 'semicolon',
+			[patterns.COLON]: 'colon',
+			[patterns.COMMA]: 'comma',
+			'{': 'brace_open',
+			'}': 'brace_close',
+			'[': 'bracket_open',
+			']': 'bracket_close',
+			'(': 'paren_open',
+			')': 'paren_close',
+		};
+
 		// loop through all characters
 		while (this.cursorPosition < this.code.length) {
 			this.char = this.code[this.cursorPosition];
@@ -53,7 +65,13 @@ export default class {
 
 				// if undefined, we're at the end of the script
 				if (typeof nextChar === 'undefined') {
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '/', line, col });
+					this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition + 1, value: '/', line, col });
+					this.next();
+					continue;
+				}
+
+				if (typeof nextChar === patterns.EQUALS) {
+					this.tokens.push({ type: 'forward_slash_equals', start, end: this.cursorPosition + 1, value: '/', line, col });
 					this.next();
 					continue;
 				}
@@ -79,7 +97,7 @@ export default class {
 
 				// if previous token is a number, this is a division symbol
 				if (this.tokens[this.tokens.length - 1].type === 'number') {
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition, value: '/', line, col });
+					this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition, value: '/', line, col });
 					this.next();
 					continue;
 				}
@@ -100,16 +118,46 @@ export default class {
 			/**
 			 * Operator characters that can be single or double: + ++, - --, | ||, & &&, ? ??
 			 */
-			if (this.char === patterns.PLUS || this.char === patterns.MINUS || this.char === patterns.PIPE || this.char === patterns.AMPERSAND || this.char === patterns.QUESTION) {
+			if (this.char === patterns.PLUS) {
+				this.peekAndHandle({
+					[patterns.PLUS]: 'plus_plus',
+					[patterns.EQUALS]: 'plus_equals',
+				}, 'plus', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.MINUS) {
+				this.peekAndHandle({
+					[patterns.MINUS]: 'minus_minus',
+					[patterns.EQUALS]: 'minus_equals',
+				}, 'minus', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.ASTERISK) {
+				this.peekAndHandle({
+					[patterns.EQUALS]: 'asterisk_equals',
+				}, 'asterisk', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.MOD) {
+				this.peekAndHandle({
+					[patterns.EQUALS]: 'mod_equals',
+				}, 'mod', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.PIPE) {
 				// peek at the next char - it's the same, we're hitting a double
 				if (this.char === this.peek()) {
-					this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
+					this.tokens.push({ type: 'or', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
 
 					this.next(); // skip next character
-
-				// single
-				} else {
-					this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
 				}
 
 				this.next();
@@ -117,9 +165,31 @@ export default class {
 				continue;
 			}
 
+			if (this.char === patterns.AMPERSAND) {
+				// peek at the next char - it's the same, we're hitting a double
+				if (this.char === this.peek()) {
+					this.tokens.push({ type: 'and', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
+
+					this.next(); // skip next character
+				}
+
+				this.next();
+
+				continue;
+			}
+
+			if (this.char === patterns.QUESTION) {
+				this.tokens.push({ type: 'question', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+
+				this.next();
+
+				continue;
+			}
+
 			/** Other operators */
-			if ([patterns.EQUALS, patterns.MULTIPLICATION, patterns.MODULUS].includes(this.char)) {
-				this.tokens.push({ type: 'operator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
+			if ([patterns.EQUALS].includes(this.char)) {
+				// TODO check next and next
+				this.tokens.push({ type: 'assign', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
 				this.next();
 				continue;
 			}
@@ -147,7 +217,7 @@ export default class {
 			 *
 			 * if it's a caret, we check the previous and next chars
 			 */
-			 if (this.char === patterns.CARET) {
+			if (this.char === patterns.CARET) {
 				/**
 				 * Check the previous and next chars to see if it's part of an exponent
 				 */
@@ -155,7 +225,7 @@ export default class {
 					// If the next char doesn't exist, then this is a trailing caret, and is not part of the number.
 					// Or the next char *does* exist but isn't an 'e', this is not an exponent, which makes the caret it's own thing, and the number is thus finished.
 					// This takes care of cases such as '1^a', '1^', '^1', etc.
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 2, value: '^e', line, col });
+					this.tokens.push({ type: 'caret_exponent', start, end: this.cursorPosition + 2, value: '^e', line, col });
 
 					this.next(); // skip next character
 
@@ -165,7 +235,7 @@ export default class {
 				}
 
 				// nope it's a just a plain ol' caret
-				this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '^', line, col });
+				this.tokens.push({ type: 'caret', start, end: this.cursorPosition + 1, value: '^', line, col });
 
 				this.next();
 
@@ -205,34 +275,6 @@ export default class {
 
 				this.next();
 
-				continue;
-			}
-
-			/** Separators: Semicolon, Colon, Comma */
-			if (this.char === patterns.SEMICOLON || this.char === patterns.COLON || this.char === patterns.COMMA) {
-				this.tokens.push({ type: 'separator', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
-				this.next();
-				continue;
-			}
-
-			/** Braces */
-			if (this.char === '{' || this.char === '}') {
-				this.tokens.push({ type: 'brace', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
-				this.next();
-				continue;
-			}
-
-			/** Brackets */
-			if (this.char === '[' || this.char === ']') {
-				this.tokens.push({ type: 'bracket', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
-				this.next();
-				continue;
-			}
-
-			/** Parens */
-			if (this.char === '(' || this.char === ')') {
-				this.tokens.push({ type: 'paren', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
-				this.next();
 				continue;
 			}
 
@@ -278,7 +320,7 @@ export default class {
 
 				// if undefined, at the end of the script
 				if (typeof secondChar === 'undefined') {
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '.', line, col });
+					this.tokens.push({ type: 'dot', start, end: this.cursorPosition + 1, value: '.', line, col });
 					this.next();
 					continue;
 				}
@@ -298,13 +340,13 @@ export default class {
 						this.cursorPosition += 2;
 						this.col += 2;
 
-						this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '...', line, col });
+						this.tokens.push({ type: 'dotdotdot', start, end: this.cursorPosition + 1, value: '...', line, col });
 
 						this.next();
 						continue;
 					} else {
 						// no third dot, we have a ..
-						this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 2, value: '..', line, col });
+						this.tokens.push({ type: 'dotdot', start, end: this.cursorPosition + 2, value: '..', line, col });
 
 						this.next(); // skip the next dot
 						this.next();
@@ -313,10 +355,17 @@ export default class {
 					}
 				} else {
 					// no second dot, we have a .
-					this.tokens.push({ type: 'operator', start, end: this.cursorPosition + 1, value: '.', line, col });
+					this.tokens.push({ type: 'dot', start, end: this.cursorPosition + 1, value: '.', line, col });
 					this.next();
 					continue;
 				}
+			}
+
+			/** Single Character Tokens */
+			if (typeof singleCharTokens[this.char] !== 'undefined') {
+				this.tokens.push({ type: singleCharTokens[this.char], start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
 			}
 
 			// something we don't recognize
@@ -324,6 +373,35 @@ export default class {
 		}
 
 		return this.tokens;
+	}
+
+	/**
+	 * Peeks at the next char and creates a token based on it, If not found, creates a token with just the current char
+	 *
+	 * Ex:
+	 * ```ts
+	 * this.peekAndHandle({
+	 *     [patterns.MINUS]: 'minus_minus',
+	 *     [patterns.EQUALS]: 'minus_equals',
+	 * }, 'minus', line, col);
+	 * ```
+	 *
+	 * @param line - of the token
+	 * @param col - of the token
+	 */
+	private peekAndHandle(mapNextCharToType: Record<string, TokenType>, fallback: TokenType | undefined, line: number, col: number) {
+		const nextChar = this.peek();
+		if (typeof nextChar !== 'undefined' && typeof mapNextCharToType[nextChar] !== 'undefined') {
+			const tokenType = mapNextCharToType[nextChar];
+			this.tokens.push({ type: tokenType, start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
+			this.next(); // skip next character
+
+		// if this is undefined, there is no valid token for this, so ignore
+		} else if (typeof fallback !== 'undefined') {
+			this.tokens.push({ type: fallback, start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+		}
+
+		this.next();
 	}
 
 	/** Captures the current char, advances position, and returns current char */
