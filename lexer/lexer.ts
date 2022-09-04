@@ -21,14 +21,29 @@ export default class {
 	/** char at the cursorPosition */
 	char = '';
 
-	lexify (code: string) {
-		// fix line endings
-		this.code = standardizeLineEndings(code);
+	/**
+	 * Sets up the lexer, and standardizes the line endings
+	 *
+	 * @param code - Source code
+	 */
+	constructor (code: string) {
+		this.code = code;
 
+		// fix line endings
+		this.code = standardizeLineEndings(this.code);
+	}
+
+	/**
+	 * Main runner to lexify the source code
+	 *
+	 * @returns an array of Tokens
+	 */
+	lexify (): Token[] {
 		const singleCharTokens: Record<string, TokenType> = {
 			[patterns.SEMICOLON]: 'semicolon',
 			[patterns.COLON]: 'colon',
 			[patterns.COMMA]: 'comma',
+			[patterns.QUESTION]: 'question',
 			'{': 'brace_open',
 			'}': 'brace_close',
 			'[': 'bracket_open',
@@ -57,53 +72,22 @@ export default class {
 			 * Forward Slash can be:
 			 * - The beginning of a comment
 			 * - A division artihmetic symbol
-			 * - The beginning of a Filepath
+			 * - A division/equals artihmetic symbol
 			 */
 			if (this.char === patterns.FORWARD_SLASH) {
-				// check if next char is asterisk or another forward slash - comment time
-				const nextChar = this.peek();
+				this.peekAndHandle({
+					[patterns.EQUALS]: 'forward_slash_equals',
+					[patterns.FORWARD_SLASH]: () => this.processSingleLineComment(),
+					[patterns.ASTERISK]: () => {
+						// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
+						let value = this.gobbleUntil(() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH);
 
-				// if undefined, we're at the end of the script
-				if (typeof nextChar === 'undefined') {
-					this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition + 1, value: '/', line, col });
-					this.next();
-					continue;
-				}
-
-				if (typeof nextChar === patterns.EQUALS) {
-					this.tokens.push({ type: 'forward_slash_equals', start, end: this.cursorPosition + 1, value: '/', line, col });
-					this.next();
-					continue;
-				}
-
-				// if next char is / it's a single line comment
-				if (nextChar === this.char) {
-					this.processSingleLineComment();
-
-					continue;
-				}
-
-				// if next char is * it's a multiline comment
-				if (nextChar === patterns.ASTERISK) {
-					// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
-					let value = this.gobbleUntil(() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH);
-
-					// skip the asterisk and slash
-					this.cursorPosition += 2;
-					this.col += 2;
-					this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col });
-					continue;
-				}
-
-				// if previous token is a number, this is a division symbol
-				if (this.tokens[this.tokens.length - 1].type === 'number') {
-					this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition, value: '/', line, col });
-					this.next();
-					continue;
-				}
-
-				// otherwise it's a filepath
-				this.processFilepath();
+						// skip the trailing asterisk and slash
+						this.cursorPosition += 2;
+						this.col += 2;
+						this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col });
+					},
+				}, 'forward_slash', line, col);
 
 				continue;
 			}
@@ -153,44 +137,58 @@ export default class {
 			}
 
 			if (this.char === patterns.PIPE) {
-				// peek at the next char - it's the same, we're hitting a double
-				if (this.char === this.peek()) {
-					this.tokens.push({ type: 'or', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
-
-					this.next(); // skip next character
-				}
-
-				this.next();
+				this.peekAndHandle({
+					[patterns.PIPE]: 'or',
+				}, undefined, line, col);
 
 				continue;
 			}
 
 			if (this.char === patterns.AMPERSAND) {
-				// peek at the next char - it's the same, we're hitting a double
-				if (this.char === this.peek()) {
-					this.tokens.push({ type: 'and', start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
-
-					this.next(); // skip next character
-				}
-
-				this.next();
-
-				continue;
-			}
-
-			if (this.char === patterns.QUESTION) {
-				this.tokens.push({ type: 'question', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
-
-				this.next();
+				this.peekAndHandle({
+					[patterns.AMPERSAND]: 'and',
+				}, undefined, line, col);
 
 				continue;
 			}
 
 			/** Other operators */
-			if ([patterns.EQUALS].includes(this.char)) {
-				// TODO check next and next
-				this.tokens.push({ type: 'assign', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col })
-				this.next();
+			if (this.char === patterns.EQUALS) {
+				this.peekAndHandle({
+					[patterns.EQUALS]: 'equals',
+				}, 'assign', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.BANG) {
+				this.peekAndHandle({
+					[patterns.EQUALS]: 'not_equals',
+				}, 'bang', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.LESS_THAN) {
+				this.peekAndHandle({
+					[patterns.EQUALS]: () => {
+						this.peekAndHandle({
+							[patterns.GREATER_THAN]: 'compare', // <=>
+						}, 'less_than_equals', line, col, 2);
+
+						// manually call this.next() here since we're passing a callback,
+						this.next();
+					},
+				}, 'less_than', line, col);
+
+				continue;
+			}
+
+			if (this.char === patterns.GREATER_THAN) {
+				this.peekAndHandle({
+					[patterns.EQUALS]: 'greater_than_equals',
+				}, 'greater_than', line, col);
+
 				continue;
 			}
 
@@ -218,26 +216,9 @@ export default class {
 			 * if it's a caret, we check the previous and next chars
 			 */
 			if (this.char === patterns.CARET) {
-				/**
-				 * Check the previous and next chars to see if it's part of an exponent
-				 */
-				if (this.matchesRegex(patterns.DIGITS, this.prev()) && this.peek() === 'e') {
-					// If the next char doesn't exist, then this is a trailing caret, and is not part of the number.
-					// Or the next char *does* exist but isn't an 'e', this is not an exponent, which makes the caret it's own thing, and the number is thus finished.
-					// This takes care of cases such as '1^a', '1^', '^1', etc.
-					this.tokens.push({ type: 'caret_exponent', start, end: this.cursorPosition + 2, value: '^e', line, col });
-
-					this.next(); // skip next character
-
-					this.next();
-
-					continue;
-				}
-
-				// nope it's a just a plain ol' caret
-				this.tokens.push({ type: 'caret', start, end: this.cursorPosition + 1, value: '^', line, col });
-
-				this.next();
+				this.peekAndHandle({
+					e: 'exponent',
+				}, 'caret', line, col);
 
 				continue;
 			}
@@ -278,6 +259,19 @@ export default class {
 				continue;
 			}
 
+			if (this.char === patterns.SEMICOLON) {
+				this.tokens.push({ type: 'semicolon', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
+			}
+
+			/** Single Character Tokens */
+			if (typeof singleCharTokens[this.char] !== 'undefined') {
+				this.tokens.push({ type: singleCharTokens[this.char], start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+				this.next();
+				continue;
+			}
+
 			/** Letters */
 			if (this.matchesRegex(patterns.LETTERS, this.char)) {
 				let value = this.gobbleAsLongAs(() => this.matchesRegex(patterns.LETTERS, this.char) || this.matchesRegex(patterns.DIGITS, this.char) || this.char === patterns.UNDERSCORE);
@@ -315,56 +309,26 @@ export default class {
 			 * - The beginning of a FileType
 			 */
 			if (this.char === patterns.PERIOD) {
-				// get next value
-				const secondChar = this.peek();
+				this.peekAndHandle({
+					[patterns.FORWARD_SLASH]: () => this.processFilepath(),
+					[patterns.PERIOD]: () => {
+						this.peekAndHandle({
+							[patterns.PERIOD]: 'dotdotdot',
+						}, 'dotdot', line, col, 2);
 
-				// if undefined, at the end of the script
-				if (typeof secondChar === 'undefined') {
-					this.tokens.push({ type: 'dot', start, end: this.cursorPosition + 1, value: '.', line, col });
-					this.next();
-					continue;
-				}
-
-				// if nextChar is a forward slash - it's a file
-				if (secondChar === patterns.FORWARD_SLASH) {
-					this.processFilepath();
-
-					continue;
-				}
-
-				// check for triple dot, then for double dot, then default to single dot
-				if (secondChar === this.char) { // if the second one's a dot
-					const thirdChar = this.code[this.cursorPosition + 2];
-					if (typeof thirdChar !== 'undefined' && thirdChar === this.char) { // third is a dot
-						// skip the next 2 dots
-						this.cursorPosition += 2;
-						this.col += 2;
-
-						this.tokens.push({ type: 'dotdotdot', start, end: this.cursorPosition + 1, value: '...', line, col });
-
+						// manually call this.next() here since we're passing a callback,
 						this.next();
-						continue;
-					} else {
-						// no third dot, we have a ..
-						this.tokens.push({ type: 'dotdot', start, end: this.cursorPosition + 2, value: '..', line, col });
+					},
+				}, 'dot', line, col);
 
-						this.next(); // skip the next dot
-						this.next();
-
-						continue;
-					}
-				} else {
-					// no second dot, we have a .
-					this.tokens.push({ type: 'dot', start, end: this.cursorPosition + 1, value: '.', line, col });
-					this.next();
-					continue;
-				}
+				continue;
 			}
 
-			/** Single Character Tokens */
-			if (typeof singleCharTokens[this.char] !== 'undefined') {
-				this.tokens.push({ type: singleCharTokens[this.char], start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
-				this.next();
+			if (this.char === patterns.AT) {
+				this.peekAndHandle({
+					[patterns.FORWARD_SLASH]: () => this.processFilepath(),
+				}, undefined, line, col);
+
 				continue;
 			}
 
@@ -386,19 +350,53 @@ export default class {
 	 * }, 'minus', line, col);
 	 * ```
 	 *
+	 * @param mapNextChar - mapping of the next possible char with what to do: a string means it's a token type, or a callback to run (in that case, we don't call this.next())
+	 * @param fallback - token type to fall back on if none of the next chars match. May be undefined. In that case, if we cannot find a valid next character and the fallback is undefined, an error will be thrown
 	 * @param line - of the token
 	 * @param col - of the token
+	 *
+	 * @throws Error if fallback is undefined and next char isn't defined in the map
 	 */
-	private peekAndHandle(mapNextCharToType: Record<string, TokenType>, fallback: TokenType | undefined, line: number, col: number) {
-		const nextChar = this.peek();
-		if (typeof nextChar !== 'undefined' && typeof mapNextCharToType[nextChar] !== 'undefined') {
-			const tokenType = mapNextCharToType[nextChar];
-			this.tokens.push({ type: tokenType, start: this.cursorPosition, end: this.cursorPosition + 2, value: this.char + this.char, line, col });
-			this.next(); // skip next character
+	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | undefined, line: number, col: number, howMany = 1) {
+		const nextChar = this.peek(howMany);
+		if (typeof nextChar !== 'undefined' && typeof mapNextChar[nextChar] !== 'undefined') {
+			const tokenTypeOrCallback = mapNextChar[nextChar];
 
-		// if this is undefined, there is no valid token for this, so ignore
+			if (typeof tokenTypeOrCallback === 'function') {
+				tokenTypeOrCallback();
+
+				return;
+			}
+
+			this.tokens.push({
+				type: tokenTypeOrCallback,
+				start: this.cursorPosition,
+				end: this.cursorPosition + howMany + 1,
+				value: this.code.substring(this.cursorPosition, this.cursorPosition + howMany + 1), // grab the requisite number of chars from the code
+				line,
+				col,
+			});
+
+			// skip next ${howMany} characters
+			for (let index = 0; index < howMany; index++) {
+				this.next();
+			}
+
+		// if this is undefined, there is no valid token for this last char, so ignore
 		} else if (typeof fallback !== 'undefined') {
-			this.tokens.push({ type: fallback, start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+			this.tokens.push({
+				type: fallback,
+				start: this.cursorPosition,
+				end: this.cursorPosition + howMany,
+				value: this.code.substring(this.cursorPosition, this.cursorPosition + howMany), // grab the requisite number of chars from the code
+				line,
+				col,
+			});
+
+		// if fallback is undefined and the next character isn't accounted for
+		} else {
+			// something we don't recognize
+			throw new LexerError('Syntax Error. Unknown syntax: "' + this.code.substring(this.cursorPosition, this.cursorPosition + howMany) + '"', this.tokens);
 		}
 
 		this.next();
@@ -476,15 +474,32 @@ export default class {
 	}
 
 	/** Peeks ahead at the next char */
-	peek(): string | undefined {
-		return this.code[this.cursorPosition + 1];
+	peek(howMany = 1): string | undefined {
+		return this.code[this.cursorPosition + howMany];
 	}
 
+	/**
+	 * File paths can either begin with ./foo, or @/foo
+	 *
+	 * In the former case, the leading two chars are both part of the patterns.FILEPATH regex
+	 * since they are commonly found in paths.
+	 *
+	 * However, the latter case has the AT symbol which is not normally in file paths.
+	 * Thus, in that case, as explicitly grab that char, then continue after it with the regex.
+	 */
 	processFilepath() {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
-		let value = this.gobbleAsLongAs(() => this.matchesRegex(patterns.FILEPATH, this.char));
+		let value = '';
+
+		// if the filepath begins with an `@`, treat it differently, since that isn't in the patterns.FILEPATH regex
+		if (this.char === patterns.AT) {
+			value += this.char;
+			this.next();
+		}
+
+		value += this.gobbleAsLongAs(() => this.matchesRegex(patterns.FILEPATH, this.char));
 		this.tokens.push({ type: 'filepath', start, end: this.cursorPosition, value, line, col });
 	}
 

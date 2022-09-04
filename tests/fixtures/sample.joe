@@ -2,7 +2,7 @@
 # Note this file may not necessarily be syntatically correct.
 
 import lexer from ./lexer;
-import lexer2 from /lexer.joe;
+import lexer2 from @/lexer.joe;
 
 class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	static bar = 'baz'; // public static property

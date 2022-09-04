@@ -9,7 +9,6 @@ export const tokenTypesUsingSymbols = {
 	'brace_open': '{',
 	'bracket_close': ']',
 	'bracket_open': '[',
-	'caret_exponent': '^e',
 	'caret': '^',
 	'colon': ':',
 	'comma': ',',
@@ -18,6 +17,7 @@ export const tokenTypesUsingSymbols = {
 	'dotdot': '..',
 	'dotdotdot': '...',
 	'equals': '==',
+	'exponent': '^e',
 	'forward_slash_equals': '/=',
 	'forward_slash': '/',
 	'greater_than_equals': '>=',
@@ -109,6 +109,7 @@ export const patterns = {
 	// single characters
 	AMPERSAND: '&',
 	ASTERISK: '*',
+	AT: '@',
 	BANG: '!',
 	CARET: '^',
 	COLON: ':',
@@ -117,7 +118,9 @@ export const patterns = {
 	EQUALS: '=',
 	ESCAPE: '\\',
 	FORWARD_SLASH: '/',
+	GREATER_THAN: '>',
 	HASH: '#',
+	LESS_THAN: '<',
 	MINUS: '-',
 	MOD: '%',
 	PERIOD: '.',
@@ -130,7 +133,7 @@ export const patterns = {
 
 	// regexes
 	DIGITS: /[0-9]/,
-	FILEPATH: /[a-zA-Z0-9-_./]/, // characters in filepath, excluding the front: @
+	FILEPATH: /[a-zA-Z0-9-_./]/, // characters in filepath, excluding the front: @ or .
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	WHITESPACE: /\s/,

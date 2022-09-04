@@ -6,7 +6,7 @@ import { inspect } from 'util';
 
 void (async (): Promise<void> => {
     try {
-		const tokens = new Lexer().lexify(process.argv[2]);
+		const tokens = new Lexer(process.argv[2]).lexify();
 		const ast = new Parser(tokens).parse();
 
 		// filename is 3rd arg

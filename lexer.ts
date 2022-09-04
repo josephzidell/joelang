@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 
 void (async (): Promise<void> => {
     try {
-		const tokens = new Lexer().lexify(process.argv[2]);
+		const tokens = new Lexer(process.argv[2]).lexify();
 
 		// filename is 3rd arg
 		if (process.argv[3]) {

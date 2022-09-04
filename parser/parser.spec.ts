@@ -2,6 +2,7 @@ import Lexer from "../lexer/lexer";
 import { Token } from "../lexer/types";
 import Parser from "./parser";
 import { Node } from "./types";
+import { inspect } from 'util';
 
 interface CustomMatchers<R = unknown> {
 	toMatchAST(simplifiedVersion: SAST): R;
@@ -121,7 +122,7 @@ function expectSingleNodeToMatch(actual: string, expected: string): CustomMatche
 describe('lexer.ts', (): void => {
 	describe('parses', (): void => {
 		it('a let expression with a bool literal', (): void => {
-			const tokens: Token[] = new Lexer().lexify('let x = false')
+			const tokens: Token[] = new Lexer('let x = false').lexify()
 			expect(new Parser(tokens).parse()).toMatchAST([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
@@ -132,7 +133,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('a let expression with a number literal', (): void => {
-			const tokens: Token[] = new Lexer().lexify('let x = 1')
+			const tokens: Token[] = new Lexer('let x = 1').lexify()
 			expect(new Parser(tokens).parse()).toMatchAST([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
@@ -143,7 +144,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('a let expression with a string literal', (): void => {
-			const tokens: Token[] = new Lexer().lexify('let x = "foo"')
+			const tokens: Token[] = new Lexer('let x = "foo"').lexify()
 			expect(new Parser(tokens).parse()).toMatchAST([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
@@ -154,7 +155,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('a single-line comment', (): void => {
-			const tokens: Token[] = new Lexer().lexify('# let x = "foo"')
+			const tokens: Token[] = new Lexer('# let x = "foo"').lexify()
 			expect(new Parser(tokens).parse()).toMatchAST([
 				['Comment', '# let x = "foo"'],
 			])
@@ -162,7 +163,7 @@ describe('lexer.ts', (): void => {
 
 		describe('block statements', (): void => {
 			it('empty class', (): void => {
-				const tokens: Token[] = new Lexer().lexify('class Foo {}')
+				const tokens: Token[] = new Lexer('class Foo {}').lexify()
 				expect(new Parser(tokens).parse()).toMatchAST([
 					["Keyword", "class"],
 					["Identifier", "Foo"],
@@ -171,7 +172,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('class with comment', (): void => {
-				const tokens: Token[] = new Lexer().lexify('class Foo {\n# foo\n}')
+				const tokens: Token[] = new Lexer('class Foo {\n# foo\n}').lexify()
 				expect(new Parser(tokens).parse()).toMatchAST([
 					["Keyword", "class"],
 					["Identifier", "Foo"],
@@ -184,7 +185,7 @@ describe('lexer.ts', (): void => {
 
 		describe('imports', (): void => {
 			it('single, default import', (): void => {
-				const tokens: Token[] = new Lexer().lexify('import lexer from ./lexer;import lexer2 from /lexer;import lexer3 from /lexer.joe;')
+				const tokens: Token[] = new Lexer('import lexer from ./lexer;import lexer2 from @/lexer;import lexer3 from @/lexer.joe;').lexify()
 				expect(new Parser(tokens).parse()).toMatchAST([
 					['ImportDeclaration', [
 						["Identifier", "lexer"],
@@ -195,13 +196,13 @@ describe('lexer.ts', (): void => {
 					['ImportDeclaration', [
 						["Identifier", "lexer2"],
 						["Keyword", "from"],
-						["FilePath", "/lexer"],
+						["FilePath", "@/lexer"],
 						["SemicolonSeparator", ";"],
 					]],
 					['ImportDeclaration', [
 						["Identifier", "lexer3"],
 						["Keyword", "from"],
-						["FilePath", "/lexer.joe"],
+						["FilePath", "@/lexer.joe"],
 						["SemicolonSeparator", ";"],
 					]],
 				]);
@@ -210,7 +211,7 @@ describe('lexer.ts', (): void => {
 
 		describe('mathematical expressions', (): void => {
 			it('a simple mathematical formula', (): void => {
-				const tokens: Token[] = new Lexer().lexify('1 + (2 * (-3/-(2.3-4)%9))')
+				const tokens: Token[] = new Lexer('1 + (2 * (-3/-(2.3-4)%9))').lexify()
 				expect(new Parser(tokens).parse()).toMatchAST([
 					['NumberLiteral', '1'],
 					['AdditionOperator', '+'],
@@ -237,7 +238,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('supports mathematical expressions with variables', (): void => {
-				const tokens: Token[] = new Lexer().lexify('const foo = 1; let bar = -foo;')
+				const tokens: Token[] = new Lexer('const foo = 1; let bar = -foo;').lexify()
 				expect(new Parser(tokens).parse()).toMatchAST([
 					['VariableDeclaration', 'const', [
 						['Identifier', 'foo'],
