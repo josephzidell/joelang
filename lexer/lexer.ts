@@ -1,5 +1,5 @@
 import LexerError from "./error";
-import {Token, TokenType, keywords, patterns, specialValueTypes} from './types';
+import {Token, TokenType, keywords, patterns, specialValueTypes, types} from './types';
 import { standardizeLineEndings } from "./util";
 
 export default class {
@@ -115,6 +115,7 @@ export default class {
 				this.peekAndHandle({
 					[patterns.MINUS]: 'minus_minus',
 					[patterns.EQUALS]: 'minus_equals',
+					[patterns.GREATER_THAN]: 'right_arrow',
 				}, 'minus', line, col);
 
 				continue;
@@ -175,9 +176,6 @@ export default class {
 						this.peekAndHandle({
 							[patterns.GREATER_THAN]: 'compare', // <=>
 						}, 'less_than_equals', line, col, 2);
-
-						// manually call this.next() here since we're passing a callback,
-						this.next();
 					},
 				}, 'less_than', line, col);
 
@@ -290,6 +288,8 @@ export default class {
 				// keywords in joelang are case sensitive
 				if ((keywords as unknown as string[]).includes(value)) {
 					this.tokens.push({ type: 'keyword', start, end: this.cursorPosition, value, line, col });
+				} else if ((types as unknown as string[]).includes(value)) {
+					this.tokens.push({ type: 'type', start, end: this.cursorPosition, value, line, col });
 				} else {
 					let type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'identifier';
 
@@ -315,9 +315,6 @@ export default class {
 						this.peekAndHandle({
 							[patterns.PERIOD]: 'dotdotdot',
 						}, 'dotdot', line, col, 2);
-
-						// manually call this.next() here since we're passing a callback,
-						this.next();
 					},
 				}, 'dot', line, col);
 
@@ -350,16 +347,31 @@ export default class {
 	 * }, 'minus', line, col);
 	 * ```
 	 *
+	 * Nested example:
+	 * ```ts
+	 * this.peekAndHandle({
+	 *     [patterns.FORWARD_SLASH]: () => this.processFilepath(),
+	 *     [patterns.PERIOD]: () => {
+	 *         this.peekAndHandle({
+	 *            [patterns.PERIOD]: 'dotdotdot',
+	 *         }, 'dotdot', line, col, 2); // notice the `2` here
+	 *     },
+	 * }, 'dot', line, col);
+	 * ```
+	 *
 	 * @param mapNextChar - mapping of the next possible char with what to do: a string means it's a token type, or a callback to run (in that case, we don't call this.next())
 	 * @param fallback - token type to fall back on if none of the next chars match. May be undefined. In that case, if we cannot find a valid next character and the fallback is undefined, an error will be thrown
 	 * @param line - of the token
 	 * @param col - of the token
+	 * @param level - which level is this being called at. This defaults to 1, and equals the number chars to process for the fallback case. Each time this method is nested, increase this.
 	 *
 	 * @throws Error if fallback is undefined and next char isn't defined in the map
 	 */
-	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | undefined, line: number, col: number, howMany = 1) {
-		const nextChar = this.peek(howMany);
+	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | undefined, line: number, col: number, level = 1) {
+		const nextChar = this.peek(level);
 		if (typeof nextChar !== 'undefined' && typeof mapNextChar[nextChar] !== 'undefined') {
+			/* since there is a next char, everything in this block uses `level + 1`, since we're at the next char */
+
 			const tokenTypeOrCallback = mapNextChar[nextChar];
 
 			if (typeof tokenTypeOrCallback === 'function') {
@@ -371,14 +383,14 @@ export default class {
 			this.tokens.push({
 				type: tokenTypeOrCallback,
 				start: this.cursorPosition,
-				end: this.cursorPosition + howMany + 1,
-				value: this.code.substring(this.cursorPosition, this.cursorPosition + howMany + 1), // grab the requisite number of chars from the code
+				end: this.cursorPosition + level + 1,
+				value: this.code.substring(this.cursorPosition, this.cursorPosition + level + 1), // grab the requisite number of chars from the code
 				line,
 				col,
 			});
 
-			// skip next ${howMany} characters
-			for (let index = 0; index < howMany; index++) {
+			// skip next ${level + 1} characters
+			for (let index = 0; index < level + 1; index++) {
 				this.next();
 			}
 
@@ -387,19 +399,22 @@ export default class {
 			this.tokens.push({
 				type: fallback,
 				start: this.cursorPosition,
-				end: this.cursorPosition + howMany,
-				value: this.code.substring(this.cursorPosition, this.cursorPosition + howMany), // grab the requisite number of chars from the code
+				end: this.cursorPosition + level,
+				value: this.code.substring(this.cursorPosition, this.cursorPosition + level), // grab the requisite number of chars from the code
 				line,
 				col,
 			});
 
+			// skip next ${level} characters
+			for (let index = 0; index < level; index++) {
+				this.next();
+			}
+
 		// if fallback is undefined and the next character isn't accounted for
 		} else {
 			// something we don't recognize
-			throw new LexerError('Syntax Error. Unknown syntax: "' + this.code.substring(this.cursorPosition, this.cursorPosition + howMany) + '"', this.tokens);
+			throw new LexerError('Syntax Error. Unknown syntax: "' + this.code.substring(this.cursorPosition, this.cursorPosition + level) + '"', this.tokens);
 		}
-
-		this.next();
 	}
 
 	/** Captures the current char, advances position, and returns current char */

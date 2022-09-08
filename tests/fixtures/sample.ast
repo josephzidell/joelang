@@ -1,15 +1,15 @@
 <ref *1> {
   type: 'Program',
   start: 0,
-  end: 555,
-  nodes: [
+  end: 263,
+  children: [
     {
       type: 'Comment',
       value: '# This is sample .joe file to prove the lexer and parser works.',
       start: 0,
       end: 63,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Comment',
@@ -17,22 +17,22 @@
       start: 64,
       end: 125,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     <ref *2> {
       type: 'ImportDeclaration',
-      value: 'import',
+      value: undefined,
       start: 127,
       end: 133,
       parent: [Circular *1],
-      nodes: [
+      children: [
         {
           type: 'Identifier',
           value: 'lexer',
           start: 134,
           end: 139,
           parent: [Circular *2],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'Keyword',
@@ -40,7 +40,7 @@
           start: 140,
           end: 144,
           parent: [Circular *2],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'FilePath',
@@ -48,7 +48,7 @@
           start: 145,
           end: 152,
           parent: [Circular *2],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'SemicolonSeparator',
@@ -56,25 +56,25 @@
           start: 152,
           end: 153,
           parent: [Circular *2],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         [length]: 4
       ]
     },
     <ref *3> {
       type: 'ImportDeclaration',
-      value: 'import',
+      value: undefined,
       start: 154,
       end: 160,
       parent: [Circular *1],
-      nodes: [
+      children: [
         {
           type: 'Identifier',
           value: 'lexer2',
           start: 161,
           end: 167,
           parent: [Circular *3],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'Keyword',
@@ -82,7 +82,7 @@
           start: 168,
           end: 172,
           parent: [Circular *3],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'FilePath',
@@ -90,7 +90,7 @@
           start: 173,
           end: 184,
           parent: [Circular *3],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'SemicolonSeparator',
@@ -98,7 +98,7 @@
           start: 184,
           end: 185,
           parent: [Circular *3],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         [length]: 4
       ]
@@ -109,7 +109,7 @@
       start: 187,
       end: 192,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -117,7 +117,7 @@
       start: 193,
       end: 196,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Keyword',
@@ -125,7 +125,7 @@
       start: 197,
       end: 204,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -133,7 +133,7 @@
       start: 205,
       end: 208,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'CommaSeparator',
@@ -141,7 +141,7 @@
       start: 208,
       end: 209,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -149,7 +149,7 @@
       start: 210,
       end: 213,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Keyword',
@@ -157,7 +157,7 @@
       start: 214,
       end: 224,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -165,7 +165,7 @@
       start: 225,
       end: 239,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'CommaSeparator',
@@ -173,7 +173,7 @@
       start: 239,
       end: 240,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -181,22 +181,22 @@
       start: 241,
       end: 261,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     <ref *4> {
       type: 'BlockStatement',
-      value: '{',
+      value: undefined,
       start: 262,
       end: 263,
       parent: [Circular *1],
-      nodes: [
+      children: [
         {
           type: 'Keyword',
           value: 'static',
           start: 265,
           end: 271,
           parent: [Circular *4],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'Identifier',
@@ -204,7 +204,7 @@
           start: 272,
           end: 275,
           parent: [Circular *4],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'AssignmentOperator',
@@ -212,7 +212,7 @@
           start: 276,
           end: 277,
           parent: [Circular *4],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'StringLiteral',
@@ -220,7 +220,7 @@
           start: 278,
           end: 283,
           parent: [Circular *4],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         {
           type: 'SemicolonSeparator',
@@ -228,7 +228,7 @@
           start: 283,
           end: 284,
           parent: [Circular *4],
-          nodes: [ [length]: 0 ]
+          children: [ [length]: 0 ]
         },
         [length]: 5
       ]
@@ -239,7 +239,7 @@
       start: 285,
       end: 310,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Keyword',
@@ -247,7 +247,7 @@
       start: 312,
       end: 319,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -255,7 +255,7 @@
       start: 320,
       end: 327,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'AssignmentOperator',
@@ -263,7 +263,7 @@
       start: 328,
       end: 329,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'BoolLiteral',
@@ -271,7 +271,7 @@
       start: 330,
       end: 334,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Comment',
@@ -279,7 +279,7 @@
       start: 335,
       end: 363,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Comment',
@@ -287,7 +287,7 @@
       start: 366,
       end: 406,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
     },
     {
       type: 'Identifier',
@@ -295,1658 +295,2072 @@
       start: 408,
       end: 411,
       parent: [Circular *1],
-      nodes: [ [length]: 0 ]
+      children: [ [length]: 0 ]
+    },
+    {
+      type: 'RightArrowOperator',
+      value: '->',
+      start: 412,
+      end: 414,
+      parent: [Circular *1],
+      children: [ [length]: 0 ]
+    },
+    {
+      type: 'Type',
+      value: 'number',
+      start: 415,
+      end: 421,
+      parent: [Circular *1],
+      children: [ [length]: 0 ]
     },
     <ref *5> {
       type: 'BlockStatement',
-      value: '{',
-      start: 412,
-      end: 448,
+      value: undefined,
+      start: 422,
+      end: 423,
       parent: [Circular *1],
-      nodes: [
+      children: [
         <ref *6> {
           type: 'VariableDeclaration',
           value: 'const',
-          start: 416,
-          end: 448,
+          start: 426,
+          end: 431,
           parent: [Circular *5],
-          nodes: [
+          children: [
             {
               type: 'Identifier',
               value: 'size',
-              start: 422,
-              end: 426,
+              start: 432,
+              end: 436,
               parent: [Circular *6],
-              nodes: [ [length]: 0 ]
+              children: [ [length]: 0 ]
             },
             {
               type: 'AssignmentOperator',
               value: '=',
-              start: 427,
-              end: 428,
+              start: 437,
+              end: 438,
               parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Keyword',
-              value: 'switch',
-              start: 429,
-              end: 435,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Identifier',
-              value: 'someNumber',
-              start: 436,
-              end: 446,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
+              children: [ [length]: 0 ]
             },
             <ref *7> {
-              type: 'BlockStatement',
-              value: '{',
-              start: 447,
-              end: 448,
+              type: 'WhenExpression',
+              value: undefined,
+              start: 439,
+              end: 567,
               parent: [Circular *6],
-              nodes: [
+              children: [
                 {
-                  type: 'Keyword',
-                  value: 'is',
-                  start: 452,
+                  type: 'Identifier',
+                  value: 'someNumber',
+                  start: 444,
                   end: 454,
                   parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
+                  children: [ [length]: 0 ]
                 },
-                {
-                  type: 'NumberLiteral',
-                  value: '1',
+                <ref *8> {
+                  type: 'BlockStatement',
+                  value: undefined,
                   start: 455,
-                  end: 456,
+                  end: 526,
                   parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
+                  children: [
+                    <ref *9> {
+                      type: 'WhenCase',
+                      value: undefined,
+                      start: 460,
+                      end: 467,
+                      parent: [Circular *8],
+                      children: [
+                        <ref *10> {
+                          type: 'WhenCaseTests',
+                          value: undefined,
+                          start: 460,
+                          end: 461,
+                          parent: [Circular *9],
+                          children: [
+                            {
+                              type: 'NumberLiteral',
+                              value: '1',
+                              start: 460,
+                              end: 461,
+                              parent: [Circular *10],
+                              children: [ [length]: 0 ]
+                            },
+                            {
+                              type: 'CommaSeparator',
+                              value: ',',
+                              start: 461,
+                              end: 462,
+                              parent: [Circular *10],
+                              children: [ [length]: 0 ]
+                            },
+                            {
+                              type: 'NumberLiteral',
+                              value: '2',
+                              start: 463,
+                              end: 464,
+                              parent: [Circular *10],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 3
+                          ]
+                        },
+                        <ref *11> {
+                          type: 'WhenCaseConsequent',
+                          value: undefined,
+                          start: 465,
+                          end: 467,
+                          parent: [Circular *9],
+                          children: [
+                            {
+                              type: 'StringLiteral',
+                              value: 'small',
+                              start: 468,
+                              end: 475,
+                              parent: [Circular *11],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        [length]: 2
+                      ]
+                    },
+                    <ref *12> {
+                      type: 'WhenCase',
+                      value: undefined,
+                      start: 480,
+                      end: 488,
+                      parent: [Circular *8],
+                      children: [
+                        <ref *13> {
+                          type: 'WhenCaseTests',
+                          value: undefined,
+                          start: 480,
+                          end: 483,
+                          parent: [Circular *12],
+                          children: [
+                            <ref *14> {
+                              type: 'RangeExpression',
+                              value: undefined,
+                              start: 481,
+                              end: 483,
+                              parent: [Circular *13],
+                              children: [
+                                {
+                                  type: 'NumberLiteral',
+                                  value: '3',
+                                  start: 480,
+                                  end: 481,
+                                  parent: [Circular *14],
+                                  children: [ [length]: 0 ]
+                                },
+                                {
+                                  type: 'NumberLiteral',
+                                  value: '10',
+                                  start: 483,
+                                  end: 485,
+                                  parent: [Circular *14],
+                                  children: [ [length]: 0 ]
+                                },
+                                [length]: 2
+                              ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        <ref *15> {
+                          type: 'WhenCaseConsequent',
+                          value: undefined,
+                          start: 486,
+                          end: 488,
+                          parent: [Circular *12],
+                          children: [
+                            {
+                              type: 'StringLiteral',
+                              value: 'medium',
+                              start: 489,
+                              end: 497,
+                              parent: [Circular *15],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        [length]: 2
+                      ]
+                    },
+                    <ref *16> {
+                      type: 'WhenCase',
+                      value: undefined,
+                      start: 502,
+                      end: 507,
+                      parent: [Circular *8],
+                      children: [
+                        <ref *17> {
+                          type: 'WhenCaseTests',
+                          value: undefined,
+                          start: 502,
+                          end: 504,
+                          parent: [Circular *16],
+                          children: [
+                            {
+                              type: 'NumberLiteral',
+                              value: '11',
+                              start: 502,
+                              end: 504,
+                              parent: [Circular *17],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        <ref *18> {
+                          type: 'WhenCaseConsequent',
+                          value: undefined,
+                          start: 505,
+                          end: 507,
+                          parent: [Circular *16],
+                          children: [
+                            {
+                              type: 'StringLiteral',
+                              value: 'large',
+                              start: 508,
+                              end: 515,
+                              parent: [Circular *18],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        [length]: 2
+                      ]
+                    },
+                    <ref *19> {
+                      type: 'WhenCase',
+                      value: undefined,
+                      start: 520,
+                      end: 526,
+                      parent: [Circular *8],
+                      children: [
+                        <ref *20> {
+                          type: 'WhenCaseTests',
+                          value: undefined,
+                          start: 520,
+                          end: 523,
+                          parent: [Circular *19],
+                          children: [
+                            {
+                              type: 'RestElement',
+                              value: '...',
+                              start: 520,
+                              end: 523,
+                              parent: [Circular *20],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        <ref *21> {
+                          type: 'WhenCaseConsequent',
+                          value: undefined,
+                          start: 524,
+                          end: 526,
+                          parent: [Circular *19],
+                          children: [
+                            {
+                              type: 'StringLiteral',
+                              value: 'off the charts',
+                              start: 527,
+                              end: 543,
+                              parent: [Circular *21],
+                              children: [ [length]: 0 ]
+                            },
+                            [length]: 1
+                          ]
+                        },
+                        [length]: 2
+                      ]
+                    },
+                    [length]: 4
+                  ]
                 },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 456,
-                  end: 457,
-                  parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Keyword',
-                  value: 'is',
-                  start: 458,
-                  end: 460,
-                  parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '2',
-                  start: 461,
-                  end: 462,
-                  parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 462,
-                  end: 463,
-                  parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'StringLiteral',
-                  value: 'small',
-                  start: 464,
-                  end: 471,
-                  parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'SemicolonSeparator',
-                  value: ';',
-                  start: 471,
-                  end: 472,
-                  parent: [Circular *7],
-                  nodes: [ [length]: 0 ]
-                },
-                [length]: 8
-              ]
-            },
-            {
-              type: 'Keyword',
-              value: 'is',
-              start: 476,
-              end: 478,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Keyword',
-              value: 'in',
-              start: 479,
-              end: 481,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'NumberLiteral',
-              value: '3',
-              start: 482,
-              end: 483,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Unknown',
-              value: '..',
-              start: 483,
-              end: 485,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'NumberLiteral',
-              value: '10',
-              start: 485,
-              end: 487,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'ColonSeparator',
-              value: ':',
-              start: 487,
-              end: 488,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'StringLiteral',
-              value: 'medium',
-              start: 489,
-              end: 497,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'SemicolonSeparator',
-              value: ';',
-              start: 497,
-              end: 498,
-              parent: [Circular *6],
-              nodes: [ [length]: 0 ]
-            },
-            [length]: 13
-          ]
-        },
-        {
-          type: 'Keyword',
-          value: 'is',
-          start: 502,
-          end: 504,
-          parent: [Circular *5],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'NumberLiteral',
-          value: '11',
-          start: 505,
-          end: 507,
-          parent: [Circular *5],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'ColonSeparator',
-          value: ':',
-          start: 507,
-          end: 508,
-          parent: [Circular *5],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'StringLiteral',
-          value: 'large',
-          start: 509,
-          end: 516,
-          parent: [Circular *5],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'SemicolonSeparator',
-          value: ';',
-          start: 516,
-          end: 517,
-          parent: [Circular *5],
-          nodes: [ [length]: 0 ]
-        },
-        [length]: 6
-      ]
-    },
-    {
-      type: 'Identifier',
-      value: 'else',
-      start: 521,
-      end: 525,
-      parent: [Circular *1],
-      nodes: [ [length]: 0 ]
-    },
-    {
-      type: 'ColonSeparator',
-      value: ':',
-      start: 525,
-      end: 526,
-      parent: [Circular *1],
-      nodes: [ [length]: 0 ]
-    },
-    {
-      type: 'StringLiteral',
-      value: 'off the charts',
-      start: 527,
-      end: 543,
-      parent: [Circular *1],
-      nodes: [ [length]: 0 ]
-    },
-    {
-      type: 'SemicolonSeparator',
-      value: ';',
-      start: 543,
-      end: 544,
-      parent: [Circular *1],
-      nodes: [ [length]: 0 ]
-    },
-    <ref *8> {
-      type: 'VariableDeclaration',
-      value: 'let',
-      start: 552,
-      end: 555,
-      parent: [Circular *1],
-      nodes: [
-        {
-          type: 'Identifier',
-          value: 'myTuple',
-          start: 556,
-          end: 563,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'AssignmentOperator',
-          value: '=',
-          start: 564,
-          end: 565,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Unknown',
-          value: '[',
-          start: 566,
-          end: 567,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'NumberLiteral',
-          value: '1',
-          start: 571,
-          end: 572,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'CommaSeparator',
-          value: ',',
-          start: 572,
-          end: 573,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'NumberLiteral',
-          value: '10',
-          start: 577,
-          end: 579,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Keyword',
-          value: 'if',
-          start: 580,
-          end: 582,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Keyword',
-          value: 'this',
-          start: 583,
-          end: 587,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Unknown',
-          value: '.',
-          start: 587,
-          end: 588,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Identifier',
-          value: 'isDone?',
-          start: 588,
-          end: 595,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'CommaSeparator',
-          value: ',',
-          start: 595,
-          end: 596,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Comment',
-          value: '// if false, element will not be in tuple',
-          start: 597,
-          end: 638,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'NumberLiteral',
-          value: '3',
-          start: 642,
-          end: 643,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Unknown',
-          value: ']',
-          start: 646,
-          end: 647,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'SemicolonSeparator',
-          value: ';',
-          start: 647,
-          end: 648,
-          parent: [Circular *8],
-          nodes: [ [length]: 0 ]
-        },
-        [length]: 15
-      ]
-    },
-    <ref *9> {
-      type: 'VariableDeclaration',
-      value: 'let',
-      start: 652,
-      end: 655,
-      parent: [Circular *1],
-      nodes: [
-        {
-          type: 'Identifier',
-          value: 'count',
-          start: 656,
-          end: 661,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'AssignmentOperator',
-          value: '=',
-          start: 662,
-          end: 663,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'NumberLiteral',
-          value: '1',
-          start: 664,
-          end: 665,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Unknown',
-          value: '..',
-          start: 665,
-          end: 667,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Identifier',
-          value: 'myTuple',
-          start: 667,
-          end: 674,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Unknown',
-          value: '[',
-          start: 674,
-          end: 675,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'NumberLiteral',
-          value: '2',
-          start: 675,
-          end: 676,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Unknown',
-          value: ']',
-          start: 676,
-          end: 677,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        {
-          type: 'Comment',
-          value: '// new Tuple [1, 2, 3]',
-          start: 678,
-          end: 700,
-          parent: [Circular *9],
-          nodes: [ [length]: 0 ]
-        },
-        <ref *10> {
-          type: 'VariableDeclaration',
-          value: 'let',
-          start: 703,
-          end: 1689,
-          parent: [Circular *9],
-          nodes: [
-            {
-              type: 'Identifier',
-              value: 'countDown',
-              start: 707,
-              end: 716,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'AssignmentOperator',
-              value: '=',
-              start: 717,
-              end: 718,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Identifier',
-              value: 'myTuple',
-              start: 719,
-              end: 726,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Unknown',
-              value: '[',
-              start: 726,
-              end: 727,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'NumberLiteral',
-              value: '1',
-              start: 727,
-              end: 728,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Unknown',
-              value: ']',
-              start: 728,
-              end: 729,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Unknown',
-              value: '..',
-              start: 729,
-              end: 731,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'NumberLiteral',
-              value: '0',
-              start: 731,
-              end: 732,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            {
-              type: 'Comment',
-              value: '// new Tuple [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]',
-              start: 733,
-              end: 780,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            <ref *11> {
-              type: 'VariableDeclaration',
-              value: 'let',
-              start: 783,
-              end: 786,
-              parent: [Circular *10],
-              nodes: [
-                {
-                  type: 'Identifier',
-                  value: 'partitionedTuple',
-                  start: 787,
-                  end: 803,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'AssignmentOperator',
-                  value: '=',
-                  start: 804,
-                  end: 805,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: '[',
-                  start: 806,
-                  end: 807,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'countDown',
-                  start: 811,
-                  end: 820,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: '[',
-                  start: 820,
-                  end: 821,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 821,
-                  end: 822,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '1',
-                  start: 822,
-                  end: 823,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: ']',
-                  start: 823,
-                  end: 824,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 824,
-                  end: 825,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'countDown',
-                  start: 829,
-                  end: 838,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: '[',
-                  start: 838,
-                  end: 839,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '2',
-                  start: 839,
-                  end: 840,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 840,
-                  end: 841,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '6',
-                  start: 841,
-                  end: 842,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: ']',
-                  start: 842,
-                  end: 843,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 843,
-                  end: 844,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'countDown',
-                  start: 848,
-                  end: 857,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: '[',
-                  start: 857,
-                  end: 858,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '7',
-                  start: 858,
-                  end: 859,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 859,
-                  end: 860,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: ']',
-                  start: 860,
-                  end: 861,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 861,
-                  end: 862,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: ']',
-                  start: 865,
-                  end: 866,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'SemicolonSeparator',
-                  value: ';',
-                  start: 866,
-                  end: 867,
-                  parent: [Circular *11],
-                  nodes: [ [length]: 0 ]
-                },
-                [length]: 24
-              ]
-            },
-            {
-              type: 'Comment',
-              value: '// new nested Tuple [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]',
-              start: 868,
-              end: 928,
-              parent: [Circular *10],
-              nodes: [ [length]: 0 ]
-            },
-            <ref *12> {
-              type: 'VariableDeclaration',
-              value: 'let',
-              start: 931,
-              end: 1689,
-              parent: [Circular *10],
-              nodes: [
-                {
-                  type: 'Identifier',
-                  value: 'selectedTupleItems',
-                  start: 935,
-                  end: 953,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'AssignmentOperator',
-                  value: '=',
-                  start: 954,
-                  end: 955,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'countDown',
-                  start: 956,
-                  end: 965,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: '[',
-                  start: 965,
-                  end: 966,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '1',
-                  start: 966,
-                  end: 967,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 967,
-                  end: 968,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '4',
-                  start: 969,
-                  end: 970,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 970,
-                  end: 971,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'NumberLiteral',
-                  value: '9',
-                  start: 972,
-                  end: 973,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Unknown',
-                  value: ']',
-                  start: 973,
-                  end: 974,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Comment',
-                  value: '// new Tuple [9, 6, 1]',
-                  start: 975,
-                  end: 997,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                <ref *13> {
+                <ref *22> {
                   type: 'VariableDeclaration',
                   value: 'let',
-                  start: 1001,
-                  end: 1017,
-                  parent: [Circular *12],
-                  nodes: [
+                  start: 552,
+                  end: 567,
+                  parent: [Circular *7],
+                  children: [
                     {
                       type: 'Identifier',
-                      value: 'myObject',
-                      start: 1005,
-                      end: 1013,
-                      parent: [Circular *13],
-                      nodes: [ [length]: 0 ]
+                      value: 'myArray',
+                      start: 556,
+                      end: 563,
+                      parent: [Circular *22],
+                      children: [ [length]: 0 ]
                     },
                     {
                       type: 'AssignmentOperator',
                       value: '=',
-                      start: 1014,
-                      end: 1015,
-                      parent: [Circular *13],
-                      nodes: [ [length]: 0 ]
+                      start: 564,
+                      end: 565,
+                      parent: [Circular *22],
+                      children: [ [length]: 0 ]
                     },
-                    <ref *14> {
-                      type: 'BlockStatement',
-                      value: '{',
-                      start: 1016,
-                      end: 1017,
-                      parent: [Circular *13],
-                      nodes: [
-                        {
-                          type: 'Identifier',
-                          value: 'a',
-                          start: 1021,
-                          end: 1022,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'ColonSeparator',
-                          value: ':',
-                          start: 1022,
-                          end: 1023,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
+                    <ref *23> {
+                      type: 'ArrayExpression',
+                      value: undefined,
+                      start: 566,
+                      end: 567,
+                      parent: [Circular *22],
+                      children: [
                         {
                           type: 'NumberLiteral',
                           value: '1',
-                          start: 1024,
-                          end: 1025,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 571,
+                          end: 572,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'CommaSeparator',
                           value: ',',
-                          start: 1025,
-                          end: 1026,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 572,
+                          end: 573,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
-                          type: 'Identifier',
-                          value: 'b',
-                          start: 1030,
-                          end: 1031,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'ColonSeparator',
-                          value: ':',
-                          start: 1031,
-                          end: 1032,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'StringLiteral',
-                          value: 'coat',
-                          start: 1033,
-                          end: 1039,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          type: 'NumberLiteral',
+                          value: '10',
+                          start: 577,
+                          end: 579,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'Keyword',
                           value: 'if',
-                          start: 1040,
-                          end: 1042,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 580,
+                          end: 582,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'Keyword',
                           value: 'this',
-                          start: 1043,
-                          end: 1047,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 583,
+                          end: 587,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'Unknown',
                           value: '.',
-                          start: 1047,
-                          end: 1048,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 587,
+                          end: 588,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'Identifier',
                           value: 'isDone?',
-                          start: 1048,
-                          end: 1055,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 588,
+                          end: 595,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'CommaSeparator',
                           value: ',',
-                          start: 1055,
-                          end: 1056,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          start: 595,
+                          end: 596,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
                           type: 'Comment',
-                          value: '// if false, property will not be in object',
-                          start: 1057,
-                          end: 1100,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          value: '// if false, element will not be in array',
+                          start: 597,
+                          end: 638,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
                         {
-                          type: 'Identifier',
-                          value: 'c',
-                          start: 1104,
-                          end: 1105,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
+                          type: 'NumberLiteral',
+                          value: '3',
+                          start: 642,
+                          end: 643,
+                          parent: [Circular *23],
+                          children: [ [length]: 0 ]
                         },
-                        {
-                          type: 'ColonSeparator',
-                          value: ':',
-                          start: 1105,
-                          end: 1106,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'Identifier',
-                          value: 'cond',
-                          start: 1107,
-                          end: 1111,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'Unknown',
-                          value: '?',
-                          start: 1112,
-                          end: 1113,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'BoolLiteral',
-                          value: 'true',
-                          start: 1114,
-                          end: 1118,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'ColonSeparator',
-                          value: ':',
-                          start: 1119,
-                          end: 1120,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'BoolLiteral',
-                          value: 'false',
-                          start: 1121,
-                          end: 1126,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'CommaSeparator',
-                          value: ',',
-                          start: 1126,
-                          end: 1127,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'Comment',
-                          value: '// regular ternary - property will always be there, value differs',
-                          start: 1128,
-                          end: 1193,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'Identifier',
-                          value: 'd',
-                          start: 1197,
-                          end: 1198,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'ColonSeparator',
-                          value: ':',
-                          start: 1198,
-                          end: 1199,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'Unknown',
-                          value: 'nil',
-                          start: 1200,
-                          end: 1203,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        {
-                          type: 'CommaSeparator',
-                          value: ',',
-                          start: 1203,
-                          end: 1204,
-                          parent: [Circular *14],
-                          nodes: [ [length]: 0 ]
-                        },
-                        [length]: 26
+                        [length]: 10
                       ]
                     },
                     {
                       type: 'SemicolonSeparator',
                       value: ';',
-                      start: 1208,
-                      end: 1209,
-                      parent: [Circular *13],
-                      nodes: [ [length]: 0 ]
+                      start: 647,
+                      end: 648,
+                      parent: [Circular *22],
+                      children: [ [length]: 0 ]
                     },
                     [length]: 4
                   ]
                 },
-                <ref *15> {
+                <ref *24> {
                   type: 'VariableDeclaration',
                   value: 'let',
-                  start: 1213,
-                  end: 1216,
-                  parent: [Circular *12],
-                  nodes: [
+                  start: 652,
+                  end: 655,
+                  parent: [Circular *7],
+                  children: [
                     {
                       type: 'Identifier',
-                      value: 'partialObj',
-                      start: 1217,
-                      end: 1227,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
+                      value: 'count',
+                      start: 656,
+                      end: 661,
+                      parent: [Circular *24],
+                      children: [ [length]: 0 ]
                     },
                     {
                       type: 'AssignmentOperator',
                       value: '=',
-                      start: 1228,
-                      end: 1229,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
+                      start: 662,
+                      end: 663,
+                      parent: [Circular *24],
+                      children: [ [length]: 0 ]
                     },
-                    {
-                      type: 'Identifier',
-                      value: 'myObject',
-                      start: 1230,
-                      end: 1238,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
+                    <ref *25> {
+                      type: 'RangeExpression',
+                      value: undefined,
+                      start: 665,
+                      end: 667,
+                      parent: [Circular *24],
+                      children: [
+                        {
+                          type: 'NumberLiteral',
+                          value: '1',
+                          start: 664,
+                          end: 665,
+                          parent: [Circular *25],
+                          children: [ [length]: 0 ]
+                        },
+                        <ref *26> {
+                          type: 'MemberExpression',
+                          value: undefined,
+                          start: 674,
+                          end: 675,
+                          parent: [Circular *25],
+                          children: [
+                            {
+                              type: 'Identifier',
+                              value: 'myArray',
+                              start: 667,
+                              end: 674,
+                              parent: [Circular *26],
+                              children: [ [length]: 0 ]
+                            },
+                            <ref *27> {
+                              type: 'MembersList',
+                              value: undefined,
+                              start: 674,
+                              end: 675,
+                              parent: [Circular *26],
+                              children: [
+                                {
+                                  type: 'NumberLiteral',
+                                  value: '2',
+                                  start: 675,
+                                  end: 676,
+                                  parent: [Circular *27],
+                                  children: [ [length]: 0 ]
+                                },
+                                [length]: 1
+                              ]
+                            },
+                            {
+                              type: 'Comment',
+                              value: '// new array [1, 2, 3]',
+                              start: 678,
+                              end: 700,
+                              parent: [Circular *26],
+                              children: [ [length]: 0 ]
+                            },
+                            <ref *28> {
+                              type: 'VariableDeclaration',
+                              value: 'let',
+                              start: 703,
+                              end: 706,
+                              parent: [Circular *26],
+                              children: [
+                                {
+                                  type: 'Identifier',
+                                  value: 'countDown',
+                                  start: 707,
+                                  end: 716,
+                                  parent: [Circular *28],
+                                  children: [ [length]: 0 ]
+                                },
+                                {
+                                  type: 'AssignmentOperator',
+                                  value: '=',
+                                  start: 717,
+                                  end: 718,
+                                  parent: [Circular *28],
+                                  children: [ [length]: 0 ]
+                                },
+                                <ref *29> {
+                                  type: 'MemberExpression',
+                                  value: undefined,
+                                  start: 726,
+                                  end: 731,
+                                  parent: [Circular *28],
+                                  children: [
+                                    {
+                                      type: 'Identifier',
+                                      value: 'myArray',
+                                      start: 719,
+                                      end: 726,
+                                      parent: [Circular *29],
+                                      children: [ [length]: 0 ]
+                                    },
+                                    <ref *30> {
+                                      type: 'RangeExpression',
+                                      value: undefined,
+                                      start: 729,
+                                      end: 731,
+                                      parent: [Circular *29],
+                                      children: [
+                                        <ref *31> {
+                                          type: 'MembersList',
+                                          value: undefined,
+                                          start: 726,
+                                          end: 727,
+                                          parent: [Circular *30],
+                                          children: [
+                                            {
+                                              type: 'NumberLiteral',
+                                              value: '1',
+                                              start: 727,
+                                              end: 728,
+                                              parent: [Circular *31],
+                                              children: [ [length]: 0 ]
+                                            },
+                                            [length]: 1
+                                          ]
+                                        },
+                                        {
+                                          type: 'NumberLiteral',
+                                          value: '0',
+                                          start: 731,
+                                          end: 732,
+                                          parent: [Circular *30],
+                                          children: [ [length]: 0 ]
+                                        },
+                                        [length]: 2
+                                      ]
+                                    },
+                                    {
+                                      type: 'Comment',
+                                      value: '// new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]',
+                                      start: 733,
+                                      end: 780,
+                                      parent: [Circular *29],
+                                      children: [ [length]: 0 ]
+                                    },
+                                    <ref *32> {
+                                      type: 'VariableDeclaration',
+                                      value: 'let',
+                                      start: 783,
+                                      end: 786,
+                                      parent: [Circular *29],
+                                      children: [
+                                        {
+                                          type: 'Identifier',
+                                          value: 'partitionedArray',
+                                          start: 787,
+                                          end: 803,
+                                          parent: [Circular *32],
+                                          children: [ [length]: 0 ]
+                                        },
+                                        {
+                                          type: 'AssignmentOperator',
+                                          value: '=',
+                                          start: 804,
+                                          end: 805,
+                                          parent: [Circular *32],
+                                          children: [ [length]: 0 ]
+                                        },
+                                        <ref *33> {
+                                          type: 'ArrayExpression',
+                                          value: undefined,
+                                          start: 806,
+                                          end: 807,
+                                          parent: [Circular *32],
+                                          children: [
+                                            <ref *34> {
+                                              type: 'MemberExpression',
+                                              value: undefined,
+                                              start: 820,
+                                              end: 858,
+                                              parent: [Circular *33],
+                                              children: [
+                                                {
+                                                  type: 'Identifier',
+                                                  value: 'countDown',
+                                                  start: 811,
+                                                  end: 820,
+                                                  parent: [Circular *34],
+                                                  children: [ [length]: 0 ]
+                                                },
+                                                <ref *35> {
+                                                  type: 'MembersList',
+                                                  value: undefined,
+                                                  start: 820,
+                                                  end: 821,
+                                                  parent: [Circular *34],
+                                                  children: [
+                                                    {
+                                                      type: 'ColonSeparator',
+                                                      value: ':',
+                                                      start: 821,
+                                                      end: 822,
+                                                      parent: [Circular *35],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    {
+                                                      type: 'NumberLiteral',
+                                                      value: '1',
+                                                      start: 822,
+                                                      end: 823,
+                                                      parent: [Circular *35],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    [length]: 2
+                                                  ]
+                                                },
+                                                {
+                                                  type: 'CommaSeparator',
+                                                  value: ',',
+                                                  start: 824,
+                                                  end: 825,
+                                                  parent: [Circular *34],
+                                                  children: [ [length]: 0 ]
+                                                },
+                                                <ref *36> {
+                                                  type: 'MemberExpression',
+                                                  value: undefined,
+                                                  start: 838,
+                                                  end: 858,
+                                                  parent: [Circular *34],
+                                                  children: [
+                                                    {
+                                                      type: 'Identifier',
+                                                      value: 'countDown',
+                                                      start: 829,
+                                                      end: 838,
+                                                      parent: [Circular *36],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    <ref *37> {
+                                                      type: 'MembersList',
+                                                      value: undefined,
+                                                      start: 838,
+                                                      end: 839,
+                                                      parent: [Circular *36],
+                                                      children: [
+                                                        {
+                                                          type: 'NumberLiteral',
+                                                          value: '2',
+                                                          start: 839,
+                                                          end: 840,
+                                                          parent: [Circular *37],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        {
+                                                          type: 'ColonSeparator',
+                                                          value: ':',
+                                                          start: 840,
+                                                          end: 841,
+                                                          parent: [Circular *37],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        {
+                                                          type: 'NumberLiteral',
+                                                          value: '6',
+                                                          start: 841,
+                                                          end: 842,
+                                                          parent: [Circular *37],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        [length]: 3
+                                                      ]
+                                                    },
+                                                    {
+                                                      type: 'CommaSeparator',
+                                                      value: ',',
+                                                      start: 843,
+                                                      end: 844,
+                                                      parent: [Circular *36],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    <ref *38> {
+                                                      type: 'MemberExpression',
+                                                      value: undefined,
+                                                      start: 857,
+                                                      end: 858,
+                                                      parent: [Circular *36],
+                                                      children: [
+                                                        {
+                                                          type: 'Identifier',
+                                                          value: 'countDown',
+                                                          start: 848,
+                                                          end: 857,
+                                                          parent: [Circular *38],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        <ref *39> {
+                                                          type: 'MembersList',
+                                                          value: undefined,
+                                                          start: 857,
+                                                          end: 858,
+                                                          parent: [Circular *38],
+                                                          children: [
+                                                            {
+                                                              type: 'NumberLiteral',
+                                                              value: '7',
+                                                              start: 858,
+                                                              end: 859,
+                                                              parent: [Circular *39],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'ColonSeparator',
+                                                              value: ':',
+                                                              start: 859,
+                                                              end: 860,
+                                                              parent: [Circular *39],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            [length]: 2
+                                                          ]
+                                                        },
+                                                        {
+                                                          type: 'CommaSeparator',
+                                                          value: ',',
+                                                          start: 861,
+                                                          end: 862,
+                                                          parent: [Circular *38],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        [length]: 3
+                                                      ]
+                                                    },
+                                                    {
+                                                      type: 'SemicolonSeparator',
+                                                      value: ';',
+                                                      start: 866,
+                                                      end: 867,
+                                                      parent: [Circular *36],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    [length]: 5
+                                                  ]
+                                                },
+                                                {
+                                                  type: 'Comment',
+                                                  value: '// new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]',
+                                                  start: 868,
+                                                  end: 929,
+                                                  parent: [Circular *34],
+                                                  children: [ [length]: 0 ]
+                                                },
+                                                <ref *40> {
+                                                  type: 'VariableDeclaration',
+                                                  value: 'let',
+                                                  start: 932,
+                                                  end: 935,
+                                                  parent: [Circular *34],
+                                                  children: [
+                                                    {
+                                                      type: 'Identifier',
+                                                      value: 'selectedArrayItems',
+                                                      start: 936,
+                                                      end: 954,
+                                                      parent: [Circular *40],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    {
+                                                      type: 'AssignmentOperator',
+                                                      value: '=',
+                                                      start: 955,
+                                                      end: 956,
+                                                      parent: [Circular *40],
+                                                      children: [ [length]: 0 ]
+                                                    },
+                                                    <ref *41> {
+                                                      type: 'MemberExpression',
+                                                      value: undefined,
+                                                      start: 966,
+                                                      end: 1018,
+                                                      parent: [Circular *40],
+                                                      children: [
+                                                        {
+                                                          type: 'Identifier',
+                                                          value: 'countDown',
+                                                          start: 957,
+                                                          end: 966,
+                                                          parent: [Circular *41],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        <ref *42> {
+                                                          type: 'MembersList',
+                                                          value: undefined,
+                                                          start: 966,
+                                                          end: 967,
+                                                          parent: [Circular *41],
+                                                          children: [
+                                                            {
+                                                              type: 'NumberLiteral',
+                                                              value: '1',
+                                                              start: 967,
+                                                              end: 968,
+                                                              parent: [Circular *42],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'CommaSeparator',
+                                                              value: ',',
+                                                              start: 968,
+                                                              end: 969,
+                                                              parent: [Circular *42],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'NumberLiteral',
+                                                              value: '4',
+                                                              start: 970,
+                                                              end: 971,
+                                                              parent: [Circular *42],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'CommaSeparator',
+                                                              value: ',',
+                                                              start: 971,
+                                                              end: 972,
+                                                              parent: [Circular *42],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'NumberLiteral',
+                                                              value: '9',
+                                                              start: 973,
+                                                              end: 974,
+                                                              parent: [Circular *42],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            [length]: 5
+                                                          ]
+                                                        },
+                                                        {
+                                                          type: 'Comment',
+                                                          value: '// new array [9, 6, 1]',
+                                                          start: 976,
+                                                          end: 998,
+                                                          parent: [Circular *41],
+                                                          children: [
+                                                            [length]: 0
+                                                          ]
+                                                        },
+                                                        <ref *43> {
+                                                          type: 'VariableDeclaration',
+                                                          value: 'let',
+                                                          start: 1002,
+                                                          end: 1018,
+                                                          parent: [Circular *41],
+                                                          children: [
+                                                            {
+                                                              type: 'Identifier',
+                                                              value: 'myObject',
+                                                              start: 1006,
+                                                              end: 1014,
+                                                              parent: [Circular *43],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'AssignmentOperator',
+                                                              value: '=',
+                                                              start: 1015,
+                                                              end: 1016,
+                                                              parent: [Circular *43],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            <ref *44> {
+                                                              type: 'BlockStatement',
+                                                              value: undefined,
+                                                              start: 1017,
+                                                              end: 1018,
+                                                              parent: [Circular *43],
+                                                              children: [
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'a',
+                                                                  start: 1022,
+                                                                  end: 1023,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'ColonSeparator',
+                                                                  value: ':',
+                                                                  start: 1023,
+                                                                  end: 1024,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'NumberLiteral',
+                                                                  value: '1',
+                                                                  start: 1025,
+                                                                  end: 1026,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'CommaSeparator',
+                                                                  value: ',',
+                                                                  start: 1026,
+                                                                  end: 1027,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'b',
+                                                                  start: 1031,
+                                                                  end: 1032,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'ColonSeparator',
+                                                                  value: ':',
+                                                                  start: 1032,
+                                                                  end: 1033,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'StringLiteral',
+                                                                  value: 'coat',
+                                                                  start: 1034,
+                                                                  end: 1040,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Keyword',
+                                                                  value: 'if',
+                                                                  start: 1041,
+                                                                  end: 1043,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Keyword',
+                                                                  value: 'this',
+                                                                  start: 1044,
+                                                                  end: 1048,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Unknown',
+                                                                  value: '.',
+                                                                  start: 1048,
+                                                                  end: 1049,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'isDone?',
+                                                                  start: 1049,
+                                                                  end: 1056,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'CommaSeparator',
+                                                                  value: ',',
+                                                                  start: 1056,
+                                                                  end: 1057,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Comment',
+                                                                  value: '// if false, property will not be in object',
+                                                                  start: 1058,
+                                                                  end: 1101,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'c',
+                                                                  start: 1105,
+                                                                  end: 1106,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'ColonSeparator',
+                                                                  value: ':',
+                                                                  start: 1106,
+                                                                  end: 1107,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'cond',
+                                                                  start: 1108,
+                                                                  end: 1112,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Unknown',
+                                                                  value: '?',
+                                                                  start: 1113,
+                                                                  end: 1114,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'BoolLiteral',
+                                                                  value: 'true',
+                                                                  start: 1115,
+                                                                  end: 1119,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'ColonSeparator',
+                                                                  value: ':',
+                                                                  start: 1120,
+                                                                  end: 1121,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'BoolLiteral',
+                                                                  value: 'false',
+                                                                  start: 1122,
+                                                                  end: 1127,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'CommaSeparator',
+                                                                  value: ',',
+                                                                  start: 1127,
+                                                                  end: 1128,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Comment',
+                                                                  value: '// regular ternary - property will always be there, value differs',
+                                                                  start: 1129,
+                                                                  end: 1194,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'd',
+                                                                  start: 1198,
+                                                                  end: 1199,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'ColonSeparator',
+                                                                  value: ':',
+                                                                  start: 1199,
+                                                                  end: 1200,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Unknown',
+                                                                  value: 'nil',
+                                                                  start: 1201,
+                                                                  end: 1204,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'CommaSeparator',
+                                                                  value: ',',
+                                                                  start: 1204,
+                                                                  end: 1205,
+                                                                  parent: [Circular *44],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                [length]: 26
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'SemicolonSeparator',
+                                                              value: ';',
+                                                              start: 1209,
+                                                              end: 1210,
+                                                              parent: [Circular *43],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            [length]: 4
+                                                          ]
+                                                        },
+                                                        <ref *45> {
+                                                          type: 'VariableDeclaration',
+                                                          value: 'let',
+                                                          start: 1214,
+                                                          end: 1331,
+                                                          parent: [Circular *41],
+                                                          children: [
+                                                            {
+                                                              type: 'Identifier',
+                                                              value: 'partialObj',
+                                                              start: 1218,
+                                                              end: 1228,
+                                                              parent: [Circular *45],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'AssignmentOperator',
+                                                              value: '=',
+                                                              start: 1229,
+                                                              end: 1230,
+                                                              parent: [Circular *45],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            <ref *46> {
+                                                              type: 'MemberExpression',
+                                                              value: undefined,
+                                                              start: 1239,
+                                                              end: 1331,
+                                                              parent: [Circular *45],
+                                                              children: [
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'myObject',
+                                                                  start: 1231,
+                                                                  end: 1239,
+                                                                  parent: [Circular *46],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                <ref *47> {
+                                                                  type: 'MembersList',
+                                                                  value: undefined,
+                                                                  start: 1239,
+                                                                  end: 1240,
+                                                                  parent: [Circular *46],
+                                                                  children: [
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'a',
+                                                                      start: 1240,
+                                                                      end: 1241,
+                                                                      parent: [Circular *47],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'CommaSeparator',
+                                                                      value: ',',
+                                                                      start: 1241,
+                                                                      end: 1242,
+                                                                      parent: [Circular *47],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'd',
+                                                                      start: 1243,
+                                                                      end: 1244,
+                                                                      parent: [Circular *47],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    [length]: 3
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  type: 'Comment',
+                                                                  value: '// new object {a: 1, d: nil}',
+                                                                  start: 1246,
+                                                                  end: 1274,
+                                                                  parent: [Circular *46],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                <ref *48> {
+                                                                  type: 'VariableDeclaration',
+                                                                  value: 'const',
+                                                                  start: 1278,
+                                                                  end: 1283,
+                                                                  parent: [Circular *46],
+                                                                  children: [
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'initializeAndAssignLater',
+                                                                      start: 1284,
+                                                                      end: 1308,
+                                                                      parent: [Circular *48],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'ColonSeparator',
+                                                                      value: ':',
+                                                                      start: 1308,
+                                                                      end: 1309,
+                                                                      parent: [Circular *48],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Type',
+                                                                      value: 'number',
+                                                                      start: 1310,
+                                                                      end: 1316,
+                                                                      parent: [Circular *48],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'AssignmentOperator',
+                                                                      value: '=',
+                                                                      start: 1317,
+                                                                      end: 1318,
+                                                                      parent: [Circular *48],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'NumberLiteral',
+                                                                      value: '5',
+                                                                      start: 1319,
+                                                                      end: 1320,
+                                                                      parent: [Circular *48],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'SemicolonSeparator',
+                                                                      value: ';',
+                                                                      start: 1320,
+                                                                      end: 1321,
+                                                                      parent: [Circular *48],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    [length]: 6
+                                                                  ]
+                                                                },
+                                                                <ref *49> {
+                                                                  type: 'ReturnStatement',
+                                                                  value: undefined,
+                                                                  start: 1325,
+                                                                  end: 1331,
+                                                                  parent: [Circular *46],
+                                                                  children: [
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'initializeAndAssignLater',
+                                                                      start: 1332,
+                                                                      end: 1356,
+                                                                      parent: [Circular *49],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'SemicolonSeparator',
+                                                                      value: ';',
+                                                                      start: 1356,
+                                                                      end: 1357,
+                                                                      parent: [Circular *49],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    [length]: 2
+                                                                  ]
+                                                                },
+                                                                [length]: 5
+                                                              ]
+                                                            },
+                                                            {
+                                                              type: 'Comment',
+                                                              value: '/** with args */',
+                                                              start: 1363,
+                                                              end: 1379,
+                                                              parent: [Circular *45],
+                                                              children: [
+                                                                [length]: 0
+                                                              ]
+                                                            },
+                                                            <ref *50> {
+                                                              type: 'CallExpression',
+                                                              value: undefined,
+                                                              start: 1396,
+                                                              end: 1397,
+                                                              parent: [Circular *45],
+                                                              children: [
+                                                                {
+                                                                  type: 'Identifier',
+                                                                  value: 'methodWithArgs',
+                                                                  start: 1381,
+                                                                  end: 1395,
+                                                                  parent: [Circular *50],
+                                                                  children: [
+                                                                    [length]: 0
+                                                                  ]
+                                                                },
+                                                                <ref *51> {
+                                                                  type: 'ArgumentsList',
+                                                                  value: undefined,
+                                                                  start: 1396,
+                                                                  end: 1782,
+                                                                  parent: [Circular *50],
+                                                                  children: [
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'arg1',
+                                                                      start: 1397,
+                                                                      end: 1401,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'ColonSeparator',
+                                                                      value: ':',
+                                                                      start: 1401,
+                                                                      end: 1402,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Type',
+                                                                      value: 'bool',
+                                                                      start: 1403,
+                                                                      end: 1407,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'CommaSeparator',
+                                                                      value: ',',
+                                                                      start: 1407,
+                                                                      end: 1408,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'arg2',
+                                                                      start: 1409,
+                                                                      end: 1413,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'ColonSeparator',
+                                                                      value: ':',
+                                                                      start: 1413,
+                                                                      end: 1414,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'Tuple',
+                                                                      start: 1415,
+                                                                      end: 1420,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'CommaSeparator',
+                                                                      value: ',',
+                                                                      start: 1420,
+                                                                      end: 1421,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'arg3',
+                                                                      start: 1422,
+                                                                      end: 1426,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'AssignmentOperator',
+                                                                      value: '=',
+                                                                      start: 1427,
+                                                                      end: 1428,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'BoolLiteral',
+                                                                      value: 'true',
+                                                                      start: 1429,
+                                                                      end: 1433,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'CommaSeparator',
+                                                                      value: ',',
+                                                                      start: 1433,
+                                                                      end: 1434,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'RestElement',
+                                                                      value: '...',
+                                                                      start: 1435,
+                                                                      end: 1438,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'otherStuff',
+                                                                      start: 1438,
+                                                                      end: 1448,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'ColonSeparator',
+                                                                      value: ':',
+                                                                      start: 1448,
+                                                                      end: 1449,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    <ref *52> {
+                                                                      type: 'MemberExpression',
+                                                                      value: undefined,
+                                                                      start: 1455,
+                                                                      end: 1456,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        {
+                                                                          type: 'Identifier',
+                                                                          value: 'Thing',
+                                                                          start: 1450,
+                                                                          end: 1455,
+                                                                          parent: [Circular *52],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'MembersList',
+                                                                          value: undefined,
+                                                                          start: 1455,
+                                                                          end: 1456,
+                                                                          parent: [Circular *52],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        [length]: 2
+                                                                      ]
+                                                                    },
+                                                                    <ref *53> {
+                                                                      type: 'BlockStatement',
+                                                                      value: undefined,
+                                                                      start: 1459,
+                                                                      end: 1460,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        {
+                                                                          type: 'RestElement',
+                                                                          value: '...',
+                                                                          start: 1461,
+                                                                          end: 1464,
+                                                                          parent: [Circular *53],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        [length]: 1
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Comment',
+                                                                      value: '/** with one return val */',
+                                                                      start: 1469,
+                                                                      end: 1495,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'methodThatReturnsBool?',
+                                                                      start: 1497,
+                                                                      end: 1519,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'ColonSeparator',
+                                                                      value: ':',
+                                                                      start: 1520,
+                                                                      end: 1521,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Type',
+                                                                      value: 'bool',
+                                                                      start: 1522,
+                                                                      end: 1526,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    <ref *54> {
+                                                                      type: 'BlockStatement',
+                                                                      value: undefined,
+                                                                      start: 1527,
+                                                                      end: 1537,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        <ref *55> {
+                                                                          type: 'ReturnStatement',
+                                                                          value: undefined,
+                                                                          start: 1531,
+                                                                          end: 1537,
+                                                                          parent: [Circular *54],
+                                                                          children: [
+                                                                            {
+                                                                              type: 'BoolLiteral',
+                                                                              value: 'true',
+                                                                              start: 1538,
+                                                                              end: 1542,
+                                                                              parent: [Circular *55],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            {
+                                                                              type: 'SemicolonSeparator',
+                                                                              value: ';',
+                                                                              start: 1542,
+                                                                              end: 1543,
+                                                                              parent: [Circular *55],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            [length]: 2
+                                                                          ]
+                                                                        },
+                                                                        [length]: 1
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Comment',
+                                                                      value: '/** multiple return vals */',
+                                                                      start: 1549,
+                                                                      end: 1576,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'methodThatReturnsBool?',
+                                                                      start: 1578,
+                                                                      end: 1600,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'ColonSeparator',
+                                                                      value: ':',
+                                                                      start: 1601,
+                                                                      end: 1602,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Type',
+                                                                      value: 'bool',
+                                                                      start: 1603,
+                                                                      end: 1607,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'CommaSeparator',
+                                                                      value: ',',
+                                                                      start: 1607,
+                                                                      end: 1608,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Type',
+                                                                      value: 'number',
+                                                                      start: 1609,
+                                                                      end: 1615,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'CommaSeparator',
+                                                                      value: ',',
+                                                                      start: 1615,
+                                                                      end: 1616,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      type: 'Identifier',
+                                                                      value: 'Thing',
+                                                                      start: 1617,
+                                                                      end: 1622,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        [length]: 0
+                                                                      ]
+                                                                    },
+                                                                    <ref *56> {
+                                                                      type: 'BlockStatement',
+                                                                      value: undefined,
+                                                                      start: 1623,
+                                                                      end: 1782,
+                                                                      parent: [Circular *51],
+                                                                      children: [
+                                                                        <ref *57> {
+                                                                          type: 'ReturnStatement',
+                                                                          value: undefined,
+                                                                          start: 1627,
+                                                                          end: 1654,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            {
+                                                                              type: 'BoolLiteral',
+                                                                              value: 'false',
+                                                                              start: 1634,
+                                                                              end: 1639,
+                                                                              parent: [Circular *57],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            {
+                                                                              type: 'CommaSeparator',
+                                                                              value: ',',
+                                                                              start: 1639,
+                                                                              end: 1640,
+                                                                              parent: [Circular *57],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            {
+                                                                              type: 'NumberLiteral',
+                                                                              value: '5',
+                                                                              start: 1641,
+                                                                              end: 1642,
+                                                                              parent: [Circular *57],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            {
+                                                                              type: 'CommaSeparator',
+                                                                              value: ',',
+                                                                              start: 1642,
+                                                                              end: 1643,
+                                                                              parent: [Circular *57],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            {
+                                                                              type: 'Keyword',
+                                                                              value: 'new',
+                                                                              start: 1644,
+                                                                              end: 1647,
+                                                                              parent: [Circular *57],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            <ref *58> {
+                                                                              type: 'CallExpression',
+                                                                              value: undefined,
+                                                                              start: 1653,
+                                                                              end: 1654,
+                                                                              parent: [Circular *57],
+                                                                              children: [
+                                                                                {
+                                                                                  type: 'Identifier',
+                                                                                  value: 'Thing',
+                                                                                  start: 1648,
+                                                                                  end: 1653,
+                                                                                  parent: [Circular *58],
+                                                                                  children: [
+                                                                                    [length]: 0
+                                                                                  ]
+                                                                                },
+                                                                                {
+                                                                                  type: 'ArgumentsList',
+                                                                                  value: undefined,
+                                                                                  start: 1653,
+                                                                                  end: 1654,
+                                                                                  parent: [Circular *58],
+                                                                                  children: [
+                                                                                    [length]: 0
+                                                                                  ]
+                                                                                },
+                                                                                {
+                                                                                  type: 'SemicolonSeparator',
+                                                                                  value: ';',
+                                                                                  start: 1655,
+                                                                                  end: 1656,
+                                                                                  parent: [Circular *58],
+                                                                                  children: [
+                                                                                    [length]: 0
+                                                                                  ]
+                                                                                },
+                                                                                [length]: 3
+                                                                              ]
+                                                                            },
+                                                                            [length]: 6
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'Comment',
+                                                                          value: '/** method that throws error */',
+                                                                          start: 1662,
+                                                                          end: 1693,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'Identifier',
+                                                                          value: 'careful!',
+                                                                          start: 1695,
+                                                                          end: 1703,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        <ref *59> {
+                                                                          type: 'BlockStatement',
+                                                                          value: undefined,
+                                                                          start: 1704,
+                                                                          end: 1705,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            {
+                                                                              type: 'RestElement',
+                                                                              value: '...',
+                                                                              start: 1706,
+                                                                              end: 1709,
+                                                                              parent: [Circular *59],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            [length]: 1
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'Comment',
+                                                                          value: '/** method with bool return that throws error */',
+                                                                          start: 1714,
+                                                                          end: 1762,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'Identifier',
+                                                                          value: 'careful?!',
+                                                                          start: 1764,
+                                                                          end: 1773,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'ColonSeparator',
+                                                                          value: ':',
+                                                                          start: 1774,
+                                                                          end: 1775,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        {
+                                                                          type: 'Type',
+                                                                          value: 'bool',
+                                                                          start: 1776,
+                                                                          end: 1780,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            [length]: 0
+                                                                          ]
+                                                                        },
+                                                                        <ref *60> {
+                                                                          type: 'BlockStatement',
+                                                                          value: undefined,
+                                                                          start: 1781,
+                                                                          end: 1782,
+                                                                          parent: [Circular *56],
+                                                                          children: [
+                                                                            {
+                                                                              type: 'RestElement',
+                                                                              value: '...',
+                                                                              start: 1783,
+                                                                              end: 1786,
+                                                                              parent: [Circular *60],
+                                                                              children: [
+                                                                                [length]: 0
+                                                                              ]
+                                                                            },
+                                                                            [length]: 1
+                                                                          ]
+                                                                        },
+                                                                        [length]: 9
+                                                                      ]
+                                                                    },
+                                                                    [length]: 31
+                                                                  ]
+                                                                },
+                                                                [length]: 2
+                                                              ]
+                                                            },
+                                                            [length]: 5
+                                                          ]
+                                                        },
+                                                        [length]: 5
+                                                      ]
+                                                    },
+                                                    [length]: 3
+                                                  ]
+                                                },
+                                                [length]: 6
+                                              ]
+                                            },
+                                            [length]: 1
+                                          ]
+                                        },
+                                        [length]: 3
+                                      ]
+                                    },
+                                    [length]: 4
+                                  ]
+                                },
+                                [length]: 3
+                              ]
+                            },
+                            [length]: 4
+                          ]
+                        },
+                        [length]: 2
+                      ]
                     },
-                    {
-                      type: 'Unknown',
-                      value: '[',
-                      start: 1238,
-                      end: 1239,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'a',
-                      start: 1239,
-                      end: 1240,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'CommaSeparator',
-                      value: ',',
-                      start: 1240,
-                      end: 1241,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'd',
-                      start: 1242,
-                      end: 1243,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Unknown',
-                      value: ']',
-                      start: 1243,
-                      end: 1244,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Comment',
-                      value: '// new object {a: 1, d: nil}',
-                      start: 1245,
-                      end: 1273,
-                      parent: [Circular *15],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 9
+                    [length]: 3
                   ]
                 },
-                {
-                  type: 'Comment',
-                  value: '/** with args */',
-                  start: 1279,
-                  end: 1295,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'methodWithArgs',
-                  start: 1297,
-                  end: 1311,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                <ref *16> {
-                  type: 'Parenthesized',
-                  value: '(',
-                  start: 1312,
-                  end: 1313,
-                  parent: [Circular *12],
-                  nodes: [
-                    {
-                      type: 'Identifier',
-                      value: 'arg1',
-                      start: 1313,
-                      end: 1317,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'ColonSeparator',
-                      value: ':',
-                      start: 1317,
-                      end: 1318,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'bool',
-                      start: 1319,
-                      end: 1323,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'CommaSeparator',
-                      value: ',',
-                      start: 1323,
-                      end: 1324,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'arg2',
-                      start: 1325,
-                      end: 1329,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'ColonSeparator',
-                      value: ':',
-                      start: 1329,
-                      end: 1330,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'Tuple',
-                      start: 1331,
-                      end: 1336,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'CommaSeparator',
-                      value: ',',
-                      start: 1336,
-                      end: 1337,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'arg3',
-                      start: 1338,
-                      end: 1342,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'AssignmentOperator',
-                      value: '=',
-                      start: 1343,
-                      end: 1344,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'BoolLiteral',
-                      value: 'true',
-                      start: 1345,
-                      end: 1349,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'CommaSeparator',
-                      value: ',',
-                      start: 1349,
-                      end: 1350,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Unknown',
-                      value: '...',
-                      start: 1351,
-                      end: 1354,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'therStuff',
-                      start: 1355,
-                      end: 1364,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'ColonSeparator',
-                      value: ':',
-                      start: 1364,
-                      end: 1365,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'Thing',
-                      start: 1366,
-                      end: 1371,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Unknown',
-                      value: '[',
-                      start: 1371,
-                      end: 1372,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Unknown',
-                      value: ']',
-                      start: 1372,
-                      end: 1373,
-                      parent: [Circular *16],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 18
-                  ]
-                },
-                <ref *17> {
-                  type: 'BlockStatement',
-                  value: '{',
-                  start: 1375,
-                  end: 1376,
-                  parent: [Circular *12],
-                  nodes: [
-                    {
-                      type: 'Unknown',
-                      value: '...',
-                      start: 1377,
-                      end: 1380,
-                      parent: [Circular *17],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 1
-                  ]
-                },
-                {
-                  type: 'Comment',
-                  value: '/** with one return val */',
-                  start: 1385,
-                  end: 1411,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'methodThatReturnsBool?',
-                  start: 1413,
-                  end: 1435,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 1436,
-                  end: 1437,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'bool',
-                  start: 1438,
-                  end: 1442,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                <ref *18> {
-                  type: 'BlockStatement',
-                  value: '{',
-                  start: 1443,
-                  end: 1444,
-                  parent: [Circular *12],
-                  nodes: [
-                    {
-                      type: 'Keyword',
-                      value: 'return',
-                      start: 1447,
-                      end: 1453,
-                      parent: [Circular *18],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 1
-                  ]
-                },
-                {
-                  type: 'Comment',
-                  value: '/** multiple return vals */',
-                  start: 1459,
-                  end: 1486,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'methodThatReturnsBool?',
-                  start: 1488,
-                  end: 1510,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 1511,
-                  end: 1512,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'bool',
-                  start: 1513,
-                  end: 1517,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 1517,
-                  end: 1518,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'number',
-                  start: 1519,
-                  end: 1525,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'CommaSeparator',
-                  value: ',',
-                  start: 1525,
-                  end: 1526,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'Thing',
-                  start: 1527,
-                  end: 1532,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                <ref *19> {
-                  type: 'BlockStatement',
-                  value: '{',
-                  start: 1533,
-                  end: 1534,
-                  parent: [Circular *12],
-                  nodes: [
-                    {
-                      type: 'Keyword',
-                      value: 'return',
-                      start: 1537,
-                      end: 1543,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'BoolLiteral',
-                      value: 'false',
-                      start: 1544,
-                      end: 1549,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'CommaSeparator',
-                      value: ',',
-                      start: 1549,
-                      end: 1550,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'NumberLiteral',
-                      value: '5',
-                      start: 1551,
-                      end: 1552,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'CommaSeparator',
-                      value: ',',
-                      start: 1552,
-                      end: 1553,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'new',
-                      start: 1554,
-                      end: 1557,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    {
-                      type: 'Identifier',
-                      value: 'Thing',
-                      start: 1558,
-                      end: 1563,
-                      parent: [Circular *19],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 7
-                  ]
-                },
-                {
-                  type: 'Comment',
-                  value: '/** method that throws error */',
-                  start: 1569,
-                  end: 1600,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'careful!',
-                  start: 1602,
-                  end: 1610,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                <ref *20> {
-                  type: 'BlockStatement',
-                  value: '{',
-                  start: 1611,
-                  end: 1612,
-                  parent: [Circular *12],
-                  nodes: [
-                    {
-                      type: 'Unknown',
-                      value: '...',
-                      start: 1613,
-                      end: 1616,
-                      parent: [Circular *20],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 1
-                  ]
-                },
-                {
-                  type: 'Comment',
-                  value: '/** method with bool return that throws error */',
-                  start: 1621,
-                  end: 1669,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'careful?!',
-                  start: 1671,
-                  end: 1680,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'ColonSeparator',
-                  value: ':',
-                  start: 1681,
-                  end: 1682,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                {
-                  type: 'Identifier',
-                  value: 'bool',
-                  start: 1683,
-                  end: 1687,
-                  parent: [Circular *12],
-                  nodes: [ [length]: 0 ]
-                },
-                <ref *21> {
-                  type: 'BlockStatement',
-                  value: '{',
-                  start: 1688,
-                  end: 1689,
-                  parent: [Circular *12],
-                  nodes: [
-                    {
-                      type: 'Unknown',
-                      value: '...',
-                      start: 1690,
-                      end: 1693,
-                      parent: [Circular *21],
-                      nodes: [ [length]: 0 ]
-                    },
-                    [length]: 1
-                  ]
-                },
-                [length]: 39
+                [length]: 4
               ]
             },
-            [length]: 12
+            [length]: 3
           ]
         },
-        [length]: 10
+        [length]: 1
       ]
     },
-    [length]: 30
+    [length]: 26
   ]
 }

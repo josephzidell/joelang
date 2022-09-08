@@ -9,28 +9,28 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	private isDone? = true // private instance property
 
 	/** method with no args and no return */
-	foo {
-		const size = switch someNumber {
-			is 1, is 2: 'small';
-			is in 3..10: 'medium';
-			is 11: 'large';
-			else: 'off the charts';
+	foo -> number {
+		const size = when someNumber {
+			1, 2 -> 'small',
+			3..10 -> 'medium',
+			11 -> 'large',
+			... -> 'off the charts',
 		}
 
-		let myTuple = [
+		let myArray = [
 			1,
-			10 if this.isDone?, // if false, element will not be in tuple
+			10 if this.isDone?, // if false, element will not be in array
 			3
 		];
 
-		let count = 1..myTuple[2] // new Tuple [1, 2, 3]
-		let countDown = myTuple[1]..0 // new Tuple [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-		let partitionedTuple = [
+		let count = 1..myArray[2] // new array [1, 2, 3]
+		let countDown = myArray[1]..0 // new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+		let partitionedArray = [
 			countDown[:1],
 			countDown[2:6],
 			countDown[7:],
-		]; // new nested Tuple [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
-		let selectedTupleItems = countDown[1, 4, 9] // new Tuple [9, 6, 1]
+		]; // new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
+		let selectedArrayItems = countDown[1, 4, 9] // new array [9, 6, 1]
 
 		let myObject = {
 			a: 1,
@@ -40,6 +40,10 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 		};
 
 		let partialObj = myObject[a, d] // new object {a: 1, d: nil}
+
+		const initializeAndAssignLater: number = 5;
+
+		return initializeAndAssignLater;
 	}
 
 	/** with args */
@@ -47,12 +51,12 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 
 	/** with one return val */
 	methodThatReturnsBool? : bool {
-		return
+		return true;
 	}
 
 	/** multiple return vals */
 	methodThatReturnsBool? : bool, number, Thing {
-		return false, 5, new Thing
+		return false, 5, new Thing();
 	}
 
 	/** method that throws error */

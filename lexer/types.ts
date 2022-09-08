@@ -33,13 +33,14 @@ export const tokenTypesUsingSymbols = {
 	'or': '||',
 	'paren_close': ')',
 	'paren_open': '(',
+	'plus': '+',
 	'plus_equals': '+=',
 	'plus_plus': '++',
-	'plus': '+',
 	'question': '?',
+	'right_arrow': '->',
 	'semicolon': ';',
 };
-const complexTokenTypes = [
+const otherTokenTypes = [
 	'bool',
 	'comment',
 	'filepath',
@@ -49,8 +50,9 @@ const complexTokenTypes = [
 	'number',
 	'regex',
 	'string',
+	'type',
 ] as const;
-export type TokenType = keyof typeof tokenTypesUsingSymbols | typeof complexTokenTypes[number];
+export type TokenType = keyof typeof tokenTypesUsingSymbols | typeof otherTokenTypes[number];
 
 // info about a token
 export type Token = {
@@ -78,6 +80,7 @@ export const keywords = [
 	'class',
 	'const',
 	'extends',
+	'f',
 	'for',
 	'from',
 	'if',
@@ -86,14 +89,24 @@ export const keywords = [
 	'in',
 	'is',
 	'let',
+	'new',
 	'private',
 	'public',
 	'return',
 	'static',
 	'switch',
 	'this',
+	'when',
 ] as const;
 type Keyword = typeof keywords[number];
+
+// types
+export const types = [
+	'bool',
+	'number',
+	'string',
+] as const;
+type Type = typeof types[number];
 
 // special Values
 const specialValues = ['true', 'false', 'nil'] as const;

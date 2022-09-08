@@ -37,18 +37,9 @@ Let's establish a few ground truths, which I think we can agree on:
 
 In reality, simplicity is hard. But we do the hard work so you can do the easy work.
 
-## Basics
+## Design
 
-### Types
-
-- Numbers `123`, `9,876`, `100001.0002`, `3^e2` :heavy_check_mark: Lexer
-- Strings `'foo'`, `"foo ${bar}"` Paritally implemented in Lexer, TODO interpolation
-- Boolean `true`, `false` :heavy_check_mark: Lexer
-- Nil `nil`
-- Filepath `@/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `./code/joe/file` instead of `.\code\joe\file`
-- Tuple `[1, 2, 3]`, `['a', 'b']`, `[1, 2 if condition, 3]`
-- POJO (Plain Old Joe Object) `{a: 1, b: 2 if condition, c: 3}`
-- Switch statements return a value (returns `nil` if no else case)
+See the [design](DESIGN.md)
 
 ## Comparison
 
