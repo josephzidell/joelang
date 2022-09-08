@@ -23,6 +23,7 @@ const nodeTypes = [
 	'MembersList',
 	'ModOperator',
 	'MultiplicationOperator',
+	'Nil',
 	'NumberLiteral',
 	'Parenthesized',
 	'Program',

@@ -349,7 +349,7 @@ describe('lexer.ts', (): void => {
 					});
 
 					// identifier and number
-					it(`${operator} with idenfier and number literal`, (): void => {
+					it(`${operator} with identifier and number literal`, (): void => {
 						expect(lexify(`foo ${operator} 2;`)).toMatchTokens([
 							['identifier', 'foo'],
 							[tokenType, operator],
@@ -357,7 +357,7 @@ describe('lexer.ts', (): void => {
 							['semicolon', ';'],
 						]);
 					});
-					it(`${operator} with number literal and idenfier`, (): void => {
+					it(`${operator} with number literal and identifier`, (): void => {
 						expect(lexify(`1 ${operator} foo;`)).toMatchTokens([
 							['number', '1'],
 							[tokenType, operator],

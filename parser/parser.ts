@@ -76,6 +76,8 @@ export default class {
 				this.endExpression();
 			} else if (token.type === 'bool') {
 				this.currentRoot.children.push(MakeNode('BoolLiteral', token, this.currentRoot));
+			} else if (token.type === 'nil') {
+				this.currentRoot.children.push(MakeNode('Nil', token, this.currentRoot));
 			} else if (token.type === 'number') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 

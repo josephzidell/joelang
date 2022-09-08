@@ -1477,7 +1477,7 @@
                                                                   ]
                                                                 },
                                                                 {
-                                                                  type: 'Unknown',
+                                                                  type: 'Nil',
                                                                   value: 'nil',
                                                                   start: 1201,
                                                                   end: 1204,

@@ -60,6 +60,16 @@ describe('parser.ts', (): void => {
 				]],
 			])
 		});
+
+		it('supports nil', (): void => {
+			expect(parse('const x = nil')).toMatchAST([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'x'],
+					['AssignmentOperator', '='],
+					['Nil', 'nil'],
+				]],
+			])
+		});
 	});
 
 	describe('Comment', (): void => {
@@ -163,7 +173,7 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('args but no return types', (): void => {
+		it('args and return types', (): void => {
 			expect(parse('f foo (a: number) -> bool {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
@@ -174,6 +184,23 @@ describe('parser.ts', (): void => {
 					]],
 					['FunctionReturns', [
 						['Type', 'bool'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('args and return types using nil', (): void => {
+			expect(parse('f foo (a: nil) -> nil {}')).toMatchAST([
+				['FunctionDefinition', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['Identifier', 'a'],
+						['ColonSeparator', ':'],
+						['Nil', 'nil'],
+					]],
+					['FunctionReturns', [
+						['Nil', 'nil'],
 					]],
 					['BlockStatement', []],
 				]],
@@ -342,7 +369,7 @@ describe('parser.ts', (): void => {
 					});
 
 					// identifier and number
-					it(`${operator} with idenfier and number literal`, (): void => {
+					it(`${operator} with identifier and number literal`, (): void => {
 						expect(parse(`foo ${operator} 2;`)).toMatchAST([
 							['BinaryExpression', operator, [
 								['Identifier', 'foo'],
@@ -351,11 +378,31 @@ describe('parser.ts', (): void => {
 							]],
 						]);
 					});
-					it(`${operator} with number literal and idenfier`, (): void => {
+					it(`${operator} with number literal and identifier`, (): void => {
 						expect(parse(`1 ${operator} foo;`)).toMatchAST([
 							['BinaryExpression', operator, [
 								['NumberLiteral', '1'],
 								['Identifier', 'foo'],
+								['SemicolonSeparator', ';'],
+							]],
+						]);
+					});
+
+					// nil and number
+					it(`${operator} with nil and number literal`, (): void => {
+						expect(parse(`nil ${operator} 2;`)).toMatchAST([
+							['BinaryExpression', operator, [
+								['Nil', 'nil'],
+								['NumberLiteral', '2'],
+								['SemicolonSeparator', ';'],
+							]],
+						]);
+					});
+					it(`${operator} with number literal and nil`, (): void => {
+						expect(parse(`1 ${operator} nil;`)).toMatchAST([
+							['BinaryExpression', operator, [
+								['NumberLiteral', '1'],
+								['Nil', 'nil'],
 								['SemicolonSeparator', ';'],
 							]],
 						]);
