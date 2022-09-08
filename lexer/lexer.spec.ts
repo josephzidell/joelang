@@ -7,7 +7,7 @@ const lexify = (code: string): Token[] => new Lexer(code).lexify();
 describe('lexer.ts', (): void => {
 	describe('keywords', (): void => {
 		it.each(keywords)('%s is recognized as a keyword - simplified', (keyword) => {
-			expect(new Lexer(keyword).lexify()).toMatchTokens([
+			expect(lexify(keyword)).toMatchTokens([
 				['keyword', keyword],
 			]);
 		});
@@ -16,7 +16,7 @@ describe('lexer.ts', (): void => {
 	describe('symbols', (): void => {
 		for (const type in tokenTypesUsingSymbols) {
 			if (Object.prototype.hasOwnProperty.call(tokenTypesUsingSymbols, type)) {
-				const symbol = tokenTypesUsingSymbols[type];
+				const symbol = tokenTypesUsingSymbols[type as keyof typeof tokenTypesUsingSymbols];
 				it(`${symbol} is recognized as a ${type} symbol`, () => {
 					expect(lexify(symbol)).toMatchTokens([
 						[type as TokenType, symbol],
@@ -183,7 +183,7 @@ describe('lexer.ts', (): void => {
 	describe('line and col counts', (): void => {
 		it('works as it should', (): void => {
 			// this uses toStrictEqual() rather than toMatchTokens() in order to check the counts
-			expect(new Lexer(" foo ? \n''\n   23^e5").lexify()).toStrictEqual([
+			expect(lexify(" foo ? \n''\n   23^e5")).toStrictEqual([
 				{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
 				{ type: 'question', start: 5, end: 6, value: '?', line: 1, col: 6 },
 				{ type: 'string', start: 8, end: 10, value: '', line: 2, col: 1 },
@@ -627,7 +627,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('keeps escaped quotes', (): void => {
-				expect(new Lexer("'a\\'b'").lexify()).toMatchTokens([
+				expect(lexify("'a\\'b'")).toMatchTokens([
 					['string', "a\\'b"],
 				]);
 			});
@@ -635,7 +635,7 @@ describe('lexer.ts', (): void => {
 
 		describe('single-quoted', (): void => {
 			it('simple', (): void => {
-				expect(new Lexer("let foo = 'bar'").lexify()).toMatchTokens([
+				expect(lexify("let foo = 'bar'")).toMatchTokens([
 					['keyword', 'let'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -644,7 +644,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('empty string', (): void => {
-				expect(new Lexer("const foo = ''").lexify()).toMatchTokens([
+				expect(lexify("const foo = ''")).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -653,7 +653,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('containing parens', (): void => {
-				expect(new Lexer("const foo = '()'").lexify()).toMatchTokens([
+				expect(lexify("const foo = '()'")).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -662,7 +662,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('utf-8', (): void => {
-				expect(new Lexer("const foo = '大'").lexify()).toMatchTokens([
+				expect(lexify("const foo = '大'")).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -682,7 +682,7 @@ describe('lexer.ts', (): void => {
 		describe('each', (): void => {
 			for (const type of types) {
 				it(`${type} is recognized as a type`, () => {
-					expect(new Lexer(type).lexify()).toMatchTokens([
+					expect(lexify(type)).toMatchTokens([
 						['type', type],
 					]);
 				});
@@ -718,7 +718,7 @@ describe('lexer.ts', (): void => {
 
 	describe('when', (): void => {
 		it('works with single values, multiple values, ranges, and ...', (): void => {
-			expect(new Lexer(`const size = when someNumber {
+			expect(lexify(`const size = when someNumber {
 				1, 2 -> 'small',
 				3..10 -> 'medium',
 				11 -> {
@@ -729,7 +729,7 @@ describe('lexer.ts', (): void => {
 				},
 				12: doSomethingElse(),
 				... -> 'off the charts',
-		}`).lexify()).toMatchTokens([
+		}`)).toMatchTokens([
 				['keyword', 'const'],
 				['identifier', 'size'],
 				['assign', '='],
