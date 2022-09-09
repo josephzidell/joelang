@@ -104,6 +104,7 @@ type Keyword = typeof keywords[number];
 export const types = [
 	'bool',
 	'number',
+	'regex',
 	'string',
 ] as const;
 type Type = typeof types[number];

@@ -88,6 +88,8 @@ export default class {
 
 				// check if currentRoot is a RangeExpression, if so, it's also finished
 				this.endExpressionIfIn('RangeExpression');
+			} else if (token.type === 'regex') {
+				this.currentRoot.children.push(MakeNode('RegularExpression', token, this.currentRoot));
 			} else if (token.type === 'string') {
 				this.currentRoot.children.push(MakeNode('StringLiteral', token, this.currentRoot));
 			} else if (token.type === 'identifier') {

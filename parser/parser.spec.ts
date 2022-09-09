@@ -61,6 +61,28 @@ describe('parser.ts', (): void => {
 			])
 		});
 
+		it('regex', (): void => {
+			expect(parse('const x = /[a-z/;')).toMatchAST([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'x'],
+					['AssignmentOperator', '='],
+					['RegularExpression', '/[a-z/'],
+					['SemicolonSeparator', ';'],
+				]],
+			]);
+
+			expect(parse('const x: regex = /[a-z/g;')).toMatchAST([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'x'],
+					['ColonSeparator', ':'],
+					['Type', 'regex'],
+					['AssignmentOperator', '='],
+					['RegularExpression', '/[a-z/g'],
+					['SemicolonSeparator', ';'],
+				]],
+			]);
+		});
+
 		it('supports nil', (): void => {
 			expect(parse('const x = nil')).toMatchAST([
 				['VariableDeclaration', 'const', [
@@ -174,15 +196,21 @@ describe('parser.ts', (): void => {
 		});
 
 		it('args and return types', (): void => {
-			expect(parse('f foo (a: number) -> bool {}')).toMatchAST([
+			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
 					['ArgumentsList', [
 						['Identifier', 'a'],
 						['ColonSeparator', ':'],
 						['Type', 'number'],
+						['CommaSeparator', ','],
+						['Identifier', 'r'],
+						['ColonSeparator', ':'],
+						['Type', 'regex'],
 					]],
 					['FunctionReturns', [
+						['Type', 'regex'],
+						['CommaSeparator', ','],
 						['Type', 'bool'],
 					]],
 					['BlockStatement', []],

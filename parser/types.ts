@@ -28,6 +28,7 @@ const nodeTypes = [
 	'Parenthesized',
 	'Program',
 	'RangeExpression',
+	'RegularExpression',
 	'RestElement',
 	'ReturnStatement',
 	'RightArrowOperator',

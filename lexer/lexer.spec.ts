@@ -476,6 +476,66 @@ describe('lexer.ts', (): void => {
 		});
 	});
 
+	describe('regex', (): void => {
+		describe('valid scenarios', (): void => {
+			it('without flags', (): void => {
+				expect(lexify('/[a-z]/')).toMatchTokens([
+					['regex', '/[a-z]/'],
+				])
+			});
+
+			it('with flags', (): void => {
+				expect(lexify('/[a-z]/ig')).toMatchTokens([
+					['regex', '/[a-z]/ig'],
+				])
+			});
+
+			it('identifier after', (): void => {
+				expect(lexify('/[a-z]/igq')).toMatchTokens([
+					['regex', '/[a-z]/ig'],
+					['identifier', 'q'],
+				])
+			});
+
+			it('dot after', (): void => {
+				expect(lexify('/[a-z]/.')).toMatchTokens([
+					['regex', '/[a-z]/'],
+					['dot', '.'],
+				])
+
+				expect(lexify('/[a-z]/i.')).toMatchTokens([
+					['regex', '/[a-z]/i'],
+					['dot', '.'],
+				])
+			});
+
+			it('incomplete', (): void => {
+				expect(lexify('/[a-z]')).toMatchTokens([
+					['regex', '/[a-z]'],
+				])
+			});
+		});
+
+		describe('invalid scenarios', (): void => {
+			it('identifier before', (): void => {
+				expect(lexify('k/a/')).toMatchTokens([
+					['identifier', 'k'],
+					['forward_slash', '/'],
+					['identifier', 'a'],
+					['forward_slash', '/'],
+				])
+			});
+
+			it('space after opening slash', (): void => {
+				expect(lexify('/ a/')).toMatchTokens([
+					['forward_slash', '/'],
+					['identifier', 'a'],
+					['forward_slash', '/'],
+				])
+			});
+		});
+	});
+
 	describe('surrounding characters', (): void => {
 		describe('brackets', (): void => {
 			it('with nothing between', (): void => {

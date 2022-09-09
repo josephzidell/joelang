@@ -16,8 +16,10 @@ void (async (): Promise<void> => {
 		const error = e as LexerError;
 
 		console.log(`Error: ${error.message}`);
-		console.debug('Extracted tokens:');
-		console.table(error.getTokens());
+		if (typeof error.getTokens === 'function') {
+			console.debug('Extracted tokens:');
+			console.table(error.getTokens());
+		}
 
 		console.log('Stack Trace:');
 		console.error(error.stack);

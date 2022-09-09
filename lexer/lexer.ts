@@ -1,6 +1,6 @@
 import LexerError from "./error";
 import {Token, TokenType, keywords, patterns, specialValueTypes, types} from './types';
-import { standardizeLineEndings } from "./util";
+import { regexFlags, standardizeLineEndings } from "./util";
 
 export default class {
 	/** position begins at 0 and counts till the end of the script */
@@ -73,6 +73,7 @@ export default class {
 			 * - The beginning of a comment
 			 * - A division artihmetic symbol
 			 * - A division/equals artihmetic symbol
+			 * - The beginning of a regular expression
 			 */
 			if (this.char === patterns.FORWARD_SLASH) {
 				this.peekAndHandle({
@@ -87,7 +88,35 @@ export default class {
 						this.col += 2;
 						this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col });
 					},
-				}, 'forward_slash', line, col);
+				}, () => {
+					// these tokens preceed a forward slash, so if they're found, this is NOT a regular expression
+					const tokensThatPreceedForwardSlash: TokenType[] = ['bracket_close', 'identifier', 'number', 'paren_close'];
+					const prevToken = this.prevToken();
+					const nextChar = this.peek();
+					if ((typeof prevToken !== 'undefined' && tokensThatPreceedForwardSlash.includes(prevToken.type)) || typeof nextChar === 'undefined' || this.matchesRegex(patterns.WHITESPACE, nextChar)) {
+						this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition + 1, value: '/', line, col });
+						this.next();
+
+						return;
+					}
+
+					// regular expression
+					let value =
+						// opening slash
+						this.getChar()
+
+						// everything until the trailing slash
+						// continue as long there are no more chars, and the current char isn't a / and the previous char isn't whitespace
+						+ this.gobbleUntil(() => this.char === patterns.FORWARD_SLASH  && this.prevChar() !== patterns.ESCAPE)
+
+						// the trailing slash itself
+						+ (this.getChar() ?? '') // this is needed in case of a partial regex at the end of the code
+
+						// check for flags
+						+ this.gobbleAsLongAs(() => regexFlags.includes(this.char));
+
+					this.tokens.push({ type: 'regex', start, end: this.cursorPosition, value, line, col });
+				}, line, col);
 
 				continue;
 			}
@@ -241,7 +270,7 @@ export default class {
 					 */
 
 					// ending quote
-					if (this.char === quoteChar && this.prev() !== patterns.ESCAPE) {
+					if (this.char === quoteChar && this.prevChar() !== patterns.ESCAPE) {
 						break;
 					}
 
@@ -367,7 +396,7 @@ export default class {
 	 *
 	 * @throws Error if fallback is undefined and next char isn't defined in the map
 	 */
-	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | undefined, line: number, col: number, level = 1) {
+	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | (() => void) | undefined, line: number, col: number, level = 1) {
 		const nextChar = this.peek(level);
 		if (typeof nextChar !== 'undefined' && typeof mapNextChar[nextChar] !== 'undefined') {
 			/* since there is a next char, everything in this block uses `level + 1`, since we're at the next char */
@@ -395,7 +424,7 @@ export default class {
 			}
 
 		// if this is undefined, there is no valid token for this last char, so ignore
-		} else if (typeof fallback !== 'undefined') {
+		} else if (typeof fallback === 'string') {
 			this.tokens.push({
 				type: fallback,
 				start: this.cursorPosition,
@@ -410,6 +439,10 @@ export default class {
 				this.next();
 			}
 
+		// if fallback is a callback
+		} else if (typeof fallback === 'function') {
+			fallback();
+
 		// if fallback is undefined and the next character isn't accounted for
 		} else {
 			// something we don't recognize
@@ -418,7 +451,7 @@ export default class {
 	}
 
 	/** Captures the current char, advances position, and returns current char */
-	getChar () {
+	getChar (): string | undefined {
 		// capture the current char in a var
 		const value = this.char;
 
@@ -484,8 +517,13 @@ export default class {
 	}
 
 	/** Returns the previous char */
-	prev(): string {
+	prevChar(): string | undefined {
 		return this.code[this.cursorPosition - 1];
+	}
+
+	/** Returns the previous token */
+	prevToken(): Token | undefined {
+		return this.tokens[this.tokens.length - 1];
 	}
 
 	/** Peeks ahead at the next char */
