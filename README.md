@@ -5,14 +5,14 @@ A scripting language focused on easy reading
 
 ```bash
 # run the lexer
-npm run --silent lexify -- 'your expression' # run with an expression
-npm run --silent lexify -- "$(cat path/to/file.joe)" # run on a .joe file
+npm run --silent lexify -- 'your expression' # lexify an expression
+npm run --silent lexify -- "$(cat path/to/file.joe)" # lexify a .joe file
 npm run --silent lexify -- '...' file.tokens # send the tokens output to a file
 
 # run the parser
-npm run --silent parse -- 'your expression' # run with an expression
-npm run --silent parse -- "$(cat path/to/file.joe)" # run on a .joe file
-npm run --silent parse -- '...' file.ast # send the AST output to a file
+npm run --silent parse -- 'your expression' # parse an expression
+npm run --silent parse -- "$(cat path/to/file.joe)" # parse a .joe file
+npm run --silent parse -- '...' file.parse-tree # send the Parse Tree output to a file
 
 # run the tests
 npm test
@@ -20,7 +20,7 @@ npm test
 # run lexer example1
 npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
 # run parser example1
-npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.ast
+npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.parse-tree
 # transpile to Golang
 npm run --silent transpile -- go "$(cat examples/example1/main.joe)" examples/example1/main.go
 # transpile to Typescript

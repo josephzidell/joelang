@@ -2,7 +2,7 @@ import { AdditionOperatorNode, BaseNode, IdentifierNode, LiteralNode, Node, Node
 import { Token, TokenType } from "../lexer/types";
 import ParserError from './error';
 
-export const MakeASTNode = {
+export const MakeSyntaxTreeNode = {
 	AdditionOperator: (token: Token, parent: Node): AdditionOperatorNode => {
 		return {
 			type: 'AdditionOperator',

@@ -1,23 +1,23 @@
 import { TODO, VisitorSet } from "../types";
-import * as AST from "../../syntax/types";
+import * as Syntax from "../../syntax/types";
 
 export default class GoTranspiler {
-	private ast;
+	private syntaxTree;
 	// private tree;
 	private out = '';
 
-	constructor (ast: AST.ProgramNode) {
-		this.ast = ast;
+	constructor (syntaxTree: Syntax.ProgramNode) {
+		this.syntaxTree = syntaxTree;
 	}
 
 	transpile (): string {
 		// root node is Program, so we begin with it
-		return this.visitors.Program(this.ast);
+		return this.visitors.Program(this.syntaxTree);
 	}
 
 	visitors: VisitorSet = {
-		AdditionOperator: TODO<AST.AdditionOperatorNode>,
-		ArgumentsList: TODO<AST.ArgumentsListNode>,
+		AdditionOperator: TODO<Syntax.AdditionOperatorNode>,
+		ArgumentsList: TODO<Syntax.ArgumentsListNode>,
 		ArrayExpression: TODO,
 		AssignmentOperator: TODO,
 		BinaryExpression: TODO,
@@ -26,7 +26,7 @@ export default class GoTranspiler {
 		CallExpression: TODO,
 		ColonSeparator: TODO,
 		CommaSeparator: TODO,
-		Comment: (node: AST.CommentNode): string => {
+		Comment: (node: Syntax.CommentNode): string => {
 			// Go only supports // style comments
 
 			const comment = node.content;
@@ -37,7 +37,7 @@ export default class GoTranspiler {
 			return comment;
 		},
 		DivisionOperator: TODO,
-		FunctionDefinition: (node: AST.FunctionDefinitionNode): string => {
+		FunctionDefinition: (node: Syntax.FunctionDefinitionNode): string => {
 			return `func ${node.name} (${node.parameters}) {\n${node.body}\n}\n`;
 		},
 		FunctionReturns: TODO,
@@ -50,10 +50,10 @@ export default class GoTranspiler {
 		ModOperator: TODO,
 		MultiplicationOperator: TODO,
 		Nil: TODO,
-		NumberLiteral: (node: AST.NumberLiteralNode): string => node.value,
+		NumberLiteral: (node: Syntax.NumberLiteralNode): string => node.value,
 		Parenthesized: TODO,
 		Path: TODO,
-		PrintStatement: (node: AST.PrintStatementNode): string => {
+		PrintStatement: (node: Syntax.PrintStatementNode): string => {
 			let out = 'import "fmt";\nfmt.Print(';
 			node.contents.forEach(child => {
 				switch (child.type) {
@@ -67,14 +67,14 @@ export default class GoTranspiler {
 
 			return out;
 		},
-		Program: (node: AST.ProgramNode): string => node.children.map(child => this.visitors[child.type](child)).join('\n'),
+		Program: (node: Syntax.ProgramNode): string => node.children.map(child => this.visitors[child.type](child)).join('\n'),
 		RangeExpression: TODO,
 		RegularExpression: TODO,
 		RestElement: TODO,
 		ReturnStatement: TODO,
 		RightArrowOperator: TODO,
 		SemicolonSeparator: TODO,
-		StringLiteral: (node: AST.StringLiteralNode): string => `"${node.value}"` || '""',
+		StringLiteral: (node: Syntax.StringLiteralNode): string => `"${node.value}"` || '""',
 		SubtractionOperator: TODO,
 		Type: TODO,
 		UnaryExpression: TODO,

@@ -1,17 +1,17 @@
 import { TODO, Visitor, VisitorSet } from "../types";
-import { BaseNode as ASTNode, NodeType as ASTNodeType } from "../../parser/types";
+import { BaseNode as SyntaxNode } from "../../parser/types";
 
 export default class GoTranspiler {
-	private ast;
+	private syntaxTree;
 	private out = '';
 
-	constructor (ast: ASTNode) {
-		this.ast = ast;
+	constructor (syntaxTree: SyntaxNode) {
+		this.syntaxTree = syntaxTree;
 	}
 
 	transpile (): string {
 		// root node is Program, so we begin with it
-		return this.visitors.Program(this.ast);
+		return this.visitors.Program(this.syntaxTree);
 	}
 
 	visitors: VisitorSet = {
@@ -25,7 +25,7 @@ export default class GoTranspiler {
 		CallExpression: TODO,
 		ColonSeparator: TODO,
 		CommaSeparator: TODO,
-		Comment: (node: ASTNode): string => {
+		Comment: (node: SyntaxNode): string => {
 			// Typescript doesn't support # style comments
 
 			const comment = node.value || '//';
@@ -47,10 +47,10 @@ export default class GoTranspiler {
 		ModOperator: TODO,
 		MultiplicationOperator: TODO,
 		Nil: TODO,
-		NumberLiteral: (node: ASTNode): string => node.value || '0',
+		NumberLiteral: (node: SyntaxNode): string => node.value || '0',
 		Parenthesized: TODO,
 		Path: TODO,
-		PrintStatement: (node: ASTNode): string => {
+		PrintStatement: (node: SyntaxNode): string => {
 			let out = 'console.log(';
 			node.children.forEach(child => {
 				switch (child.type) {
@@ -64,14 +64,14 @@ export default class GoTranspiler {
 
 			return out;
 		},
-		Program: (node: ASTNode): string => node.children.map(child => this.visitors[child.type](child)).join('\n'),
+		Program: (node: SyntaxNode): string => node.children.map(child => this.visitors[child.type](child)).join('\n'),
 		RangeExpression: TODO,
 		RegularExpression: TODO,
 		RestElement: TODO,
 		ReturnStatement: TODO,
 		RightArrowOperator: TODO,
 		SemicolonSeparator: TODO,
-		StringLiteral: (node: ASTNode): string => `"${node.value}"` || '""',
+		StringLiteral: (node: SyntaxNode): string => `"${node.value}"` || '""',
 		SubtractionOperator: TODO,
 		Type: TODO,
 		UnaryExpression: TODO,

@@ -8,7 +8,7 @@ export interface CustomMatchers<R = unknown> {
 	 *
 	 * @param simplifiedVersion An array of simplified nodes, such as `["Keyword", "let"]`, etc.
 	 */
-	toMatchAST(simplifiedVersion: SAST): R;
+	toMatchParseTree(simplifiedVersion: SParseTree): R;
 
 	/**
 	 * Matches against a simplified version of tokens, matching the type and value only.
@@ -74,68 +74,70 @@ expect.extend({
 // Parser Stuff
 ////////////////////////////////////////////////////////////
 
-// SAST = Simplified AST
+// SParseTree = Simplified Parse Tree
 
 /** Certain nodes need extra information beyond the usual */
 type extraInformation = {
 	before?: boolean;
 }
-type SASTNodeWithValueAndWithoutChildren = [string, string]; // eg ['NumberLiteral', '1']
-type SASTNodeWithoutValueWithChildren = [string, SAST]
-type SASTNodeWithValueWithChildren = [string, string, SAST]
-type SASTNodeWithValueWithChildrenWithExtraInformation = [string, string, extraInformation, SAST]
-type SNode = SASTNodeWithValueAndWithoutChildren | SASTNodeWithoutValueWithChildren | SASTNodeWithValueWithChildren | SASTNodeWithValueWithChildrenWithExtraInformation;
-type SAST = SNode[];
+type SParseNodeWithValueAndWithoutChildren = [string, string]; // eg ['NumberLiteral', '1']
+type SParseNodeWithoutValueWithChildren = [string, SParseTree]
+type SParseNodeWithValueWithChildren = [string, string, SParseTree]
+type SParseNodeWithValueWithChildrenWithExtraInformation = [string, string, extraInformation, SParseTree]
+type SParseNode = SParseNodeWithValueAndWithoutChildren | SParseNodeWithoutValueWithChildren | SParseNodeWithValueWithChildren | SParseNodeWithValueWithChildrenWithExtraInformation;
+type SParseTree = SParseNode[];
 
-const simplifyTree = (nodes: Node[]): SAST => nodes.map((node: Node): SNode => {
-	const children = simplifyTree(node.children);
+const simplifyTree = (nodes: Node[]): SParseTree => {
+	return nodes.map((node: Node): SParseNode => {
+		const children = simplifyTree(node.children);
 
-	// a node will have either a value, or children, or both. Never neither
-	const hasValue = typeof node.value !== 'undefined';
-	let hasChildren = children.length > 0;
+		// a node will have either a value, or children, or both. Never neither
+		const hasValue = typeof node.value !== 'undefined';
+		let hasChildren = children.length > 0;
 
-	// in a few cases we want the children array to be there even when empty
-	if (node.type === 'ArgumentsList' || node.type === 'BlockStatement' || node.type === 'ParametersList') {
-		hasChildren = true; // force it to be true
-	}
+		// in a few cases we want the children array to be there even when empty
+		if (node.type === 'ArgumentsList' || node.type === 'BlockStatement' || node.type === 'ParametersList') {
+			hasChildren = true; // force it to be true
+		}
 
-	let extraInformation = {};
-	switch (node.type) {
-		case 'UnaryExpression':
-			extraInformation = {before: (node as UnaryExpressionNode).before};
-			break;
-	}
+		let extraInformation = {};
+		switch (node.type) {
+			case 'UnaryExpression':
+				extraInformation = {before: (node as UnaryExpressionNode).before};
+				break;
+		}
 
-	let snode: SNode;
-	if (!hasValue && hasChildren) {
-		snode = [
-			node.type,
-			children,
-		];
-	} else if (hasValue && !hasChildren) {
-		snode = [
-			node.type,
-			node.value as string,
-		];
-	} else if (Object.keys(extraInformation).length > 0) { // has extraInformation && hasValue && hasChildren
-		snode = [
-			node.type,
-			node.value as string,
-			extraInformation,
-			children,
-		];
-	} else { // hasValue && hasChildren
-		snode = [
-			node.type,
-			node.value as string,
-			children,
-		];
-	}
+		let snode: SParseNode;
+		if (!hasValue && hasChildren) {
+			snode = [
+				node.type,
+				children,
+			];
+		} else if (hasValue && !hasChildren) {
+			snode = [
+				node.type,
+				node.value as string,
+			];
+		} else if (Object.keys(extraInformation).length > 0) { // has extraInformation && hasValue && hasChildren
+			snode = [
+				node.type,
+				node.value as string,
+				extraInformation,
+				children,
+			];
+		} else { // hasValue && hasChildren
+			snode = [
+				node.type,
+				node.value as string,
+				children,
+			];
+		}
 
-	return snode;
-});
+		return snode;
+	});
+};
 
-export function matchAST (tree: Node, simplifiedVersion: SAST): CustomMatcherResult {
+export function matchParseTree (tree: Node, simplifiedVersion: SParseTree): CustomMatcherResult {
 	const treeNodes = tree.children;
 
 	if (typeof simplifiedVersion === 'undefined') {
@@ -164,5 +166,5 @@ export function matchAST (tree: Node, simplifiedVersion: SAST): CustomMatcherRes
 };
 
 expect.extend({
-	toMatchAST: matchAST,
+	toMatchParseTree: matchParseTree,
 });
