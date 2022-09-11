@@ -22,28 +22,15 @@ export type AdditionOperatorNode = BaseNode & {
 	type: 'AdditionOperator';
 };
 
-export type ArgumentDefNode = BaseNode & {
-	type: 'ArgumentDef';
-	name: IdentifierNode;
-	argType: TypeNode;
-	default?: LiteralNode;
-	rest: boolean;
-};
-
-export type ArgumentsDefListNode = BaseNode & {
-	type: 'ArgumentsDefList';
-	args: Array<ArgumentDefNode>;
-};
-
-export type ArgumentLiteralNode = BaseNode & {
-	type: 'ArgumentLiteral';
+export type ArgumentNode = BaseNode & {
+	type: 'Argument';
 	value: LiteralNode;
 	rest: boolean;
 };
 
-export type ArgumentsLiteralListNode = BaseNode & {
-	type: 'ArgumentsLiteralList';
-	args: Array<ArgumentLiteralNode>;
+export type ArgumentsListNode = BaseNode & {
+	type: 'ArgumentsList';
+	args: Array<ArgumentNode>;
 };
 
 export type ArrayExpressionNode = BaseNode & {
@@ -78,7 +65,7 @@ export type CallExpressionNode = BaseNode & {
 	type: 'CallExpression';
 	callee: IdentifierNode; // TODO add nested calls this.foo
 	types?: GenericTypesListNode;
-	arguments: ArgumentsLiteralListNode;
+	arguments: ArgumentsListNode;
 };
 
 export type ColonSeparatorNode = BaseNode & {
@@ -102,7 +89,7 @@ export type FunctionDefinitionNode = BaseNode & {
 	type: 'FunctionDefinition';
 	name: IdentifierNode;
 	types?: GenericTypesListNode;
-	arguments: ArgumentsLiteralListNode;
+	parameters: ParametersListNode;
 	returns?: FunctionReturnsNode;
 	body: Array<BaseNode>;
 	// TODO add visibility, etc.
@@ -160,6 +147,19 @@ export type NilNode = BaseNode & {
 export type NumberLiteralNode = BaseNode & {
 	type: 'NumberLiteral';
 	value: string; // since we support exponents and commas, which Typescript does not
+};
+
+export type ParameterNode = BaseNode & {
+	type: 'Parameter';
+	name: IdentifierNode;
+	argType: TypeNode;
+	default?: LiteralNode;
+	rest: boolean;
+};
+
+export type ParametersListNode = BaseNode & {
+	type: 'ParametersList';
+	args: Array<ParameterNode>;
 };
 
 export type ParenthesizedNode = BaseNode & {
@@ -270,54 +270,54 @@ export type WhenCaseConsequentNode = BaseNode & {
 // TODO add tuple, object
 export type LiteralNode = ArrayExpressionNode | BoolLiteralNode | NumberLiteralNode | RegularExpressionNode | StringLiteralNode;
 
-export type nodes = [
-	AdditionOperatorNode,
-	ArgumentDefNode,
-	ArgumentsDefListNode,
-	ArgumentLiteralNode,
-	ArgumentsLiteralListNode,
-	ArrayExpressionNode,
-	AssignmentOperatorNode,
-	BinaryExpressionNode,
-	BlockStatementNode,
-	BoolLiteralNode,
-	CallExpressionNode,
-	ColonSeparatorNode,
-	CommaSeparatorNode,
-	CommentNode,
-	DivisionOperatorNode,
-	FunctionDefinitionNode,
-	FunctionReturnsNode,
-	GenericTypesListNode,
-	IdentifierNode,
-	ImportDeclarationNode,
-	KeywordNode,
-	MemberExpressionNode,
-	MembersListNode,
-	ModOperatorNode,
-	MultiplicationOperatorNode,
-	NilNode,
-	NumberLiteralNode,
-	ParenthesizedNode,
-	PathNode,
-	ProgramNode,
-	PrintStatementNode,
-	RangeExpressionNode,
-	RegularExpressionNode,
-	RestElementNode,
-	ReturnStatementNode,
-	RightArrowOperatorNode,
-	SemicolonSeparatorNode,
-	StringLiteralNode,
-	SubtractionOperatorNode,
-	TypeNode,
-	UnaryExpressionNode,
-	UnknownNode,
-	VariableDeclarationNode,
-	WhenExpressionNode,
-	WhenCaseNode,
-	WhenCaseTestsNode,
-	WhenCaseConsequentNode,
-];
+export type nodes = {
+	AdditionOperator: AdditionOperatorNode,
+	Argument: ArgumentNode,
+	ArgumentsList: ArgumentsListNode,
+	ArrayExpression: ArrayExpressionNode,
+	AssignmentOperator: AssignmentOperatorNode,
+	BinaryExpression: BinaryExpressionNode,
+	BlockStatement: BlockStatementNode,
+	BoolLiteral: BoolLiteralNode,
+	CallExpression: CallExpressionNode,
+	ColonSeparator: ColonSeparatorNode,
+	CommaSeparator: CommaSeparatorNode,
+	Comment: CommentNode,
+	DivisionOperator: DivisionOperatorNode,
+	FunctionDefinition: FunctionDefinitionNode,
+	FunctionReturns: FunctionReturnsNode,
+	GenericTypesList: GenericTypesListNode,
+	Identifier: IdentifierNode,
+	ImportDeclaration: ImportDeclarationNode,
+	Keyword: KeywordNode,
+	MemberExpression: MemberExpressionNode,
+	MembersList: MembersListNode,
+	ModOperator: ModOperatorNode,
+	MultiplicationOperator: MultiplicationOperatorNode,
+	Nil: NilNode,
+	NumberLiteral: NumberLiteralNode,
+	Parameter: ParameterNode,
+	ParametersList: ParametersListNode,
+	Parenthesized: ParenthesizedNode,
+	Path: PathNode,
+	Program: ProgramNode,
+	PrintStatement: PrintStatementNode,
+	RangeExpression: RangeExpressionNode,
+	RegularExpression: RegularExpressionNode,
+	RestElement: RestElementNode,
+	ReturnStatement: ReturnStatementNode,
+	RightArrowOperator: RightArrowOperatorNode,
+	SemicolonSeparator: SemicolonSeparatorNode,
+	StringLiteral: StringLiteralNode,
+	SubtractionOperator: SubtractionOperatorNode,
+	Type: TypeNode,
+	UnaryExpression: UnaryExpressionNode,
+	Unknown: UnknownNode,
+	VariableDeclaration: VariableDeclarationNode,
+	WhenExpression: WhenExpressionNode,
+	WhenCase: WhenCaseNode,
+	WhenCaseTests: WhenCaseTestsNode,
+	WhenCaseConsequent: WhenCaseConsequentNode,
+};
 
-export type Node = nodes[number];
+// export type Node = keyof nodes[string];

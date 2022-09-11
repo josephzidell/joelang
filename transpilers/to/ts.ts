@@ -36,8 +36,6 @@ export default class GoTranspiler {
 			return comment;
 		},
 		DivisionOperator: TODO,
-		Expression: TODO,
-		FilePath: TODO,
 		FunctionDefinition: TODO,
 		FunctionReturns: TODO,
 		GenericTypesList: TODO,
@@ -51,6 +49,7 @@ export default class GoTranspiler {
 		Nil: TODO,
 		NumberLiteral: (node: ASTNode): string => node.value || '0',
 		Parenthesized: TODO,
+		Path: TODO,
 		PrintStatement: (node: ASTNode): string => {
 			let out = 'console.log(';
 			node.children.forEach(child => {

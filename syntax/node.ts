@@ -1,76 +1,50 @@
-import { AdditionOperatorNode, ArgumentDefNode, ArgumentsDefListNode, BaseNode, IdentifierNode, LiteralNode, Node, NodeType, TypeNode, UnaryExpressionNode } from "./types";
+import { AdditionOperatorNode, BaseNode, IdentifierNode, LiteralNode, Node, NodeType, ParameterNode, ParametersListNode, TypeNode, UnaryExpressionNode } from "./types";
 import { Token, TokenType } from "../lexer/types";
 import ParserError from './error';
 
 export const MakeASTNode = {
 	AdditionOperator: (token: Token, parent: Node): AdditionOperatorNode => {
-		const node: AdditionOperatorNode = {
+		return {
 			type: 'AdditionOperator',
-			pos: {
-				start: token.start,
-				end: token.end,
-				line: token.line,
-				col: token.col,
-			},
+			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
 			parent,
 		}
-
-		return node;
 	},
-	ArgumentDef: (token: Token, name: IdentifierNode, type: TypeNode, defaultVal: LiteralNode, rest: boolean, parent: Node): ArgumentDefNode => {
-		const node: ArgumentDefNode = {
-			type: 'ArgumentDef',
+	Parameter: (token: Token, name: IdentifierNode, type: TypeNode, defaultVal: LiteralNode, rest: boolean, parent: Node): ParameterNode => {
+		const node: ParameterNode = {
+			type: 'Parameter',
 			name,
 			argType: type,
 			default: defaultVal,
 			rest,
-			pos: {
-				start: token.start,
-				end: token.end,
-				line: token.line,
-				col: token.col,
-			},
+			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
 			parent,
 		}
 
 		return node;
 	},
-	ArgumentsDefList: (token: Token, parent: Node): ArgumentsDefListNode => {
-		const node: ArgumentsDefListNode = {
-			type: 'ArgumentsDefList',
-			pos: {
-				start: token.start,
-				end: token.end,
-				line: token.line,
-				col: token.col,
-			},
+	ParametersList: (token: Token, args: ParameterNode[], parent: Node): ParametersListNode => {
+		return {
+			type: 'ParametersList',
+			args,
+			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
 			parent,
 		}
-
-		return node;
 	},
 	UnaryExpression: (token: Token, operator: string, before: boolean, object: Node, parent: Node): UnaryExpressionNode => {
-		const node: UnaryExpressionNode = {
+		return {
 			type: 'UnaryExpression',
 			operator,
 			before,
 			object,
-			pos: {
-				start: token.start,
-				end: token.end,
-				line: token.line,
-				col: token.col,
-			},
+			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
 			parent,
 		}
-
-		return node;
 	},
 };
 
-// ArgumentsDefList
-// ArgumentLiteral
-// ArgumentsLiteralList
+// Argument
+// ArgumentsList
 // ArrayExpression
 // AssignmentOperator
 // BinaryExpression

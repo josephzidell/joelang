@@ -42,17 +42,22 @@ export default class {
 			const token = this.tokens[i];
 
 			if (token.type === 'paren_open') {
-				// if previous is an Identifier, then this is a CallExpression
+				// if previous is an Identifier, then this is either a CallExpression or FunctionDefinition
 				switch (this.prev()?.type) {
 					case 'Identifier':
-						if (this.currentRoot.type !== 'FunctionDefinition') {
+						if (this.currentRoot.type === 'FunctionDefinition') {
+							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
+						} else {
 							this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
 						}
-
-						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
 						break;
 					case 'GenericTypesList':
-						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+						if (this.currentRoot.type === 'FunctionDefinition') {
+							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
+						} else {
+							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+						}
 						break;
 					default:
 						this.beginExpressionWith(MakeNode('Parenthesized', token, this.currentRoot), true);

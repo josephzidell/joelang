@@ -1,12 +1,12 @@
-import { TODO, Visitor, VisitorSet } from "../types";
-import * as AST from "../../parser/ast/types";
+import { TODO, VisitorSet } from "../types";
+import * as AST from "../../syntax/types";
 
 export default class GoTranspiler {
 	private ast;
 	// private tree;
 	private out = '';
 
-	constructor (ast: AST.Node) {
+	constructor (ast: AST.ProgramNode) {
 		this.ast = ast;
 	}
 
@@ -16,8 +16,8 @@ export default class GoTranspiler {
 	}
 
 	visitors: VisitorSet = {
-		AdditionOperator: TODO,
-		ArgumentsList: TODO,
+		AdditionOperator: TODO<AST.AdditionOperatorNode>,
+		ArgumentsList: TODO<AST.ArgumentsListNode>,
 		ArrayExpression: TODO,
 		AssignmentOperator: TODO,
 		BinaryExpression: TODO,
@@ -37,9 +37,8 @@ export default class GoTranspiler {
 			return comment;
 		},
 		DivisionOperator: TODO,
-		Expression: TODO,
 		FunctionDefinition: (node: AST.FunctionDefinitionNode): string => {
-			return `func ${node.name} (${node.arguments}) {\n${node.body}\n}\n`;
+			return `func ${node.name} (${node.parameters}) {\n${node.body}\n}\n`;
 		},
 		FunctionReturns: TODO,
 		GenericTypesList: TODO,

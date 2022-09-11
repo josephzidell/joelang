@@ -4,8 +4,8 @@ import fs from 'fs-extra';
 import Parser from "./parser/parser";
 import ParserError from "./parser/error";
 import { inspect } from 'util';
-import TranspilerToGo from './transpilers/to/go';
-import TranspilerToTypescript from './transpilers/to/ts';
+// import TranspilerToGo from './transpilers/to/go';
+// import TranspilerToTypescript from './transpilers/to/ts';
 
 void (async (): Promise<void> => {
 	const command = process.argv[2];
@@ -13,7 +13,7 @@ void (async (): Promise<void> => {
 	switch (command) {
 		case 'lexify':
 			try {
-				const [, , sourceCode, fileOut] = process.argv;
+				const [, , , sourceCode, fileOut] = process.argv;
 
 				const tokens = new Lexer(sourceCode).lexify();
 
@@ -39,7 +39,8 @@ void (async (): Promise<void> => {
 
 		case 'parse':
 			try {
-				const [, , sourceCode, fileOut] = process.argv;
+				console.debug(process.argv);
+				const [, , , sourceCode, fileOut] = process.argv;
 
 				const cst = new Parser(new Lexer(sourceCode).lexify()).parse();
 
@@ -63,17 +64,17 @@ void (async (): Promise<void> => {
 
 		case 'transpile':
 			try {
-				const [, , lang, sourceCode, outputFile] = process.argv;
+				const [, , , lang, sourceCode, outputFile] = process.argv;
 
 				const cst = new Parser(new Lexer(sourceCode).lexify()).parse();
 				let destCode = '';
 
 				switch (lang) {
 					case 'go':
-						destCode = new TranspilerToGo(cst).transpile();
+						// destCode = new TranspilerToGo(cst).transpile();
 						break;
 					case 'ts':
-						destCode = new TranspilerToTypescript(cst).transpile();
+						// destCode = new TranspilerToTypescript(cst).transpile();
 						break;
 				}
 

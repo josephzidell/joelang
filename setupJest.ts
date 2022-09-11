@@ -1,6 +1,7 @@
 import { Token, TokenType } from "./lexer/types";
 import { Node, UnaryExpressionNode } from "./parser/types";
 import { diffString, diff } from 'json-diff';
+import { inspect } from 'util';
 
 export interface CustomMatchers<R = unknown> {
 	/**
@@ -94,7 +95,7 @@ const simplifyTree = (nodes: Node[]): SAST => nodes.map((node: Node): SNode => {
 	let hasChildren = children.length > 0;
 
 	// in a few cases we want the children array to be there even when empty
-	if (node.type === 'ArgumentsList' || node.type === 'BlockStatement') {
+	if (node.type === 'ArgumentsList' || node.type === 'BlockStatement' || node.type === 'ParametersList') {
 		hasChildren = true; // force it to be true
 	}
 
@@ -154,6 +155,8 @@ export function matchAST (tree: Node, simplifiedVersion: SAST): CustomMatcherRes
 		return {pass: true, message: () => 'they match'};
 	} catch {
 		let diff = diffString(simplifiedVersion, simplifiedTree);
+		// console.debug(inspect(simplifiedVersion, {depth: null}));
+		// console.debug(inspect(simplifiedTree, {depth: null}));
 
 		return {pass: false, message: () => `they do not match. Diff: ${diff}`};
 		// return {pass: false, message: () => `they do not match.\nExpected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(simplifiedTree)}`};

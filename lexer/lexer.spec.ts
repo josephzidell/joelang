@@ -67,7 +67,7 @@ describe('lexer.ts', (): void => {
 	});
 
 	describe('functions', (): void => {
-		it('no args or return types', (): void => {
+		it('no params or return types', (): void => {
 			expect(lexify('f foo {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
@@ -76,7 +76,7 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('no args with single return type', (): void => {
+		it('no params with single return type', (): void => {
 			expect(lexify('f foo -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
@@ -87,7 +87,7 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('no args with multiple return types', (): void => {
+		it('no params with multiple return types', (): void => {
 			expect(lexify('f foo -> bool, string {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
@@ -100,7 +100,7 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('arg parens but no return types', (): void => {
+		it('param parens but no return types', (): void => {
 			expect(lexify('f foo () {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
@@ -111,7 +111,7 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('arg parens with return types', (): void => {
+		it('param parens with return types', (): void => {
 			expect(lexify('f foo () -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
@@ -124,7 +124,7 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('args but no return types', (): void => {
+		it('params but no return types', (): void => {
 			expect(lexify('f foo (a: number) {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
@@ -138,7 +138,7 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('args but no return types', (): void => {
+		it('params but no return types', (): void => {
 			expect(lexify('f foo (a: number) -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],

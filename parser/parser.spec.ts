@@ -123,7 +123,7 @@ describe('parser.ts', (): void => {
 	});
 
 	describe('FunctionDefinition', (): void => {
-		it('no args or return types', (): void => {
+		it('no params or return types', (): void => {
 			expect(parse('f foo {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
@@ -132,7 +132,7 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('no args with single return type', (): void => {
+		it('no params with single return type', (): void => {
 			expect(parse('f foo -> bool {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
@@ -144,7 +144,7 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('no args with multiple return types', (): void => {
+		it('no params with multiple return types', (): void => {
 			expect(parse('f foo -> bool, string {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
@@ -158,21 +158,21 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('arg parens but no return types', (): void => {
+		it('param parens but no return types', (): void => {
 			expect(parse('f foo () {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
-					['ArgumentsList', []],
+					['ParametersList', []],
 					['BlockStatement', []],
 				]],
 			]);
 		});
 
-		it('arg parens with return types', (): void => {
+		it('param parens with return types', (): void => {
 			expect(parse('f foo () -> bool {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
-					['ArgumentsList', []],
+					['ParametersList', []],
 					['FunctionReturns', [
 						['Type', 'bool'],
 					]],
@@ -181,11 +181,11 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('args but no return types', (): void => {
+		it('params but no return types', (): void => {
 			expect(parse('f foo (a: number) {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
-					['ArgumentsList', [
+					['ParametersList', [
 						['Identifier', 'a'],
 						['ColonSeparator', ':'],
 						['Type', 'number'],
@@ -195,11 +195,11 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('args and return types', (): void => {
+		it('params and return types', (): void => {
 			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
-					['ArgumentsList', [
+					['ParametersList', [
 						['Identifier', 'a'],
 						['ColonSeparator', ':'],
 						['Type', 'number'],
@@ -218,11 +218,11 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('args and return types using nil', (): void => {
+		it('params and return types using nil', (): void => {
 			expect(parse('f foo (a: nil) -> nil {}')).toMatchAST([
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
-					['ArgumentsList', [
+					['ParametersList', [
 						['Identifier', 'a'],
 						['ColonSeparator', ':'],
 						['Nil', 'nil'],
@@ -242,7 +242,7 @@ describe('parser.ts', (): void => {
 					['GenericTypesList', [
 						['Identifier', 'T'],
 					]],
-					['ArgumentsList', [
+					['ParametersList', [
 						['Identifier', 'a'],
 						['ColonSeparator', ':'],
 						['Identifier', 'T'],
