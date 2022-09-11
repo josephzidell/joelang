@@ -1,24 +1,28 @@
 import { Token, TokenType } from "../lexer/types";
-import { Node, NodeType } from './types';
+// import { CST } from './types';
 import ParserError from './error';
-import { MakeNode, MakeUnaryExpressionNode } from './node';
+import { MakeNode } from './node';
 import { inspect } from 'util';
 
 export default class {
 	tokens: Token[] = [];
+	debug = false; // if on, will output the AST at the end
 
 	/** Root node of the Concrete Syntax Tree (CST) */
-	root: Node;
+	cstRoot: CST.Node;
 
 	/** Current root node of the Concrete Syntax Tree (CST) */
-	currentRoot: Node;
+	currentCSTRoot: CST.Node;
 
-	/** if on, will output the CST at the end */
-	debug = false;
+	/** Root node of the Abstract Syntax Tree (AST) */
+	astRoot: AST.ProgramNode;
+
+	/** Current root node of the Abstract Syntax Tree (AST) */
+	currentASTRoot: AST.ProgramNode | AST.Node;
 
 	constructor(tokens: Token[], debug = false) {
 		this.tokens = tokens;
-		this.root = {
+		this.cstRoot = {
 			type: 'Program',
 			pos: {
 				start: 0,
@@ -29,14 +33,27 @@ export default class {
 			children: [],
 		};
 
-		this.currentRoot = this.root;
+		this.currentCSTRoot = this.cstRoot;
+
+		this.astRoot = {
+			type: 'Program',
+			pos: {
+				start: 0,
+				end: 0, // this will be updated
+				line: 1,
+				col: 1,
+			},
+			children: [],
+		};
+
+		this.currentASTRoot = this.astRoot;
 
 		this.debug = debug;
 	}
 
-	public parse (): Node {
+	public parse (): CST.ProgramNode {
 		// node types that would come before a minus `-` symbol indicating it's a subtraction operator, rather than a unary operator
-		const nodeTypesPrecedingArithmeticOperator: NodeType[] = ['NumberLiteral', 'Identifier'];
+		const nodeTypesPrecedingArithmeticOperator: CST.NodeType[] = ['NumberLiteral', 'Identifier'];
 
 		for (let i = 0; i < this.tokens.length; i++) {
 			const token = this.tokens[i];
@@ -45,17 +62,17 @@ export default class {
 				// if previous is an Identifier, then this is a CallExpression
 				switch (this.prev()?.type) {
 					case 'Identifier':
-						if (this.currentRoot.type !== 'FunctionDefinition') {
-							this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot), true);
+						if (this.currentCSTRoot.type !== 'FunctionDefinition') {
+							this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('CallExpression', token, this.currentCSTRoot), true);
 						}
 
-						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('ArgumentsList', token, this.currentCSTRoot), true);
 						break;
 					case 'GenericTypesList':
-						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('ArgumentsList', token, this.currentCSTRoot), true);
 						break;
 					default:
-						this.beginExpressionWith(MakeNode('Parenthesized', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('Parenthesized', token, this.currentCSTRoot), true);
 						break;
 				}
 			} else if (token.type === 'paren_close') {
@@ -64,34 +81,34 @@ export default class {
 				// ... and then, check if currentRoot is a unary, if so, it's also finished
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'brace_open') {
-				if (this.currentRoot.type === 'FunctionReturns') {
+				if (this.currentCSTRoot.type === 'FunctionReturns') {
 					this.endExpression();
 				}
 
-				this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot), true);
+				this.beginExpressionWith(CST.MakeNode('BlockStatement', token, this.currentCSTRoot), true);
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
-				if (this.currentRoot.type === 'FunctionDefinition') {
+				if (this.currentCSTRoot.type === 'FunctionDefinition') {
 					this.endExpression();
 				}
 			} else if (token.type === 'bracket_open') {
 				if (this.prev()?.type === 'Identifier') {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot), true);
-					this.beginExpressionWith(MakeNode('MembersList', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('MemberExpression', token, this.currentCSTRoot), true);
+					this.beginExpressionWith(CST.MakeNode('MembersList', token, this.currentCSTRoot), true);
 				} else {
-					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot), true);
+					this.beginExpressionWith(CST.MakeNode('ArrayExpression', token, this.currentCSTRoot), true);
 				}
 			} else if (token.type === 'bracket_close') {
 				this.endExpression();
 			} else if (token.type === 'bool') {
-				this.currentRoot.children.push(MakeNode('BoolLiteral', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('BoolLiteral', token, this.currentCSTRoot));
 			} else if (token.type === 'nil') {
-				this.currentRoot.children.push(MakeNode('Nil', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('Nil', token, this.currentCSTRoot));
 			} else if (token.type === 'number') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
-				this.currentRoot.children.push(MakeNode('NumberLiteral', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('NumberLiteral', token, this.currentCSTRoot));
 
 				// check if currentRoot is a UnaryExpression, if so, it's also finished
 				this.endExpressionIfIn('UnaryExpression');
@@ -99,28 +116,28 @@ export default class {
 				// check if currentRoot is a RangeExpression, if so, it's also finished
 				this.endExpressionIfIn('RangeExpression');
 			} else if (token.type === 'regex') {
-				this.currentRoot.children.push(MakeNode('RegularExpression', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('RegularExpression', token, this.currentCSTRoot));
 			} else if (token.type === 'string') {
-				this.currentRoot.children.push(MakeNode('StringLiteral', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('StringLiteral', token, this.currentCSTRoot));
 			} else if (token.type === 'identifier') {
-				this.currentRoot.children.push(MakeNode('Identifier', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('Identifier', token, this.currentCSTRoot));
 
 				// check if currentRoot is a UnaryExpression, if so, it's finished
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'comment') {
-				this.currentRoot.children.push(MakeNode('Comment', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('Comment', token, this.currentCSTRoot));
 			} else if (token.type === 'assign') {
-				this.currentRoot.children.push(MakeNode('AssignmentOperator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('AssignmentOperator', token, this.currentCSTRoot));
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn('UnaryExpression');
-				this.currentRoot.children.push(MakeNode('AdditionOperator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('AdditionOperator', token, this.currentCSTRoot));
 			} else if (token.type === 'minus') {
-				if (this.currentRoot.children.length > 0 && nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type)) {
+				if (this.currentCSTRoot.children.length > 0 && nodeTypesPrecedingArithmeticOperator.includes(this.currentCSTRoot.children[this.currentCSTRoot.children.length - 1].type)) {
 					this.endExpressionIfIn('UnaryExpression');
-					this.currentRoot.children.push(MakeNode('SubtractionOperator', token, this.currentRoot));
+					this.currentCSTRoot.children.push(CST.MakeNode('SubtractionOperator', token, this.currentCSTRoot));
 				} else {
 					// otherwise this is a unary operator
-					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
+					this.beginExpressionWith(CST.MakeUnaryExpressionNode(token, true, this.currentCSTRoot));
 				}
 			} else if (token.type === 'plus_plus' || token.type === 'minus_minus') {
 				// check token before, then check token after
@@ -128,19 +145,19 @@ export default class {
 				const prev = this.prev();
 				if (prev?.type === 'Identifier' || prev?.type === 'MemberExpression') {
 					// this is postfix
-					this.beginExpressionWithAdoptingPreviousNode(MakeUnaryExpressionNode(token, false, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeUnaryExpressionNode(token, false, this.currentCSTRoot));
 				} else {
 					// this is prefix
-					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
+					this.beginExpressionWith(CST.MakeUnaryExpressionNode(token, true, this.currentCSTRoot));
 				}
 			} else if (token.type === 'asterisk') {
-				this.currentRoot.children.push(MakeNode('MultiplicationOperator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('MultiplicationOperator', token, this.currentCSTRoot));
 			} else if (token.type === 'forward_slash') {
-				this.currentRoot.children.push(MakeNode('DivisionOperator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('DivisionOperator', token, this.currentCSTRoot));
 			} else if (token.type === 'mod') {
-				this.currentRoot.children.push(MakeNode('ModOperator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('ModOperator', token, this.currentCSTRoot));
 			} else if (token.type === 'semicolon') {
-				this.currentRoot.children.push(MakeNode('SemicolonSeparator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('SemicolonSeparator', token, this.currentCSTRoot));
 				this.endExpression();
 
 				// check if currentRoot is a CallExpression, if so, it's also finished
@@ -151,49 +168,49 @@ export default class {
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
-				this.currentRoot.children.push(MakeNode('RestElement', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('RestElement', token, this.currentCSTRoot));
 			} else if (token.type === 'colon') {
 				// TODO do this
-				this.currentRoot.children.push(MakeNode('ColonSeparator', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('ColonSeparator', token, this.currentCSTRoot));
 			} else if (token.type === 'comma') {
-				if (this.currentRoot.type === 'WhenCaseConsequent') {
+				if (this.currentCSTRoot.type === 'WhenCaseConsequent') {
 					this.endExpression(); // end the WhenCaseConsequent
 					this.endExpression(); // end the WhenCase
-				} else if (this.currentRoot.type === 'CallExpression' && this.currentRoot.parent?.type === 'WhenCaseConsequent') {
+				} else if (this.currentCSTRoot.type === 'CallExpression' && this.currentCSTRoot.parent?.type === 'WhenCaseConsequent') {
 					this.endExpression(); // end the CallExpression
 					this.endExpression(); // end the WhenCaseConsequent
 					this.endExpression(); // end the WhenCase
-				} else if (this.currentRoot.type === 'BinaryExpression') {
+				} else if (this.currentCSTRoot.type === 'BinaryExpression') {
 					this.endExpression();
 				} else {
-					this.currentRoot.children.push(MakeNode('CommaSeparator', token, this.currentRoot));
+					this.currentCSTRoot.children.push(CST.MakeNode('CommaSeparator', token, this.currentCSTRoot));
 				}
 			} else if (['and', 'compare', 'equals', 'greater_than_equals', 'less_than_equals', 'not_equals', 'or'].includes(token.type)) {
 				// we need to go 2 levels up
-				if (this.prev()?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
-				} else if (this.prev()?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+				if (this.prev()?.type === 'ArgumentsList' && this.currentCSTRoot.type === 'CallExpression') {
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
+				} else if (this.prev()?.type === 'MembersList' && this.currentCSTRoot.type === 'MemberExpression') {
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 				}
 			} else if (token.type === 'type') {
-				this.currentRoot.children.push(MakeNode('Type', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('Type', token, this.currentCSTRoot));
 			} else if (token.type === 'right_arrow') {
-				if (this.currentRoot.type === 'WhenCaseTests') {
+				if (this.currentCSTRoot.type === 'WhenCaseTests') {
 					this.endExpression();
-					this.beginExpressionWith(MakeNode('WhenCaseConsequent', token, this.currentRoot), true);
-				} else if (this.currentRoot.type === 'FunctionDefinition') {
-					this.beginExpressionWith(MakeNode('FunctionReturns', token, this.currentRoot), true);
+					this.beginExpressionWith(CST.MakeNode('WhenCaseConsequent', token, this.currentCSTRoot), true);
+				} else if (this.currentCSTRoot.type === 'FunctionDefinition') {
+					this.beginExpressionWith(CST.MakeNode('FunctionReturns', token, this.currentCSTRoot), true);
 				} else {
-					this.currentRoot.children.push(MakeNode('RightArrowOperator', token, this.currentRoot));
+					this.currentCSTRoot.children.push(CST.MakeNode('RightArrowOperator', token, this.currentCSTRoot));
 				}
 			} else if (token.type === 'dotdot') {
 				// we need to go 2 levels up
-				if (this.prev()?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
+				if (this.prev()?.type === 'ArgumentsList' && this.currentCSTRoot.type === 'CallExpression') {
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('RangeExpression', token, this.currentCSTRoot), true);
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('RangeExpression', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('RangeExpression', token, this.currentCSTRoot), true);
 				}
 			} else if (token.type === 'less_than') {
 				/**
@@ -206,7 +223,7 @@ export default class {
 
 				if (prevType === 'NumberLiteral') {
 					// if prev is a number, this is a comparison
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
 				} else if (prevType === 'Identifier') {
 					/**
@@ -218,22 +235,22 @@ export default class {
 					 */
 
 					// if in method definition
-					if (this.currentRoot.type === 'FunctionDefinition') {
-						this.beginExpressionWith(MakeNode('GenericTypesList', token, this.currentRoot), true);
+					if (this.currentCSTRoot.type === 'FunctionDefinition') {
+						this.beginExpressionWith(CST.MakeNode('GenericTypesList', token, this.currentCSTRoot), true);
 					} else {
 						// 'less than' BinaryExpression
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+						this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 					}
 
-				} else if (prevType === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+				} else if (prevType === 'ArgumentsList' && this.currentCSTRoot.type === 'CallExpression') {
 					// we need to go 2 levels up
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
-				} else if (prevType === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+				} else if (prevType === 'MembersList' && this.currentCSTRoot.type === 'MemberExpression') {
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 				}
 
 					// case 'VariableDeclaration':
@@ -246,12 +263,12 @@ export default class {
 				 */
 				const prevType = this.prev()?.type;
 
-				if (this.currentRoot.type === 'GenericTypesList') {
+				if (this.currentCSTRoot.type === 'GenericTypesList') {
 					this.endExpression();
 
 				} else if (prevType === 'NumberLiteral') {
 					// if prev is a number, this is a comparison
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
 				} else if (prevType === 'Identifier') {
 					/**
@@ -263,76 +280,76 @@ export default class {
 					 */
 
 					// 'less than' BinaryExpression
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
-				} else if (prevType === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+				} else if (prevType === 'ArgumentsList' && this.currentCSTRoot.type === 'CallExpression') {
 					// we need to go 2 levels up
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
-				} else if (prevType === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
+				} else if (prevType === 'MembersList' && this.currentCSTRoot.type === 'MemberExpression') {
 					// we need to go 2 levels up
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingCurrentRoot(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 
 				} else {
 					// 'greater than' BinaryExpression
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 				}
 
 			} else if (token.type === 'keyword') {
 				switch (token.value) {
 					case 'const':
 					case 'let':
-						this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
+						this.beginExpressionWith(CST.MakeNode('VariableDeclaration', token, this.currentCSTRoot));
 						break;
 					case 'f':
-						this.beginExpressionWith(MakeNode('FunctionDefinition', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('FunctionDefinition', token, this.currentCSTRoot), true);
 						break;
 					case 'import':
-						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('ImportDeclaration', token, this.currentCSTRoot), true);
 						break;
 					case 'or':
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+						this.beginExpressionWithAdoptingPreviousNode(CST.MakeNode('BinaryExpression', token, this.currentCSTRoot));
 						break;
 					case 'print':
-						this.beginExpressionWith(MakeNode('PrintStatement', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('PrintStatement', token, this.currentCSTRoot), true);
 						break;
 					case 'return':
-						this.beginExpressionWith(MakeNode('ReturnStatement', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('ReturnStatement', token, this.currentCSTRoot), true);
 						break;
 					case 'when':
-						this.beginExpressionWith(MakeNode('WhenExpression', token, this.currentRoot), true);
+						this.beginExpressionWith(CST.MakeNode('WhenExpression', token, this.currentCSTRoot), true);
 						break;
 					default:
-						this.currentRoot.children.push(MakeNode('Keyword', token, this.currentRoot));
+						this.currentCSTRoot.children.push(CST.MakeNode('Keyword', token, this.currentCSTRoot));
 						break;
 				}
 			} else if (token.type === 'filepath') {
-				this.currentRoot.children.push(MakeNode('FilePath', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('FilePath', token, this.currentCSTRoot));
 			} else {
 				// this
-				this.currentRoot.children.push(MakeNode('Unknown', token, this.currentRoot));
+				this.currentCSTRoot.children.push(CST.MakeNode('Unknown', token, this.currentCSTRoot));
 			}
 		}
 
 		if (this.debug) {
-			console.debug(inspect(this.root, { showHidden: true, depth: null }));
+			console.debug(inspect(this.cstRoot, { showHidden: true, depth: null }));
 		}
 
-		return this.root;
+		return this.cstRoot;
 	}
 
 	private ifInWhenExpressionBlockStatementBeginCase(token: Token) {
-		if (this.currentRoot.type === 'BlockStatement' && this.currentRoot.parent?.type === 'WhenExpression') {
-			this.beginExpressionWith(MakeNode('WhenCase', token, this.currentRoot), true);
-			this.beginExpressionWith(MakeNode('WhenCaseTests', token, this.currentRoot), true);
+		if (this.currentCSTRoot.type === 'BlockStatement' && this.currentCSTRoot.parent?.type === 'WhenExpression') {
+			this.beginExpressionWith(CST.MakeNode('WhenCase', token, this.currentCSTRoot), true);
+			this.beginExpressionWith(CST.MakeNode('WhenCaseTests', token, this.currentCSTRoot), true);
 		}
 	}
 
 	/**
 	 * @returns the previous node
 	 */
-	private prev (): Node | undefined {
-		return this.currentRoot.children.at(-1);
+	private prev (): CST.Node | undefined {
+		return this.currentCSTRoot.children.at(-1);
 	}
 
 	/**
@@ -341,13 +358,13 @@ export default class {
 	 * @param node - To push
 	 * @param removeValue - Should the value be cleared out? Sometimes, the value is useless, and adds noise
 	 */
-	private beginExpressionWith(node: Node, removeValue = false) {
+	private beginExpressionWith(node: CST.Node, removeValue = false) {
 		if (removeValue) {
 			node.value = undefined;
 		}
 
-		this.currentRoot.children.push(node);
-		this.currentRoot = node;
+		this.currentCSTRoot.children.push(node);
+		this.currentCSTRoot = node;
 	}
 
 	/**
@@ -384,9 +401,9 @@ export default class {
 	 *
 	 * @throws Error if there is no previous node
 	 */
-	 private beginExpressionWithAdoptingPreviousNode(newKid: Node, removeValue = false) {
+	 private beginExpressionWithAdoptingPreviousNode(newKid: CST.Node, removeValue = false) {
 		// get nodes in currentRoot
-		const nodesInCurrentRoot = this.currentRoot.children;
+		const nodesInCurrentRoot = this.currentCSTRoot.children;
 
 		// get last node and remove
 		const prev = nodesInCurrentRoot.pop();
@@ -394,7 +411,7 @@ export default class {
 		// if no last node, this is a parser error
 		// cannot have a free floating ..
 		if (typeof prev === 'undefined') {
-			throw new ParserError('Cannot find previous node', this.currentRoot);
+			throw new ParserError('Cannot find previous node', this.currentCSTRoot);
 		}
 
 		// prev's parent becomes this
@@ -411,11 +428,11 @@ export default class {
 		nodesInCurrentRoot.push(newKid);
 
 		// update the currentRoot's nodes with the modified array
-		this.currentRoot.children = nodesInCurrentRoot;
+		this.currentCSTRoot.children = nodesInCurrentRoot;
 
 		// and finally, this one is now the new currentRoot.
 		// The currentRoot is dead (well, not really). Long live the currentRoot.
-		this.currentRoot = newKid;
+		this.currentCSTRoot = newKid;
 	}
 
 	/**
@@ -454,16 +471,16 @@ export default class {
 	 *
 	 * @throws Error if there is no previous node
 	 */
-	 private beginExpressionWithAdoptingCurrentRoot(newKid: Node, removeValue = false) {
+	 private beginExpressionWithAdoptingCurrentRoot(newKid: CST.Node, removeValue = false) {
 		if (removeValue) {
 			newKid.value = undefined;
 		}
 
 		// get currentRoot's siblings in a variable
-		const currentRootsSiblings = (this.currentRoot.parent as Node).children;
+		const currentRootsSiblings = (this.currentCSTRoot.parent as CST.Node).children;
 
 		// remove last node (a.k.a. this.currentRoot)
-		const currentRoot = currentRootsSiblings.pop() as Node;
+		const currentRoot = currentRootsSiblings.pop() as CST.Node;
 
 		// add this one onto that array
 		currentRootsSiblings.push(newKid);
@@ -472,11 +489,11 @@ export default class {
 		newKid.children.push(currentRoot);
 
 		// update the currentRoot's nodes with the modified array
-		(this.currentRoot.parent as Node).children = currentRootsSiblings;
+		(this.currentCSTRoot.parent as CST.Node).children = currentRootsSiblings;
 
 		// and finally, this one is now the new currentRoot.
 		// The currentRoot is dead (well, not really). Long live the currentRoot.
-		this.currentRoot = newKid;
+		this.currentCSTRoot = newKid;
 	}
 
 	/**
@@ -484,25 +501,25 @@ export default class {
 	 */
 	private endExpression() {
 		// capure this one's pos.end
-		const nigh = this.currentRoot.pos.end;
+		const nigh = this.currentCSTRoot.pos.end;
 
 		// go up one level by setting the currentRoot to the currentRoot's parent
-		this.currentRoot = this.currentRoot.parent as Node;
+		this.currentCSTRoot = this.currentCSTRoot.parent as CST.Node;
 
 		// this should never happen, but it's here as a fallback
-		if (typeof this.currentRoot === 'undefined') {
-			this.currentRoot = this.root;
+		if (typeof this.currentCSTRoot === 'undefined') {
+			this.currentCSTRoot = this.cstRoot;
 		}
 
 		// once up, update the currentRoot's pos.end with this one's pos.end
-		this.currentRoot.pos.end = nigh;
+		this.currentCSTRoot.pos.end = nigh;
 	}
 
 	/**
 	 * check if currentRoot is of the desired type, if so, it's finished
 	 */
-	private endExpressionIfIn (type: NodeType) {
-		if (this.currentRoot.type === type) {
+	private endExpressionIfIn (type: CST.NodeType) {
+		if (this.currentCSTRoot.type === type) {
 			this.endExpression();
 		}
 	}

@@ -1,0 +1,36 @@
+{
+	// Place your joelang workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+	// Placeholders with the same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"scope": "javascript,typescript",
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+	"Make Node Method": {
+		"prefix": "make",
+		"body": [
+			"$1: (token: Token, parent: Node): $0$1Node => {",
+			"\tconst node: $1Node = {",
+			"\t\ttype: '$1',",
+			"\t\tpos: {",
+			"\t\t\tstart: token.start,",
+			"\t\t\tend: token.end,",
+			"\t\t\tline: token.line,",
+			"\t\t\tcol: token.col,",
+			"\t\t},",
+			"\t\tparent,",
+			"\t}\n",
+			"\treturn node;",
+			"},",
+		]
+	}
+}

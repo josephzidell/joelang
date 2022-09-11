@@ -19,7 +19,7 @@ void (async (): Promise<void> => {
 		const error = e as ParserError;
 
 		console.log(`Error: ${error.message}`);
-		console.debug('Derived AST:');
+		console.debug('Derived CST:');
 		console.debug(error.getTree());
 
 		console.log('Stack Trace:');

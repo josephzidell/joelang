@@ -26,6 +26,7 @@ const nodeTypes = [
 	'Nil',
 	'NumberLiteral',
 	'Parenthesized',
+	'PrintStatement',
 	'Program',
 	'RangeExpression',
 	'RegularExpression',
@@ -44,13 +45,28 @@ const nodeTypes = [
 	'WhenCaseTests',
 	'WhenCaseConsequent',
 ] as const;
+
+/** A node's positional information */
+export type Pos = {
+	/** cursor position of the beginning of this node, counting chars from the beginning of the file */
+	start: number;
+
+	/** cursor position immediately after this node */
+	end: number;
+
+	/** line number this node begins at, counting from 1 */
+	line: number;
+
+	/** col position this node begins at, counting from 1, within the line of the first char (similar to `start`, but within the line - if the entire file were one line, then `col` would be `start + 1`) */
+	col: number;
+}
+
 export type NodeType = typeof nodeTypes[number];
 
 export type Node = {
 	type: NodeType;
 	value?: string;
-	start: number;
-	end: number;
+	pos: Pos;
 	parent?: Node;
 	children: Node[];
 }

@@ -90,6 +90,7 @@ export const keywords = [
 	'is',
 	'let',
 	'new',
+	'print',
 	'private',
 	'public',
 	'return',

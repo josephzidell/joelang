@@ -17,10 +17,14 @@ npm run --silent parse -- '...' file.ast # send the AST output to a file
 # run the tests
 npm test
 
-# run lexer sample
-npm run --silent lexify -- "$(cat tests/fixtures/sample.joe)" tests/fixtures/sample.tokens
-# run parser sample
-npm run --silent parse -- "$(cat tests/fixtures/sample.joe)" tests/fixtures/sample.ast
+# run lexer example1
+npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
+# run parser example1
+npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.ast
+# transpile to Golang
+npm run --silent transpile -- go "$(cat examples/example1/main.joe)" examples/example1/main.go
+# transpile to Typescript
+npm run --silent transpile -- ts "$(cat examples/example1/main.joe)" examples/example1/main.ts
 ```
 
 ## Challenge
@@ -54,12 +58,12 @@ See the [design](DESIGN.md)
 		<td>Conditions to set a variable</td>
 		<td>
 
-![image](examples/joelang-switch.svg)
+![image](docs_assets/joelang-switch.svg)
 
 </td>
 <td>
 
-![image](examples/js-switch.svg)
+![image](docs_assets/js-switch.svg)
 
 </td>
 </tr>
@@ -68,19 +72,19 @@ See the [design](DESIGN.md)
 	<td>Conditionally add an item to array</td>
 	<td>
 
-![image](examples/joelang-conditional-arrays.svg)
+![image](docs_assets/joelang-conditional-arrays.svg)
 
 </td>
 <td>
 
-![image](examples/js-conditional-arrays.svg)
+![image](docs_assets/js-conditional-arrays.svg)
 
 </td>
 </tr>
 <tr><th colspan="3">Tuple / Array / Object / String access and splicing</th></tr>
 <tr><td>Get some items from array</td><td>
 
-![image](examples/joelang-access.svg)
+![image](docs_assets/joelang-access.svg)
 
 - also works on tuples ...
 - and on strings ...
@@ -89,7 +93,7 @@ See the [design](DESIGN.md)
 </td>
 <td>
 
-![image](examples/js-access.svg)
+![image](docs_assets/js-access.svg)
 
 </td>
 </tr>
