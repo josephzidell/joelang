@@ -882,7 +882,7 @@ describe('lexer.ts', (): void => {
 		it('"from @/lexer;" should have the semicolon token', (): void => {
 			expect(lexify('from @/lexer;')).toMatchTokens([
 				['keyword', 'from'],
-				['filepath', '@/lexer'],
+				['path', '@/lexer'],
 				['semicolon', ';'],
 			]);
 		});
@@ -890,7 +890,7 @@ describe('lexer.ts', (): void => {
 		it('"from ./lexer;" should have the semicolon token', (): void => {
 			expect(lexify('from ./lexer;')).toMatchTokens([
 				['keyword', 'from'],
-				['filepath', './lexer'],
+				['path', './lexer'],
 				['semicolon', ';'],
 			]);
 		});
@@ -925,10 +925,10 @@ describe('lexer.ts', (): void => {
 				['number', '2'],
 				['semicolon', ';'],
 
-				['filepath', './foo'],
+				['path', './foo'],
 				['semicolon', ';'],
 
-				['filepath', '@/foo'],
+				['path', '@/foo'],
 				['semicolon', ';'],
 			]);
 		});

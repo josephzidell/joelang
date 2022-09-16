@@ -311,8 +311,8 @@ export default class {
 						this.currentRoot.children.push(MakeNode('Keyword', token, this.currentRoot));
 						break;
 				}
-			} else if (token.type === 'filepath') {
-				this.currentRoot.children.push(MakeNode('FilePath', token, this.currentRoot));
+			} else if (token.type === 'path') {
+				this.currentRoot.children.push(MakeNode('Path', token, this.currentRoot));
 			} else {
 				// this
 				this.currentRoot.children.push(MakeNode('Unknown', token, this.currentRoot));

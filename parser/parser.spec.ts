@@ -263,19 +263,19 @@ describe('parser.ts', (): void => {
 					['ImportDeclaration', [
 						["Identifier", "lexer"],
 						["Keyword", "from"],
-						["FilePath", "./lexer"],
+						["Path", "./lexer"],
 						["SemicolonSeparator", ";"],
 					]],
 					['ImportDeclaration', [
 						["Identifier", "lexer2"],
 						["Keyword", "from"],
-						["FilePath", "@/lexer"],
+						["Path", "@/lexer"],
 						["SemicolonSeparator", ";"],
 					]],
 					['ImportDeclaration', [
 						["Identifier", "lexer3"],
 						["Keyword", "from"],
-						["FilePath", "@/lexer.joe"],
+						["Path", "@/lexer.joe"],
 						["SemicolonSeparator", ";"],
 					]],
 				]);
