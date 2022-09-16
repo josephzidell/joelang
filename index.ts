@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import Parser from "./parser/parser";
 import ParserError from "./parser/error";
 import { inspect } from 'util';
+import { simplifyTree } from "./parser/simplifier";
 // import SyntaxTreeGenerator from './syntax/generator';
 // import TranspilerToGo from './transpilers/to/go';
 // import TranspilerToTypescript from './transpilers/to/ts';
@@ -42,7 +43,9 @@ void (async (): Promise<void> => {
 			try {
 				const [, , , sourceCode, outputFile] = process.argv;
 
-				const parseTree = new Parser(new Lexer(sourceCode).lexify()).parse();
+				// output simplified tree
+				// TODO add `-v|--verbose` option
+				const parseTree = simplifyTree([new Parser(new Lexer(sourceCode).lexify()).parse()]);
 
 				if (outputFile) {
 					await fs.writeFile(outputFile, inspect(parseTree, { showHidden: true, depth: null }));

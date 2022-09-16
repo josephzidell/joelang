@@ -38,6 +38,19 @@ export default class {
 		// node types that would come before a minus `-` symbol indicating it's a subtraction operator, rather than a unary operator
 		const nodeTypesPrecedingArithmeticOperator: NodeType[] = ['NumberLiteral', 'Identifier'];
 
+		// node types that when faced with a semicolon, will be ended
+		const nodeTypesThatASemicolonEnds: NodeType[] = [
+			'ArrayExpression',
+			'BinaryExpression',
+			'CallExpression',
+			'MemberExpression',
+			'RangeExpression',
+			'RegularExpression',
+			'UnaryExpression',
+			'VariableDeclaration',
+			'WhenExpression',
+		];
+
 		for (let i = 0; i < this.tokens.length; i++) {
 			const token = this.tokens[i];
 
@@ -66,6 +79,9 @@ export default class {
 			} else if (token.type === 'paren_close') {
 				this.endExpression();
 
+				// check if we're in a ParametersList, if so, it's also finished
+				this.endExpressionIfIn('ParametersList');
+
 				// ... and then, check if currentRoot is a unary, if so, it's also finished
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'brace_open') {
@@ -81,7 +97,13 @@ export default class {
 					this.endExpression();
 				}
 			} else if (token.type === 'bracket_open') {
-				if (this.prev()?.type === 'Identifier') {
+				const isNextABracketClose = this.tokens[i + 1]?.type === 'bracket_close';
+				const prev = this.prev();
+
+				if (isNextABracketClose && (prev?.type === 'ArrayType' || prev?.type === 'Identifier' || prev?.type === 'Type')) { // TODO or member chain
+					// we have an array type
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('ArrayType', token, this.currentRoot), true);
+				} else if (prev?.type === 'Identifier') {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot), true);
 					this.beginExpressionWith(MakeNode('MembersList', token, this.currentRoot), true);
 				} else {
@@ -108,6 +130,11 @@ export default class {
 			} else if (token.type === 'string') {
 				this.currentRoot.children.push(MakeNode('StringLiteral', token, this.currentRoot));
 			} else if (token.type === 'identifier') {
+				// check if we're in a ParametersList, if so, begin a Parameter
+				if (this.currentRoot.type === 'ParametersList') {
+					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot), true);
+				}
+
 				this.currentRoot.children.push(MakeNode('Identifier', token, this.currentRoot));
 
 				// check if currentRoot is a UnaryExpression, if so, it's finished
@@ -120,7 +147,10 @@ export default class {
 				this.endExpressionIfIn('UnaryExpression');
 				this.currentRoot.children.push(MakeNode('AdditionOperator', token, this.currentRoot));
 			} else if (token.type === 'minus') {
-				if (this.currentRoot.children.length > 0 && nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type)) {
+				if (this.currentRoot.children.length > 0 &&
+					nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
+					this.currentRoot.type !== 'BinaryExpression' // excludes scenarios such as `3^e-2`, `3 + -2`
+				) {
 					this.endExpressionIfIn('UnaryExpression');
 					this.currentRoot.children.push(MakeNode('SubtractionOperator', token, this.currentRoot));
 				} else {
@@ -144,17 +174,24 @@ export default class {
 				this.currentRoot.children.push(MakeNode('DivisionOperator', token, this.currentRoot));
 			} else if (token.type === 'mod') {
 				this.currentRoot.children.push(MakeNode('ModOperator', token, this.currentRoot));
+			} else if (token.type === 'exponent') {
+				this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
 			} else if (token.type === 'semicolon') {
-				this.currentRoot.children.push(MakeNode('SemicolonSeparator', token, this.currentRoot));
 				this.endExpression();
 
-				// check if currentRoot is a CallExpression, if so, it's also finished
-				this.endExpressionIfIn('CallExpression');
+				// greedy ending - end as many nodes as relevantly possible
+				while (nodeTypesThatASemicolonEnds.includes(this.currentRoot.type)) {
+					this.endExpression();
+				}
 
-				// check if currentRoot is a BinaryExpression, if so, it's also finished
-				this.endExpressionIfIn('BinaryExpression');
+				this.currentRoot.children.push(MakeNode('SemicolonSeparator', token, this.currentRoot));
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
+
+				// check if we're in a ParametersList, if so, begin a Parameter
+				if (this.currentRoot.type === 'ParametersList') {
+					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot), true);
+				}
 
 				this.currentRoot.children.push(MakeNode('RestElement', token, this.currentRoot));
 			} else if (token.type === 'colon') {
@@ -170,9 +207,11 @@ export default class {
 					this.endExpression(); // end the WhenCase
 				} else if (this.currentRoot.type === 'BinaryExpression') {
 					this.endExpression();
-				} else {
-					this.currentRoot.children.push(MakeNode('CommaSeparator', token, this.currentRoot));
+				} else if (this.currentRoot.type === 'Parameter') {
+					this.endExpression();
 				}
+
+				this.currentRoot.children.push(MakeNode('CommaSeparator', token, this.currentRoot));
 			} else if (['and', 'compare', 'equals', 'greater_than_equals', 'less_than_equals', 'not_equals', 'or'].includes(token.type)) {
 				// we need to go 2 levels up
 				if (this.prev()?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {

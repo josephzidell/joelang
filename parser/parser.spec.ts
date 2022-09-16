@@ -1,6 +1,7 @@
-import Lexer from "../lexer/lexer";
-import Parser from "./parser";
-import { Node } from "./types";
+import Lexer from '../lexer/lexer';
+import { types } from '../lexer/types';
+import Parser from './parser';
+import { Node } from './types';
 import '../setupJest'; // for the types
 
 /** Shortcut method to `new Parser(new Lexer(code).lexify()).parse()` */
@@ -26,6 +27,28 @@ describe('parser.ts', (): void => {
 					['NumberLiteral', '1'],
 				]],
 			])
+
+			expect(parse('const x = -2,300.006^e-2,000; const y = 5;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'x'],
+					['AssignmentOperator', '='],
+					['BinaryExpression', '^e', [
+						['UnaryExpression', '-', {before: true}, [
+							['NumberLiteral', '2,300.006'],
+						]],
+						['UnaryExpression', '-', {before: true}, [
+							['NumberLiteral', '2,000'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+				['VariableDeclaration', 'const', [
+					['Identifier', 'y'],
+					['AssignmentOperator', '='],
+					['NumberLiteral', '5'],
+				]],
+				['SemicolonSeparator'],
+			])
 		});
 
 		it('a let assignment with a string literal', (): void => {
@@ -42,10 +65,10 @@ describe('parser.ts', (): void => {
 			expect(parse('let x: string;')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
-					['ColonSeparator', ':'],
+					['ColonSeparator'],
 					['Type', 'string'],
-					['SemicolonSeparator', ';'],
 				]],
+				['SemicolonSeparator'],
 			])
 		});
 
@@ -53,7 +76,7 @@ describe('parser.ts', (): void => {
 			expect(parse('const x: string = "foo"')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['ColonSeparator', ':'],
+					['ColonSeparator'],
 					['Type', 'string'],
 					['AssignmentOperator', '='],
 					['StringLiteral', 'foo'],
@@ -67,23 +90,23 @@ describe('parser.ts', (): void => {
 					['Identifier', 'x'],
 					['AssignmentOperator', '='],
 					['RegularExpression', '/[a-z/'],
-					['SemicolonSeparator', ';'],
 				]],
+				['SemicolonSeparator'],
 			]);
 
 			expect(parse('const x: regex = /[a-z/g;')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['ColonSeparator', ':'],
+					['ColonSeparator'],
 					['Type', 'regex'],
 					['AssignmentOperator', '='],
 					['RegularExpression', '/[a-z/g'],
-					['SemicolonSeparator', ';'],
 				]],
+				['SemicolonSeparator'],
 			]);
 		});
 
-		it('supports nil', (): void => {
+		it('nil', (): void => {
 			expect(parse('const x = nil')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
@@ -91,6 +114,33 @@ describe('parser.ts', (): void => {
 					['Nil', 'nil'],
 				]],
 			])
+		});
+
+		describe('arrays of', (): void => {
+
+			it('numbers', () => {
+				expect(parse('[1, -2, 3,456, 3^e-2, 3.14]')).toMatchParseTree([
+					['ArrayExpression', [
+						['NumberLiteral', '1'],
+						['CommaSeparator'],
+						['UnaryExpression', '-', {before: true}, [
+							['NumberLiteral', '2'],
+						]],
+						['CommaSeparator'],
+						['NumberLiteral', '3,456'],
+						['CommaSeparator'],
+						['BinaryExpression', '^e', [
+							['NumberLiteral', '3'],
+							['UnaryExpression', '-', {before: true}, [
+								['NumberLiteral', '2'],
+							]],
+						]],
+						['CommaSeparator'],
+						['NumberLiteral', '3.14'],
+					]],
+				]);
+			});
+
 		});
 	});
 
@@ -104,16 +154,16 @@ describe('parser.ts', (): void => {
 		describe('block statements', (): void => {
 			it('empty class', (): void => {
 				expect(parse('class Foo {}')).toMatchParseTree([
-					["Keyword", "class"],
-					["Identifier", "Foo"],
+					['Keyword', 'class'],
+					['Identifier', 'Foo'],
 					['BlockStatement', []],
 				]);
 			});
 
 			it('class with comment', (): void => {
 				expect(parse('class Foo {\n# foo\n}')).toMatchParseTree([
-					["Keyword", "class"],
-					["Identifier", "Foo"],
+					['Keyword', 'class'],
+					['Identifier', 'Foo'],
 					['BlockStatement', [
 						['Comment', '# foo'],
 					]],
@@ -150,7 +200,7 @@ describe('parser.ts', (): void => {
 					['Identifier', 'foo'],
 					['FunctionReturns', [
 						['Type', 'bool'],
-						['CommaSeparator', ','],
+						['CommaSeparator'],
 						['Type', 'string'],
 					]],
 					['BlockStatement', []],
@@ -186,9 +236,11 @@ describe('parser.ts', (): void => {
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
 					['ParametersList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Type', 'number'],
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
 					]],
 					['BlockStatement', []],
 				]],
@@ -200,17 +252,21 @@ describe('parser.ts', (): void => {
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
 					['ParametersList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Type', 'number'],
-						['CommaSeparator', ','],
-						['Identifier', 'r'],
-						['ColonSeparator', ':'],
-						['Type', 'regex'],
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['Identifier', 'r'],
+							['ColonSeparator'],
+							['Type', 'regex'],
+						]],
 					]],
 					['FunctionReturns', [
 						['Type', 'regex'],
-						['CommaSeparator', ','],
+						['CommaSeparator'],
 						['Type', 'bool'],
 					]],
 					['BlockStatement', []],
@@ -223,13 +279,67 @@ describe('parser.ts', (): void => {
 				['FunctionDefinition', [
 					['Identifier', 'foo'],
 					['ParametersList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Nil', 'nil'],
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Nil', 'nil'],
+						]],
 					]],
 					['FunctionReturns', [
 						['Nil', 'nil'],
 					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with arrays', (): void => {
+			expect(parse('f foo(a: number[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}')).toMatchParseTree([
+				['FunctionDefinition', [
+					['Identifier', 'foo'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['Type', 'number'],
+							]],
+							['AssignmentOperator', '='],
+							['ArrayExpression', [
+								['NumberLiteral', '5'],
+							]],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['Identifier', 'b'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['ArrayType', [
+									['Type', 'string'],
+								]],
+							]],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['RestElement', '...'],
+							['Identifier', 'c'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['Identifier', 'Foo'],
+							]],
+						]],
+					]],
+					['FunctionReturns', [
+						['Type', 'regex'],
+						['CommaSeparator'],
+						['ArrayType', [
+							['ArrayType', [
+								['ArrayType', [
+									['Type', 'path'],
+								]],
+							]],
+						]],
+				]],
 					['BlockStatement', []],
 				]],
 			]);
@@ -243,9 +353,11 @@ describe('parser.ts', (): void => {
 						['Identifier', 'T'],
 					]],
 					['ParametersList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Identifier', 'T'],
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Identifier', 'T'],
+						]],
 					]],
 					['FunctionReturns', [
 						['Identifier', 'T'],
@@ -261,23 +373,23 @@ describe('parser.ts', (): void => {
 			it('single, default import', (): void => {
 				expect(parse('import lexer from ./lexer;import lexer2 from @/lexer;import lexer3 from @/lexer.joe;')).toMatchParseTree([
 					['ImportDeclaration', [
-						["Identifier", "lexer"],
-						["Keyword", "from"],
-						["Path", "./lexer"],
-						["SemicolonSeparator", ";"],
+						['Identifier', 'lexer'],
+						['Keyword', 'from'],
+						['Path', './lexer'],
 					]],
+					['SemicolonSeparator'],
 					['ImportDeclaration', [
-						["Identifier", "lexer2"],
-						["Keyword", "from"],
-						["Path", "@/lexer"],
-						["SemicolonSeparator", ";"],
+						['Identifier', 'lexer2'],
+						['Keyword', 'from'],
+						['Path', '@/lexer'],
 					]],
+					['SemicolonSeparator'],
 					['ImportDeclaration', [
-						["Identifier", "lexer3"],
-						["Keyword", "from"],
-						["Path", "@/lexer.joe"],
-						["SemicolonSeparator", ";"],
+						['Identifier', 'lexer3'],
+						['Keyword', 'from'],
+						['Path', '@/lexer.joe'],
 					]],
+					['SemicolonSeparator'],
 				]);
 			});
 		});
@@ -391,8 +503,8 @@ describe('parser.ts', (): void => {
 							['BinaryExpression', operator, [
 								['NumberLiteral', '1'],
 								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 
@@ -402,8 +514,8 @@ describe('parser.ts', (): void => {
 							['BinaryExpression', operator, [
 								['Identifier', 'foo'],
 								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 					it(`${operator} with number literal and identifier`, (): void => {
@@ -411,8 +523,8 @@ describe('parser.ts', (): void => {
 							['BinaryExpression', operator, [
 								['NumberLiteral', '1'],
 								['Identifier', 'foo'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 
@@ -422,8 +534,8 @@ describe('parser.ts', (): void => {
 							['BinaryExpression', operator, [
 								['Nil', 'nil'],
 								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 					it(`${operator} with number literal and nil`, (): void => {
@@ -431,8 +543,8 @@ describe('parser.ts', (): void => {
 							['BinaryExpression', operator, [
 								['NumberLiteral', '1'],
 								['Nil', 'nil'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 
@@ -447,8 +559,8 @@ describe('parser.ts', (): void => {
 									]],
 								]],
 								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 					it(`${operator} with number literal and element access`, (): void => {
@@ -460,9 +572,9 @@ describe('parser.ts', (): void => {
 									['MembersList', [
 										['StringLiteral', 'a'],
 									]],
-									['SemicolonSeparator', ';'],
 								]],
 							]],
+							['SemicolonSeparator'],
 							['StringLiteral', 'a'],
 						]);
 					});
@@ -478,8 +590,8 @@ describe('parser.ts', (): void => {
 									]],
 								]],
 								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 					it(`${operator} with number literal and method call`, (): void => {
@@ -491,9 +603,9 @@ describe('parser.ts', (): void => {
 									['ArgumentsList', [
 										['StringLiteral', 'a'],
 									]],
-									['SemicolonSeparator', ';'],
 								]],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 
@@ -512,9 +624,9 @@ describe('parser.ts', (): void => {
 									['ArgumentsList', [
 										['StringLiteral', 'b'],
 									]],
-									['SemicolonSeparator', ';'],
 								]],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 					it(`${operator} with method call and element access`, (): void => {
@@ -531,9 +643,9 @@ describe('parser.ts', (): void => {
 									['MembersList', [
 										['StringLiteral', 'b'],
 									]],
-									['SemicolonSeparator', ';'],
 								]],
 							]],
+							['SemicolonSeparator'],
 						]);
 					});
 				};
@@ -603,18 +715,66 @@ describe('parser.ts', (): void => {
 						['Identifier', 'foo'],
 						['AssignmentOperator', '='],
 						['NumberLiteral', '1'],
-						['SemicolonSeparator', ';'],
 					]],
+					['SemicolonSeparator'],
 					['VariableDeclaration', 'let', [
 						['Identifier', 'bar'],
 						['AssignmentOperator', '='],
 						['UnaryExpression', '-', {before: true}, [
 							['Identifier', 'foo'],
 						]],
-						['SemicolonSeparator', ';'],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+		});
+	});
+
+	describe('Types', (): void => {
+		describe('should understand built-in types', () => {
+			it.each(types)('%s is recognized as a type', (type) => {
+				expect(parse(type)).toMatchParseTree([
+					['Type', type],
+				]);
+			});
+
+			it.each(types)('%s[] is recognized as a one-dimensional array of type', (type) => {
+				expect(parse(`${type}[]`)).toMatchParseTree([
+					['ArrayType', [
+						['Type', type],
 					]],
 				]);
 			});
+
+			it.each(types)('%s[][] is recognized as a two-dimensional array of type', (type) => {
+				expect(parse(`${type}[][]`)).toMatchParseTree([
+					['ArrayType', [
+						['ArrayType', [
+							['Type', type],
+						]],
+					]],
+				]);
+			});
+		});
+
+		describe('arrays', () => {
+
+			it('should understand a custom array', () => {
+				expect(parse('Foo[]')).toMatchParseTree([
+					['ArrayType', [
+						['Identifier', 'Foo'],
+					]],
+				]);
+
+				expect(parse('Foo[][]')).toMatchParseTree([
+					['ArrayType', [
+						['ArrayType', [
+							['Identifier', 'Foo'],
+						]],
+					]],
+				]);
+			});
+
 		});
 	});
 
@@ -641,13 +801,14 @@ describe('parser.ts', (): void => {
 							['WhenCase', [
 								['WhenCaseTests', [
 									['NumberLiteral', '1'],
-									['CommaSeparator', ','],
+									['CommaSeparator'],
 									['NumberLiteral', '2'],
 								]],
 								['WhenCaseConsequent', [
 									['StringLiteral', 'small'],
 								]]
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['RangeExpression', [
@@ -659,6 +820,7 @@ describe('parser.ts', (): void => {
 									['StringLiteral', 'medium'],
 								]],
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['NumberLiteral', '11'],
@@ -668,20 +830,21 @@ describe('parser.ts', (): void => {
 										['CallExpression', [
 											['Identifier', 'doThing1'],
 											['ArgumentsList', []],
-											['SemicolonSeparator', ';'],
 										]],
+										['SemicolonSeparator'],
 										['CallExpression', [
 											['Identifier', 'doThing2'],
 											['ArgumentsList', []],
-											['SemicolonSeparator', ';'],
 										]],
+										['SemicolonSeparator'],
 										['ReturnStatement', [
 											['StringLiteral', 'large'],
-											['SemicolonSeparator', ';'],
 										]],
+										['SemicolonSeparator'],
 									]],
 								]],
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['NumberLiteral', '12'],
@@ -693,6 +856,7 @@ describe('parser.ts', (): void => {
 									]],
 								]],
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['RestElement', '...'],
@@ -701,6 +865,7 @@ describe('parser.ts', (): void => {
 									['StringLiteral', 'off the charts'],
 								]],
 							]],
+							['CommaSeparator'],
 						]],
 					]],
 				]],
@@ -728,12 +893,13 @@ describe('parser.ts', (): void => {
 						['NumberLiteral', '1'],
 						['NumberLiteral', '2'],
 					]],
+					['CommaSeparator'],
 					['BinaryExpression', '>', [
 						['NumberLiteral', '4'],
 						['NumberLiteral', '3'],
 					]],
-					['SemicolonSeparator', ';'],
-				]]
+				]],
+				['SemicolonSeparator'],
 			]);
 		});
 	});

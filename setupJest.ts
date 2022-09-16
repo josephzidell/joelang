@@ -2,6 +2,7 @@ import { Token, TokenType } from "./lexer/types";
 import { Node, UnaryExpressionNode } from "./parser/types";
 import { diffString, diff } from 'json-diff';
 import { inspect } from 'util';
+import { simplifyTree, SParseTree } from "./parser/simplifier";
 
 export interface CustomMatchers<R = unknown> {
 	/**
@@ -73,69 +74,6 @@ expect.extend({
 ////////////////////////////////////////////////////////////
 // Parser Stuff
 ////////////////////////////////////////////////////////////
-
-// SParseTree = Simplified Parse Tree
-
-/** Certain nodes need extra information beyond the usual */
-type extraInformation = {
-	before?: boolean;
-}
-type SParseNodeWithValueAndWithoutChildren = [string, string]; // eg ['NumberLiteral', '1']
-type SParseNodeWithoutValueWithChildren = [string, SParseTree]
-type SParseNodeWithValueWithChildren = [string, string, SParseTree]
-type SParseNodeWithValueWithChildrenWithExtraInformation = [string, string, extraInformation, SParseTree]
-type SParseNode = SParseNodeWithValueAndWithoutChildren | SParseNodeWithoutValueWithChildren | SParseNodeWithValueWithChildren | SParseNodeWithValueWithChildrenWithExtraInformation;
-type SParseTree = SParseNode[];
-
-const simplifyTree = (nodes: Node[]): SParseTree => {
-	return nodes.map((node: Node): SParseNode => {
-		const children = simplifyTree(node.children);
-
-		// a node will have either a value, or children, or both. Never neither
-		const hasValue = typeof node.value !== 'undefined';
-		let hasChildren = children.length > 0;
-
-		// in a few cases we want the children array to be there even when empty
-		if (node.type === 'ArgumentsList' || node.type === 'BlockStatement' || node.type === 'ParametersList') {
-			hasChildren = true; // force it to be true
-		}
-
-		let extraInformation = {};
-		switch (node.type) {
-			case 'UnaryExpression':
-				extraInformation = {before: (node as UnaryExpressionNode).before};
-				break;
-		}
-
-		let snode: SParseNode;
-		if (!hasValue && hasChildren) {
-			snode = [
-				node.type,
-				children,
-			];
-		} else if (hasValue && !hasChildren) {
-			snode = [
-				node.type,
-				node.value as string,
-			];
-		} else if (Object.keys(extraInformation).length > 0) { // has extraInformation && hasValue && hasChildren
-			snode = [
-				node.type,
-				node.value as string,
-				extraInformation,
-				children,
-			];
-		} else { // hasValue && hasChildren
-			snode = [
-				node.type,
-				node.value as string,
-				children,
-			];
-		}
-
-		return snode;
-	});
-};
 
 export function matchParseTree (tree: Node, simplifiedVersion: SParseTree): CustomMatcherResult {
 	const treeNodes = tree.children;
