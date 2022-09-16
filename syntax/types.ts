@@ -1,3 +1,5 @@
+import {ValueOf} from 'type-fest';
+
 /** A node's positional information */
 type Pos = {
 	/** cursor position of the beginning of this node, counting chars from the beginning of the file */
@@ -14,6 +16,7 @@ type Pos = {
 }
 
 export type BaseNode = {
+	type: string;
 	pos: Pos;
 	parent: Node;
 }
@@ -91,18 +94,18 @@ export type FunctionDefinitionNode = BaseNode & {
 	types?: GenericTypesListNode;
 	parameters: ParametersListNode;
 	returns?: FunctionReturnsNode;
-	body: Array<BaseNode>;
+	body: BlockStatementNode;
 	// TODO add visibility, etc.
 };
 
 export type FunctionReturnsNode = BaseNode & {
 	type: 'FunctionReturns';
-	types: Array<TypeNode>;
+	types: Array<IdentifierNode | TypeNode>;
 };
 
 export type GenericTypesListNode = BaseNode & {
 	type: 'GenericTypesList';
-	types: Array<TypeNode>;
+	types: Array<IdentifierNode | TypeNode>;
 };
 
 export type IdentifierNode = BaseNode & {
@@ -159,7 +162,7 @@ export type ParameterNode = BaseNode & {
 
 export type ParametersListNode = BaseNode & {
 	type: 'ParametersList';
-	args: Array<ParameterNode>;
+	parameters: Array<ParameterNode>;
 };
 
 export type ParenthesizedNode = BaseNode & {
@@ -177,8 +180,8 @@ export type PrintStatementNode = BaseNode & {
 	contents: Array<Node>;
 };
 
-// export type ProgramNode = Omit<BaseNode, 'parent'> & {
-export type ProgramNode = BaseNode & {
+export type ProgramNode = Omit<BaseNode, 'parent'> & {
+// export type ProgramNode = BaseNode & {
 	type: 'Program';
 	children: Node[];
 };
@@ -223,7 +226,7 @@ export type SubtractionOperatorNode = BaseNode & {
 
 export type TypeNode = BaseNode & {
 	type: 'Type';
-	value: IdentifierNode;
+	value: string;
 };
 
 export type UnaryExpressionNode = BaseNode & {
@@ -271,53 +274,53 @@ export type WhenCaseConsequentNode = BaseNode & {
 export type LiteralNode = ArrayExpressionNode | BoolLiteralNode | NumberLiteralNode | RegularExpressionNode | StringLiteralNode;
 
 export type nodes = {
-	AdditionOperator: AdditionOperatorNode,
-	Argument: ArgumentNode,
-	ArgumentsList: ArgumentsListNode,
-	ArrayExpression: ArrayExpressionNode,
-	AssignmentOperator: AssignmentOperatorNode,
-	BinaryExpression: BinaryExpressionNode,
-	BlockStatement: BlockStatementNode,
-	BoolLiteral: BoolLiteralNode,
-	CallExpression: CallExpressionNode,
-	ColonSeparator: ColonSeparatorNode,
-	CommaSeparator: CommaSeparatorNode,
-	Comment: CommentNode,
-	DivisionOperator: DivisionOperatorNode,
-	FunctionDefinition: FunctionDefinitionNode,
-	FunctionReturns: FunctionReturnsNode,
-	GenericTypesList: GenericTypesListNode,
-	Identifier: IdentifierNode,
-	ImportDeclaration: ImportDeclarationNode,
-	Keyword: KeywordNode,
-	MemberExpression: MemberExpressionNode,
-	MembersList: MembersListNode,
-	ModOperator: ModOperatorNode,
-	MultiplicationOperator: MultiplicationOperatorNode,
-	Nil: NilNode,
-	NumberLiteral: NumberLiteralNode,
-	Parameter: ParameterNode,
-	ParametersList: ParametersListNode,
-	Parenthesized: ParenthesizedNode,
-	Path: PathNode,
-	Program: ProgramNode,
-	PrintStatement: PrintStatementNode,
-	RangeExpression: RangeExpressionNode,
-	RegularExpression: RegularExpressionNode,
-	RestElement: RestElementNode,
-	ReturnStatement: ReturnStatementNode,
-	RightArrowOperator: RightArrowOperatorNode,
-	SemicolonSeparator: SemicolonSeparatorNode,
-	StringLiteral: StringLiteralNode,
-	SubtractionOperator: SubtractionOperatorNode,
-	Type: TypeNode,
-	UnaryExpression: UnaryExpressionNode,
-	Unknown: UnknownNode,
-	VariableDeclaration: VariableDeclarationNode,
-	WhenExpression: WhenExpressionNode,
-	WhenCase: WhenCaseNode,
-	WhenCaseTests: WhenCaseTestsNode,
-	WhenCaseConsequent: WhenCaseConsequentNode,
+	AdditionOperator: AdditionOperatorNode;
+	Argument: ArgumentNode;
+	ArgumentsList: ArgumentsListNode;
+	ArrayExpression: ArrayExpressionNode;
+	AssignmentOperator: AssignmentOperatorNode;
+	BinaryExpression: BinaryExpressionNode;
+	BlockStatement: BlockStatementNode;
+	BoolLiteral: BoolLiteralNode;
+	CallExpression: CallExpressionNode;
+	ColonSeparator: ColonSeparatorNode;
+	CommaSeparator: CommaSeparatorNode;
+	Comment: CommentNode;
+	DivisionOperator: DivisionOperatorNode;
+	FunctionDefinition: FunctionDefinitionNode;
+	FunctionReturns: FunctionReturnsNode;
+	GenericTypesList: GenericTypesListNode;
+	Identifier: IdentifierNode;
+	ImportDeclaration: ImportDeclarationNode;
+	Keyword: KeywordNode;
+	MemberExpression: MemberExpressionNode;
+	MembersList: MembersListNode;
+	ModOperator: ModOperatorNode;
+	MultiplicationOperator: MultiplicationOperatorNode;
+	Nil: NilNode;
+	NumberLiteral: NumberLiteralNode;
+	Parameter: ParameterNode;
+	ParametersList: ParametersListNode;
+	Parenthesized: ParenthesizedNode;
+	Path: PathNode;
+	Program: ProgramNode;
+	PrintStatement: PrintStatementNode;
+	RangeExpression: RangeExpressionNode;
+	RegularExpression: RegularExpressionNode;
+	RestElement: RestElementNode;
+	ReturnStatement: ReturnStatementNode;
+	RightArrowOperator: RightArrowOperatorNode;
+	SemicolonSeparator: SemicolonSeparatorNode;
+	StringLiteral: StringLiteralNode;
+	SubtractionOperator: SubtractionOperatorNode;
+	Type: TypeNode;
+	UnaryExpression: UnaryExpressionNode;
+	Unknown: UnknownNode;
+	VariableDeclaration: VariableDeclarationNode;
+	WhenExpression: WhenExpressionNode;
+	WhenCase: WhenCaseNode;
+	WhenCaseTests: WhenCaseTestsNode;
+	WhenCaseConsequent: WhenCaseConsequentNode;
 };
 
-// export type Node = keyof nodes[string];
+export type Node = ValueOf<nodes>;

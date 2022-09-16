@@ -1,8 +1,8 @@
-import { AdditionOperatorNode, BaseNode, IdentifierNode, LiteralNode, Node, NodeType, ParameterNode, ParametersListNode, TypeNode, UnaryExpressionNode } from "./types";
+import { AdditionOperatorNode, BaseNode, IdentifierNode, LiteralNode, Node, ParameterNode, ParametersListNode, TypeNode, UnaryExpressionNode } from "./types";
 import { Token, TokenType } from "../lexer/types";
 import ParserError from './error';
 
-export const MakeSyntaxTreeNode = {
+export const MakeSyntaxNode = {
 	AdditionOperator: (token: Token, parent: Node): AdditionOperatorNode => {
 		return {
 			type: 'AdditionOperator',
@@ -11,7 +11,7 @@ export const MakeSyntaxTreeNode = {
 		}
 	},
 	Parameter: (token: Token, name: IdentifierNode, type: TypeNode, defaultVal: LiteralNode, rest: boolean, parent: Node): ParameterNode => {
-		const node: ParameterNode = {
+		return {
 			type: 'Parameter',
 			name,
 			argType: type,
@@ -20,8 +20,6 @@ export const MakeSyntaxTreeNode = {
 			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
 			parent,
 		}
-
-		return node;
 	},
 	ParametersList: (token: Token, args: ParameterNode[], parent: Node): ParametersListNode => {
 		return {
@@ -87,8 +85,7 @@ export const MakeSyntaxTreeNode = {
 // WhenCaseTests
 // WhenCaseConsequent
 
-
-export function MakeNodeGen (type: NodeType, token: Token, parent: BaseNode): BaseNode {
+export function MakeNodeGen (type: Node['type'], token: Token, parent: BaseNode): BaseNode {
 	const node: BaseNode = {
 		type,
 		value: token.value,

@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import Parser from "./parser/parser";
 import ParserError from "./parser/error";
 import { inspect } from 'util';
+// import SyntaxTreeGenerator from './syntax/generator';
 // import TranspilerToGo from './transpilers/to/go';
 // import TranspilerToTypescript from './transpilers/to/ts';
 
@@ -13,13 +14,13 @@ void (async (): Promise<void> => {
 	switch (command) {
 		case 'lexify':
 			try {
-				const [, , , sourceCode, fileOut] = process.argv;
+				const [, , , sourceCode, outputFile] = process.argv;
 
 				const tokens = new Lexer(sourceCode).lexify();
 
 				// filename is 3rd arg
-				if (fileOut) {
-					await fs.writeFile(fileOut, JSON.stringify(tokens, undefined, '\t'));
+				if (outputFile) {
+					await fs.writeFile(outputFile, JSON.stringify(tokens, undefined, '\t'));
 				} else {
 					console.table(tokens);
 				}
@@ -39,16 +40,14 @@ void (async (): Promise<void> => {
 
 		case 'parse':
 			try {
-				console.debug(process.argv);
-				const [, , , sourceCode, fileOut] = process.argv;
+				const [, , , sourceCode, outputFile] = process.argv;
 
-				const cst = new Parser(new Lexer(sourceCode).lexify()).parse();
+				const parseTree = new Parser(new Lexer(sourceCode).lexify()).parse();
 
-				// filename is 3rd arg
-				if (fileOut) {
-					await fs.writeFile(fileOut, inspect(cst, { showHidden: true, depth: null }));
+				if (outputFile) {
+					await fs.writeFile(outputFile, inspect(parseTree, { showHidden: true, depth: null }));
 				} else {
-					console.debug(inspect(cst, { showHidden: true, depth: null }));
+					console.debug(inspect(parseTree, { showHidden: true, depth: null }));
 				}
 			} catch (e) {
 				const error = e as ParserError;
@@ -61,6 +60,29 @@ void (async (): Promise<void> => {
 				console.error(error.stack);
 			}
 			break;
+
+			case 'syntax':
+				try {
+					const [, , , sourceCode, outputFile] = process.argv;
+
+					// const syntaxTree = new SyntaxTreeGenerator(new Parser(new Lexer(sourceCode).lexify()).parse()).generate();
+
+					// if (outputFile) {
+					// 	await fs.writeFile(outputFile, inspect(syntaxTree, { showHidden: true, depth: null }));
+					// } else {
+					// 	console.debug(inspect(syntaxTree, { showHidden: true, depth: null }));
+					// }
+				} catch (e) {
+					const error = e as ParserError;
+
+					console.log(`Error: ${error.message}`);
+					console.debug('Derived CST:');
+					console.debug(error.getTree());
+
+					console.log('Stack Trace:');
+					console.error(error.stack);
+				}
+				break;
 
 		case 'transpile':
 			try {
@@ -78,7 +100,6 @@ void (async (): Promise<void> => {
 						break;
 				}
 
-				// filename is 4th arg
 				if (outputFile) {
 					await fs.writeFile(outputFile, destCode);
 				} else {
