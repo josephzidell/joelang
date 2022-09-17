@@ -44,6 +44,7 @@ export default class {
 			'BinaryExpression',
 			'CallExpression',
 			'MemberExpression',
+			'PrintStatement',
 			'RangeExpression',
 			'RegularExpression',
 			'UnaryExpression',
@@ -149,7 +150,7 @@ export default class {
 			} else if (token.type === 'minus') {
 				if (this.currentRoot.children.length > 0 &&
 					nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
-					this.currentRoot.type !== 'BinaryExpression' // excludes scenarios such as `3^e-2`, `3 + -2`
+					this.currentRoot.type !== 'BinaryExpression' && this.currentRoot.type !== 'RangeExpression' // excludes scenarios such as `3^e-2`, `3 + -2`, `1..-2`
 				) {
 					this.endExpressionIfIn('UnaryExpression');
 					this.currentRoot.children.push(MakeNode('SubtractionOperator', token, this.currentRoot));
@@ -233,8 +234,14 @@ export default class {
 					this.currentRoot.children.push(MakeNode('RightArrowOperator', token, this.currentRoot));
 				}
 			} else if (token.type === 'dotdot') {
+				const prev = this.prev();
+
 				// we need to go 2 levels up
-				if (this.prev()?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+				if (this.currentRoot.type === 'BinaryExpression' || this.currentRoot.type === 'Parenthesized') {
+					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
+				} else if (prev?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
+				} else if (prev?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
 					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
 				} else {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('RangeExpression', token, this.currentRoot), true);

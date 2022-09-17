@@ -12,7 +12,7 @@ f main {
 
 class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	static bar = 'baz'; // public static property
-	private isDone? = true // private instance property
+	private isDone? = true; // private instance property
 
 	/** method with no args and no return */
 	foo -> number {
@@ -21,7 +21,7 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 			3..10 -> 'medium',
 			11 -> 'large',
 			... -> 'off the charts',
-		}
+		};
 
 		let myArray = [
 			1,
@@ -29,14 +29,14 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 			3
 		];
 
-		let count = 1..myArray[2] // new array [1, 2, 3]
-		let countDown = myArray[1]..0 // new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+		let count = 1..myArray[2]; // new array [1, 2, 3]
+		let countDown = myArray[1]..0; // new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 		let partitionedArray = [
 			countDown[:1],
 			countDown[2:6],
 			countDown[7:],
 		]; // new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
-		let selectedArrayItems = countDown[1, 4, 9] // new array [9, 6, 1]
+		let selectedArrayItems = countDown[1, 4, 9]; // new array [9, 6, 1]
 
 		let myObject = {
 			a: 1,
@@ -45,7 +45,7 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 			d: nil,
 		};
 
-		let partialObj = myObject[a, d] // new object {a: 1, d: nil}
+		let partialObj = myObject[a, d]; // new object {a: 1, d: nil}
 
 		const initializeAndAssignLater: number = 5;
 
@@ -66,8 +66,8 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	}
 
 	/** method that throws error */
-	careful! { ... }
+	careful! { /* ... */ }
 
 	/** method with bool return that throws error */
-	careful?! : bool { ... }
+	careful?! : bool { /* ... */ }
 }

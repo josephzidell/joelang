@@ -27,6 +27,10 @@ export default class {
 	 * @param code - Source code
 	 */
 	constructor (code: string) {
+		if (typeof code !== 'string' || code.length === 0) {
+			throw new LexerError('No source code found', this.tokens);
+		}
+
 		this.code = code;
 
 		// fix line endings
