@@ -37,7 +37,7 @@ export default class GoTranspiler {
 			return comment;
 		},
 		DivisionOperator: TODO,
-		FunctionDefinition: (node: Syntax.FunctionDefinitionNode): string => {
+		FunctionDeclaration: (node: Syntax.FunctionDeclarationNode): string => {
 			return `func ${node.name} (${node.parameters}) {\n${node.body}\n}\n`;
 		},
 		FunctionReturns: TODO,

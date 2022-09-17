@@ -88,8 +88,8 @@ export type DivisionOperatorNode = BaseNode & {
 	type: 'DivisionOperator';
 };
 
-export type FunctionDefinitionNode = BaseNode & {
-	type: 'FunctionDefinition';
+export type FunctionDeclarationNode = BaseNode & {
+	type: 'FunctionDeclaration';
 	name: IdentifierNode;
 	types?: GenericTypesListNode;
 	parameters: ParametersListNode;
@@ -287,7 +287,7 @@ export type nodes = {
 	CommaSeparator: CommaSeparatorNode;
 	Comment: CommentNode;
 	DivisionOperator: DivisionOperatorNode;
-	FunctionDefinition: FunctionDefinitionNode;
+	FunctionDeclaration: FunctionDeclarationNode;
 	FunctionReturns: FunctionReturnsNode;
 	GenericTypesList: GenericTypesListNode;
 	Identifier: IdentifierNode;

@@ -598,10 +598,10 @@ describe('parser.ts', (): void => {
 		});
 	});
 
-	describe('FunctionDefinition', (): void => {
+	describe('FunctionDeclaration', (): void => {
 		it('no params or return types', (): void => {
 			expect(parse('f foo {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['BlockStatement', []],
 				]],
@@ -610,7 +610,7 @@ describe('parser.ts', (): void => {
 
 		it('no params with single return type', (): void => {
 			expect(parse('f foo -> bool {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['FunctionReturns', [
 						['Type', 'bool'],
@@ -622,7 +622,7 @@ describe('parser.ts', (): void => {
 
 		it('no params with multiple return types', (): void => {
 			expect(parse('f foo -> bool, string {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['FunctionReturns', [
 						['Type', 'bool'],
@@ -636,7 +636,7 @@ describe('parser.ts', (): void => {
 
 		it('param parens but no return types', (): void => {
 			expect(parse('f foo () {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['ParametersList', []],
 					['BlockStatement', []],
@@ -646,7 +646,7 @@ describe('parser.ts', (): void => {
 
 		it('param parens with return types', (): void => {
 			expect(parse('f foo () -> bool {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['ParametersList', []],
 					['FunctionReturns', [
@@ -659,7 +659,7 @@ describe('parser.ts', (): void => {
 
 		it('params but no return types', (): void => {
 			expect(parse('f foo (a: number) {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['ParametersList', [
 						['Parameter', [
@@ -675,7 +675,7 @@ describe('parser.ts', (): void => {
 
 		it('params and return types', (): void => {
 			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['ParametersList', [
 						['Parameter', [
@@ -702,7 +702,7 @@ describe('parser.ts', (): void => {
 
 		it('params and return types using nil', (): void => {
 			expect(parse('f foo (a: nil) -> nil {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['ParametersList', [
 						['Parameter', [
@@ -721,7 +721,7 @@ describe('parser.ts', (): void => {
 
 		it('with arrays', (): void => {
 			expect(parse('f foo(a: number[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['ParametersList', [
 						['Parameter', [
@@ -773,7 +773,7 @@ describe('parser.ts', (): void => {
 
 		it('generics', (): void => {
 			expect(parse('f foo<T> (a: T) -> T {}')).toMatchParseTree([
-				['FunctionDefinition', [
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['GenericTypesList', [
 						['Identifier', 'T'],

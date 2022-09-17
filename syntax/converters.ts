@@ -4,7 +4,7 @@ import SyntaxError from './error';
 import _ from 'lodash';
 
 const Converters = {
-	FunctionDefinition: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.FunctionDefinitionNode => {
+	FunctionDeclaration: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.FunctionDeclarationNode => {
 		const foo = _.keyBy(parseNode.children, (child => child.type));
 
 		const name = Converters.Identifier(foo.Identifier, node);
@@ -22,8 +22,8 @@ const Converters = {
 		const returns = Converters.FunctionReturns(foo.FunctionReturns, node);
 		const body = Converters.BlockStatement(foo.BlockStatement, node);
 
-		const node: Syntax.FunctionDefinitionNode = {
-			type: 'FunctionDefinition',
+		const node: Syntax.FunctionDeclarationNode = {
+			type: 'FunctionDeclaration',
 			name,
 			types,
 			parameters,

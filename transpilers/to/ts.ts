@@ -36,7 +36,7 @@ export default class GoTranspiler {
 			return comment;
 		},
 		DivisionOperator: TODO,
-		FunctionDefinition: TODO,
+		FunctionDeclaration: TODO,
 		FunctionReturns: TODO,
 		GenericTypesList: TODO,
 		Identifier: TODO,

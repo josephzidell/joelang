@@ -56,10 +56,10 @@ export default class {
 			const token = this.tokens[i];
 
 			if (token.type === 'paren_open') {
-				// if previous is an Identifier, then this is either a CallExpression or FunctionDefinition
+				// if previous is an Identifier, then this is either a CallExpression or FunctionDeclaration
 				switch (this.prev()?.type) {
 					case 'Identifier':
-						if (this.currentRoot.type === 'FunctionDefinition') {
+						if (this.currentRoot.type === 'FunctionDeclaration') {
 							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
 						} else {
 							this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot), true);
@@ -67,7 +67,7 @@ export default class {
 						}
 						break;
 					case 'GenericTypesList':
-						if (this.currentRoot.type === 'FunctionDefinition') {
+						if (this.currentRoot.type === 'FunctionDeclaration') {
 							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
 						} else {
 							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
@@ -94,7 +94,7 @@ export default class {
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
-				if (this.currentRoot.type === 'FunctionDefinition') {
+				if (this.currentRoot.type === 'FunctionDeclaration') {
 					this.endExpression();
 				}
 			} else if (token.type === 'bracket_open') {
@@ -228,7 +228,7 @@ export default class {
 				if (this.currentRoot.type === 'WhenCaseTests') {
 					this.endExpression();
 					this.beginExpressionWith(MakeNode('WhenCaseConsequent', token, this.currentRoot), true);
-				} else if (this.currentRoot.type === 'FunctionDefinition') {
+				} else if (this.currentRoot.type === 'FunctionDeclaration') {
 					this.beginExpressionWith(MakeNode('FunctionReturns', token, this.currentRoot), true);
 				} else {
 					this.currentRoot.children.push(MakeNode('RightArrowOperator', token, this.currentRoot));
@@ -269,7 +269,7 @@ export default class {
 					 */
 
 					// if in method definition
-					if (this.currentRoot.type === 'FunctionDefinition') {
+					if (this.currentRoot.type === 'FunctionDeclaration') {
 						this.beginExpressionWith(MakeNode('GenericTypesList', token, this.currentRoot), true);
 					} else {
 						// 'less than' BinaryExpression
@@ -336,7 +336,7 @@ export default class {
 						this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
 						break;
 					case 'f':
-						this.beginExpressionWith(MakeNode('FunctionDefinition', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
 						break;
 					case 'import':
 						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot), true);

@@ -12,7 +12,7 @@ const nodeTypes = [
 	'CommaSeparator',
 	'Comment',
 	'DivisionOperator',
-	'FunctionDefinition',
+	'FunctionDeclaration',
 	'FunctionReturns',
 	'GenericTypesList',
 	'Identifier',

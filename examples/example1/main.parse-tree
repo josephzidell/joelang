@@ -13,7 +13,7 @@
         [length]: 2
       ],
       [
-        'FunctionDefinition',
+        'FunctionDeclaration',
         [
           [ 'Identifier', 'main', [length]: 2 ],
           [
