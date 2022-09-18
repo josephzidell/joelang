@@ -20,6 +20,8 @@ const nodeTypes = [
 	'GenericTypesList',
 	'Identifier',
 	'ImportDeclaration',
+	'InterfaceDeclaration',
+	'InterfaceExtensionsList',
 	'Keyword',
 	'MemberExpression',
 	'MembersList',

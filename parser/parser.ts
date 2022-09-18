@@ -95,13 +95,15 @@ export default class {
 				this.endExpressionIfIn('FunctionReturns');
 				this.endExpressionIfIn('ClassExtensionsList');
 				this.endExpressionIfIn('ClassImplementsList');
+				this.endExpressionIfIn('InterfaceExtensionsList');
 
 				this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot), true);
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
-				this.endExpressionIfIn('ClassDeclaration');
 				this.endExpressionIfIn('FunctionDeclaration');
+				this.endExpressionIfIn('ClassDeclaration');
+				this.endExpressionIfIn('InterfaceDeclaration');
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.tokens[i + 1]?.type === 'bracket_close';
 				const prev = this.prev();
@@ -365,7 +367,13 @@ export default class {
 						this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
 						break;
 					case 'extends':
-						this.beginExpressionWith(MakeNode('ClassExtensionsList', token, this.currentRoot), true);
+						if (this.currentRoot.type === 'ClassDeclaration') {
+							this.beginExpressionWith(MakeNode('ClassExtensionsList', token, this.currentRoot), true);
+						} else if (this.currentRoot.type === 'InterfaceDeclaration') {
+							this.beginExpressionWith(MakeNode('InterfaceExtensionsList', token, this.currentRoot), true);
+						} else {
+							throw new ParserError('`extends` keyword is used for a Class or Interface to extend another', this.currentRoot);
+						}
 						break;
 					case 'f':
 						this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
@@ -377,6 +385,9 @@ export default class {
 						break;
 					case 'import':
 						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot), true);
+						break;
+					case 'interface':
+						this.beginExpressionWith(MakeNode('InterfaceDeclaration', token, this.currentRoot), true);
 						break;
 					case 'or':
 						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));

@@ -87,6 +87,7 @@ export const keywords = [
 	'implements',
 	'import',
 	'in',
+	'interface',
 	'is',
 	'let',
 	'new',

@@ -5,6 +5,20 @@ While we usually try to adhere to [https://semver.org/](https://semver.org/), wh
 ## 2022-09-18
 
 ### Additions
+- Support for interfaces:
+- Adds `interface` keyword
+- Adds `InterfaceDeclaration` and `InterfaceExtensionsList` nodes
+
+### Changes
+- Throw error if `extends` is used outside of a `ClassDeclaration` or `InterfaceDeclaration`
+
+### Removals
+None
+
+
+## 2022-09-18
+
+### Additions
 - Changelog!
 - Adds `print` token
 - Adds `ClassDeclaration`, `Parameter`, `ParametersList`, and `PrintStatement` nodes

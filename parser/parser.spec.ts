@@ -627,7 +627,7 @@ describe('parser.ts', (): void => {
 
 	})
 
-	describe('ClassDeclaration', (): void => {
+	describe('ClassDeclaration and InterfaceDeclaration', (): void => {
 		it('empty class', (): void => {
 			expect(parse('class Foo {}')).toMatchParseTree([
 				['ClassDeclaration', [
@@ -649,14 +649,14 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('extends multiple and implements multiple', (): void => {
+		it('class extends multiple and implements multiple', (): void => {
 			expect(parse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}')).toMatchParseTree([
 				['ClassDeclaration', [
 					['Identifier', 'Foo'],
 					['ClassExtensionsList', [
-						  ['Identifier', 'Bar'],
-						  ['CommaSeparator'],
-						  ['Identifier', 'Baz'],
+						['Identifier', 'Bar'],
+						['CommaSeparator'],
+						['Identifier', 'Baz'],
 					]],
 					['ClassImplementsList', [
 						['Identifier', 'AbstractFooBar'],
@@ -667,6 +667,46 @@ describe('parser.ts', (): void => {
 				]],
 			]);
 		});
+
+		it('empty interface', (): void => {
+			expect(parse('interface Foo {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('interface extends multiple', (): void => {
+			expect(parse('interface Foo extends Bar, Baz {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['InterfaceExtensionsList', [
+						['Identifier', 'Bar'],
+						['CommaSeparator'],
+						['Identifier', 'Baz'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('interface and class', (): void => {
+			expect(parse('interface Foo {}\nclass Bar implements Foo {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+				['ClassDeclaration', [
+					['Identifier', 'Bar'],
+					['ClassImplementsList', [
+						['Identifier', 'Foo'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
 	});
 
 	describe('Comment', (): void => {
