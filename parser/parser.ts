@@ -55,8 +55,8 @@ export default class {
 			const token = this.tokens[i];
 
 			if (token.type === 'paren_open') {
-				// if previous is an Identifier, then this is either a CallExpression or FunctionDeclaration
 				switch (this.prev()?.type) {
+					// if previous is an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case 'Identifier':
 						if (this.currentRoot.type === 'FunctionDeclaration') {
 							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
