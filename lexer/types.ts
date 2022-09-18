@@ -43,11 +43,11 @@ export const tokenTypesUsingSymbols = {
 const otherTokenTypes = [
 	'bool',
 	'comment',
-	'filepath',
 	'identifier',
 	'keyword',
 	'nil',
 	'number',
+	'path',
 	'regex',
 	'string',
 	'type',
@@ -90,6 +90,7 @@ export const keywords = [
 	'is',
 	'let',
 	'new',
+	'print',
 	'private',
 	'public',
 	'return',
@@ -104,6 +105,7 @@ type Keyword = typeof keywords[number];
 export const types = [
 	'bool',
 	'number',
+	'path',
 	'regex',
 	'string',
 ] as const;
@@ -147,8 +149,8 @@ export const patterns = {
 
 	// regexes
 	DIGITS: /[0-9]/,
-	FILEPATH: /[a-zA-Z0-9-_./]/, // characters in filepath, excluding the front: @ or .
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
+	PATH: /[a-zA-Z0-9-_./]/, // characters in path, excluding the front: @ or .
 	WHITESPACE: /\s/,
 };

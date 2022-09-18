@@ -27,6 +27,10 @@ export default class {
 	 * @param code - Source code
 	 */
 	constructor (code: string) {
+		if (typeof code !== 'string' || code.length === 0) {
+			throw new LexerError('No source code found', this.tokens);
+		}
+
 		this.code = code;
 
 		// fix line endings
@@ -339,7 +343,7 @@ export default class {
 			 */
 			if (this.char === patterns.PERIOD) {
 				this.peekAndHandle({
-					[patterns.FORWARD_SLASH]: () => this.processFilepath(),
+					[patterns.FORWARD_SLASH]: () => this.processPath(),
 					[patterns.PERIOD]: () => {
 						this.peekAndHandle({
 							[patterns.PERIOD]: 'dotdotdot',
@@ -352,7 +356,7 @@ export default class {
 
 			if (this.char === patterns.AT) {
 				this.peekAndHandle({
-					[patterns.FORWARD_SLASH]: () => this.processFilepath(),
+					[patterns.FORWARD_SLASH]: () => this.processPath(),
 				}, undefined, line, col);
 
 				continue;
@@ -379,7 +383,7 @@ export default class {
 	 * Nested example:
 	 * ```ts
 	 * this.peekAndHandle({
-	 *     [patterns.FORWARD_SLASH]: () => this.processFilepath(),
+	 *     [patterns.FORWARD_SLASH]: () => this.processPath(),
 	 *     [patterns.PERIOD]: () => {
 	 *         this.peekAndHandle({
 	 *            [patterns.PERIOD]: 'dotdotdot',
@@ -532,28 +536,28 @@ export default class {
 	}
 
 	/**
-	 * File paths can either begin with ./foo, or @/foo
+	 * Paths can either begin with ./foo, or @/foo
 	 *
-	 * In the former case, the leading two chars are both part of the patterns.FILEPATH regex
+	 * In the former case, the leading two chars are both part of the patterns.PATH regex
 	 * since they are commonly found in paths.
 	 *
-	 * However, the latter case has the AT symbol which is not normally in file paths.
+	 * However, the latter case has the AT symbol which is not normally in paths.
 	 * Thus, in that case, as explicitly grab that char, then continue after it with the regex.
 	 */
-	processFilepath() {
+	processPath() {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
 		let value = '';
 
-		// if the filepath begins with an `@`, treat it differently, since that isn't in the patterns.FILEPATH regex
+		// if the path begins with an `@`, treat it differently, since that isn't in the patterns.PATH regex
 		if (this.char === patterns.AT) {
 			value += this.char;
 			this.next();
 		}
 
-		value += this.gobbleAsLongAs(() => this.matchesRegex(patterns.FILEPATH, this.char));
-		this.tokens.push({ type: 'filepath', start, end: this.cursorPosition, value, line, col });
+		value += this.gobbleAsLongAs(() => this.matchesRegex(patterns.PATH, this.char));
+		this.tokens.push({ type: 'path', start, end: this.cursorPosition, value, line, col });
 	}
 
 	processNumbers() {

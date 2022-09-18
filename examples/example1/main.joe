@@ -1,21 +1,27 @@
 # This is sample .joe file to prove the lexer and parser works.
 # Note this file may not necessarily be syntatically correct.
 
-import lexer from ./lexer;
-import lexer2 from @/lexer.joe;
+f main {
+	// instantiate and call a method
+	const myFoo = new Foo();
+	print myFoo.foo();
+
+	// static
+	print Foo.bar;
+}
 
 class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
-	static bar = 'baz'; // public static property
-	private isDone? = true // private instance property
+	let bar = 'baz'; // let
+	const isDone? = true; // const
 
 	/** method with no args and no return */
-	foo -> number {
+	f foo -> number {
 		const size = when someNumber {
 			1, 2 -> 'small',
 			3..10 -> 'medium',
 			11 -> 'large',
 			... -> 'off the charts',
-		}
+		};
 
 		let myArray = [
 			1,
@@ -23,14 +29,14 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 			3
 		];
 
-		let count = 1..myArray[2] // new array [1, 2, 3]
-		let countDown = myArray[1]..0 // new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+		let count = 1..myArray[2]; // new array [1, 2, 3]
+		let countDown = myArray[1]..0; // new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 		let partitionedArray = [
 			countDown[:1],
 			countDown[2:6],
 			countDown[7:],
 		]; // new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
-		let selectedArrayItems = countDown[1, 4, 9] // new array [9, 6, 1]
+		let selectedArrayItems = countDown[1, 4, 9]; // new array [9, 6, 1]
 
 		let myObject = {
 			a: 1,
@@ -39,7 +45,7 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 			d: nil,
 		};
 
-		let partialObj = myObject[a, d] // new object {a: 1, d: nil}
+		let partialObj = myObject[a, d]; // new object {a: 1, d: nil}
 
 		const initializeAndAssignLater: number = 5;
 
@@ -47,21 +53,21 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	}
 
 	/** with args */
-	methodWithArgs (arg1: bool, arg2: Tuple, arg3 = true, ...otherStuff: Thing[]) { ... }
+	f methodWithArgs (arg1: bool, arg2: Tuple, arg3 = true, ...otherStuff: Thing[]) { /* ... */ }
 
 	/** with one return val */
-	methodThatReturnsBool? : bool {
+	f methodThatReturnsBool? -> bool {
 		return true;
 	}
 
 	/** multiple return vals */
-	methodThatReturnsBool? : bool, number, Thing {
+	f methodThatReturnsBool? -> bool, number, Thing {
 		return false, 5, new Thing();
 	}
 
 	/** method that throws error */
-	careful! { ... }
+	f careful! { /* ... */ }
 
 	/** method with bool return that throws error */
-	careful?! : bool { ... }
+	f careful?! -> bool { /* ... */ }
 }

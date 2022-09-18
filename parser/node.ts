@@ -6,8 +6,12 @@ export function MakeNode (type: NodeType, token: Token, parent: Node): Node {
 	const node: Node = {
 		type,
 		value: token.value,
-		start: token.start,
-		end: token.end,
+		pos: {
+			start: token.start,
+			end: token.end,
+			line: token.line,
+			col: token.col,
+		},
 		parent,
 		children: [],
 	}
@@ -20,8 +24,12 @@ export function MakeUnaryExpressionNode (token: Token, before: boolean, parent: 
 		type: 'UnaryExpression',
 		value: token.value,
 		before,
-		start: token.start,
-		end: token.end,
+		pos: {
+			start: token.start,
+			end: token.end,
+			line: token.line,
+			col: token.col,
+		},
 		parent,
 		children: [],
 	}

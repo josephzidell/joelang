@@ -19,7 +19,7 @@ joelang is a strongly typed scripting language focused on easy code writing/read
 - Strings `'foo'`, `"foo"`
 - Boolean `true`, `false`
 - Nil `nil`
-- Filepath `@/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `./code/joe/file` instead of `.\code\joe\file`
+- Path `@/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `./code/joe/file` instead of `.\code\joe\file`
 - Array `[1, 2, 3]`, `['a', 'b']`, `[1, 2 if condition, 3]`
 - Tuple `<1, 'pizza', 3.14>`, `<1, 'pizza' if they have, 3.14>`
 - POJO (Plain Ol' Joe Object) `{a: 1, b: 2 if condition, c: 3}`
@@ -31,7 +31,7 @@ Often the type can be inferred
 
 ```joelang
 const boolean = true; // bool
-const file = ./foo.joe; // filepath
+const file = ./foo.joe; // path
 const num = 3; // number
 const str = "hello"; // string
 const ary = ['foo', 'bar']; // array<string>

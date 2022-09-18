@@ -1,15 +1,396 @@
-import Lexer from "../lexer/lexer";
-import Parser from "./parser";
-import { Node } from "./types";
+import Lexer from '../lexer/lexer';
+import { types } from '../lexer/types';
+import Parser from './parser';
+import { Node, NodeType } from './types';
 import '../setupJest'; // for the types
 
 /** Shortcut method to `new Parser(new Lexer(code).lexify()).parse()` */
 const parse = (code: string): Node => new Parser(new Lexer(code).lexify()).parse();
 
+const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NodeType) => {
+	// 2 numbers
+	it(`${operator} with 2 number literals`, (): void => {
+		expect(parse(`1 ${operator} 2,000;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '1'],
+				['NumberLiteral', '2,000'],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`-1,000 ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '1,000'],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '1'],
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '2'],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '1'],
+				]],
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '2'],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// identifier and number
+	it(`${operator} with identifier and number literal`, (): void => {
+		expect(parse(`foo ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['Identifier', 'foo'],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and identifier`, (): void => {
+		expect(parse(`1 ${operator} foo;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '1'],
+				['Identifier', 'foo'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// nil and number
+	it(`${operator} with nil and number literal`, (): void => {
+		expect(parse(`nil ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['Nil', 'nil'],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and nil`, (): void => {
+		expect(parse(`1 ${operator} nil;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '1'],
+				['Nil', 'nil'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// element access and number
+	it(`${operator} with element access and number literal`, (): void => {
+		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['MembersList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and element access`, (): void => {
+		expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '1'],
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['MembersList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+			['StringLiteral', 'a'],
+		]);
+	});
+
+	// method call and number
+	it(`${operator} with method call and number literal`, (): void => {
+		expect(parse(`foo('a') ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['CallExpression', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and method call`, (): void => {
+		expect(parse(`1 ${operator} foo('a');`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '1'],
+				['CallExpression', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// element access and method call
+	it(`${operator} with element access and method call`, (): void => {
+		expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchParseTree([
+			[nodeType, operator, [
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['MembersList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['CallExpression', [
+					['Identifier', 'bar'],
+					['ArgumentsList', [
+						['StringLiteral', 'b'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+	it(`${operator} with method call and element access`, (): void => {
+		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
+			[nodeType, operator, [
+				['CallExpression', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['MemberExpression', [
+					['Identifier', 'bar'],
+					['MembersList', [
+						['StringLiteral', 'b'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+};
+
+const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType: NodeType) => {
+	// 2 numbers
+	it(`${operator} with 2 number literals`, (): void => {
+		expect(parse(`1 ${operator} 2;`)).toMatchParseTree([
+			[nodeType, [
+				['NumberLiteral', '1'],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`-1 ${operator} 2;`)).toMatchParseTree([
+			[nodeType, [
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '1'],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
+			[nodeType, [
+				['NumberLiteral', '1'],
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '2'],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
+			[nodeType, [
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '1'],
+				]],
+				['UnaryExpression', '-', {before: true}, [
+					['NumberLiteral', '2'],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// identifier and number
+	it(`${operator} with identifier and number literal`, (): void => {
+		expect(parse(`foo ${operator} 2;`)).toMatchParseTree([
+			[nodeType, [
+				['Identifier', 'foo'],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and identifier`, (): void => {
+		expect(parse(`1 ${operator} foo;`)).toMatchParseTree([
+			[nodeType, [
+				['NumberLiteral', '1'],
+				['Identifier', 'foo'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// nil and number
+	it(`${operator} with nil and number literal`, (): void => {
+		expect(parse(`nil ${operator} 2;`)).toMatchParseTree([
+			[nodeType, [
+				['Nil', 'nil'],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and nil`, (): void => {
+		expect(parse(`1 ${operator} nil;`)).toMatchParseTree([
+			[nodeType, [
+				['NumberLiteral', '1'],
+				['Nil', 'nil'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// element access and number
+	it(`${operator} with element access and number literal`, (): void => {
+		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
+			[nodeType, [
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['MembersList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and element access`, (): void => {
+		expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchParseTree([
+			[nodeType, [
+				['NumberLiteral', '1'],
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['MembersList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+			['StringLiteral', 'a'],
+		]);
+	});
+
+	// method call and number
+	it(`${operator} with method call and number literal`, (): void => {
+		expect(parse(`foo('a') ${operator} 2;`)).toMatchParseTree([
+			[nodeType, [
+				['CallExpression', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	it(`${operator} with number literal and method call`, (): void => {
+		expect(parse(`1 ${operator} foo('a');`)).toMatchParseTree([
+			[nodeType, [
+				['NumberLiteral', '1'],
+				['CallExpression', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+
+	// element access and method call
+	it(`${operator} with element access and method call`, (): void => {
+		expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchParseTree([
+			[nodeType, [
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['MembersList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['CallExpression', [
+					['Identifier', 'bar'],
+					['ArgumentsList', [
+						['StringLiteral', 'b'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+	it(`${operator} with method call and element access`, (): void => {
+		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
+			[nodeType, [
+				['CallExpression', [
+					['Identifier', 'foo'],
+					['ArgumentsList', [
+						['StringLiteral', 'a'],
+					]],
+				]],
+				['MemberExpression', [
+					['Identifier', 'bar'],
+					['MembersList', [
+						['StringLiteral', 'b'],
+					]],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
+	});
+};
+
 describe('parser.ts', (): void => {
 	describe('VariableDeclaration', (): void => {
 		it('a let assignment with a bool literal', (): void => {
-			expect(parse('let x = false')).toMatchAST([
+			expect(parse('let x = false')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
 					['AssignmentOperator', '='],
@@ -19,17 +400,39 @@ describe('parser.ts', (): void => {
 		});
 
 		it('a let assignment with a number literal', (): void => {
-			expect(parse('let x = 1')).toMatchAST([
+			expect(parse('let x = 1')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
 					['AssignmentOperator', '='],
 					['NumberLiteral', '1'],
 				]],
 			])
+
+			expect(parse('const x = -2,300.006^e-2,000; const y = 5;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'x'],
+					['AssignmentOperator', '='],
+					['BinaryExpression', '^e', [
+						['UnaryExpression', '-', {before: true}, [
+							['NumberLiteral', '2,300.006'],
+						]],
+						['UnaryExpression', '-', {before: true}, [
+							['NumberLiteral', '2,000'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+				['VariableDeclaration', 'const', [
+					['Identifier', 'y'],
+					['AssignmentOperator', '='],
+					['NumberLiteral', '5'],
+				]],
+				['SemicolonSeparator'],
+			])
 		});
 
 		it('a let assignment with a string literal', (): void => {
-			expect(parse('let x = "foo"')).toMatchAST([
+			expect(parse('let x = "foo"')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
 					['AssignmentOperator', '='],
@@ -39,21 +442,21 @@ describe('parser.ts', (): void => {
 		});
 
 		it('a let with a specified type', (): void => {
-			expect(parse('let x: string;')).toMatchAST([
+			expect(parse('let x: string;')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
-					['ColonSeparator', ':'],
+					['ColonSeparator'],
 					['Type', 'string'],
-					['SemicolonSeparator', ';'],
 				]],
+				['SemicolonSeparator'],
 			])
 		});
 
 		it('a const assignment with a specified type', (): void => {
-			expect(parse('const x: string = "foo"')).toMatchAST([
+			expect(parse('const x: string = "foo"')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['ColonSeparator', ':'],
+					['ColonSeparator'],
 					['Type', 'string'],
 					['AssignmentOperator', '='],
 					['StringLiteral', 'foo'],
@@ -62,29 +465,29 @@ describe('parser.ts', (): void => {
 		});
 
 		it('regex', (): void => {
-			expect(parse('const x = /[a-z/;')).toMatchAST([
+			expect(parse('const x = /[a-z/;')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
 					['AssignmentOperator', '='],
 					['RegularExpression', '/[a-z/'],
-					['SemicolonSeparator', ';'],
 				]],
+				['SemicolonSeparator'],
 			]);
 
-			expect(parse('const x: regex = /[a-z/g;')).toMatchAST([
+			expect(parse('const x: regex = /[a-z/g;')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['ColonSeparator', ':'],
+					['ColonSeparator'],
 					['Type', 'regex'],
 					['AssignmentOperator', '='],
 					['RegularExpression', '/[a-z/g'],
-					['SemicolonSeparator', ';'],
 				]],
+				['SemicolonSeparator'],
 			]);
 		});
 
-		it('supports nil', (): void => {
-			expect(parse('const x = nil')).toMatchAST([
+		it('nil', (): void => {
+			expect(parse('const x = nil')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
 					['AssignmentOperator', '='],
@@ -92,65 +495,226 @@ describe('parser.ts', (): void => {
 				]],
 			])
 		});
+
+		describe('arrays of', (): void => {
+
+			it('bools', (): void => {
+				expect(parse('[false, true, true, false]')).toMatchParseTree([
+					['ArrayExpression', [
+						['BoolLiteral', 'false'],
+						['CommaSeparator'],
+						['BoolLiteral', 'true'],
+						['CommaSeparator'],
+						['BoolLiteral', 'true'],
+						['CommaSeparator'],
+						['BoolLiteral', 'false'],
+					]],
+				]);
+			});
+
+			it('numbers', () => {
+				expect(parse('[1, -2, 3,456, 3^e-2, 3.14]')).toMatchParseTree([
+					['ArrayExpression', [
+						['NumberLiteral', '1'],
+						['CommaSeparator'],
+						['UnaryExpression', '-', {before: true}, [
+							['NumberLiteral', '2'],
+						]],
+						['CommaSeparator'],
+						['NumberLiteral', '3,456'],
+						['CommaSeparator'],
+						['BinaryExpression', '^e', [
+							['NumberLiteral', '3'],
+							['UnaryExpression', '-', {before: true}, [
+								['NumberLiteral', '2'],
+							]],
+						]],
+						['CommaSeparator'],
+						['NumberLiteral', '3.14'],
+					]],
+				]);
+			});
+
+			it('paths', (): void => {
+				expect(parse('[@/file.joe, @/another/file.joe]')).toMatchParseTree([
+					['ArrayExpression', [
+						['Path', '@/file.joe'],
+						['CommaSeparator'],
+						['Path', '@/another/file.joe'],
+					]],
+				]);
+			});
+
+			it('regexes', (): void => {
+				expect(parse('[/[a-z]/i, /[0-9]/g, /\d/]')).toMatchParseTree([
+					['ArrayExpression', [
+						['RegularExpression', '/[a-z]/i'],
+						['CommaSeparator'],
+						['RegularExpression', '/[0-9]/g'],
+						['CommaSeparator'],
+						['RegularExpression', '/\d/'],
+					]],
+				]);
+			});
+
+			it('strings', (): void => {
+				expect(parse('[\'foo\', "bar"]')).toMatchParseTree([
+					['ArrayExpression', [
+						['StringLiteral', 'foo'],
+						['CommaSeparator'],
+						['StringLiteral', 'bar'],
+					]],
+				]);
+			});
+
+		});
+	});
+
+	describe('CallExpression', () => {
+
+		it('works with several nested layers', () => {
+			expect(parse('a.b.c.d(); 4')).toMatchParseTree([
+				['CallExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['MemberExpression', [
+								['Identifier', 'a'],
+								['Identifier', 'b'],
+							]],
+							['Identifier', 'c'],
+						]],
+						['Identifier', 'd'],
+					]],
+					['ArgumentsList', []],
+				]],
+				['SemicolonSeparator'],
+				['NumberLiteral', '4'],
+			]);
+		});
+
+		it('call followed by property', () => {
+			expect(parse('a(1).b')).toMatchParseTree([
+				['MemberExpression', [
+					['CallExpression', [
+						['Identifier', 'a'],
+						['ArgumentsList', [
+							['NumberLiteral', '1'],
+						]],
+					]],
+					['Identifier', 'b'],
+				]],
+			]);
+		});
+
+		it('call followed by a call', () => {
+			expect(parse('a(1).b(2)')).toMatchParseTree([
+				['CallExpression', [
+					['MemberExpression', [
+						['CallExpression', [
+							['Identifier', 'a'],
+							['ArgumentsList', [
+								['NumberLiteral', '1'],
+							]],
+						]],
+						['Identifier', 'b'],
+					]],
+					['ArgumentsList', [
+						['NumberLiteral', '2'],
+					]],
+				]],
+			]);
+		});
+
+	})
+
+	describe('ClassDeclaration', (): void => {
+		it('empty class', (): void => {
+			expect(parse('class Foo {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('class with comment', (): void => {
+			expect(parse('class Foo {\n# foo\n}\n# bar\n')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', [
+						['Comment', '# foo'],
+					]],
+				]],
+				['Comment', '# bar'],
+			]);
+		});
+
+		it('extends multiple and implements multiple', (): void => {
+			expect(parse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['ClassExtensionsList', [
+						  ['Identifier', 'Bar'],
+						  ['CommaSeparator'],
+						  ['Identifier', 'Baz'],
+					]],
+					['ClassImplementsList', [
+						['Identifier', 'AbstractFooBar'],
+						['CommaSeparator'],
+						['Identifier', 'AnotherAbstractClass'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
 	});
 
 	describe('Comment', (): void => {
 		it('a single-line comment', (): void => {
-			expect(parse('# let x = "foo"')).toMatchAST([
+			expect(parse('# let x = "foo"')).toMatchParseTree([
 				['Comment', '# let x = "foo"'],
 			])
 		});
 
-		describe('block statements', (): void => {
-			it('empty class', (): void => {
-				expect(parse('class Foo {}')).toMatchAST([
-					["Keyword", "class"],
-					["Identifier", "Foo"],
-					['BlockStatement', []],
-				]);
-			});
-
-			it('class with comment', (): void => {
-				expect(parse('class Foo {\n# foo\n}')).toMatchAST([
-					["Keyword", "class"],
-					["Identifier", "Foo"],
-					['BlockStatement', [
-						['Comment', '# foo'],
-					]],
-				]);
-			});
+		it('a multi-line comment', (): void => {
+			expect(parse('/* let x = "foo" */')).toMatchParseTree([
+				['Comment', '/* let x = "foo" */'],
+			])
 		});
+
 	});
 
-	describe('FunctionDefinition', (): void => {
-		it('no args or return types', (): void => {
-			expect(parse('f foo {}')).toMatchAST([
-				['FunctionDefinition', [
+	describe('FunctionDeclaration', (): void => {
+		it('no params or return types', (): void => {
+			expect(parse('f foo {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['BlockStatement', []],
 				]],
 			]);
 		});
 
-		it('no args with single return type', (): void => {
-			expect(parse('f foo -> bool {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('no params with single return type', (): void => {
+			expect(parse('f foo -> bool {} 5;')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['FunctionReturns', [
 						['Type', 'bool'],
 					]],
 					['BlockStatement', []],
 				]],
+				['NumberLiteral', '5'],
+				['SemicolonSeparator'],
 			]);
 		});
 
-		it('no args with multiple return types', (): void => {
-			expect(parse('f foo -> bool, string {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('no params with multiple return types', (): void => {
+			expect(parse('f foo -> bool, string {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['FunctionReturns', [
 						['Type', 'bool'],
-						['CommaSeparator', ','],
+						['CommaSeparator'],
 						['Type', 'string'],
 					]],
 					['BlockStatement', []],
@@ -158,21 +722,21 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('arg parens but no return types', (): void => {
-			expect(parse('f foo () {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('param parens but no return types', (): void => {
+			expect(parse('f foo () {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
-					['ArgumentsList', []],
+					['ParametersList', []],
 					['BlockStatement', []],
 				]],
 			]);
 		});
 
-		it('arg parens with return types', (): void => {
-			expect(parse('f foo () -> bool {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('param parens with return types', (): void => {
+			expect(parse('f foo () -> bool {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
-					['ArgumentsList', []],
+					['ParametersList', []],
 					['FunctionReturns', [
 						['Type', 'bool'],
 					]],
@@ -181,36 +745,42 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('args but no return types', (): void => {
-			expect(parse('f foo (a: number) {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('params but no return types', (): void => {
+			expect(parse('f foo (a: number) {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Type', 'number'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
 					]],
 					['BlockStatement', []],
 				]],
 			]);
 		});
 
-		it('args and return types', (): void => {
-			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('params and return types', (): void => {
+			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Type', 'number'],
-						['CommaSeparator', ','],
-						['Identifier', 'r'],
-						['ColonSeparator', ':'],
-						['Type', 'regex'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['Identifier', 'r'],
+							['ColonSeparator'],
+							['Type', 'regex'],
+						]],
 					]],
 					['FunctionReturns', [
 						['Type', 'regex'],
-						['CommaSeparator', ','],
+						['CommaSeparator'],
 						['Type', 'bool'],
 					]],
 					['BlockStatement', []],
@@ -218,34 +788,90 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('args and return types using nil', (): void => {
-			expect(parse('f foo (a: nil) -> nil {}')).toMatchAST([
-				['FunctionDefinition', [
+		it('params and return types using nil', (): void => {
+			expect(parse('f foo (a: nil) -> nil {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Nil', 'nil'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Nil', 'nil'],
+						]],
 					]],
 					['FunctionReturns', [
 						['Nil', 'nil'],
 					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with arrays', (): void => {
+			expect(parse('f foo(a: number[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}')).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'foo'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['Type', 'number'],
+							]],
+							['AssignmentOperator', '='],
+							['ArrayExpression', [
+								['NumberLiteral', '5'],
+							]],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['Identifier', 'b'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['ArrayType', [
+									['Type', 'string'],
+								]],
+							]],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['RestElement', '...'],
+							['Identifier', 'c'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['Identifier', 'Foo'],
+							]],
+						]],
+					]],
+					['FunctionReturns', [
+						['Type', 'regex'],
+						['CommaSeparator'],
+						['ArrayType', [
+							['ArrayType', [
+								['ArrayType', [
+									['Type', 'path'],
+								]],
+							]],
+						]],
+				]],
 					['BlockStatement', []],
 				]],
 			]);
 		});
 
 		it('generics', (): void => {
-			expect(parse('f foo<T> (a: T) -> T {}')).toMatchAST([
-				['FunctionDefinition', [
+			expect(parse('f foo<T> (a: T) -> T {}')).toMatchParseTree([
+				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['GenericTypesList', [
 						['Identifier', 'T'],
 					]],
-					['ArgumentsList', [
-						['Identifier', 'a'],
-						['ColonSeparator', ':'],
-						['Identifier', 'T'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Identifier', 'T'],
+						]],
 					]],
 					['FunctionReturns', [
 						['Identifier', 'T'],
@@ -259,34 +885,53 @@ describe('parser.ts', (): void => {
 	describe('ImportDeclaration', (): void => {
 		describe('imports', (): void => {
 			it('single, default import', (): void => {
-				expect(parse('import lexer from ./lexer;import lexer2 from @/lexer;import lexer3 from @/lexer.joe;')).toMatchAST([
+				expect(parse('import lexer from ./lexer;import lexer2 from @/lexer;import lexer3 from @/lexer.joe;')).toMatchParseTree([
 					['ImportDeclaration', [
-						["Identifier", "lexer"],
-						["Keyword", "from"],
-						["FilePath", "./lexer"],
-						["SemicolonSeparator", ";"],
+						['Identifier', 'lexer'],
+						['Keyword', 'from'],
+						['Path', './lexer'],
 					]],
+					['SemicolonSeparator'],
 					['ImportDeclaration', [
-						["Identifier", "lexer2"],
-						["Keyword", "from"],
-						["FilePath", "@/lexer"],
-						["SemicolonSeparator", ";"],
+						['Identifier', 'lexer2'],
+						['Keyword', 'from'],
+						['Path', '@/lexer'],
 					]],
+					['SemicolonSeparator'],
 					['ImportDeclaration', [
-						["Identifier", "lexer3"],
-						["Keyword", "from"],
-						["FilePath", "@/lexer.joe"],
-						["SemicolonSeparator", ";"],
+						['Identifier', 'lexer3'],
+						['Keyword', 'from'],
+						['Path', '@/lexer.joe'],
 					]],
+					['SemicolonSeparator'],
 				]);
 			});
 		});
 	});
 
+	describe('MemberExpression', () => {
+
+		it('works with several nested layers', () => {
+			expect(parse('a.b.c.d')).toMatchParseTree([
+				['MemberExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['Identifier', 'a'],
+							['Identifier', 'b'],
+						]],
+						['Identifier', 'c'],
+					]],
+					['Identifier', 'd'],
+				]],
+			]);
+		});
+
+	})
+
 	describe('Operators', (): void => {
 		describe('unary expressions', (): void => {
 			it('negative number', (): void => {
-				expect(parse('-1')).toMatchAST([
+				expect(parse('-1')).toMatchParseTree([
 					['UnaryExpression', '-', {before: true}, [
 						['NumberLiteral', '1'],
 					]]
@@ -294,7 +939,7 @@ describe('parser.ts', (): void => {
 			});
 
 			it('negative number with parens', (): void => {
-				expect(parse('(-1)')).toMatchAST([
+				expect(parse('(-1)')).toMatchParseTree([
 					['Parenthesized', [
 						['UnaryExpression', '-', {before: true}, [
 							['NumberLiteral', '1'],
@@ -304,7 +949,7 @@ describe('parser.ts', (): void => {
 			});
 
 			it('pre-decrement', (): void => {
-				expect(parse('--foo')).toMatchAST([
+				expect(parse('--foo')).toMatchParseTree([
 					['UnaryExpression', '--', {before: true}, [
 						['Identifier', 'foo'],
 					]],
@@ -312,13 +957,13 @@ describe('parser.ts', (): void => {
 			});
 
 			it('post-decrement', (): void => {
-				expect(parse('foo--')).toMatchAST([
+				expect(parse('foo--')).toMatchParseTree([
 					['UnaryExpression', '--', {before: false}, [
 						['Identifier', 'foo'],
 					]],
 				]);
 
-				expect(parse('foo---')).toMatchAST([
+				expect(parse('foo---')).toMatchParseTree([
 					['UnaryExpression', '--', {before: false}, [
 						['Identifier', 'foo'],
 					]],
@@ -327,7 +972,7 @@ describe('parser.ts', (): void => {
 			});
 
 			it('pre-increment', (): void => {
-				expect(parse('++foo')).toMatchAST([
+				expect(parse('++foo')).toMatchParseTree([
 					['UnaryExpression', '++', {before: true}, [
 						['Identifier', 'foo'],
 					]],
@@ -335,13 +980,13 @@ describe('parser.ts', (): void => {
 			});
 
 			it('post-increment', (): void => {
-				expect(parse('foo++')).toMatchAST([
+				expect(parse('foo++')).toMatchParseTree([
 					['UnaryExpression', '++', {before: false}, [
 						['Identifier', 'foo'],
 					]],
 				]);
 
-				expect(parse('foo+++')).toMatchAST([
+				expect(parse('foo+++')).toMatchParseTree([
 					['UnaryExpression', '++', {before: false}, [
 						['Identifier', 'foo'],
 					]],
@@ -353,13 +998,13 @@ describe('parser.ts', (): void => {
 		describe('binary expressions', (): void => {
 			describe('with bools', (): void => {
 				it('double pipe', (): void => {
-					expect(parse('a ||')).toMatchAST([
+					expect(parse('a ||')).toMatchParseTree([
 						['BinaryExpression', '||', [
 							['Identifier', 'a'],
 						]],
 					]);
 
-					expect(parse('a || true')).toMatchAST([
+					expect(parse('a || true')).toMatchParseTree([
 						['BinaryExpression', '||', [
 							['Identifier', 'a'],
 							['BoolLiteral', 'true'],
@@ -368,13 +1013,13 @@ describe('parser.ts', (): void => {
 				});
 
 				it('double ampersand', (): void => {
-					expect(parse('a &&')).toMatchAST([
+					expect(parse('a &&')).toMatchParseTree([
 						['BinaryExpression', '&&', [
 							['Identifier', 'a'],
 						]],
 					]);
 
-					expect(parse('a && true')).toMatchAST([
+					expect(parse('a && true')).toMatchParseTree([
 						['BinaryExpression', '&&', [
 							['Identifier', 'a'],
 							['BoolLiteral', 'true'],
@@ -384,186 +1029,32 @@ describe('parser.ts', (): void => {
 			});
 
 			describe('with numbers', (): void => {
-				const binaryExpressionScenarios = (operator: string) => {
-					// 2 numbers
-					it(`${operator} with 2 number literals`, (): void => {
-						expect(parse(`1 ${operator} 2;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['NumberLiteral', '1'],
-								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-
-					// identifier and number
-					it(`${operator} with identifier and number literal`, (): void => {
-						expect(parse(`foo ${operator} 2;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['Identifier', 'foo'],
-								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-					it(`${operator} with number literal and identifier`, (): void => {
-						expect(parse(`1 ${operator} foo;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['NumberLiteral', '1'],
-								['Identifier', 'foo'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-
-					// nil and number
-					it(`${operator} with nil and number literal`, (): void => {
-						expect(parse(`nil ${operator} 2;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['Nil', 'nil'],
-								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-					it(`${operator} with number literal and nil`, (): void => {
-						expect(parse(`1 ${operator} nil;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['NumberLiteral', '1'],
-								['Nil', 'nil'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-
-					// element access and number
-					it(`${operator} with element access and number literal`, (): void => {
-						expect(parse(`foo['a'] ${operator} 2;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['MemberExpression', [
-									['Identifier', 'foo'],
-									['MembersList', [
-										['StringLiteral', 'a'],
-									]],
-								]],
-								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-					it(`${operator} with number literal and element access`, (): void => {
-						expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['NumberLiteral', '1'],
-								['MemberExpression', [
-									['Identifier', 'foo'],
-									['MembersList', [
-										['StringLiteral', 'a'],
-									]],
-									['SemicolonSeparator', ';'],
-								]],
-							]],
-							['StringLiteral', 'a'],
-						]);
-					});
-
-					// method call and number
-					it(`${operator} with method call and number literal`, (): void => {
-						expect(parse(`foo('a') ${operator} 2;`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['CallExpression', [
-									['Identifier', 'foo'],
-									['ArgumentsList', [
-										['StringLiteral', 'a'],
-									]],
-								]],
-								['NumberLiteral', '2'],
-								['SemicolonSeparator', ';'],
-							]],
-						]);
-					});
-					it(`${operator} with number literal and method call`, (): void => {
-						expect(parse(`1 ${operator} foo('a');`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['NumberLiteral', '1'],
-								['CallExpression', [
-									['Identifier', 'foo'],
-									['ArgumentsList', [
-										['StringLiteral', 'a'],
-									]],
-									['SemicolonSeparator', ';'],
-								]],
-							]],
-						]);
-					});
-
-					// element access and method call
-					it(`${operator} with element access and method call`, (): void => {
-						expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['MemberExpression', [
-									['Identifier', 'foo'],
-									['MembersList', [
-										['StringLiteral', 'a'],
-									]],
-								]],
-								['CallExpression', [
-									['Identifier', 'bar'],
-									['ArgumentsList', [
-										['StringLiteral', 'b'],
-									]],
-									['SemicolonSeparator', ';'],
-								]],
-							]],
-						]);
-					});
-					it(`${operator} with method call and element access`, (): void => {
-						expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchAST([
-							['BinaryExpression', operator, [
-								['CallExpression', [
-									['Identifier', 'foo'],
-									['ArgumentsList', [
-										['StringLiteral', 'a'],
-									]],
-								]],
-								['MemberExpression', [
-									['Identifier', 'bar'],
-									['MembersList', [
-										['StringLiteral', 'b'],
-									]],
-									['SemicolonSeparator', ';'],
-								]],
-							]],
-						]);
-					});
-				};
-
 				describe('compare', (): void => {
-					binaryExpressionScenarios('<=>');
+					doubleExpressionScenariosCheckingOperator('<=>', 'BinaryExpression');
 				});
 
 				describe('equals', (): void => {
-					binaryExpressionScenarios('==');
+					doubleExpressionScenariosCheckingOperator('==', 'BinaryExpression');
 				});
 
 				describe('not equals', (): void => {
-					binaryExpressionScenarios('!=');
+					doubleExpressionScenariosCheckingOperator('!=', 'BinaryExpression');
 				});
 
 				describe('less than', (): void => {
-					binaryExpressionScenarios('<');
+					doubleExpressionScenariosCheckingOperator('<', 'BinaryExpression');
 				});
 
 				describe('less than or equals', (): void => {
-					binaryExpressionScenarios('<=');
+					doubleExpressionScenariosCheckingOperator('<=', 'BinaryExpression');
 				});
 
 				describe('greater than', (): void => {
-					binaryExpressionScenarios('>');
+					doubleExpressionScenariosCheckingOperator('>', 'BinaryExpression');
 				});
 
 				describe('greater than or equals', (): void => {
-					binaryExpressionScenarios('>=');
+					doubleExpressionScenariosCheckingOperator('>=', 'BinaryExpression');
 				});
 			});
 		});
@@ -572,7 +1063,7 @@ describe('parser.ts', (): void => {
 	describe('Parens', (): void => {
 		describe('mathematical expressions', (): void => {
 			it('a simple mathematical formula', (): void => {
-				expect(parse('1 + (2 * (-3/-(2.3-4)%9))')).toMatchAST([
+				expect(parse('1 + (2 * (-3/-(2.3-4)%9))')).toMatchParseTree([
 					['NumberLiteral', '1'],
 					['AdditionOperator', '+'],
 					['Parenthesized', [
@@ -598,27 +1089,164 @@ describe('parser.ts', (): void => {
 			});
 
 			it('supports mathematical expressions with variables', (): void => {
-				expect(parse('const foo = 1; let bar = -foo;')).toMatchAST([
+				expect(parse('const foo = 1; let bar = -foo;')).toMatchParseTree([
 					['VariableDeclaration', 'const', [
 						['Identifier', 'foo'],
 						['AssignmentOperator', '='],
 						['NumberLiteral', '1'],
-						['SemicolonSeparator', ';'],
 					]],
+					['SemicolonSeparator'],
 					['VariableDeclaration', 'let', [
 						['Identifier', 'bar'],
 						['AssignmentOperator', '='],
 						['UnaryExpression', '-', {before: true}, [
 							['Identifier', 'foo'],
 						]],
-						['SemicolonSeparator', ';'],
 					]],
+					['SemicolonSeparator'],
 				]);
 			});
 		});
 	});
 
+	describe('Print', () => {
+
+		it('is closed with a semicolon', () => {
+			expect(parse('print foo[5];print 5;')).toMatchParseTree([
+				['PrintStatement', [
+					['MemberExpression', [
+						['Identifier', 'foo'],
+						['MembersList', [
+							['NumberLiteral', '5'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+				['PrintStatement', [
+					['NumberLiteral', '5'],
+				]],
+				['SemicolonSeparator'],
+			])
+		})
+
+	})
+
+	describe('Types', (): void => {
+		describe('should understand built-in types', () => {
+			it.each(types)('%s is recognized as a type', (type) => {
+				expect(parse(type)).toMatchParseTree([
+					['Type', type],
+				]);
+			});
+
+			it.each(types)('%s[] is recognized as a one-dimensional array of type', (type) => {
+				expect(parse(`${type}[]`)).toMatchParseTree([
+					['ArrayType', [
+						['Type', type],
+					]],
+				]);
+			});
+
+			it.each(types)('%s[][] is recognized as a two-dimensional array of type', (type) => {
+				expect(parse(`${type}[][]`)).toMatchParseTree([
+					['ArrayType', [
+						['ArrayType', [
+							['Type', type],
+						]],
+					]],
+				]);
+			});
+		});
+
+		describe('arrays', () => {
+
+			it('should understand a custom array', () => {
+				expect(parse('Foo[]')).toMatchParseTree([
+					['ArrayType', [
+						['Identifier', 'Foo'],
+					]],
+				]);
+
+				expect(parse('Foo[][]')).toMatchParseTree([
+					['ArrayType', [
+						['ArrayType', [
+							['Identifier', 'Foo'],
+						]],
+					]],
+				]);
+			});
+
+			describe('ranges', (): void => {
+				doubleExpressionScenariosNotCheckingOperator('..', 'RangeExpression');
+			});
+
+		});
+	});
+
 	describe('WhenExpression', (): void => {
+
+		it('works with a small example', () => {
+			expect(parse(`when someNumber {
+				1 -> 'small',
+			}`)).toMatchParseTree([
+				['WhenExpression', [
+					['Identifier', 'someNumber'],
+					['BlockStatement', [
+						['WhenCase', [
+							['WhenCaseTests', [
+								['NumberLiteral', '1'],
+							]],
+							['WhenCaseConsequent', [
+								['StringLiteral', 'small'],
+							]],
+						]],
+						['CommaSeparator'],
+					]],
+				]],
+			]);
+		});
+
+		it('case with brace', () => {
+			expect(parse(`when someNumber {
+				1 -> {
+					doThing1();
+					doThing2();
+
+					return 'large';
+				},
+			}`)).toMatchParseTree([
+				['WhenExpression', [
+					['Identifier', 'someNumber'],
+					['BlockStatement', [
+						['WhenCase', [
+							['WhenCaseTests', [
+								['NumberLiteral', '1'],
+							]],
+							['WhenCaseConsequent', [
+								['BlockStatement', [
+									['CallExpression', [
+										['Identifier', 'doThing1'],
+										['ArgumentsList', []],
+									]],
+									['SemicolonSeparator'],
+									['CallExpression', [
+										['Identifier', 'doThing2'],
+										['ArgumentsList', []],
+									]],
+									['SemicolonSeparator'],
+									['ReturnStatement', [
+										['StringLiteral', 'large'],
+									]],
+									['SemicolonSeparator'],
+								]],
+							]],
+						]],
+						['CommaSeparator'],
+					]],
+				]],
+			]);
+		});
+
 		it('works with single values, multiple values, ranges, and ...', (): void => {
 			expect(parse(`const size = when someNumber {
 				1, 2 -> 'small',
@@ -631,7 +1259,7 @@ describe('parser.ts', (): void => {
 				},
 				12 -> doSomethingElse(),
 				... -> 'off the charts',
-			}`)).toMatchAST([
+			}`)).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'size'],
 					['AssignmentOperator', '='],
@@ -641,13 +1269,14 @@ describe('parser.ts', (): void => {
 							['WhenCase', [
 								['WhenCaseTests', [
 									['NumberLiteral', '1'],
-									['CommaSeparator', ','],
+									['CommaSeparator'],
 									['NumberLiteral', '2'],
 								]],
 								['WhenCaseConsequent', [
 									['StringLiteral', 'small'],
 								]]
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['RangeExpression', [
@@ -659,6 +1288,7 @@ describe('parser.ts', (): void => {
 									['StringLiteral', 'medium'],
 								]],
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['NumberLiteral', '11'],
@@ -668,20 +1298,21 @@ describe('parser.ts', (): void => {
 										['CallExpression', [
 											['Identifier', 'doThing1'],
 											['ArgumentsList', []],
-											['SemicolonSeparator', ';'],
 										]],
+										['SemicolonSeparator'],
 										['CallExpression', [
 											['Identifier', 'doThing2'],
 											['ArgumentsList', []],
-											['SemicolonSeparator', ';'],
 										]],
+										['SemicolonSeparator'],
 										['ReturnStatement', [
 											['StringLiteral', 'large'],
-											['SemicolonSeparator', ';'],
 										]],
+										['SemicolonSeparator'],
 									]],
 								]],
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['NumberLiteral', '12'],
@@ -693,6 +1324,7 @@ describe('parser.ts', (): void => {
 									]],
 								]],
 							]],
+							['CommaSeparator'],
 							['WhenCase', [
 								['WhenCaseTests', [
 									['RestElement', '...'],
@@ -701,6 +1333,7 @@ describe('parser.ts', (): void => {
 									['StringLiteral', 'off the charts'],
 								]],
 							]],
+							['CommaSeparator'],
 						]],
 					]],
 				]],
@@ -710,7 +1343,7 @@ describe('parser.ts', (): void => {
 
 	describe('bugs fixed', (): void => {
 		it('"foo()..3" should place the RangeExpression outside of the CallExpression', (): void => {
-			expect(parse('foo()..3')).toMatchAST([
+			expect(parse('foo()..3')).toMatchParseTree([
 				['RangeExpression', [
 					['CallExpression', [
 						['Identifier', 'foo'],
@@ -722,18 +1355,19 @@ describe('parser.ts', (): void => {
 		});
 
 		it('"[1<2, 3>2];" should be a bool array, not a tuple', (): void => {
-			expect(parse('[1<2, 4>3];')).toMatchAST([
+			expect(parse('[1<2, 4>3];')).toMatchParseTree([
 				['ArrayExpression', [
 					['BinaryExpression', '<', [
 						['NumberLiteral', '1'],
 						['NumberLiteral', '2'],
 					]],
+					['CommaSeparator'],
 					['BinaryExpression', '>', [
 						['NumberLiteral', '4'],
 						['NumberLiteral', '3'],
 					]],
-					['SemicolonSeparator', ';'],
-				]]
+				]],
+				['SemicolonSeparator'],
 			]);
 		});
 	});
