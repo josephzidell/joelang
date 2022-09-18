@@ -627,7 +627,7 @@ describe('parser.ts', (): void => {
 
 	})
 
-	describe('Class', (): void => {
+	describe('ClassDeclaration', (): void => {
 		it('empty class', (): void => {
 			expect(parse('class Foo {}')).toMatchParseTree([
 				['ClassDeclaration', [
