@@ -644,7 +644,7 @@ describe('lexer.ts', (): void => {
 					['brace_close', '}'],
 				]);
 
-				// invalid syntax, but the lexer should report accruately
+				// invalid syntax, but the lexer should report accurately
 				expect(lexify('[({])}')).toMatchTokens([
 					['bracket_open', '['],
 					['paren_open', '('],

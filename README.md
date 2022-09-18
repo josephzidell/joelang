@@ -21,10 +21,6 @@ npm test
 npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
 # run parser example1
 npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.parse-tree
-# transpile to Golang
-npm run --silent transpile -- go "$(cat examples/example1/main.joe)" examples/example1/main.go
-# transpile to Typescript
-npm run --silent transpile -- ts "$(cat examples/example1/main.joe)" examples/example1/main.ts
 ```
 
 ## Challenge

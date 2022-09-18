@@ -7,9 +7,6 @@ import Parser from "./parser/parser";
 import ParserError from "./parser/error";
 import { inspect } from 'util';
 import { simplifyTree } from "./parser/simplifier";
-// import SyntaxTreeGenerator from './syntax/generator';
-// import TranspilerToGo from './transpilers/to/go';
-// import TranspilerToTypescript from './transpilers/to/ts';
 
 void (async (): Promise<void> => {
 	const command = process.argv[2];
@@ -62,59 +59,6 @@ void (async (): Promise<void> => {
 				console.debug(error.getTree());
 
 				console.log('Stack Trace:');
-				console.error(error.stack);
-			}
-			break;
-
-		case 'syntax':
-			try {
-				const [, , , sourceCode, outputFile] = process.argv;
-
-				// const syntaxTree = new SyntaxTreeGenerator(new Parser(new Lexer(sourceCode).lexify()).parse()).generate();
-
-				// if (outputFile) {
-				// 	await fs.writeFile(outputFile, inspect(syntaxTree, { showHidden: true, depth: null }));
-				// } else {
-				// 	console.debug(inspect(syntaxTree, { showHidden: true, depth: null }));
-				// }
-			} catch (e) {
-				const error = e as ParserError;
-
-				console.log(`Error: ${error.message}`);
-				console.debug('Derived CST:');
-				console.debug(error.getTree());
-
-				console.log('Stack Trace:');
-				console.error(error.stack);
-			}
-			break;
-
-		case 'transpile':
-			try {
-				const [, , , lang, sourceCode, outputFile] = process.argv;
-
-				const cst = new Parser(new Lexer(sourceCode).lexify()).parse();
-				let destCode = '';
-
-				switch (lang) {
-					case 'go':
-						// destCode = new TranspilerToGo(cst).transpile();
-						break;
-					case 'ts':
-						// destCode = new TranspilerToTypescript(cst).transpile();
-						break;
-				}
-
-				if (outputFile) {
-					await fs.writeFile(outputFile, destCode);
-				} else {
-					console.log(destCode);
-				}
-			} catch (e) {
-				const error = e as Error;
-
-				console.error(`Error: ${error.message}`);
-				console.error('Stack Trace:');
 				console.error(error.stack);
 			}
 			break;
