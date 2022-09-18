@@ -7,6 +7,8 @@
     "help": "ts-node index.ts help",
     "lexify": "ts-node index.ts lexify",
     "parse": "ts-node index.ts parse",
+    "syntax": "ts-node index.ts syntax",
+    "transpile": "ts-node index.ts transpile",
     "test": "jest --detectOpenHandles && npm run --silent test-integration",
     "test-integration": "npm run --silent lexify -- \"$(cat examples/example1/main.joe)\" examples/example1/main.tokens && npm run --silent parse -- \"$(cat examples/example1/main.joe)\" examples/example1/main.parse-tree"
   },

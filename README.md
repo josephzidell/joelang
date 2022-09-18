@@ -14,6 +14,11 @@ npm run --silent parse -- 'your expression' # parse an expression
 npm run --silent parse -- "$(cat path/to/file.joe)" # parse a .joe file
 npm run --silent parse -- '...' file.parse-tree # send the Parse Tree output to a file
 
+# run the transpiler
+npm run --silent transpile -- <lang> 'your expression' # transpile an expression
+npm run --silent transpile -- <lang> "$(cat path/to/file.joe)" # transpile a .joe file
+npm run --silent transpile -- <lang> '...' file.<ext> # send the new code to a file
+
 # run the tests
 npm test
 
@@ -21,6 +26,10 @@ npm test
 npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
 # run parser example1
 npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.parse-tree
+# transpile example1 to Golang
+npm run --silent transpile -- go "$(cat examples/example1/main.joe)" examples/example1/main.go
+# transpile example1 to Typescript
+npm run --silent transpile -- ts "$(cat examples/example1/main.joe)" examples/example1/main.ts
 ```
 
 ## Challenge
