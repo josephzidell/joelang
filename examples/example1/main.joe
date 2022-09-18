@@ -11,11 +11,11 @@ f main {
 }
 
 class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
-	static bar = 'baz'; // public static property
-	private isDone? = true; // private instance property
+	let bar = 'baz'; // let
+	const isDone? = true; // const
 
 	/** method with no args and no return */
-	foo -> number {
+	f foo -> number {
 		const size = when someNumber {
 			1, 2 -> 'small',
 			3..10 -> 'medium',
@@ -53,21 +53,21 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 	}
 
 	/** with args */
-	methodWithArgs (arg1: bool, arg2: Tuple, arg3 = true, ...otherStuff: Thing[]) { ... }
+	f methodWithArgs (arg1: bool, arg2: Tuple, arg3 = true, ...otherStuff: Thing[]) { /* ... */ }
 
 	/** with one return val */
-	methodThatReturnsBool? : bool {
+	f methodThatReturnsBool? -> bool {
 		return true;
 	}
 
 	/** multiple return vals */
-	methodThatReturnsBool? : bool, number, Thing {
+	f methodThatReturnsBool? -> bool, number, Thing {
 		return false, 5, new Thing();
 	}
 
 	/** method that throws error */
-	careful! { /* ... */ }
+	f careful! { /* ... */ }
 
 	/** method with bool return that throws error */
-	careful?! : bool { /* ... */ }
+	f careful?! -> bool { /* ... */ }
 }

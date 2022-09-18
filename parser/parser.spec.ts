@@ -570,6 +570,105 @@ describe('parser.ts', (): void => {
 		});
 	});
 
+	describe('CallExpression', () => {
+
+		it('works with several nested layers', () => {
+			expect(parse('a.b.c.d(); 4')).toMatchParseTree([
+				['CallExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['MemberExpression', [
+								['Identifier', 'a'],
+								['Identifier', 'b'],
+							]],
+							['Identifier', 'c'],
+						]],
+						['Identifier', 'd'],
+					]],
+					['ArgumentsList', []],
+				]],
+				['SemicolonSeparator'],
+				['NumberLiteral', '4'],
+			]);
+		});
+
+		it('call followed by property', () => {
+			expect(parse('a(1).b')).toMatchParseTree([
+				['MemberExpression', [
+					['CallExpression', [
+						['Identifier', 'a'],
+						['ArgumentsList', [
+							['NumberLiteral', '1'],
+						]],
+					]],
+					['Identifier', 'b'],
+				]],
+			]);
+		});
+
+		it('call followed by a call', () => {
+			expect(parse('a(1).b(2)')).toMatchParseTree([
+				['CallExpression', [
+					['MemberExpression', [
+						['CallExpression', [
+							['Identifier', 'a'],
+							['ArgumentsList', [
+								['NumberLiteral', '1'],
+							]],
+						]],
+						['Identifier', 'b'],
+					]],
+					['ArgumentsList', [
+						['NumberLiteral', '2'],
+					]],
+				]],
+			]);
+		});
+
+	})
+
+	describe('Class', (): void => {
+		it('empty class', (): void => {
+			expect(parse('class Foo {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('class with comment', (): void => {
+			expect(parse('class Foo {\n# foo\n}\n# bar\n')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', [
+						['Comment', '# foo'],
+					]],
+				]],
+				['Comment', '# bar'],
+			]);
+		});
+
+		it('extends multiple and implements multiple', (): void => {
+			expect(parse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['ClassExtensionsList', [
+						  ['Identifier', 'Bar'],
+						  ['CommaSeparator'],
+						  ['Identifier', 'Baz'],
+					]],
+					['ClassImplementsList', [
+						['Identifier', 'AbstractFooBar'],
+						['CommaSeparator'],
+						['Identifier', 'AnotherAbstractClass'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+	});
+
 	describe('Comment', (): void => {
 		it('a single-line comment', (): void => {
 			expect(parse('# let x = "foo"')).toMatchParseTree([
@@ -577,25 +676,12 @@ describe('parser.ts', (): void => {
 			])
 		});
 
-		describe('block statements', (): void => {
-			it('empty class', (): void => {
-				expect(parse('class Foo {}')).toMatchParseTree([
-					['Keyword', 'class'],
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
-				]);
-			});
-
-			it('class with comment', (): void => {
-				expect(parse('class Foo {\n# foo\n}')).toMatchParseTree([
-					['Keyword', 'class'],
-					['Identifier', 'Foo'],
-					['BlockStatement', [
-						['Comment', '# foo'],
-					]],
-				]);
-			});
+		it('a multi-line comment', (): void => {
+			expect(parse('/* let x = "foo" */')).toMatchParseTree([
+				['Comment', '/* let x = "foo" */'],
+			])
 		});
+
 	});
 
 	describe('FunctionDeclaration', (): void => {
@@ -609,7 +695,7 @@ describe('parser.ts', (): void => {
 		});
 
 		it('no params with single return type', (): void => {
-			expect(parse('f foo -> bool {}')).toMatchParseTree([
+			expect(parse('f foo -> bool {} 5;')).toMatchParseTree([
 				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['FunctionReturns', [
@@ -617,6 +703,8 @@ describe('parser.ts', (): void => {
 					]],
 					['BlockStatement', []],
 				]],
+				['NumberLiteral', '5'],
+				['SemicolonSeparator'],
 			]);
 		});
 
@@ -820,6 +908,25 @@ describe('parser.ts', (): void => {
 			});
 		});
 	});
+
+	describe('MemberExpression', () => {
+
+		it('works with several nested layers', () => {
+			expect(parse('a.b.c.d')).toMatchParseTree([
+				['MemberExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['Identifier', 'a'],
+							['Identifier', 'b'],
+						]],
+						['Identifier', 'c'],
+					]],
+					['Identifier', 'd'],
+				]],
+			]);
+		});
+
+	})
 
 	describe('Operators', (): void => {
 		describe('unary expressions', (): void => {
@@ -1077,6 +1184,69 @@ describe('parser.ts', (): void => {
 	});
 
 	describe('WhenExpression', (): void => {
+
+		it('works with a small example', () => {
+			expect(parse(`when someNumber {
+				1 -> 'small',
+			}`)).toMatchParseTree([
+				['WhenExpression', [
+					['Identifier', 'someNumber'],
+					['BlockStatement', [
+						['WhenCase', [
+							['WhenCaseTests', [
+								['NumberLiteral', '1'],
+							]],
+							['WhenCaseConsequent', [
+								['StringLiteral', 'small'],
+							]],
+						]],
+						['CommaSeparator'],
+					]],
+				]],
+			]);
+		});
+
+		it('case with brace', () => {
+			expect(parse(`when someNumber {
+				1 -> {
+					doThing1();
+					doThing2();
+
+					return 'large';
+				},
+			}`)).toMatchParseTree([
+				['WhenExpression', [
+					['Identifier', 'someNumber'],
+					['BlockStatement', [
+						['WhenCase', [
+							['WhenCaseTests', [
+								['NumberLiteral', '1'],
+							]],
+							['WhenCaseConsequent', [
+								['BlockStatement', [
+									['CallExpression', [
+										['Identifier', 'doThing1'],
+										['ArgumentsList', []],
+									]],
+									['SemicolonSeparator'],
+									['CallExpression', [
+										['Identifier', 'doThing2'],
+										['ArgumentsList', []],
+									]],
+									['SemicolonSeparator'],
+									['ReturnStatement', [
+										['StringLiteral', 'large'],
+									]],
+									['SemicolonSeparator'],
+								]],
+							]],
+						]],
+						['CommaSeparator'],
+					]],
+				]],
+			]);
+		});
+
 		it('works with single values, multiple values, ranges, and ...', (): void => {
 			expect(parse(`const size = when someNumber {
 				1, 2 -> 'small',

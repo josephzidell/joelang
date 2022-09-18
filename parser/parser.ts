@@ -42,7 +42,6 @@ export default class {
 		const nodeTypesThatASemicolonEnds: NodeType[] = [
 			'ArrayExpression',
 			'BinaryExpression',
-			'CallExpression',
 			'MemberExpression',
 			'PrintStatement',
 			'RangeExpression',
@@ -73,6 +72,10 @@ export default class {
 							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
 						}
 						break;
+					case 'MemberExpression':
+						this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+						break;
 					default:
 						this.beginExpressionWith(MakeNode('Parenthesized', token, this.currentRoot), true);
 						break;
@@ -80,23 +83,25 @@ export default class {
 			} else if (token.type === 'paren_close') {
 				this.endExpression();
 
+				// check if we're in a CallExpression, if so, it's also finished
+				this.endExpressionIfIn('CallExpression');
+
 				// check if we're in a ParametersList, if so, it's also finished
 				this.endExpressionIfIn('ParametersList');
 
-				// ... and then, check if currentRoot is a unary, if so, it's also finished
+				// ... and then, check if currentRoot is a UnaryExpression, if so, it's also finished
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'brace_open') {
-				if (this.currentRoot.type === 'FunctionReturns') {
-					this.endExpression();
-				}
+				this.endExpressionIfIn('FunctionReturns');
+				this.endExpressionIfIn('ClassExtensionsList');
+				this.endExpressionIfIn('ClassImplementsList');
 
 				this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot), true);
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
-				if (this.currentRoot.type === 'FunctionDeclaration') {
-					this.endExpression();
-				}
+				this.endExpressionIfIn('ClassDeclaration');
+				this.endExpressionIfIn('FunctionDeclaration');
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.tokens[i + 1]?.type === 'bracket_close';
 				const prev = this.prev();
@@ -111,7 +116,8 @@ export default class {
 					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot), true);
 				}
 			} else if (token.type === 'bracket_close') {
-				this.endExpression();
+				this.endExpression(); // ArrayType or MemberList
+				this.endExpressionIfIn('MemberExpression');
 			} else if (token.type === 'bool') {
 				this.currentRoot.children.push(MakeNode('BoolLiteral', token, this.currentRoot));
 			} else if (token.type === 'nil') {
@@ -137,6 +143,9 @@ export default class {
 				}
 
 				this.currentRoot.children.push(MakeNode('Identifier', token, this.currentRoot));
+
+				// check if currentRoot is a MemberExpression, if so, it's finished
+				this.endExpressionIfIn('MemberExpression');
 
 				// check if currentRoot is a UnaryExpression, if so, it's finished
 				this.endExpressionIfIn('UnaryExpression');
@@ -178,7 +187,19 @@ export default class {
 			} else if (token.type === 'exponent') {
 				this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
 			} else if (token.type === 'semicolon') {
-				this.endExpression();
+				/**
+				 * this conditional is needed for situations like this
+				 * ```
+				 * when foo {
+				 * 	1 -> {
+				 * 		doThing1(); // <-- this semicolon would end the BlockStatement
+				 * 		doThing2();
+				 * 	}
+				 * }
+				 */
+				if (this.currentRoot.type !== 'BlockStatement') {
+					this.endExpression();
+				}
 
 				// greedy ending - end as many nodes as relevantly possible
 				while (nodeTypesThatASemicolonEnds.includes(this.currentRoot.type)) {
@@ -186,6 +207,11 @@ export default class {
 				}
 
 				this.currentRoot.children.push(MakeNode('SemicolonSeparator', token, this.currentRoot));
+			} else if (token.type === 'dot') {
+				const prev = this.prev();
+				if (prev?.type === 'CallExpression' || prev?.type === 'Identifier' || prev?.type === 'MemberExpression') {
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot), true);
+				}
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
@@ -331,12 +357,23 @@ export default class {
 
 			} else if (token.type === 'keyword') {
 				switch (token.value) {
+					case 'class':
+						this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot), true);
+						break;
 					case 'const':
 					case 'let':
 						this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
 						break;
+					case 'extends':
+						this.beginExpressionWith(MakeNode('ClassExtensionsList', token, this.currentRoot), true);
+						break;
 					case 'f':
 						this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
+						break;
+					case 'implements':
+						this.endExpressionIfIn('ClassExtensionsList');
+
+						this.beginExpressionWith(MakeNode('ClassImplementsList', token, this.currentRoot), true);
 						break;
 					case 'import':
 						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot), true);
