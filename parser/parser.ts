@@ -209,7 +209,7 @@ export default class {
 			} else if (token.type === 'comment') {
 				this.currentRoot.children.push(MakeNode('Comment', token, this.currentRoot));
 			} else if (token.type === 'assign') {
-				this.currentRoot.children.push(MakeNode('AssignmentOperator', token, this.currentRoot));
+				this.currentRoot.children.push(MakeNode('AssignmentOperator', token, this.currentRoot, true));
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn('UnaryExpression');
 				this.currentRoot.children.push(MakeNode('AdditionOperator', token, this.currentRoot));

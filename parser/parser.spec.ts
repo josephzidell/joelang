@@ -393,7 +393,7 @@ describe('parser.ts', (): void => {
 			expect(parse('let x = false')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['BoolLiteral', 'false'],
 				]],
 			])
@@ -403,7 +403,7 @@ describe('parser.ts', (): void => {
 			expect(parse('let x = 1')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['NumberLiteral', '1'],
 				]],
 			])
@@ -411,7 +411,7 @@ describe('parser.ts', (): void => {
 			expect(parse('const x = -2,300.006^e-2,000; const y = 5;')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['BinaryExpression', '^e', [
 						['UnaryExpression', '-', {before: true}, [
 							['NumberLiteral', '2,300.006'],
@@ -424,7 +424,7 @@ describe('parser.ts', (): void => {
 				['SemicolonSeparator'],
 				['VariableDeclaration', 'const', [
 					['Identifier', 'y'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['NumberLiteral', '5'],
 				]],
 				['SemicolonSeparator'],
@@ -435,7 +435,7 @@ describe('parser.ts', (): void => {
 			expect(parse('let x = "foo"')).toMatchParseTree([
 				['VariableDeclaration', 'let', [
 					['Identifier', 'x'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['StringLiteral', 'foo'],
 				]],
 			])
@@ -458,7 +458,7 @@ describe('parser.ts', (): void => {
 					['Identifier', 'x'],
 					['ColonSeparator'],
 					['Type', 'string'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['StringLiteral', 'foo'],
 				]],
 			])
@@ -468,7 +468,7 @@ describe('parser.ts', (): void => {
 			expect(parse('const x = /[a-z/;')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['RegularExpression', '/[a-z/'],
 				]],
 				['SemicolonSeparator'],
@@ -479,7 +479,7 @@ describe('parser.ts', (): void => {
 					['Identifier', 'x'],
 					['ColonSeparator'],
 					['Type', 'regex'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['RegularExpression', '/[a-z/g'],
 				]],
 				['SemicolonSeparator'],
@@ -490,7 +490,7 @@ describe('parser.ts', (): void => {
 			expect(parse('const x = nil')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'x'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['Nil', 'nil'],
 				]],
 			])
@@ -656,7 +656,7 @@ describe('parser.ts', (): void => {
 					['BlockStatement', [
 						['VariableDeclaration', 'const', [
 							['Identifier', 'foo'],
-							['AssignmentOperator', '='],
+							['AssignmentOperator'],
 							['StringLiteral', 'bar'],
 						]],
 						['SemicolonSeparator'],
@@ -732,7 +732,7 @@ describe('parser.ts', (): void => {
 							['ParametersList', [
 								['Parameter', [
 									['Identifier', 'name'],
-									['AssignmentOperator', '='],
+									['AssignmentOperator'],
 									['StringLiteral', 'World'],
 								]],
 							]],
@@ -790,7 +790,7 @@ describe('parser.ts', (): void => {
 				['ForStatement', [
 					['VariableDeclaration', 'let', [
 						['Identifier', 'i'],
-						['AssignmentOperator', '='],
+						['AssignmentOperator'],
 						['NumberLiteral', '0'],
 					]],
 					['SemicolonSeparator'],
@@ -813,7 +813,7 @@ describe('parser.ts', (): void => {
 					['Parenthesized', [
 						['VariableDeclaration', 'let', [
 							['Identifier', 'i'],
-							['AssignmentOperator', '='],
+							['AssignmentOperator'],
 							['NumberLiteral', '0'],
 						]],
 						['SemicolonSeparator'],
@@ -967,7 +967,7 @@ describe('parser.ts', (): void => {
 							['ArrayType', [
 								['Type', 'number'],
 							]],
-							['AssignmentOperator', '='],
+							['AssignmentOperator'],
 							['ArrayExpression', [
 								['NumberLiteral', '5'],
 							]],
@@ -1029,7 +1029,6 @@ describe('parser.ts', (): void => {
 				]],
 			]);
 		});
-
 		it('abstract functions', () => {
 			expect(parse(`abstract class A {
 				abstract f foo1;
@@ -1098,8 +1097,7 @@ describe('parser.ts', (): void => {
 					]],
 				]],
 			]);
-		})
-
+		});
 
 	});
 
@@ -1664,13 +1662,13 @@ describe('parser.ts', (): void => {
 				expect(parse('const foo = 1; let bar = -foo;')).toMatchParseTree([
 					['VariableDeclaration', 'const', [
 						['Identifier', 'foo'],
-						['AssignmentOperator', '='],
+						['AssignmentOperator'],
 						['NumberLiteral', '1'],
 					]],
 					['SemicolonSeparator'],
 					['VariableDeclaration', 'let', [
 						['Identifier', 'bar'],
-						['AssignmentOperator', '='],
+						['AssignmentOperator'],
 						['UnaryExpression', '-', {before: true}, [
 							['Identifier', 'foo'],
 						]],
@@ -1857,7 +1855,7 @@ describe('parser.ts', (): void => {
 			}`)).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'size'],
-					['AssignmentOperator', '='],
+					['AssignmentOperator'],
 					['WhenExpression', [
 						['Identifier', 'someNumber'],
 						['BlockStatement', [
