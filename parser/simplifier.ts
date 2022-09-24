@@ -1,4 +1,4 @@
-import { Node, UnaryExpressionNode } from "./types";
+import { Node, NodeType, UnaryExpressionNode } from "./types";
 
 // SParseTree = Simplified Parse Tree
 
@@ -6,11 +6,11 @@ import { Node, UnaryExpressionNode } from "./types";
 type extraInformation = {
 	before?: boolean;
 }
-type SParseNodeWithoutValueAndWithoutChildren = [string]; // eg ['SemicolonSeparator']
-type SParseNodeWithValueAndWithoutChildren = [string, string]; // eg ['NumberLiteral', '1']
-type SParseNodeWithoutValueWithChildren = [string, SParseTree]
-type SParseNodeWithValueWithChildren = [string, string, SParseTree]
-type SParseNodeWithValueWithChildrenWithExtraInformation = [string, string, extraInformation, SParseTree]
+type SParseNodeWithoutValueAndWithoutChildren = [NodeType]; // eg ['SemicolonSeparator']
+type SParseNodeWithValueAndWithoutChildren = [NodeType, string]; // eg ['NumberLiteral', '1']
+type SParseNodeWithoutValueWithChildren = [NodeType, SParseTree]
+type SParseNodeWithValueWithChildren = [NodeType, string, SParseTree]
+type SParseNodeWithValueWithChildrenWithExtraInformation = [NodeType, string, extraInformation, SParseTree]
 type SParseNode = SParseNodeWithoutValueAndWithoutChildren | SParseNodeWithValueAndWithoutChildren | SParseNodeWithoutValueWithChildren | SParseNodeWithValueWithChildren | SParseNodeWithValueWithChildrenWithExtraInformation;
 export type SParseTree = SParseNode[];
 

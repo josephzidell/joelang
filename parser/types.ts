@@ -25,6 +25,8 @@ const nodeTypes = [
 	'Keyword',
 	'MemberExpression',
 	'MembersList',
+	'Modifier', // for Class, Function, Interface, or Variable
+	'ModifiersList', // for Class, Function, Interface, or Variable
 	'ModOperator',
 	'MultiplicationOperator',
 	'Nil',

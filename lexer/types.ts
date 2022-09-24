@@ -77,6 +77,7 @@ export type Token = {
 
 // reserved keywords
 export const keywords = [
+	'abstract',
 	'class',
 	'const',
 	'extends',

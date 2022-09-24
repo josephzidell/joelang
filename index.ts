@@ -42,9 +42,11 @@ void (async (): Promise<void> => {
 			try {
 				const [, , , sourceCode, outputFile] = process.argv;
 
+				const debug = false;
+
 				// output simplified tree
 				// TODO add `-v|--verbose` option
-				const parseTree = simplifyTree([new Parser(new Lexer(sourceCode).lexify()).parse()]);
+				const parseTree = simplifyTree([new Parser(new Lexer(sourceCode).lexify(), debug).parse()]);
 
 				if (outputFile) {
 					await fs.writeFile(outputFile, inspect(parseTree, { showHidden: true, depth: null }));

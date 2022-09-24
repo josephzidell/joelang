@@ -649,6 +649,27 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		it('class with properties and methods', (): void => {
+			expect(parse('class Foo {\nconst foo = "bar";\nf bar {}}\n# bar\n')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', [
+						['VariableDeclaration', 'const', [
+							['Identifier', 'foo'],
+							['AssignmentOperator', '='],
+							['StringLiteral', 'bar'],
+						]],
+						['SemicolonSeparator'],
+						['FunctionDeclaration', [
+							['Identifier', 'bar'],
+							['BlockStatement', []],
+						]],
+					]],
+				]],
+				['Comment', '# bar'],
+			]);
+		});
+
 		it('class extends multiple and implements multiple', (): void => {
 			expect(parse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}')).toMatchParseTree([
 				['ClassDeclaration', [
@@ -668,38 +689,76 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('empty interface', (): void => {
-			expect(parse('interface Foo {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
-				]],
-			]);
-		});
-
-		it('interface extends multiple', (): void => {
-			expect(parse('interface Foo extends Bar, Baz {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Identifier', 'Foo'],
-					['InterfaceExtensionsList', [
-						['Identifier', 'Bar'],
-						['CommaSeparator'],
-						['Identifier', 'Baz'],
+		it('abstract class', (): void => {
+			expect(parse('abstract class Foo {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['ModifiersList', [
+						['Modifier', 'abstract'],
 					]],
+					['Identifier', 'Foo'],
 					['BlockStatement', []],
 				]],
 			]);
-		});
 
-		it('interface and class', (): void => {
-			expect(parse('interface Foo {}\nclass Bar implements Foo {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
+			expect(parse(`
+			abstract class Foo {
+				abstract const baz: number;
+
+				abstract f hello<T> (name = 'World') -> Greeting, T;
+			}`)).toMatchParseTree([
+				['ClassDeclaration', [
+					['ModifiersList', [
+						['Modifier', 'abstract'],
+					]],
+					['Identifier', 'Foo'],
+					['BlockStatement', [
+						['VariableDeclaration', 'const', [
+							['ModifiersList', [
+								['Modifier', 'abstract'],
+							]],
+							['Identifier', 'baz'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
+						['SemicolonSeparator'],
+						['FunctionDeclaration', [
+							['ModifiersList', [
+								['Modifier', 'abstract'],
+							]],
+							['Identifier', 'hello'],
+							['GenericTypesList', [
+								['Identifier', 'T'],
+							]],
+							['ParametersList', [
+								['Parameter', [
+									['Identifier', 'name'],
+									['AssignmentOperator', '='],
+									['StringLiteral', 'World'],
+								]],
+							]],
+							['FunctionReturns', [
+								['Identifier', 'Greeting'],
+								['CommaSeparator'],
+								['Identifier', 'T'],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+
+
+			expect(parse('abstract class Foo {}\nclass Bar extends Foo {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['ModifiersList', [
+						['Modifier', 'abstract'],
+					]],
 					['Identifier', 'Foo'],
 					['BlockStatement', []],
 				]],
 				['ClassDeclaration', [
 					['Identifier', 'Bar'],
-					['ClassImplementsList', [
+					['ClassExtensionsList', [
 						['Identifier', 'Foo'],
 					]],
 					['BlockStatement', []],
@@ -920,6 +979,78 @@ describe('parser.ts', (): void => {
 				]],
 			]);
 		});
+
+		it('abstract functions', () => {
+			expect(parse(`abstract class A {
+				abstract f foo1;
+				abstract f foo2 (arg: number);
+				abstract f foo3 -> bool;
+				abstract f foo4 (arg: number) -> bool;
+			}`)).toMatchParseTree([
+				['ClassDeclaration', [
+					['ModifiersList', [
+						['Modifier', 'abstract'],
+					]],
+					['Identifier', 'A'],
+					['BlockStatement', [
+						// foo1
+						['FunctionDeclaration', [
+							['ModifiersList', [
+								['Modifier', 'abstract'],
+							]],
+							['Identifier', 'foo1'],
+						]],
+						['SemicolonSeparator'],
+						// foo2
+						['FunctionDeclaration', [
+							['ModifiersList', [
+								['Modifier', 'abstract'],
+							]],
+							['Identifier', 'foo2'],
+							['ParametersList', [
+								['Parameter', [
+									['Identifier', 'arg'],
+									['ColonSeparator'],
+									['Type', 'number'],
+								]],
+							]],
+						]],
+						['SemicolonSeparator'],
+						// foo3
+						['FunctionDeclaration', [
+							['ModifiersList', [
+								['Modifier', 'abstract'],
+							]],
+							['Identifier', 'foo3'],
+							['FunctionReturns', [
+								['Type', 'bool'],
+							]],
+						]],
+						['SemicolonSeparator'],
+						// foo4
+						['FunctionDeclaration', [
+							['ModifiersList', [
+								['Modifier', 'abstract'],
+							]],
+							['Identifier', 'foo4'],
+							['ParametersList', [
+								['Parameter', [
+									['Identifier', 'arg'],
+									['ColonSeparator'],
+									['Type', 'number'],
+								]],
+							]],
+							['FunctionReturns', [
+								['Type', 'bool'],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+		})
+
+
 	});
 
 	describe('ImportDeclaration', (): void => {
@@ -948,6 +1079,49 @@ describe('parser.ts', (): void => {
 			});
 		});
 	});
+
+	describe('InterfaceDeclaration', (): void => {
+
+		it('empty interface', (): void => {
+			expect(parse('interface Foo {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('interface extends other', (): void => {
+			expect(parse('interface Foo {} interface Bar extends Foo {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+				['InterfaceDeclaration', [
+					['Identifier', 'Bar'],
+					['InterfaceExtensionsList', [
+						['Identifier', 'Foo'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('interface extends multiple', (): void => {
+			expect(parse('interface Foo extends Bar, Baz {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['InterfaceExtensionsList', [
+						['Identifier', 'Bar'],
+						['CommaSeparator'],
+						['Identifier', 'Baz'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+	})
 
 	describe('MemberExpression', () => {
 

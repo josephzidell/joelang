@@ -32,6 +32,18 @@ export default class {
 		this.currentRoot = this.root;
 
 		this.debug = debug;
+
+		if (this.debug) {
+			console.debug(`Getting started with ${this.tokens.length} tokens`);
+		}
+	}
+
+	public lineage (node: Node | undefined, separator = '>'): string {
+		if (typeof node === 'undefined') {
+			return 'end';
+		}
+
+		return `${node.type}${separator}${this.lineage(node.parent, separator)}`;
 	}
 
 	public parse (): Node {
@@ -42,6 +54,8 @@ export default class {
 		const nodeTypesThatASemicolonEnds: NodeType[] = [
 			'ArrayExpression',
 			'BinaryExpression',
+			'FunctionDeclaration', // for abstract functions
+			'FunctionReturns', // for abstract functions
 			'MemberExpression',
 			'PrintStatement',
 			'RangeExpression',
@@ -53,6 +67,10 @@ export default class {
 
 		for (let i = 0; i < this.tokens.length; i++) {
 			const token = this.tokens[i];
+
+			if (this.debug) {
+				console.debug(`Found token type "${token.type}" with value "${token.value}"`);
+			}
 
 			if (token.type === 'paren_open') {
 				switch (this.prev()?.type) {
@@ -97,6 +115,10 @@ export default class {
 				this.endExpressionIfIn('ClassImplementsList');
 				this.endExpressionIfIn('InterfaceExtensionsList');
 
+				if (this.debug) {
+					console.debug('Beginning a BlockStatement');
+				}
+
 				this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot), true);
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
@@ -127,6 +149,10 @@ export default class {
 			} else if (token.type === 'number') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
+				if (this.debug) {
+					console.debug(`Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
+				}
+
 				this.currentRoot.children.push(MakeNode('NumberLiteral', token, this.currentRoot));
 
 				// check if currentRoot is a UnaryExpression, if so, it's also finished
@@ -139,9 +165,21 @@ export default class {
 			} else if (token.type === 'string') {
 				this.currentRoot.children.push(MakeNode('StringLiteral', token, this.currentRoot));
 			} else if (token.type === 'identifier') {
+				if (this.debug) {
+					console.debug(`Handling identifier "${token.value}"`);
+				}
+
 				// check if we're in a ParametersList, if so, begin a Parameter
 				if (this.currentRoot.type === 'ParametersList') {
+					if (this.debug) {
+						console.debug('Currently there is a ParametersList open; now creating a Parameter Node in it');
+					}
+
 					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot), true);
+				}
+
+				if (this.debug) {
+					console.debug(`Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`);
 				}
 
 				this.currentRoot.children.push(MakeNode('Identifier', token, this.currentRoot));
@@ -358,13 +396,61 @@ export default class {
 				}
 
 			} else if (token.type === 'keyword') {
+				if (this.debug) {
+					console.debug(`Handling keyword "${token.value}"`);
+				}
+
 				switch (token.value) {
+					case 'abstract':
+						// can either be a ClassDeclaration, FunctionDeclaration or VariableDeclaration
+
+						// the simplest way is to start a ModifiersList,
+						// then when we come across a one of those declarations, we check if this.currentRoot is a ModifiersList
+
+						if (this.debug) {
+							console.debug('Beginning a ModifiersList');
+						}
+
+						this.beginExpressionWith(MakeNode('ModifiersList', token, this.currentRoot), true);
+
+						if (this.debug) {
+							console.debug(`Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
+						}
+
+						this.currentRoot.children.push(MakeNode('Modifier', token, this.currentRoot));
+						break;
 					case 'class':
-						this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot), true);
+						// the ClassDeclaration may have already started with some Modifier(s)
+						if (this.currentRoot.type === 'ModifiersList') {
+							if (this.debug) {
+								console.debug('Currently there is a ModifiersList open; now beginning ClassDeclaration and adopting the ModifiersList');
+							}
+
+							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('ClassDeclaration', token, this.currentRoot), true);
+						} else {
+							if (this.debug) {
+								console.debug('There is no ModifiersList open; now beginning a ClassDeclaration');
+							}
+
+							this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot), true);
+						}
 						break;
 					case 'const':
 					case 'let':
-						this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
+						// the VariableDeclaration may have already started with some Modifier(s)
+						if (this.currentRoot.type === 'ModifiersList') {
+							if (this.debug) {
+								console.debug('Currently there is a ModifiersList open; now beginning VariableDeclaration and adopting the ModifiersList');
+							}
+
+							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('VariableDeclaration', token, this.currentRoot));
+						} else {
+							if (this.debug) {
+								console.debug('There is no ModifiersList open; now beginning a VariableDeclaration');
+							}
+
+							this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
+						}
 						break;
 					case 'extends':
 						if (this.currentRoot.type === 'ClassDeclaration') {
@@ -376,7 +462,20 @@ export default class {
 						}
 						break;
 					case 'f':
-						this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
+						// the FunctionDeclaration may have already started with a Modifier
+						if (this.currentRoot.type === 'ModifiersList') {
+							if (this.debug) {
+								console.debug('Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList');
+							}
+
+							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
+						} else {
+							if (this.debug) {
+								console.debug('There is no ModifiersList open; now beginning a FunctionDeclaration');
+							}
+
+							this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
+						}
 						break;
 					case 'implements':
 						this.endExpressionIfIn('ClassExtensionsList');
@@ -533,11 +632,11 @@ export default class {
 	 *           │                          │              │<<<<<<<<<<<<<<<<<<<^       │              │
 	 *           │                          │              │                   ^       │    ┌─────────▼─────────┐
 	 * ┌─────────▼─────────┐                │    ┌─────────▼─────────┐         ^       │    │      new kid      │
-	 * │    currentNode    │                │    │    currentNode    │         ^       │    └─────────┬─────────┘
+	 * │    currentRoot    │                │    │    currentRoot    │         ^       │    └─────────┬─────────┘
 	 * └────┬──────────┬───┘                │    └────┬──────────┬───┘         ^       │              │
 	 *      │          │                    │         │          │             ^       │              │
 	 *      │          │                    │         │          │             ^       │    ┌─────────▼─────────┐
-	 *      │          │                    │         │          │             ^       │    │    currentNode    │
+	 *      │          │                    │         │          │             ^       │    │    currentRoot    │
 	 * ┌────▼───┐  ┌───▼───┐     ┌─────┐    │    ┌────▼───┐  ┌───▼───┐      ┌──^──┐    │    └────┬──────────┬───┘
 	 * │ other  │  │  prev │     │ new │    │    │ other  │  │  prev │      │ new │    │         │          │
 	 * │ node   │  │  node │     │ kid │    │    │ node   │  │  node │      │ kid │    │         │          │
@@ -547,41 +646,62 @@ export default class {
 	 *                                      │                                          │    │ node   │  │  node │
 	 *                                      │                                          │    └────────┘  └───────┘
 	 *
+	 * This process has 4 steps:
+	 * (a) Cut currentRoot from its parent
+	 * (b) Attach currentRoot to newKid's children
+	 * (c) Attach newKid to currentRoot's parent's children
+	 * (d) Update this.currentRoot = newKid
 	 *
 	 * @param newKid - To begin the expression with
 	 * @param removeValue - Should the value be cleared out? Sometimes, the value is useless, and adds noise
 	 *
 	 * @throws Error if there is no previous node
 	 */
-	 private beginExpressionWithAdoptingCurrentRoot(newKid: Node, removeValue = false) {
+	private beginExpressionWithAdoptingCurrentRoot(newKid: Node, removeValue = false) {
+		if (this.debug) {
+			console.debug(`Moving this.currentRoot ${this.currentRoot.type} to under ${newKid.type}`);
+		}
+
 		if (removeValue) {
 			newKid.value = undefined;
 		}
 
-		// get currentRoot's siblings in a variable
-		const currentRootsSiblings = (this.currentRoot.parent as Node).children;
+		// make a copy to avoid circular reference issues
+		// this.currentRoot will be reassigned toward the end
+		const currentRoot = {...this.currentRoot};
 
-		// remove last node (a.k.a. this.currentRoot)
-		const currentRoot = currentRootsSiblings.pop() as Node;
+		// make a reference for convenience
+		const currentRootsParent = this.currentRoot.parent as Node;
 
-		// add this one onto that array
-		currentRootsSiblings.push(newKid);
+		// (a) Cut currentRoot from its parent
+		currentRoot.parent = undefined;
+		currentRootsParent.children.pop();
 
-		// add to this one's nodes
+		// (b) Attach currentRoot to newKid's children
 		newKid.children.push(currentRoot);
+		currentRoot.parent = newKid;
 
-		// update the currentRoot's nodes with the modified array
-		(this.currentRoot.parent as Node).children = currentRootsSiblings;
+		// (c) Attach newKid to currentRoot's parent's children
+		currentRootsParent.children.push(newKid);
+		newKid.parent = currentRootsParent;
 
-		// and finally, this one is now the new currentRoot.
+		// (d) Update this.currentRoot = newKid
 		// The currentRoot is dead (well, not really). Long live the currentRoot.
 		this.currentRoot = newKid;
+
+		if (this.debug) {
+			console.debug(`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`);
+		}
 	}
 
 	/**
 	 * Runs when an expression has ended
 	 */
 	private endExpression() {
+		if (this.debug) {
+			console.debug(`Ending a ${this.lineage(this.currentRoot)}; this.currentRoot is now ${this.lineage(this.currentRoot.parent)}`);
+		}
+
 		// capure this one's pos.end
 		const nigh = this.currentRoot.pos.end;
 
