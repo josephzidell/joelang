@@ -1099,6 +1099,66 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		it('anonymous simple', () => {
+			expect(parse('const foo = f {};')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'foo'],
+					['AssignmentOperator'],
+					['FunctionDeclaration', [
+						['BlockStatement', []],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+		it('anonymous complex', () => {
+			expect(parse('const foo = f foo<T> (a: T) -> T {\ndo();\n};')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'foo'],
+					['AssignmentOperator'],
+					['FunctionDeclaration', [
+						['Identifier', 'foo'],
+						['GenericTypesList', [
+							['Identifier', 'T'],
+						]],
+						['ParametersList', [
+							['Parameter', [
+								['Identifier', 'a'],
+								['ColonSeparator'],
+								['Identifier', 'T'],
+							]],
+						]],
+						['FunctionReturns', [
+							['Identifier', 'T'],
+						]],
+						['BlockStatement', [
+							['CallExpression', [
+								['Identifier', 'do'],
+								['ArgumentsList', []],
+							]],
+							['SemicolonSeparator'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+		it('anonymous abstract', () => {
+			expect(parse('abstract const foo = f;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['ModifiersList', [
+						['Modifier', 'abstract'],
+					]],
+					['Identifier', 'foo'],
+					['AssignmentOperator'],
+					['FunctionDeclaration'],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
 	});
 
 	describe('IfStatement', (): void => {
@@ -2057,5 +2117,33 @@ describe('parser.ts', (): void => {
 				['SemicolonSeparator'],
 			]);
 		});
+
+		it('"f foo(a: number = 1,234, b = true) -> bool {}" should correctly see the comma as a separator', () => {
+			expect(parse('f foo(a: number = 1,234, b = true) -> bool {}')).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'foo'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['Type', 'number'],
+							['AssignmentOperator'],
+							['NumberLiteral', '1,234'],
+						]],
+						['CommaSeparator'],
+						['Parameter', [
+							['Identifier', 'b'],
+							['AssignmentOperator'],
+							['BoolLiteral', 'true'],
+						]],
+					]],
+					['FunctionReturns', [
+						['Type', 'bool'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
 	});
 });
