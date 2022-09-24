@@ -15,6 +15,7 @@ const nodeTypes = [
 	'CommaSeparator',
 	'Comment',
 	'DivisionOperator',
+	'ForStatement',
 	'FunctionDeclaration',
 	'FunctionReturns',
 	'GenericTypesList',

@@ -115,6 +115,11 @@ export default class {
 				this.endExpressionIfIn('ClassImplementsList');
 				this.endExpressionIfIn('InterfaceExtensionsList');
 
+				// if in `for let i = 0; i < 10; i++ {}`, we need to end the UnaryExpression of i++
+				if (this.currentRoot.parent?.type === 'ForStatement') {
+					this.endExpression(); // end the UnaryExpression
+				}
+
 				if (this.debug) {
 					console.debug('Beginning a BlockStatement');
 				}
@@ -476,6 +481,9 @@ export default class {
 
 							this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
 						}
+						break;
+					case 'for':
+						this.beginExpressionWith(MakeNode('ForStatement', token, this.currentRoot), true);
 						break;
 					case 'implements':
 						this.endExpressionIfIn('ClassExtensionsList');

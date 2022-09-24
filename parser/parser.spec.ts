@@ -783,6 +783,56 @@ describe('parser.ts', (): void => {
 
 	});
 
+	describe('ForStatement', (): void => {
+
+		it('simple for statement', () => {
+			expect(parse('for let i = 0; i < 10; i++ {}')).toMatchParseTree([
+				['ForStatement', [
+					['VariableDeclaration', 'let', [
+						['Identifier', 'i'],
+						['AssignmentOperator', '='],
+						['NumberLiteral', '0'],
+					]],
+					['SemicolonSeparator'],
+					['BinaryExpression', '<', [
+						['Identifier', 'i'],
+						['NumberLiteral', '10'],
+					]],
+					['SemicolonSeparator'],
+					['UnaryExpression', '++', {before: false}, [
+						['Identifier', 'i'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with parens', () => {
+			expect(parse('for (let i = 0; i < 10; i++) {}')).toMatchParseTree([
+				['ForStatement', [
+					['Parenthesized', [
+						['VariableDeclaration', 'let', [
+							['Identifier', 'i'],
+							['AssignmentOperator', '='],
+							['NumberLiteral', '0'],
+						]],
+						['SemicolonSeparator'],
+						['BinaryExpression', '<', [
+							['Identifier', 'i'],
+							['NumberLiteral', '10'],
+						]],
+						['SemicolonSeparator'],
+						['UnaryExpression', '++', {before: false}, [
+							['Identifier', 'i'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+	});
+
 	describe('FunctionDeclaration', (): void => {
 		it('no params or return types', (): void => {
 			expect(parse('f foo {}')).toMatchParseTree([
