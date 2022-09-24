@@ -1,7 +1,7 @@
 import { Token, TokenType } from "../lexer/types";
 import { Node, NodeType } from './types';
 import ParserError from './error';
-import { MakeNode, MakeUnaryExpressionNode } from './node';
+import { MakeIfStatementNode, MakeNode, MakeUnaryExpressionNode } from './node';
 import { inspect } from 'util';
 
 export default class {
@@ -56,6 +56,7 @@ export default class {
 			'BinaryExpression',
 			'FunctionDeclaration', // for abstract functions
 			'FunctionReturns', // for abstract functions
+			'IfStatement',
 			'MemberExpression',
 			'PrintStatement',
 			'RangeExpression',
@@ -110,6 +111,7 @@ export default class {
 				// ... and then, check if currentRoot is a UnaryExpression, if so, it's also finished
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'brace_open') {
+				this.endExpressionIfIn('BinaryExpression');
 				this.endExpressionIfIn('FunctionReturns');
 				this.endExpressionIfIn('ClassExtensionsList');
 				this.endExpressionIfIn('ClassImplementsList');
@@ -145,7 +147,8 @@ export default class {
 					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot, true));
 				}
 			} else if (token.type === 'bracket_close') {
-				this.endExpression(); // ArrayType or MemberList
+				this.endExpressionIfIn('IfStatement');
+				this.endExpression(); // ArrayExpression, ArrayType or MemberList
 				this.endExpressionIfIn('MemberExpression');
 			} else if (token.type === 'bool') {
 				this.currentRoot.children.push(MakeNode('BoolLiteral', token, this.currentRoot));
@@ -254,7 +257,11 @@ export default class {
 				this.currentRoot.children.push(MakeNode('SemicolonSeparator', token, this.currentRoot));
 			} else if (token.type === 'dot') {
 				const prev = this.prev();
-				if (prev?.type === 'CallExpression' || prev?.type === 'Identifier' || prev?.type === 'MemberExpression') {
+				if (prev?.type === 'CallExpression' ||
+					prev?.type === 'Identifier' ||
+					prev?.type === 'MemberExpression' ||
+					(prev?.type === 'Keyword' && prev.value === 'this')
+				) {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot, true));
 				}
 			} else if (token.type === 'dotdotdot') {
@@ -283,12 +290,24 @@ export default class {
 					this.endExpression();
 				}
 
+				// postfix `if` in an array
+				// this is separate from the above if/elses since this can happen _after and in addition to_ one of the above scenarios
+				if (this.currentRoot.type === 'IfStatement' && this.currentRoot.parent?.type === 'ArrayExpression') {
+					this.endExpression();
+				}
+
 				this.currentRoot.children.push(MakeNode('CommaSeparator', token, this.currentRoot));
 			} else if (['and', 'compare', 'equals', 'greater_than_equals', 'less_than_equals', 'not_equals', 'or'].includes(token.type)) {
+				const prev = this.prev();
+
 				// we need to go 2 levels up
-				if (this.prev()?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+
+				if (this.currentRoot.type === 'BinaryExpression' && ['and', 'or'].includes(token.type)) {
+					// && and || have higher order precedence than equality checks
 					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
-				} else if (this.prev()?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
+				} else if (prev?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+				} else if (prev?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
 					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
 				} else {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
@@ -487,6 +506,18 @@ export default class {
 						break;
 					case 'for':
 						this.beginExpressionWith(MakeNode('ForStatement', token, this.currentRoot, true));
+						break;
+					case 'if':
+						// check token before, then check token after
+						// works on a CallExpression as well as Literal in an ArrayExpression
+						const prev = this.prev();
+						if (prev?.type === 'CallExpression' || this.currentRoot.type === 'ArrayExpression') {
+							// this is after, therefore take the CallExpression or array element
+							this.beginExpressionWithAdoptingPreviousNode(MakeIfStatementNode(token, false, this.currentRoot));
+						} else {
+							// this is before
+							this.beginExpressionWith(MakeIfStatementNode(token, true, this.currentRoot));
+						}
 						break;
 					case 'implements':
 						this.endExpressionIfIn('ClassExtensionsList');

@@ -21,6 +21,7 @@ const nodeTypes = [
 	'FunctionReturns',
 	'GenericTypesList',
 	'Identifier',
+	'IfStatement',
 	'ImportDeclaration',
 	'InterfaceDeclaration',
 	'InterfaceExtensionsList',
@@ -81,6 +82,11 @@ export type Node = {
 	pos: Pos;
 	parent?: Node;
 	children: Node[];
+}
+
+/** IfStatement nodes have more info than a regular node, owing to the need to know whether the `if` is before or after the object */
+export type IfStatementNode = Node & {
+	before: boolean;
 }
 
 /** UnaryExpression nodes have more info than a regular node, owing to the need to know whether the operator is before or after the object */

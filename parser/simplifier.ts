@@ -1,4 +1,4 @@
-import { Node, NodeType, UnaryExpressionNode } from "./types";
+import { IfStatementNode, Node, NodeType, UnaryExpressionNode } from "./types";
 
 // SParseTree = Simplified Parse Tree
 
@@ -8,10 +8,16 @@ type extraInformation = {
 }
 type SParseNodeWithoutValueAndWithoutChildren = [NodeType]; // eg ['SemicolonSeparator']
 type SParseNodeWithValueAndWithoutChildren = [NodeType, string]; // eg ['NumberLiteral', '1']
-type SParseNodeWithoutValueWithChildren = [NodeType, SParseTree]
-type SParseNodeWithValueWithChildren = [NodeType, string, SParseTree]
-type SParseNodeWithValueWithChildrenWithExtraInformation = [NodeType, string, extraInformation, SParseTree]
-type SParseNode = SParseNodeWithoutValueAndWithoutChildren | SParseNodeWithValueAndWithoutChildren | SParseNodeWithoutValueWithChildren | SParseNodeWithValueWithChildren | SParseNodeWithValueWithChildrenWithExtraInformation;
+type SParseNodeWithoutValueWithChildren = [NodeType, SParseTree] // eg ['ArgumentList', [...]]
+type SParseNodeWithoutValueWithChildrenWithExtraInformation = [NodeType, extraInformation, SParseTree] // eg ['IfStatement', {before}, [...]]
+type SParseNodeWithValueWithChildren = [NodeType, string, SParseTree] // eg ['BinaryExpression', '==', [...]]
+type SParseNodeWithValueWithChildrenWithExtraInformation = [NodeType, string, extraInformation, SParseTree] // eg ['UnaryExpression', '++', {before}, [...]]
+type SParseNode = SParseNodeWithoutValueAndWithoutChildren |
+	SParseNodeWithValueAndWithoutChildren |
+	SParseNodeWithoutValueWithChildren |
+	SParseNodeWithoutValueWithChildrenWithExtraInformation |
+	SParseNodeWithValueWithChildren |
+	SParseNodeWithValueWithChildrenWithExtraInformation;
 export type SParseTree = SParseNode[];
 
 export const simplifyTree = (nodes: Node[]): SParseTree => {
@@ -33,25 +39,37 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 
 		let extraInformation = {};
 		switch (node.type) {
+			case 'IfStatement':
+				extraInformation = {before: (node as IfStatementNode).before};
+				break;
 			case 'UnaryExpression':
 				extraInformation = {before: (node as UnaryExpressionNode).before};
 				break;
 		}
 
 		let snode: SParseNode;
+		const hasExtraInformation = Object.keys(extraInformation).length > 0;
 		if (!hasValue && !hasChildren) {
 			snode = [node.type];
 		} else if (!hasValue && hasChildren) {
-			snode = [
-				node.type,
-				children,
-			];
+			if (hasExtraInformation) {
+				snode = [
+					node.type,
+					extraInformation,
+					children,
+				];
+			} else {
+				snode = [
+					node.type,
+					children,
+				];
+			}
 		} else if (hasValue && !hasChildren) {
 			snode = [
 				node.type,
 				node.value as string,
 			];
-		} else if (Object.keys(extraInformation).length > 0) { // has extraInformation && hasValue && hasChildren
+		} else if (hasExtraInformation) { // has extraInformation && hasValue && hasChildren
 			snode = [
 				node.type,
 				node.value as string,

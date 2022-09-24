@@ -1103,6 +1103,210 @@ describe('parser.ts', (): void => {
 
 	});
 
+	describe('IfStatement', (): void => {
+
+		describe('before', () => {
+
+			it('with bool conditional', () => {
+				expect(parse('if true {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BoolLiteral', 'true'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			it('with BinaryExpression conditional using two NumberLiterals', () => {
+				expect(parse('if 1 < 2 {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BinaryExpression', '<', [
+							['NumberLiteral', '1'],
+							['NumberLiteral', '2'],
+						]],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
+				expect(parse('if foo == 2 {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BinaryExpression', '==', [
+							['Identifier', 'foo'],
+							['NumberLiteral', '2'],
+						]],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			it('with BinaryExpression conditional using a CallExpression and a NumberLiteral', () => {
+				expect(parse('if foo() == 2 {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BinaryExpression', '==', [
+							['CallExpression', [
+								['Identifier', 'foo'],
+								['ArgumentsList', []],
+							]],
+							['NumberLiteral', '2'],
+						]],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+		});
+
+		describe('after', () => {
+
+			it('after a CallExpression', () => {
+				expect(parse('do(1) if foo == 2;')).toMatchParseTree([
+					['IfStatement', {before: false}, [
+						['CallExpression', [
+							['Identifier', 'do'],
+							['ArgumentsList', [
+								['NumberLiteral', '1'],
+							]],
+						]],
+						['BinaryExpression', '==', [
+							['Identifier', 'foo'],
+							['NumberLiteral', '2'],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+
+			describe('in an array', () => {
+
+				it('with bool conditional', () => {
+					expect(parse('[foo if true, bar];')).toMatchParseTree([
+						['ArrayExpression', [
+							['IfStatement', {before: false}, [
+								['Identifier', 'foo'],
+								['BoolLiteral', 'true'],
+							]],
+							['CommaSeparator'],
+							['Identifier', 'bar'],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with identifier conditional', () => {
+					expect(parse('[9, 10 if isDone?, 11];')).toMatchParseTree([
+						['ArrayExpression', [
+							['NumberLiteral', '9'],
+							['CommaSeparator'],
+							['IfStatement', {before: false}, [
+								['NumberLiteral', '10'],
+								['Identifier', 'isDone?'],
+							]],
+							['CommaSeparator'],
+							['NumberLiteral', '11'],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with MemberExpression conditional', () => {
+					expect(parse('[9, 10 if this.isDone?, 11];')).toMatchParseTree([
+						['ArrayExpression', [
+							['NumberLiteral', '9'],
+							['CommaSeparator'],
+							['IfStatement', {before: false}, [
+								['NumberLiteral', '10'],
+								['MemberExpression', [
+									['Keyword', 'this'],
+									['Identifier', 'isDone?'],
+								]],
+							]],
+							['CommaSeparator'],
+							['NumberLiteral', '11'],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with CallExpression conditional', () => {
+					expect(parse('[9, 10 if this.isDone?!([true if true]), 11];')).toMatchParseTree([
+						['ArrayExpression', [
+							['NumberLiteral', '9'],
+							['CommaSeparator'],
+							['IfStatement', {before: false}, [
+								['NumberLiteral', '10'],
+								['CallExpression', [
+									['MemberExpression', [
+										['Keyword', 'this'],
+										['Identifier', 'isDone?!'],
+									]],
+									['ArgumentsList', [
+										['ArrayExpression', [
+											['IfStatement', {before: false}, [
+												['BoolLiteral', 'true'],
+												['BoolLiteral', 'true'],
+											]],
+										]],
+									]],
+								]],
+							]],
+							['CommaSeparator'],
+							['NumberLiteral', '11'],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with BinaryExpression conditional using two NumberLiterals', () => {
+					expect(parse('[\'foo\', "bar" if 1 < 2];')).toMatchParseTree([
+						['ArrayExpression', [
+							['StringLiteral', 'foo'],
+							['CommaSeparator'],
+							['IfStatement', {before: false}, [
+								['StringLiteral', 'bar'],
+								['BinaryExpression', '<', [
+									['NumberLiteral', '1'],
+									['NumberLiteral', '2'],
+								]],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
+					expect(parse('[true, true, false, false if foo == 2, true, false, true];')).toMatchParseTree([
+						['ArrayExpression', [
+							['BoolLiteral', 'true'],
+							['CommaSeparator'],
+							['BoolLiteral', 'true'],
+							['CommaSeparator'],
+							['BoolLiteral', 'false'],
+							['CommaSeparator'],
+							['IfStatement', {before: false}, [
+								['BoolLiteral', 'false'],
+								['BinaryExpression', '==', [
+									['Identifier', 'foo'],
+									['NumberLiteral', '2'],
+								]],
+							]],
+							['CommaSeparator'],
+							['BoolLiteral', 'true'],
+							['CommaSeparator'],
+							['BoolLiteral', 'false'],
+							['CommaSeparator'],
+							['BoolLiteral', 'true'],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+			});
+
+		});
+	});
+
 	describe('ImportDeclaration', (): void => {
 		describe('imports', (): void => {
 			it('single, default import', (): void => {
@@ -1190,10 +1394,19 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-	})
+		it('works with this', () => {
+			expect(parse('this.foo')).toMatchParseTree([
+				['MemberExpression', [
+					['Keyword', 'this'],
+					['Identifier', 'foo'],
+				]],
+			]);
+		});
+
+	});
 
 	describe('Operators', (): void => {
-		describe('unary expressions', (): void => {
+		describe('UnaryExpression', (): void => {
 			it('negative number', (): void => {
 				expect(parse('-1')).toMatchParseTree([
 					['UnaryExpression', '-', {before: true}, [
@@ -1259,7 +1472,7 @@ describe('parser.ts', (): void => {
 			});
 		});
 
-		describe('binary expressions', (): void => {
+		describe('BinaryExpression', (): void => {
 			describe('with bools', (): void => {
 				it('double pipe', (): void => {
 					expect(parse('a ||')).toMatchParseTree([
@@ -1321,6 +1534,41 @@ describe('parser.ts', (): void => {
 					doubleExpressionScenariosCheckingOperator('>=', 'BinaryExpression');
 				});
 			});
+
+			describe('compound with operator precedence', (): void => {
+
+				it('makes && higher precedence than equality checks', () => {
+					expect(parse('foo >= 2 && foo <= 5')).toMatchParseTree([
+						['BinaryExpression', '&&', [
+							['BinaryExpression', '>=', [
+								['Identifier', 'foo'],
+								['NumberLiteral', '2'],
+							]],
+							['BinaryExpression', '<=', [
+								['Identifier', 'foo'],
+								['NumberLiteral', '5'],
+							]],
+						]],
+					]);
+				});
+
+				it('makes || higher precedence than equality checks', () => {
+					expect(parse('foo > 2 || foo < 5')).toMatchParseTree([
+						['BinaryExpression', '||', [
+							['BinaryExpression', '>', [
+								['Identifier', 'foo'],
+								['NumberLiteral', '2'],
+							]],
+							['BinaryExpression', '<', [
+								['Identifier', 'foo'],
+								['NumberLiteral', '5'],
+							]],
+						]],
+					]);
+				});
+
+			});
+
 		});
 	});
 
