@@ -57,6 +57,7 @@ const nodeTypes = [
 	'WhenCase',
 	'WhenCaseTests',
 	'WhenCaseConsequent',
+	'WhileStatement',
 ] as const;
 
 /** A node's positional information */

@@ -101,6 +101,7 @@ export const keywords = [
 	'static',
 	'this',
 	'when',
+	'while',
 ] as const;
 type Keyword = typeof keywords[number];
 

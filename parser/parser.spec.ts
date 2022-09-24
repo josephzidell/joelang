@@ -1936,6 +1936,100 @@ describe('parser.ts', (): void => {
 		});
 	});
 
+	describe('WhileStatement', (): void => {
+
+		it('with CallExpression test', () => {
+			expect(parse('while foo() {}')).toMatchParseTree([
+				['WhileStatement', [
+					['CallExpression', [
+						['Identifier', 'foo'],
+						['ArgumentsList', []],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with BinaryExpression test', () => {
+			expect(parse('while i < 10 {}')).toMatchParseTree([
+				['WhileStatement', [
+					['BinaryExpression', '<', [
+						['Identifier', 'i'],
+						['NumberLiteral', '10'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with UnaryExpression test', () => {
+			expect(parse('while !i {}')).toMatchParseTree([
+				['WhileStatement', [
+					['UnaryExpression', '!', {before: true}, [
+						['Identifier', 'i'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with parens and BinaryExpression', () => {
+			expect(parse('while (this.foo != true) {}')).toMatchParseTree([
+				['WhileStatement', [
+					['Parenthesized', [
+						['BinaryExpression', '!=', [
+							['MemberExpression', [
+								['Keyword', 'this'],
+								['Identifier', 'foo'],
+							]],
+							['BoolLiteral', 'true'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with parens and UnaryExpression', () => {
+			expect(parse('while (!this.foo()) {}')).toMatchParseTree([
+				['WhileStatement', [
+					['Parenthesized', [
+						['UnaryExpression', '!', {before: true}, [
+							['CallExpression', [
+								['MemberExpression', [
+									['Keyword', 'this'],
+									['Identifier', 'foo'],
+								]],
+								['ArgumentsList', []],
+							]],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with contents in body', () => {
+			expect(parse('while (!foo) {\ndo();\n}')).toMatchParseTree([
+				['WhileStatement', [
+					['Parenthesized', [
+						['UnaryExpression', '!', {before: true}, [
+							['Identifier', 'foo'],
+						]],
+					]],
+					['BlockStatement', [
+						['CallExpression', [
+							['Identifier', 'do'],
+							['ArgumentsList', []],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+		});
+
+	});
+
 	describe('bugs fixed', (): void => {
 		it('"foo()..3" should place the RangeExpression outside of the CallExpression', (): void => {
 			expect(parse('foo()..3')).toMatchParseTree([

@@ -144,6 +144,7 @@ export default class {
 				this.endExpressionIfIn('FunctionDeclaration');
 				this.endExpressionIfIn('ClassDeclaration');
 				this.endExpressionIfIn('InterfaceDeclaration');
+				this.endExpressionIfIn('WhileStatement');
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.tokens[i + 1]?.type === 'bracket_close';
 				const prev = this.prev();
@@ -554,6 +555,9 @@ export default class {
 						break;
 					case 'when':
 						this.beginExpressionWith(MakeNode('WhenExpression', token, this.currentRoot, true));
+						break;
+					case 'while':
+						this.beginExpressionWith(MakeNode('WhileStatement', token, this.currentRoot, true));
 						break;
 					default:
 						this.currentRoot.children.push(MakeNode('Keyword', token, this.currentRoot));
