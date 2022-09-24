@@ -100,6 +100,15 @@ export default class {
 						break;
 				}
 			} else if (token.type === 'paren_close') {
+				// check if we're in a BinaryExpression, if so, it's finished
+				// eg `while (foo != true) {}`
+				this.endExpressionIfIn('BinaryExpression');
+
+				// check if currentRoot is a UnaryExpression, if so, it's also finished
+				// eg `!foo()`
+				this.endExpressionIfIn('UnaryExpression');
+
+				// end the Parenthesized
 				this.endExpression();
 
 				// check if we're in a CallExpression, if so, it's also finished
@@ -109,6 +118,7 @@ export default class {
 				this.endExpressionIfIn('ParametersList');
 
 				// ... and then, check if currentRoot is a UnaryExpression, if so, it's also finished
+				// eg `(x * -2)`
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'brace_open') {
 				this.endExpressionIfIn('BinaryExpression');
@@ -116,6 +126,7 @@ export default class {
 				this.endExpressionIfIn('ClassExtensionsList');
 				this.endExpressionIfIn('ClassImplementsList');
 				this.endExpressionIfIn('InterfaceExtensionsList');
+				this.endExpressionIfIn('UnaryExpression');
 
 				// if in `for let i = 0; i < 10; i++ {}`, we need to end the UnaryExpression of i++
 				if (this.currentRoot.parent?.type === 'ForStatement') {
@@ -194,9 +205,6 @@ export default class {
 
 				// check if currentRoot is a MemberExpression, if so, it's finished
 				this.endExpressionIfIn('MemberExpression');
-
-				// check if currentRoot is a UnaryExpression, if so, it's finished
-				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'comment') {
 				this.currentRoot.children.push(MakeNode('Comment', token, this.currentRoot));
 			} else if (token.type === 'assign') {
@@ -314,6 +322,8 @@ export default class {
 				}
 			} else if (token.type === 'type') {
 				this.currentRoot.children.push(MakeNode('Type', token, this.currentRoot));
+			} else if (token.type === 'bang') {
+				this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 			} else if (token.type === 'right_arrow') {
 				if (this.currentRoot.type === 'WhenCaseTests') {
 					this.endExpression();
@@ -552,7 +562,7 @@ export default class {
 			} else if (token.type === 'path') {
 				this.currentRoot.children.push(MakeNode('Path', token, this.currentRoot));
 			} else {
-				// this
+				// this should eventually turn into an error
 				this.currentRoot.children.push(MakeNode('Unknown', token, this.currentRoot));
 			}
 		}

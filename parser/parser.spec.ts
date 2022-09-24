@@ -1407,69 +1407,129 @@ describe('parser.ts', (): void => {
 
 	describe('Operators', (): void => {
 		describe('UnaryExpression', (): void => {
-			it('negative number', (): void => {
-				expect(parse('-1')).toMatchParseTree([
-					['UnaryExpression', '-', {before: true}, [
-						['NumberLiteral', '1'],
-					]]
-				]);
+
+			describe('negation', () => {
+
+				it('with Identifier', (): void => {
+					expect(parse('!foo;')).toMatchParseTree([
+						['UnaryExpression', '!', {before: true}, [
+							['Identifier', 'foo'],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with Identifier in parens', (): void => {
+					expect(parse('(!foo);')).toMatchParseTree([
+						['Parenthesized', [
+							['UnaryExpression', '!', {before: true}, [
+								['Identifier', 'foo'],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with CallExpression', (): void => {
+					expect(parse('!bar();')).toMatchParseTree([
+						['UnaryExpression', '!', {before: true}, [
+							['CallExpression', [
+								['Identifier', 'bar'],
+								['ArgumentsList', []],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
+				it('with nested CallExpression', (): void => {
+					expect(parse('!foo.bar();')).toMatchParseTree([
+						['UnaryExpression', '!', {before: true}, [
+							['CallExpression', [
+								['MemberExpression', [
+									['Identifier', 'foo'],
+									['Identifier', 'bar'],
+								]],
+								['ArgumentsList', []],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]);
+				});
+
 			});
 
-			it('negative number with parens', (): void => {
-				expect(parse('(-1)')).toMatchParseTree([
-					['Parenthesized', [
+			describe('negative number', () => {
+
+				it('without parens', (): void => {
+					expect(parse('-1')).toMatchParseTree([
 						['UnaryExpression', '-', {before: true}, [
 							['NumberLiteral', '1'],
+						]]
+					]);
+				});
+
+				it('with parens', (): void => {
+					expect(parse('(-1)')).toMatchParseTree([
+						['Parenthesized', [
+							['UnaryExpression', '-', {before: true}, [
+								['NumberLiteral', '1'],
+							]],
 						]],
-					]],
-				]);
+					]);
+				});
+
 			});
 
-			it('pre-decrement', (): void => {
-				expect(parse('--foo')).toMatchParseTree([
-					['UnaryExpression', '--', {before: true}, [
-						['Identifier', 'foo'],
-					]],
-				]);
+			describe('increment and decrement', () => {
+
+				it('pre-decrement', (): void => {
+					expect(parse('--foo')).toMatchParseTree([
+						['UnaryExpression', '--', {before: true}, [
+							['Identifier', 'foo'],
+						]],
+					]);
+				});
+
+				it('post-decrement', (): void => {
+					expect(parse('foo--')).toMatchParseTree([
+						['UnaryExpression', '--', {before: false}, [
+							['Identifier', 'foo'],
+						]],
+					]);
+
+					expect(parse('foo---')).toMatchParseTree([
+						['UnaryExpression', '--', {before: false}, [
+							['Identifier', 'foo'],
+						]],
+						['SubtractionOperator', '-'],
+					]);
+				});
+
+				it('pre-increment', (): void => {
+					expect(parse('++foo')).toMatchParseTree([
+						['UnaryExpression', '++', {before: true}, [
+							['Identifier', 'foo'],
+						]],
+					]);
+				});
+
+				it('post-increment', (): void => {
+					expect(parse('foo++')).toMatchParseTree([
+						['UnaryExpression', '++', {before: false}, [
+							['Identifier', 'foo'],
+						]],
+					]);
+
+					expect(parse('foo+++')).toMatchParseTree([
+						['UnaryExpression', '++', {before: false}, [
+							['Identifier', 'foo'],
+						]],
+						['AdditionOperator', '+'],
+					]);
+				});
 			});
 
-			it('post-decrement', (): void => {
-				expect(parse('foo--')).toMatchParseTree([
-					['UnaryExpression', '--', {before: false}, [
-						['Identifier', 'foo'],
-					]],
-				]);
-
-				expect(parse('foo---')).toMatchParseTree([
-					['UnaryExpression', '--', {before: false}, [
-						['Identifier', 'foo'],
-					]],
-					['SubtractionOperator', '-'],
-				]);
-			});
-
-			it('pre-increment', (): void => {
-				expect(parse('++foo')).toMatchParseTree([
-					['UnaryExpression', '++', {before: true}, [
-						['Identifier', 'foo'],
-					]],
-				]);
-			});
-
-			it('post-increment', (): void => {
-				expect(parse('foo++')).toMatchParseTree([
-					['UnaryExpression', '++', {before: false}, [
-						['Identifier', 'foo'],
-					]],
-				]);
-
-				expect(parse('foo+++')).toMatchParseTree([
-					['UnaryExpression', '++', {before: false}, [
-						['Identifier', 'foo'],
-					]],
-					['AdditionOperator', '+'],
-				]);
-			});
 		});
 
 		describe('BinaryExpression', (): void => {
