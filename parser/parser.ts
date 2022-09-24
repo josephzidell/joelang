@@ -77,25 +77,25 @@ export default class {
 					// if previous is an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case 'Identifier':
 						if (this.currentRoot.type === 'FunctionDeclaration') {
-							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot), true);
-							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+							this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot, true));
+							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot, true));
 						}
 						break;
 					case 'GenericTypesList':
 						if (this.currentRoot.type === 'FunctionDeclaration') {
-							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot, true));
 						}
 						break;
 					case 'MemberExpression':
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot), true);
-						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot), true);
+						this.beginExpressionWithAdoptingPreviousNode(MakeNode('CallExpression', token, this.currentRoot, true));
+						this.beginExpressionWith(MakeNode('ArgumentsList', token, this.currentRoot, true));
 						break;
 					default:
-						this.beginExpressionWith(MakeNode('Parenthesized', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('Parenthesized', token, this.currentRoot, true));
 						break;
 				}
 			} else if (token.type === 'paren_close') {
@@ -124,7 +124,7 @@ export default class {
 					console.debug('Beginning a BlockStatement');
 				}
 
-				this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot), true);
+				this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot, true));
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
@@ -137,12 +137,12 @@ export default class {
 
 				if (isNextABracketClose && (prev?.type === 'ArrayType' || prev?.type === 'Identifier' || prev?.type === 'Type')) { // TODO or member chain
 					// we have an array type
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('ArrayType', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('ArrayType', token, this.currentRoot, true));
 				} else if (prev?.type === 'Identifier') {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot), true);
-					this.beginExpressionWith(MakeNode('MembersList', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode('MembersList', token, this.currentRoot, true));
 				} else {
-					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot), true);
+					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot, true));
 				}
 			} else if (token.type === 'bracket_close') {
 				this.endExpression(); // ArrayType or MemberList
@@ -180,7 +180,7 @@ export default class {
 						console.debug('Currently there is a ParametersList open; now creating a Parameter Node in it');
 					}
 
-					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot), true);
+					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot, true));
 				}
 
 				if (this.debug) {
@@ -255,14 +255,14 @@ export default class {
 			} else if (token.type === 'dot') {
 				const prev = this.prev();
 				if (prev?.type === 'CallExpression' || prev?.type === 'Identifier' || prev?.type === 'MemberExpression') {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot, true));
 				}
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
 				// check if we're in a ParametersList, if so, begin a Parameter
 				if (this.currentRoot.type === 'ParametersList') {
-					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot), true);
+					this.beginExpressionWith(MakeNode('Parameter', token, this.currentRoot, true));
 				}
 
 				this.currentRoot.children.push(MakeNode('RestElement', token, this.currentRoot));
@@ -298,9 +298,9 @@ export default class {
 			} else if (token.type === 'right_arrow') {
 				if (this.currentRoot.type === 'WhenCaseTests') {
 					this.endExpression();
-					this.beginExpressionWith(MakeNode('WhenCaseConsequent', token, this.currentRoot), true);
+					this.beginExpressionWith(MakeNode('WhenCaseConsequent', token, this.currentRoot, true));
 				} else if (this.currentRoot.type === 'FunctionDeclaration') {
-					this.beginExpressionWith(MakeNode('FunctionReturns', token, this.currentRoot), true);
+					this.beginExpressionWith(MakeNode('FunctionReturns', token, this.currentRoot, true));
 				} else {
 					this.currentRoot.children.push(MakeNode('RightArrowOperator', token, this.currentRoot));
 				}
@@ -309,13 +309,13 @@ export default class {
 
 				// we need to go 2 levels up
 				if (this.currentRoot.type === 'BinaryExpression' || this.currentRoot.type === 'Parenthesized') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot, true));
 				} else if (prev?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot, true));
 				} else if (prev?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('RangeExpression', token, this.currentRoot, true));
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('RangeExpression', token, this.currentRoot), true);
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('RangeExpression', token, this.currentRoot, true));
 				}
 			} else if (token.type === 'less_than') {
 				/**
@@ -341,7 +341,7 @@ export default class {
 
 					// if in method definition
 					if (this.currentRoot.type === 'FunctionDeclaration') {
-						this.beginExpressionWith(MakeNode('GenericTypesList', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('GenericTypesList', token, this.currentRoot, true));
 					} else {
 						// 'less than' BinaryExpression
 						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
@@ -416,7 +416,7 @@ export default class {
 							console.debug('Beginning a ModifiersList');
 						}
 
-						this.beginExpressionWith(MakeNode('ModifiersList', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('ModifiersList', token, this.currentRoot, true));
 
 						if (this.debug) {
 							console.debug(`Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
@@ -431,13 +431,13 @@ export default class {
 								console.debug('Currently there is a ModifiersList open; now beginning ClassDeclaration and adopting the ModifiersList');
 							}
 
-							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('ClassDeclaration', token, this.currentRoot), true);
+							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('ClassDeclaration', token, this.currentRoot, true));
 						} else {
 							if (this.debug) {
 								console.debug('There is no ModifiersList open; now beginning a ClassDeclaration');
 							}
 
-							this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot, true));
 						}
 						break;
 					case 'const':
@@ -457,11 +457,14 @@ export default class {
 							this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
 						}
 						break;
+					case 'break':
+						this.currentRoot.children.push(MakeNode('BreakStatement', token, this.currentRoot, true));
+						break;
 					case 'extends':
 						if (this.currentRoot.type === 'ClassDeclaration') {
-							this.beginExpressionWith(MakeNode('ClassExtensionsList', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('ClassExtensionsList', token, this.currentRoot, true));
 						} else if (this.currentRoot.type === 'InterfaceDeclaration') {
-							this.beginExpressionWith(MakeNode('InterfaceExtensionsList', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('InterfaceExtensionsList', token, this.currentRoot, true));
 						} else {
 							throw new ParserError('`extends` keyword is used for a Class or Interface to extend another', this.currentRoot);
 						}
@@ -473,40 +476,43 @@ export default class {
 								console.debug('Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList');
 							}
 
-							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
+							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('FunctionDeclaration', token, this.currentRoot, true));
 						} else {
 							if (this.debug) {
 								console.debug('There is no ModifiersList open; now beginning a FunctionDeclaration');
 							}
 
-							this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot), true);
+							this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot, true));
 						}
 						break;
 					case 'for':
-						this.beginExpressionWith(MakeNode('ForStatement', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('ForStatement', token, this.currentRoot, true));
 						break;
 					case 'implements':
 						this.endExpressionIfIn('ClassExtensionsList');
 
-						this.beginExpressionWith(MakeNode('ClassImplementsList', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('ClassImplementsList', token, this.currentRoot, true));
 						break;
 					case 'import':
-						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot, true));
 						break;
 					case 'interface':
-						this.beginExpressionWith(MakeNode('InterfaceDeclaration', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('InterfaceDeclaration', token, this.currentRoot, true));
 						break;
 					case 'or':
 						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
 						break;
 					case 'print':
-						this.beginExpressionWith(MakeNode('PrintStatement', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('PrintStatement', token, this.currentRoot, true));
+						break;
+					case 'repeat':
+						this.beginExpressionWith(MakeNode('RepeatStatement', token, this.currentRoot, true));
 						break;
 					case 'return':
-						this.beginExpressionWith(MakeNode('ReturnStatement', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('ReturnStatement', token, this.currentRoot, true));
 						break;
 					case 'when':
-						this.beginExpressionWith(MakeNode('WhenExpression', token, this.currentRoot), true);
+						this.beginExpressionWith(MakeNode('WhenExpression', token, this.currentRoot, true));
 						break;
 					default:
 						this.currentRoot.children.push(MakeNode('Keyword', token, this.currentRoot));
@@ -529,8 +535,8 @@ export default class {
 
 	private ifInWhenExpressionBlockStatementBeginCase(token: Token) {
 		if (this.currentRoot.type === 'BlockStatement' && this.currentRoot.parent?.type === 'WhenExpression') {
-			this.beginExpressionWith(MakeNode('WhenCase', token, this.currentRoot), true);
-			this.beginExpressionWith(MakeNode('WhenCaseTests', token, this.currentRoot), true);
+			this.beginExpressionWith(MakeNode('WhenCase', token, this.currentRoot, true));
+			this.beginExpressionWith(MakeNode('WhenCaseTests', token, this.currentRoot, true));
 		}
 	}
 
@@ -545,13 +551,8 @@ export default class {
 	 * Begins an expression with a node
 	 *
 	 * @param node - To push
-	 * @param removeValue - Should the value be cleared out? Sometimes, the value is useless, and adds noise
 	 */
-	private beginExpressionWith(node: Node, removeValue = false) {
-		if (removeValue) {
-			node.value = undefined;
-		}
-
+	private beginExpressionWith(node: Node) {
 		this.currentRoot.children.push(node);
 		this.currentRoot = node;
 	}
@@ -586,11 +587,10 @@ export default class {
 	 *                                        │
 	 *
 	 * @param newKid - To begin expression with
-	 * @param removeValue - Should the value be cleared out? Sometimes, the value is useless, and adds noise
 	 *
 	 * @throws Error if there is no previous node
 	 */
-	 private beginExpressionWithAdoptingPreviousNode(newKid: Node, removeValue = false) {
+	 private beginExpressionWithAdoptingPreviousNode(newKid: Node) {
 		// get nodes in currentRoot
 		const nodesInCurrentRoot = this.currentRoot.children;
 
@@ -608,10 +608,6 @@ export default class {
 
 		// add to this one's nodes
 		newKid.children.push(prev);
-
-		if (removeValue) {
-			newKid.value = undefined;
-		}
 
 		// add this one onto that array
 		nodesInCurrentRoot.push(newKid);
@@ -661,17 +657,12 @@ export default class {
 	 * (d) Update this.currentRoot = newKid
 	 *
 	 * @param newKid - To begin the expression with
-	 * @param removeValue - Should the value be cleared out? Sometimes, the value is useless, and adds noise
 	 *
 	 * @throws Error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingCurrentRoot(newKid: Node, removeValue = false) {
+	private beginExpressionWithAdoptingCurrentRoot(newKid: Node) {
 		if (this.debug) {
 			console.debug(`Moving this.currentRoot ${this.currentRoot.type} to under ${newKid.type}`);
-		}
-
-		if (removeValue) {
-			newKid.value = undefined;
 		}
 
 		// make a copy to avoid circular reference issues

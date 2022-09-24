@@ -2,10 +2,19 @@ import { Node, NodeType, UnaryExpressionNode } from "./types";
 import { Token, TokenType } from "../lexer/types";
 import ParserError from './error';
 
-export function MakeNode (type: NodeType, token: Token, parent: Node): Node {
+/**
+ * Makes a Node
+ *
+ * @param type - NodeType
+ * @param token - The Token from the lexer
+ * @param parent - The parent Node
+ * @param discardValue - Should the value be discarded? Sometimes the value is useless and adds noise
+ * @returns A Node
+ */
+export function MakeNode (type: NodeType, token: Token, parent: Node, discardValue = false): Node {
 	const node: Node = {
 		type,
-		value: token.value,
+		value: discardValue ? undefined : token.value,
 		pos: {
 			start: token.start,
 			end: token.end,

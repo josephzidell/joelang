@@ -1395,6 +1395,29 @@ describe('parser.ts', (): void => {
 
 	})
 
+	describe('RepeatStatement', (): void => {
+
+		it('simple repeat statement', () => {
+			expect(parse('repeat {}')).toMatchParseTree([
+				['RepeatStatement', [
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with break', () => {
+			expect(parse('repeat {\nbreak;\n}')).toMatchParseTree([
+				['RepeatStatement', [
+					['BlockStatement', [
+						['BreakStatement'],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+		});
+
+	});
+
 	describe('Types', (): void => {
 		describe('should understand built-in types', () => {
 			it.each(types)('%s is recognized as a type', (type) => {
