@@ -396,7 +396,15 @@ describe('parser.ts', (): void => {
 					['AssignmentOperator'],
 					['BoolLiteral', 'false'],
 				]],
-			])
+			]);
+
+			expect(parse('let x? = false')).toMatchParseTree([
+				['VariableDeclaration', 'let', [
+					['Identifier', 'x?'],
+					['AssignmentOperator'],
+					['BoolLiteral', 'false'],
+				]],
+			]);
 		});
 
 		it('a let assignment with a number literal', (): void => {
@@ -449,7 +457,16 @@ describe('parser.ts', (): void => {
 					['Type', 'string'],
 				]],
 				['SemicolonSeparator'],
-			])
+			]);
+
+			expect(parse('let x?: bool;')).toMatchParseTree([
+				['VariableDeclaration', 'let', [
+					['Identifier', 'x?'],
+					['ColonSeparator'],
+					['Type', 'bool'],
+				]],
+				['SemicolonSeparator'],
+			]);
 		});
 
 		it('a const assignment with a specified type', (): void => {
@@ -461,7 +478,7 @@ describe('parser.ts', (): void => {
 					['AssignmentOperator'],
 					['StringLiteral', 'foo'],
 				]],
-			])
+			]);
 		});
 
 		it('regex', (): void => {
@@ -564,6 +581,34 @@ describe('parser.ts', (): void => {
 						['CommaSeparator'],
 						['StringLiteral', 'bar'],
 					]],
+				]);
+			});
+
+			it('assignments', () => {
+				expect(parse('const numbers = [1, 2];')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'numbers'],
+						['AssignmentOperator'],
+						['ArrayExpression', [
+							['NumberLiteral', '1'],
+							['CommaSeparator'],
+							['NumberLiteral', '2'],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+
+				expect(parse('let myArray: bool[] = [];')).toMatchParseTree([
+					['VariableDeclaration', 'let', [
+						['Identifier', 'myArray'],
+						['ColonSeparator'],
+						['ArrayType', [
+							['Type', 'bool'],
+						]],
+						['AssignmentOperator'],
+						['ArrayExpression'],
+					]],
+					['SemicolonSeparator'],
 				]);
 			});
 
@@ -678,6 +723,48 @@ describe('parser.ts', (): void => {
 				['SemicolonSeparator'],
 			]);
 		});
+
+		it('multiple inheritance manual resolution', () => {
+			expect(parse(`class C extends A, B {
+				f foo () {
+					return this.parent<|A|>.foo(); // <-- Specify to use B.foo
+				}
+			}`)).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'C'],
+					['ClassExtensionsList', [
+						['Identifier', 'A'],
+						['CommaSeparator'],
+						['Identifier', 'B'],
+					]],
+					['BlockStatement', [
+						['FunctionDeclaration', [
+							['Identifier', 'foo'],
+							['ParametersList', []],
+							['BlockStatement', [
+								['ReturnStatement', [
+									['CallExpression', [
+										['MemberExpression', [
+											['MemberExpression', [
+												['Keyword', 'this'],
+												['Identifier', 'parent'],
+												['TypeArgumentsList', [
+													['Identifier', 'A'],
+												]],
+											]],
+											['Identifier', 'foo'],
+										]],
+										['ArgumentsList', []],
+									]],
+								]],
+								['SemicolonSeparator'],
+								['Comment', '// <-- Specify to use B.foo'],
+							]],
+						]],
+					]],
+				]],
+			]);
+		})
 
 	});
 
@@ -1128,6 +1215,113 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		it('return when', () => {
+			expect(parse(`f school (age: number) -> string {
+				return when age {
+					11 -> 'Hogwarts First Year',
+					12..17 -> 'Another Year at Hogwarts',
+					... -> 'University',
+				};
+			}`)).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'school'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'age'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
+					]],
+					['FunctionReturns', [
+						['Type', 'string'],
+					]],
+					['BlockStatement', [
+						['ReturnStatement', [
+							['WhenExpression', [
+								['Identifier', 'age'],
+								['BlockStatement', [
+									['WhenCase', [
+										['WhenCaseTests', [
+											['NumberLiteral', '11'],
+										]],
+										['WhenCaseConsequent', [
+											['StringLiteral', 'Hogwarts First Year'],
+										]],
+									]],
+									['CommaSeparator'],
+									['WhenCase', [
+										['WhenCaseTests', [
+											['RangeExpression', [
+												['NumberLiteral', '12'],
+												['NumberLiteral', '17'],
+											]],
+										]],
+										['WhenCaseConsequent', [
+											['StringLiteral', 'Another Year at Hogwarts'],
+										]],
+									]],
+									['CommaSeparator'],
+									['WhenCase', [
+										['WhenCaseTests', [
+											['RestElement', '...'],
+										]],
+										['WhenCaseConsequent', [
+											['StringLiteral', 'University'],
+										]],
+									]],
+									['CommaSeparator'],
+								]],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+		});
+
+		it('multiple returns with when', () => {
+			expect(parse(`f foo (age: number) -> number, string {
+				return 5, when age {... -> 'No more foos',};
+			}`)).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'foo'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'age'],
+							['ColonSeparator'],
+							['Type', 'number'],
+						]],
+					]],
+					['FunctionReturns', [
+						['Type', 'number'],
+						['CommaSeparator'],
+						['Type', 'string'],
+					]],
+					['BlockStatement', [
+						['ReturnStatement', [
+							['NumberLiteral', '5'],
+							['CommaSeparator'],
+							['WhenExpression', [
+								['Identifier', 'age'],
+								['BlockStatement', [
+									['WhenCase', [
+										['WhenCaseTests', [
+											['RestElement', '...'],
+										]],
+										['WhenCaseConsequent', [
+											['StringLiteral', 'No more foos'],
+										]],
+									]],
+									['CommaSeparator'],
+								]],
+							]],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+		});
+
 		it('generics', (): void => {
 			expect(parse('f foo <|T|> (a: T) -> T {}')).toMatchParseTree([
 				['FunctionDeclaration', [
@@ -1285,6 +1479,60 @@ describe('parser.ts', (): void => {
 					['FunctionDeclaration'],
 				]],
 				['SemicolonSeparator'],
+			]);
+		});
+
+		it('ending with a bang', () => {
+			expect(parse(`f danger! {
+				// throw Error if something bad happens
+			}`)).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'danger!'],
+					['BlockStatement', [
+						['Comment', '// throw Error if something bad happens'],
+					]],
+				]],
+			]);
+		});
+
+		it('ending with a question mark', () => {
+			expect(parse(`f danger? -> bool {
+				return true;
+			}`)).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'danger?'],
+					['FunctionReturns', [
+						['Type', 'bool'],
+					]],
+					['BlockStatement', [
+						['ReturnStatement', [
+							['BoolLiteral', 'true'],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
+			]);
+		});
+
+		it('ending with a question mark and bang', () => {
+			expect(parse(`f isDone?! -> bool {
+				// throw Error if something bad happens
+
+				return true;
+			}`)).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'isDone?!'],
+					['FunctionReturns', [
+						['Type', 'bool'],
+					]],
+					['BlockStatement', [
+						['Comment', '// throw Error if something bad happens'],
+						['ReturnStatement', [
+							['BoolLiteral', 'true'],
+						]],
+						['SemicolonSeparator'],
+					]],
+				]],
 			]);
 		});
 

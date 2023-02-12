@@ -425,7 +425,14 @@ export default class {
 					this.beginExpressionWith(MakeNode('TypeParametersList', token, this.currentRoot, true));
 					this.beginExpressionWith(MakeNode('TypeParameter', token, this.currentRoot, true));
 				} else {
-					this.beginExpressionWith(MakeNode('TypeArgumentsList', token, this.currentRoot, true));
+					const prev = this.prev();
+					// this.parent<|A|>
+					if (prev?.type === 'MemberExpression') {
+						this.beginExpressionWith(MakeNode('TypeArgumentsList', token, this.currentRoot, true), prev);
+					} else {
+						this.beginExpressionWith(MakeNode('TypeArgumentsList', token, this.currentRoot, true));
+					}
+
 					// throw error
 				}
 			} else if (token.type === 'triangle_close') {
@@ -436,7 +443,6 @@ export default class {
 				/**
 				 * < can be:
 				 * - a number comparison
-				 * - beginning of type information in a function or class declaration, or in a function/class call
 				 * - the beginning of a tuple expression
 				 */
 				const prevType = this.prev()?.type;
@@ -511,7 +517,7 @@ export default class {
 					// TODO create Tuple Node
 				} else if (prevType === 'Identifier') {
 					/**
-					 * Since it follows an Identifier, this is either a TypeArgumentsList, TypeParametersList, or BinaryExpression
+					 * Since it follows an Identifier, this is a BinaryExpression
 					 *
 					 * - foo = 5; foo<6; // number comparison
 					 *
@@ -524,7 +530,6 @@ export default class {
 					 * Foo<T; // BinaryExpression
 					 * let foo = [Foo < T, U > 3]; // Bool Array with 2 BinaryExpressions
 					 * let foo = [Foo < T, U > (3+4)]; // same
-					 * let foo = f <|T|>()
 					 * // <> // Tuple
 					 * // <T> // Tuple
 					 *
@@ -553,27 +558,18 @@ export default class {
 				/**
 				 * > can be:
 				 * - a number comparison
-				 * - end of a GenericTypesList
 				 * - the end of a TupleExpression
 				 */
 				const prevType = this.prev()?.type;
 
-				if (this.currentRoot.type === 'TypeArgumentsList') {
-					this.endExpression();
-
-				} else if (prevType === 'TypeParameter') {
-					this.endExpression(); // end the TypeParameter
-					this.endExpression(); // end the TypeParametersList
-				} else if (prevType === 'NumberLiteral') {
+				if (prevType === 'NumberLiteral') {
 					// if prev is a number, this is a comparison
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
 
 				} else if (prevType === 'Identifier') {
 					/**
-					 * if prev is an Identifier, this is complicated. Here are some examples why:
-					 * - f foo<T> {} // method generic
+					 * if prev is an Identifier, it can be a BooleanExpression or a Tuple
 					 * - foo = 5; foo<6; // number comparison
-					 * - foo = f <T>(x: T) -> x; // anonymous method generic
 					 * - foo = <T>; // tuple
 					 */
 
@@ -775,8 +771,15 @@ export default class {
 		return this.tokens[i + howMany];
 	}
 
-	private addNode(node: Node) {
-		this.currentRoot.children.push(node);
+	private addNode(node: Node, to?: Node) {
+		if (typeof to === 'undefined') {
+			this.currentRoot.children.push(node);
+		} else {
+			const currentRoot = this.currentRoot;
+			this.currentRoot = to;
+			this.currentRoot.children.push(node);
+			this.currentRoot = currentRoot;
+		}
 	}
 
 	/**
@@ -784,8 +787,8 @@ export default class {
 	 *
 	 * @param node - To push
 	 */
-	private beginExpressionWith(node: Node) {
-		this.addNode(node);
+	private beginExpressionWith(node: Node, addingTo?: Node) {
+		this.addNode(node, addingTo);
 		this.currentRoot = node;
 	}
 
@@ -830,7 +833,7 @@ export default class {
 	/**
 	 * Begins an expression with a node and also "adopts" this.currentRoot as its first node
 	 *
-	 * Here's a diaram depicting what happens:
+	 * Here's a diagram depicting what happens:
 	 *
 	 *
 	 *                                      │                                          │
@@ -916,7 +919,7 @@ export default class {
 
 	/**
 	 *
-	 * This process has 4 steps:
+	 * This process has 2 steps:
 	 * (a) Cut adoptee from its parent
 	 * (b) Attach adoptee to adopter's children
 	 *
