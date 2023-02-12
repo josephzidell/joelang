@@ -10,7 +10,7 @@ f main {
 	print Foo.bar;
 }
 
-class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
+class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbstractClass {
 	let bar = 'baz'; // let
 	const isDone? = true; // const
 

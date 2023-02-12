@@ -39,6 +39,8 @@ export const tokenTypesUsingSymbols = {
 	'question': '?',
 	'right_arrow': '->',
 	'semicolon': ';',
+	'triangle_open': '<|',
+	'triangle_close': '|>',
 };
 const otherTokenTypes = [
 	'bool',

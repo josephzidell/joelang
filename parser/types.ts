@@ -19,7 +19,6 @@ const nodeTypes = [
 	'ForStatement',
 	'FunctionDeclaration',
 	'FunctionReturns',
-	'GenericTypesList',
 	'Identifier',
 	'IfStatement',
 	'ImportDeclaration',
@@ -32,14 +31,17 @@ const nodeTypes = [
 	'ModifiersList', // for Class, Function, Interface, or Variable
 	'ModOperator',
 	'MultiplicationOperator',
+	'NewExpression',
 	'Nil',
 	'NumberLiteral',
+	'ObjectExpression',
 	'Parameter',
 	'ParametersList',
 	'Parenthesized',
 	'Path',
 	'PrintStatement',
 	'Program',
+	'Property',
 	'RangeExpression',
 	'RegularExpression',
 	'RepeatStatement',
@@ -49,7 +51,12 @@ const nodeTypes = [
 	'SemicolonSeparator',
 	'StringLiteral',
 	'SubtractionOperator',
+	'TupleExpression',
 	'Type',
+	'TypeArgumentsList',
+	'TypeDeclaration',
+	'TypeParameter',
+	'TypeParametersList',
 	'UnaryExpression',
 	'Unknown', // this is temp. while the parser is being built, afterwards this becomes a Syntax Error
 	'VariableDeclaration',
@@ -59,6 +66,17 @@ const nodeTypes = [
 	'WhenCaseConsequent',
 	'WhileStatement',
 ] as const;
+
+export const LiteralTypes: NodeType[] = [
+	'ArrayExpression',
+	'BoolLiteral',
+	'NumberLiteral',
+	'ObjectExpression',
+	'Path',
+	'RegularExpression',
+	'StringLiteral',
+	'TupleExpression',
+];
 
 /** A node's positional information */
 export type Pos = {

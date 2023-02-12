@@ -93,11 +93,11 @@ export default class {
 						this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col });
 					},
 				}, () => {
-					// these tokens preceed a forward slash, so if they're found, this is NOT a regular expression
-					const tokensThatPreceedForwardSlash: TokenType[] = ['bracket_close', 'identifier', 'number', 'paren_close'];
+					// these tokens precede a forward slash, so if they're found, this is NOT a regular expression
+					const tokensThatPrecedeForwardSlash: TokenType[] = ['bracket_close', 'identifier', 'number', 'paren_close'];
 					const prevToken = this.prevToken();
 					const nextChar = this.peek();
-					if ((typeof prevToken !== 'undefined' && tokensThatPreceedForwardSlash.includes(prevToken.type)) || typeof nextChar === 'undefined' || this.matchesRegex(patterns.WHITESPACE, nextChar)) {
+					if ((typeof prevToken !== 'undefined' && tokensThatPrecedeForwardSlash.includes(prevToken.type)) || typeof nextChar === 'undefined' || this.matchesRegex(patterns.WHITESPACE, nextChar)) {
 						this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition + 1, value: '/', line, col });
 						this.next();
 
@@ -173,6 +173,7 @@ export default class {
 			if (this.char === patterns.PIPE) {
 				this.peekAndHandle({
 					[patterns.PIPE]: 'or',
+					[patterns.GREATER_THAN]: 'triangle_close',
 				}, undefined, line, col);
 
 				continue;
@@ -210,6 +211,7 @@ export default class {
 							[patterns.GREATER_THAN]: 'compare', // <=>
 						}, 'less_than_equals', line, col, 2);
 					},
+					[patterns.PIPE]: 'triangle_open',
 				}, 'less_than', line, col);
 
 				continue;
@@ -580,7 +582,7 @@ export default class {
 			 */
 			if (this.char === patterns.COMMA || this.char === patterns.PERIOD) {
 				/**
-				 * Even though a comma must be preceeded by a number, we don't need to check.
+				 * Even though a comma must be preceded by a number, we don't need to check.
 				 *
 				 * Take this case '1,,2':
 				 *

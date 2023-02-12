@@ -625,13 +625,83 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-	})
+		it('generics', () => {
+			expect(parse('a(B<|T|>);')).toMatchParseTree([
+				['CallExpression', [
+					['Identifier', 'a'],
+					['ArgumentsList', [
+						['Identifier', 'B'],
+						['TypeArgumentsList', [
+							['Identifier', 'T'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+
+			expect(parse('a<|T|>(B);')).toMatchParseTree([
+				['CallExpression', [
+					['Identifier', 'a'],
+					['TypeArgumentsList', [
+						['Identifier', 'T'],
+					]],
+					['ArgumentsList', [
+						['Identifier', 'B'],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+		it('more advanced generics', () => {
+			expect(parse('const foo = Foo<|{T: T}, T[]|>();')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'foo'],
+					['AssignmentOperator'],
+					['CallExpression', [
+						['Identifier', 'Foo'],
+						['TypeArgumentsList', [
+							['ObjectExpression', [
+								['Property', [
+									['Identifier', 'T'],
+									['Identifier', 'T'],
+								]],
+							]],
+							['CommaSeparator'],
+							['ArrayType', [
+								['Identifier', 'T'],
+							]],
+						]],
+						['ArgumentsList', []],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+	});
 
 	describe('ClassDeclaration and InterfaceDeclaration', (): void => {
 		it('empty class', (): void => {
 			expect(parse('class Foo {}')).toMatchParseTree([
 				['ClassDeclaration', [
 					['Identifier', 'Foo'],
+					['BlockStatement', []],
+				]],
+			]);
+
+			expect(parse('class Foo <| T, U |> {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['TypeParametersList', [
+						['TypeParameter', [
+							['Identifier', 'T'],
+						]],
+						['CommaSeparator'],
+						['TypeParameter', [
+							['Identifier', 'U'],
+						]],
+					]],
 					['BlockStatement', []],
 				]],
 			]);
@@ -689,6 +759,40 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		it('class extends multiple and implements multiple with generics', (): void => {
+			expect(parse('class Foo<|T,U|> extends Bar<|T|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['Identifier', 'Foo'],
+					['TypeParametersList', [
+						['TypeParameter', [
+							['Identifier', 'T'],
+						]],
+						['CommaSeparator'],
+						['TypeParameter', [
+							['Identifier', 'U'],
+						]],
+					]],
+					['ClassExtensionsList', [
+						['Identifier', 'Bar'],
+						['TypeArgumentsList', [
+							['Identifier', 'T'],
+						]],
+						['CommaSeparator'],
+						['Identifier', 'Baz'],
+					]],
+					['ClassImplementsList', [
+						['Identifier', 'AbstractFooBar'],
+						['CommaSeparator'],
+						['Identifier', 'AnotherAbstractClass'],
+						['TypeArgumentsList', [
+							['Identifier', 'U'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
 		it('abstract class', (): void => {
 			expect(parse('abstract class Foo {}')).toMatchParseTree([
 				['ClassDeclaration', [
@@ -700,11 +804,26 @@ describe('parser.ts', (): void => {
 				]],
 			]);
 
+			expect(parse('abstract class Foo<|T|> {}')).toMatchParseTree([
+				['ClassDeclaration', [
+					['ModifiersList', [
+						['Modifier', 'abstract'],
+					]],
+					['Identifier', 'Foo'],
+					['TypeParametersList', [
+						['TypeParameter', [
+							['Identifier', 'T'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+
 			expect(parse(`
 			abstract class Foo {
 				abstract const baz: number;
 
-				abstract f hello<T> (name = 'World') -> Greeting, T;
+				abstract f hello<|T|> (name = 'World') -> Greeting, T;
 			}`)).toMatchParseTree([
 				['ClassDeclaration', [
 					['ModifiersList', [
@@ -726,8 +845,10 @@ describe('parser.ts', (): void => {
 								['Modifier', 'abstract'],
 							]],
 							['Identifier', 'hello'],
-							['GenericTypesList', [
-								['Identifier', 'T'],
+							['TypeParametersList', [
+								['TypeParameter', [
+									['Identifier', 'T'],
+								]],
 							]],
 							['ParametersList', [
 								['Parameter', [
@@ -746,7 +867,6 @@ describe('parser.ts', (): void => {
 					]],
 				]],
 			]);
-
 
 			expect(parse('abstract class Foo {}\nclass Bar extends Foo {}')).toMatchParseTree([
 				['ClassDeclaration', [
@@ -1009,11 +1129,13 @@ describe('parser.ts', (): void => {
 		});
 
 		it('generics', (): void => {
-			expect(parse('f foo<T> (a: T) -> T {}')).toMatchParseTree([
+			expect(parse('f foo <|T|> (a: T) -> T {}')).toMatchParseTree([
 				['FunctionDeclaration', [
 					['Identifier', 'foo'],
-					['GenericTypesList', [
-						['Identifier', 'T'],
+					['TypeParametersList', [
+						['TypeParameter', [
+							['Identifier', 'T'],
+						]],
 					]],
 					['ParametersList', [
 						['Parameter', [
@@ -1029,11 +1151,12 @@ describe('parser.ts', (): void => {
 				]],
 			]);
 		});
+
 		it('abstract functions', () => {
 			expect(parse(`abstract class A {
 				abstract f foo1;
 				abstract f foo2 (arg: number);
-				abstract f foo3 -> bool;
+				abstract f foo3<| T |> -> bool;
 				abstract f foo4 (arg: number) -> bool;
 			}`)).toMatchParseTree([
 				['ClassDeclaration', [
@@ -1071,6 +1194,11 @@ describe('parser.ts', (): void => {
 								['Modifier', 'abstract'],
 							]],
 							['Identifier', 'foo3'],
+							['TypeParametersList', [
+								['TypeParameter', [
+									['Identifier', 'T'],
+								]],
+							]],
 							['FunctionReturns', [
 								['Type', 'bool'],
 							]],
@@ -1113,14 +1241,15 @@ describe('parser.ts', (): void => {
 		});
 
 		it('anonymous complex', () => {
-			expect(parse('const foo = f foo<T> (a: T) -> T {\ndo();\n};')).toMatchParseTree([
+			expect(parse('const foo = f <|T|>(a: T) -> T {\ndo();\n};')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
 					['Identifier', 'foo'],
 					['AssignmentOperator'],
 					['FunctionDeclaration', [
-						['Identifier', 'foo'],
-						['GenericTypesList', [
-							['Identifier', 'T'],
+						['TypeParametersList', [
+							['TypeParameter', [
+								['Identifier', 'T'],
+							]],
 						]],
 						['ParametersList', [
 							['Parameter', [
@@ -1401,6 +1530,22 @@ describe('parser.ts', (): void => {
 					['BlockStatement', []],
 				]],
 			]);
+
+			expect(parse('interface Foo <| T, U |> {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['TypeParametersList', [
+						['TypeParameter', [
+							['Identifier', 'T'],
+						]],
+						['CommaSeparator'],
+						['TypeParameter', [
+							['Identifier', 'U'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
 		});
 
 		it('interface extends other', (): void => {
@@ -1433,6 +1578,35 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		it('interface extends multiple with generics', (): void => {
+			expect(parse('interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}')).toMatchParseTree([
+				['InterfaceDeclaration', [
+					['Identifier', 'Foo'],
+					['TypeParametersList', [
+						['TypeParameter', [
+							['Identifier', 'T'],
+						]],
+						['CommaSeparator'],
+						['TypeParameter', [
+							['Identifier', 'U'],
+						]],
+					]],
+					['InterfaceExtensionsList', [
+						['Identifier', 'Bar'],
+						['TypeArgumentsList', [
+							['Identifier', 'T'],
+						]],
+						['CommaSeparator'],
+						['Identifier', 'Baz'],
+						['TypeArgumentsList', [
+							['Identifier', 'U'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
 	})
 
 	describe('MemberExpression', () => {
@@ -1458,6 +1632,76 @@ describe('parser.ts', (): void => {
 					['Keyword', 'this'],
 					['Identifier', 'foo'],
 				]],
+			]);
+		});
+
+	});
+
+	describe('NewExpression', () => {
+
+		it('simple', () => {
+			expect(parse('new A();')).toMatchParseTree([
+				['NewExpression', [
+					['CallExpression', [
+						['Identifier', 'A'],
+						['ArgumentsList', []],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+		it('with GenericTypes and Arguments', () => {
+			expect(parse('new A<|T, U|>(new T(), new U(), "foo");')).toMatchParseTree([
+				['NewExpression', [
+					['CallExpression', [
+						['Identifier', 'A'],
+						['TypeArgumentsList', [
+							['Identifier', 'T'],
+							['CommaSeparator'],
+							['Identifier', 'U'],
+						]],
+						['ArgumentsList', [
+							['NewExpression', [
+								['CallExpression', [
+									['Identifier', 'T'],
+									['ArgumentsList', []],
+								]],
+							]],
+							['CommaSeparator'],
+							['NewExpression', [
+								['CallExpression', [
+									['Identifier', 'U'],
+									['ArgumentsList', []],
+								]],
+							]],
+							['CommaSeparator'],
+							['StringLiteral', 'foo'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+		it('with several nested layers', () => {
+			expect(parse('new A.B.C.D();')).toMatchParseTree([
+				['NewExpression', [
+					['CallExpression', [
+						['MemberExpression', [
+							['MemberExpression', [
+								['MemberExpression', [
+									['Identifier', 'A'],
+									['Identifier', 'B'],
+								]],
+								['Identifier', 'C'],
+							]],
+							['Identifier', 'D'],
+						]],
+						['ArgumentsList', []],
+					]],
+				]],
+				['SemicolonSeparator'],
 			]);
 		});
 

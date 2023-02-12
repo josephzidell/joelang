@@ -29,18 +29,28 @@
                 'const',
                 [
                   [ 'Identifier', 'myFoo', [length]: 2 ],
-                  [ 'AssignmentOperator', '=', [length]: 2 ],
-                  [ 'Keyword', 'new', [length]: 2 ],
+                  [ 'AssignmentOperator', [length]: 1 ],
                   [
-                    'CallExpression',
+                    'NewExpression',
                     [
-                      [ 'Identifier', 'Foo', [length]: 2 ],
-                      [ 'ArgumentsList', [ [length]: 0 ], [length]: 2 ],
-                      [length]: 2
+                      [
+                        'CallExpression',
+                        [
+                          [ 'Identifier', 'Foo', [length]: 2 ],
+                          [
+                            'ArgumentsList',
+                            [ [length]: 0 ],
+                            [length]: 2
+                          ],
+                          [length]: 2
+                        ],
+                        [length]: 2
+                      ],
+                      [length]: 1
                     ],
                     [length]: 2
                   ],
-                  [length]: 4
+                  [length]: 3
                 ],
                 [length]: 3
               ],
@@ -101,12 +111,29 @@
         [
           [ 'Identifier', 'Foo', [length]: 2 ],
           [
+            'TypeParametersList',
+            [
+              [
+                'TypeParameter',
+                [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                [length]: 2
+              ],
+              [length]: 1
+            ],
+            [length]: 2
+          ],
+          [
             'ClassExtensionsList',
             [
               [ 'Identifier', 'Bar', [length]: 2 ],
+              [
+                'TypeArgumentsList',
+                [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                [length]: 2
+              ],
               [ 'CommaSeparator', [length]: 1 ],
               [ 'Identifier', 'Baz', [length]: 2 ],
-              [length]: 3
+              [length]: 4
             ],
             [length]: 2
           ],
@@ -114,9 +141,14 @@
             'ClassImplementsList',
             [
               [ 'Identifier', 'AbstractFooBar', [length]: 2 ],
+              [
+                'TypeArgumentsList',
+                [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                [length]: 2
+              ],
               [ 'CommaSeparator', [length]: 1 ],
               [ 'Identifier', 'AnotherAbstractClass', [length]: 2 ],
-              [length]: 3
+              [length]: 4
             ],
             [length]: 2
           ],
@@ -128,7 +160,7 @@
                 'let',
                 [
                   [ 'Identifier', 'bar', [length]: 2 ],
-                  [ 'AssignmentOperator', '=', [length]: 2 ],
+                  [ 'AssignmentOperator', [length]: 1 ],
                   [ 'StringLiteral', 'baz', [length]: 2 ],
                   [length]: 3
                 ],
@@ -141,7 +173,7 @@
                 'const',
                 [
                   [ 'Identifier', 'isDone?', [length]: 2 ],
-                  [ 'AssignmentOperator', '=', [length]: 2 ],
+                  [ 'AssignmentOperator', [length]: 1 ],
                   [ 'BoolLiteral', 'true', [length]: 2 ],
                   [length]: 3
                 ],
@@ -171,7 +203,7 @@
                         'const',
                         [
                           [ 'Identifier', 'size', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'WhenExpression',
                             [
@@ -350,16 +382,42 @@
                         'let',
                         [
                           [ 'Identifier', 'myArray', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'ArrayExpression',
                             [
                               [ 'NumberLiteral', '1', [length]: 2 ],
                               [ 'CommaSeparator', [length]: 1 ],
-                              [ 'NumberLiteral', '10', [length]: 2 ],
-                              [ 'Keyword', 'if', [length]: 2 ],
-                              [ 'Keyword', 'this', [length]: 2 ],
-                              [ 'Identifier', 'isDone?', [length]: 2 ],
+                              [
+                                'IfStatement',
+                                { before: false },
+                                [
+                                  [
+                                    'NumberLiteral',
+                                    '10',
+                                    [length]: 2
+                                  ],
+                                  [
+                                    'MemberExpression',
+                                    [
+                                      [
+                                        'Keyword',
+                                        'this',
+                                        [length]: 2
+                                      ],
+                                      [
+                                        'Identifier',
+                                        'isDone?',
+                                        [length]: 2
+                                      ],
+                                      [length]: 2
+                                    ],
+                                    [length]: 2
+                                  ],
+                                  [length]: 2
+                                ],
+                                [length]: 3
+                              ],
                               [ 'CommaSeparator', [length]: 1 ],
                               [
                                 'Comment',
@@ -367,7 +425,7 @@
                                 [length]: 2
                               ],
                               [ 'NumberLiteral', '3', [length]: 2 ],
-                              [length]: 9
+                              [length]: 6
                             ],
                             [length]: 2
                           ],
@@ -381,7 +439,7 @@
                         'let',
                         [
                           [ 'Identifier', 'count', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'RangeExpression',
                             [
@@ -429,7 +487,7 @@
                         'let',
                         [
                           [ 'Identifier', 'countDown', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'RangeExpression',
                             [
@@ -481,7 +539,7 @@
                             'partitionedArray',
                             [length]: 2
                           ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'ArrayExpression',
                             [
@@ -591,7 +649,7 @@
                             'selectedArrayItems',
                             [length]: 2
                           ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'MemberExpression',
                             [
@@ -631,44 +689,102 @@
                         'let',
                         [
                           [ 'Identifier', 'myObject', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
-                            'BlockStatement',
+                            'ObjectExpression',
                             [
-                              [ 'Identifier', 'a', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'NumberLiteral', '1', [length]: 2 ],
+                              [
+                                'Property',
+                                [
+                                  [ 'Identifier', 'a', [length]: 2 ],
+                                  [ 'NumberLiteral', '1', [length]: 2 ],
+                                  [length]: 2
+                                ],
+                                [length]: 2
+                              ],
                               [ 'CommaSeparator', [length]: 1 ],
-                              [ 'Identifier', 'b', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'StringLiteral', 'coat', [length]: 2 ],
-                              [ 'Keyword', 'if', [length]: 2 ],
-                              [ 'Keyword', 'this', [length]: 2 ],
-                              [ 'Identifier', 'isDone?', [length]: 2 ],
+                              [
+                                'Property',
+                                [
+                                  [ 'Identifier', 'b', [length]: 2 ],
+                                  [
+                                    'IfStatement',
+                                    { before: false },
+                                    [
+                                      [
+                                        'StringLiteral',
+                                        'coat',
+                                        [length]: 2
+                                      ],
+                                      [
+                                        'MemberExpression',
+                                        [
+                                          [
+                                            'Keyword',
+                                            'this',
+                                            [length]: 2
+                                          ],
+                                          [
+                                            'Identifier',
+                                            'isDone?',
+                                            [length]: 2
+                                          ],
+                                          [length]: 2
+                                        ],
+                                        [length]: 2
+                                      ],
+                                      [length]: 2
+                                    ],
+                                    [length]: 3
+                                  ],
+                                  [length]: 2
+                                ],
+                                [length]: 2
+                              ],
                               [ 'CommaSeparator', [length]: 1 ],
                               [
                                 'Comment',
                                 '// if false, property will not be in object',
                                 [length]: 2
                               ],
-                              [ 'Identifier', 'c', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'Identifier', 'cond', [length]: 2 ],
-                              [ 'Unknown', '?', [length]: 2 ],
-                              [ 'BoolLiteral', 'true', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'BoolLiteral', 'false', [length]: 2 ],
+                              [
+                                'Property',
+                                [
+                                  [ 'Identifier', 'c', [length]: 2 ],
+                                  [ 'Identifier', 'cond', [length]: 2 ],
+                                  [ 'Unknown', '?', [length]: 2 ],
+                                  [
+                                    'BoolLiteral',
+                                    'true',
+                                    [length]: 2
+                                  ],
+                                  [ 'ColonSeparator', [length]: 1 ],
+                                  [
+                                    'BoolLiteral',
+                                    'false',
+                                    [length]: 2
+                                  ],
+                                  [length]: 6
+                                ],
+                                [length]: 2
+                              ],
                               [ 'CommaSeparator', [length]: 1 ],
                               [
                                 'Comment',
                                 '// regular ternary - property will always be there, value differs',
                                 [length]: 2
                               ],
-                              [ 'Identifier', 'd', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'Nil', 'nil', [length]: 2 ],
+                              [
+                                'Property',
+                                [
+                                  [ 'Identifier', 'd', [length]: 2 ],
+                                  [ 'Nil', 'nil', [length]: 2 ],
+                                  [length]: 2
+                                ],
+                                [length]: 2
+                              ],
                               [ 'CommaSeparator', [length]: 1 ],
-                              [length]: 25
+                              [length]: 10
                             ],
                             [length]: 2
                           ],
@@ -682,7 +798,7 @@
                         'let',
                         [
                           [ 'Identifier', 'partialObj', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [
                             'MemberExpression',
                             [
@@ -722,7 +838,7 @@
                           ],
                           [ 'ColonSeparator', [length]: 1 ],
                           [ 'Type', 'number', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [ 'NumberLiteral', '5', [length]: 2 ],
                           [length]: 5
                         ],
@@ -784,7 +900,7 @@
                         'Parameter',
                         [
                           [ 'Identifier', 'arg3', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
                           [ 'BoolLiteral', 'true', [length]: 2 ],
                           [length]: 3
                         ],
@@ -890,21 +1006,31 @@
                           [ 'CommaSeparator', [length]: 1 ],
                           [ 'NumberLiteral', '5', [length]: 2 ],
                           [ 'CommaSeparator', [length]: 1 ],
-                          [ 'Keyword', 'new', [length]: 2 ],
                           [
-                            'CallExpression',
+                            'NewExpression',
                             [
-                              [ 'Identifier', 'Thing', [length]: 2 ],
                               [
-                                'ArgumentsList',
-                                [ [length]: 0 ],
+                                'CallExpression',
+                                [
+                                  [
+                                    'Identifier',
+                                    'Thing',
+                                    [length]: 2
+                                  ],
+                                  [
+                                    'ArgumentsList',
+                                    [ [length]: 0 ],
+                                    [length]: 2
+                                  ],
+                                  [length]: 2
+                                ],
                                 [length]: 2
                               ],
-                              [length]: 2
+                              [length]: 1
                             ],
                             [length]: 2
                           ],
-                          [length]: 6
+                          [length]: 5
                         ],
                         [length]: 2
                       ],
@@ -968,7 +1094,7 @@
             ],
             [length]: 2
           ],
-          [length]: 4
+          [length]: 5
         ],
         [length]: 2
       ],

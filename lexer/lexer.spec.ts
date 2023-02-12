@@ -17,7 +17,8 @@ describe('lexer.ts', (): void => {
 		for (const type in tokenTypesUsingSymbols) {
 			if (Object.prototype.hasOwnProperty.call(tokenTypesUsingSymbols, type)) {
 				const symbol = tokenTypesUsingSymbols[type as keyof typeof tokenTypesUsingSymbols];
-				it(`${symbol} is recognized as a ${type} symbol`, () => {
+				const testName = `${symbol} is recognized as ${['a', 'e', 'i', 'o', 'u'].includes(type.at(0) ?? '') ? 'an' : 'a'} ${type} symbol`;
+				it(testName, () => {
 					expect(lexify(symbol)).toMatchTokens([
 						[type as TokenType, symbol],
 					]);

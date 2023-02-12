@@ -107,7 +107,7 @@ f danger! {
 }
 ```
 
-If a function returns a bool **and** throws an error, the `?` preceeds the `!`
+If a function returns a bool **and** throws an error, the `?` precedes the `!`
 
 ```joelang
 f isDone?! {
