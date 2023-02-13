@@ -513,6 +513,111 @@ describe('parser.ts', (): void => {
 			])
 		});
 
+		describe('tuples', () => {
+
+			it('tuple', () => {
+				expect(parse('const foo = <1, "pizza", 3.14>;')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['TupleExpression', [
+							['NumberLiteral', '1'],
+							['CommaSeparator'],
+							['StringLiteral', 'pizza'],
+							['CommaSeparator'],
+							['NumberLiteral', '3.14'],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('empty tuple', () => {
+				expect(parse('const foo = <>;')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['TupleExpression', []],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('nested tuples', () => {
+				expect(parse(`const foo = <
+					<1, 'pizza', 3.14>,
+					true,
+					@/some/file.joe,
+					1..3,
+					<1, 2, 'fizz', 4, 'buzz'>
+				>;`)).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['TupleExpression', [
+							['TupleExpression', [
+								['NumberLiteral', '1'],
+								['CommaSeparator'],
+								['StringLiteral', 'pizza'],
+								['CommaSeparator'],
+								['NumberLiteral', '3.14'],
+							]],
+							['CommaSeparator'],
+							['BoolLiteral', 'true'],
+							['CommaSeparator'],
+							['Path', '@/some/file.joe'],
+							['CommaSeparator'],
+							['RangeExpression', [
+								['NumberLiteral', '1'],
+								['NumberLiteral', '3'],
+							]],
+							['CommaSeparator'],
+							['TupleExpression', [
+								['NumberLiteral', '1'],
+								['CommaSeparator'],
+								['NumberLiteral', '2'],
+								['CommaSeparator'],
+								['StringLiteral', 'fizz'],
+								['CommaSeparator'],
+								['NumberLiteral', '4'],
+								['CommaSeparator'],
+								['StringLiteral', 'buzz'],
+							]],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('with ternary in item', () => {
+				expect(parse(`<
+					1,
+					someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
+					true
+				>`)).toMatchParseTree([
+					['TupleExpression', [
+						['NumberLiteral', '1'],
+						['CommaSeparator'],
+						['TernaryExpression', [
+							['TernaryCondition', [
+								['Identifier', 'someCondition'],
+							]],
+							['TernaryThen', [
+								['StringLiteral', 'burnt-orange'],
+							]],
+							['TernaryElse', [
+								['StringLiteral', ''],
+							]],
+						]],
+						['CommaSeparator'],
+						['Comment', '// will always be defined, so the shape is correct'],
+						['BoolLiteral', 'true'],
+					]],
+				]);
+			});
+
+		});
+
 		describe('arrays of', (): void => {
 
 			it('bools', (): void => {
@@ -584,6 +689,43 @@ describe('parser.ts', (): void => {
 				]);
 			});
 
+			it('tuples', () => {
+				expect(parse("const foo: <string, number, bool>[] = [<'foo', 3.14, false>, <'bar', 900, true>];")).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['ColonSeparator'],
+						['ArrayType', [
+							['TupleType', [
+								['Type', 'string'],
+								['CommaSeparator'],
+								['Type', 'number'],
+								['CommaSeparator'],
+								['Type', 'bool'],
+							]],
+						]],
+						['AssignmentOperator'],
+						['ArrayExpression', [
+							['TupleExpression', [
+								['StringLiteral', 'foo'],
+								['CommaSeparator'],
+								['NumberLiteral', '3.14'],
+								['CommaSeparator'],
+								['BoolLiteral', 'false'],
+							]],
+							['CommaSeparator'],
+							['TupleExpression', [
+								['StringLiteral', 'bar'],
+								['CommaSeparator'],
+								['NumberLiteral', '900'],
+								['CommaSeparator'],
+								['BoolLiteral', 'true'],
+							]],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
 			it('assignments', () => {
 				expect(parse('const numbers = [1, 2];')).toMatchParseTree([
 					['VariableDeclaration', 'const', [
@@ -606,13 +748,66 @@ describe('parser.ts', (): void => {
 							['Type', 'bool'],
 						]],
 						['AssignmentOperator'],
-						['ArrayExpression'],
+						['ArrayExpression', []],
 					]],
 					['SemicolonSeparator'],
 				]);
 			});
 
 		});
+
+		it('ternary', () => {
+			expect(parse('const foo = bar ? 1 : 2;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'foo'],
+					['AssignmentOperator'],
+					['TernaryExpression', [
+						['TernaryCondition', [
+							['Identifier', 'bar'],
+						]],
+						['TernaryThen', [
+							['NumberLiteral', '1'],
+						]],
+						['TernaryElse', [
+							['NumberLiteral', '2'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+
+			expect(parse('const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'foo'],
+					['AssignmentOperator'],
+					['TernaryExpression', [
+						['TernaryCondition', [
+							['Identifier', 'bar'],
+						]],
+						['TernaryThen', [
+							['Parenthesized', [
+								['TernaryExpression', [
+									['TernaryCondition', [
+										['Identifier', 'baz'],
+									]],
+									['TernaryThen', [
+										['NumberLiteral', '3'],
+									]],
+									['TernaryElse', [
+										['NumberLiteral', '4'],
+									]],
+								]],
+							]],
+						]],
+						['TernaryElse', [
+							['NumberLiteral', '2'],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
 	});
 
 	describe('CallExpression', () => {
@@ -1157,6 +1352,56 @@ describe('parser.ts', (): void => {
 					]],
 					['FunctionReturns', [
 						['Nil', 'nil'],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('params and return types using tuples', (): void => {
+			expect(parse('f foo (a: <bool>) -> <number> {}')).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'foo'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['TupleType', [
+								['Type', 'bool'],
+							]],
+						]],
+					]],
+					['FunctionReturns', [
+						['TupleType', [
+							['Type', 'number'],
+						]],
+					]],
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('params and return types using tuples and arrays', (): void => {
+			expect(parse('f foo (a: <bool[]>[]) -> <number> {}')).toMatchParseTree([
+				['FunctionDeclaration', [
+					['Identifier', 'foo'],
+					['ParametersList', [
+						['Parameter', [
+							['Identifier', 'a'],
+							['ColonSeparator'],
+							['ArrayType', [
+								['TupleType', [
+									['ArrayType', [
+										['Type', 'bool'],
+									]],
+								]],
+							]],
+						]],
+					]],
+					['FunctionReturns', [
+						['TupleType', [
+							['Type', 'number'],
+						]],
 					]],
 					['BlockStatement', []],
 				]],
@@ -2331,11 +2576,13 @@ describe('parser.ts', (): void => {
 	describe('WhenExpression', (): void => {
 
 		it('works with a small example', () => {
-			expect(parse(`when someNumber {
+			expect(parse(`when (someNumber) {
 				1 -> 'small',
 			}`)).toMatchParseTree([
 				['WhenExpression', [
-					['Identifier', 'someNumber'],
+					['Parenthesized', [
+						['Identifier', 'someNumber'],
+					]],
 					['BlockStatement', [
 						['WhenCase', [
 							['WhenCaseTests', [

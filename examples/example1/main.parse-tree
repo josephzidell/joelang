@@ -751,40 +751,95 @@
                                 'Property',
                                 [
                                   [ 'Identifier', 'c', [length]: 2 ],
-                                  [ 'Identifier', 'cond', [length]: 2 ],
-                                  [ 'Unknown', '?', [length]: 2 ],
                                   [
-                                    'BoolLiteral',
-                                    'true',
+                                    'TernaryExpression',
+                                    [
+                                      [
+                                        'TernaryCondition',
+                                        [
+                                          [
+                                            'Identifier',
+                                            'cond',
+                                            [length]: 2
+                                          ],
+                                          [length]: 1
+                                        ],
+                                        [length]: 2
+                                      ],
+                                      [
+                                        'TernaryThen',
+                                        [
+                                          [
+                                            'BoolLiteral',
+                                            'true',
+                                            [length]: 2
+                                          ],
+                                          [length]: 1
+                                        ],
+                                        [length]: 2
+                                      ],
+                                      [
+                                        'TernaryElse',
+                                        [
+                                          [
+                                            'BoolLiteral',
+                                            'false',
+                                            [length]: 2
+                                          ],
+                                          [length]: 1
+                                        ],
+                                        [length]: 2
+                                      ],
+                                      [length]: 3
+                                    ],
                                     [length]: 2
                                   ],
-                                  [ 'ColonSeparator', [length]: 1 ],
+                                  [ 'CommaSeparator', [length]: 1 ],
                                   [
-                                    'BoolLiteral',
-                                    'false',
+                                    'Comment',
+                                    '// regular ternary - property will always be there, value differs',
                                     [length]: 2
                                   ],
-                                  [length]: 6
-                                ],
-                                [length]: 2
-                              ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [
-                                'Comment',
-                                '// regular ternary - property will always be there, value differs',
-                                [length]: 2
-                              ],
-                              [
-                                'Property',
-                                [
                                   [ 'Identifier', 'd', [length]: 2 ],
+                                  [ 'ColonSeparator', [length]: 1 ],
                                   [ 'Nil', 'nil', [length]: 2 ],
-                                  [length]: 2
+                                  [length]: 7
                                 ],
                                 [length]: 2
                               ],
                               [ 'CommaSeparator', [length]: 1 ],
-                              [length]: 10
+                              [length]: 7
+                            ],
+                            [length]: 2
+                          ],
+                          [length]: 3
+                        ],
+                        [length]: 3
+                      ],
+                      [ 'SemicolonSeparator', [length]: 1 ],
+                      [
+                        'VariableDeclaration',
+                        'const',
+                        [
+                          [ 'Identifier', 'myTuple', [length]: 2 ],
+                          [ 'AssignmentOperator', [length]: 1 ],
+                          [
+                            'TupleExpression',
+                            [
+                              [ 'NumberLiteral', '1', [length]: 2 ],
+                              [ 'CommaSeparator', [length]: 1 ],
+                              [ 'BoolLiteral', 'true', [length]: 2 ],
+                              [ 'CommaSeparator', [length]: 1 ],
+                              [
+                                'StringLiteral',
+                                'string',
+                                [length]: 2
+                              ],
+                              [ 'CommaSeparator', [length]: 1 ],
+                              [ 'Nil', 'nil', [length]: 2 ],
+                              [ 'CommaSeparator', [length]: 1 ],
+                              [ 'Path', '@/foo', [length]: 2 ],
+                              [length]: 9
                             ],
                             [length]: 2
                           ],
@@ -858,7 +913,7 @@
                         [length]: 2
                       ],
                       [ 'SemicolonSeparator', [length]: 1 ],
-                      [length]: 25
+                      [length]: 27
                     ],
                     [length]: 2
                   ],

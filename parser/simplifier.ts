@@ -32,8 +32,17 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 		}
 
 		// in a few cases we want the children array to be there even when empty
+		const nodeTypesThatShouldAlwaysHaveChildren: NodeType[] = [
+			'ArgumentsList',
+			'ArrayExpression',
+			'BlockStatement',
+			'ParametersList',
+			'TypeArgumentsList',
+			'TypeParametersList',
+			'TupleExpression',
+		];
 		let hasChildren = children.length > 0;
-		if (node.type === 'ArgumentsList' || node.type === 'BlockStatement' || node.type === 'ParametersList') {
+		if (nodeTypesThatShouldAlwaysHaveChildren.includes(node.type)) {
 			hasChildren = true; // force it to be true
 		}
 

@@ -59,10 +59,14 @@ export default class {
 			'FunctionReturns', // for abstract functions
 			'IfStatement',
 			'MemberExpression',
+			'ObjectExpression',
 			'PrintStatement',
+			'Property',
 			'RangeExpression',
 			'RegularExpression',
 			'ReturnStatement',
+			'TernaryElse',
+			'TernaryExpression',
 			'UnaryExpression',
 			'VariableDeclaration',
 			'WhenExpression',
@@ -122,6 +126,11 @@ export default class {
 						break;
 				}
 			} else if (token.type === 'paren_close') {
+				// check if we're in a TernaryElse and then in a TernaryExpression, if so, it's finished
+				// eg `(foo ? true : false)`
+				this.endExpressionIfIn('TernaryElse');
+				this.endExpressionIfIn('TernaryExpression');
+
 				// check if we're in a BinaryExpression, if so, it's finished
 				// eg `while (foo != true) {}`
 				this.endExpressionIfIn('BinaryExpression');
@@ -182,7 +191,7 @@ export default class {
 				const isNextABracketClose = this.nextToken(i, 1)?.type === 'bracket_close';
 				const prev = this.prev();
 
-				if (isNextABracketClose && (prev?.type === 'ArrayType' || prev?.type === 'Identifier' || prev?.type === 'Type')) { // TODO or member chain
+				if (isNextABracketClose && (prev?.type === 'ArrayType' || prev?.type === 'Identifier' || prev?.type === 'TupleType' || prev?.type === 'Type')) { // TODO or member chain
 					// we have an array type
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('ArrayType', token, this.currentRoot, true));
 				} else if (prev?.type === 'Identifier') {
@@ -193,6 +202,9 @@ export default class {
 				}
 			} else if (token.type === 'bracket_close') {
 				this.endExpressionIfIn('IfStatement');
+				this.endExpressionIfIn('TernaryElse');
+				this.endExpressionIfIn('TernaryExpression');
+
 				this.endExpression(); // ArrayExpression, ArrayType or MemberList
 				this.endExpressionIfIn('MemberExpression');
 			} else if (token.type === 'bool') {
@@ -322,14 +334,24 @@ export default class {
 
 				this.addNode(MakeNode('RestElement', token, this.currentRoot));
 			} else if (token.type === 'colon') {
-				// TODO do this
-				if (this.currentRoot.type === 'ObjectExpression' && this.prev()?.type === 'Identifier') {
+				if (this.currentRoot.type === 'TernaryThen') {
+					// TernaryExpression
+					this.endExpression(); // end the TernaryThen
+					this.beginExpressionWith(MakeNode('TernaryElse', token, this.currentRoot, true));
+
+				} else if (this.currentRoot.type === 'ObjectExpression' && this.prev()?.type === 'Identifier') {
+					// POJOs notation
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('Property', token, this.currentRoot, true));
+
 				} else {
 					this.addNode(MakeNode('ColonSeparator', token, this.currentRoot));
 				}
+
 			} else if (token.type === 'comma') {
-				if (this.currentRoot.type === 'WhenCaseConsequent') {
+				if (this.currentRoot.type === 'TernaryElse') {
+					this.endExpression(); // end the TernaryElse
+					this.endExpression(); // end the TernaryExpression
+				} else if (this.currentRoot.type === 'WhenCaseConsequent') {
 					this.endExpression(); // end the WhenCaseConsequent
 					this.endExpression(); // end the WhenCase
 				} else if (this.currentRoot.type === 'CallExpression' && this.currentRoot.parent?.type === 'WhenCaseConsequent') {
@@ -442,105 +464,43 @@ export default class {
 			} else if (token.type === 'less_than') {
 				/**
 				 * < can be:
-				 * - a number comparison
+				 * - a comparison
+				 *   - Foo<T; // BinaryExpression
+				 *   - let foo = [Foo < T, U > 3]; // Bool Array with 2 BinaryExpressions
+				 *   - let foo = [Foo < T, U > (3+4)]; // same
+				 *
 				 * - the beginning of a tuple expression
+				 *   - <> // empty Tuple
+				 *   - <T> // Tuple
+				 *   - foo = <T>; // tuple
+				 *   - foo(<T>) // tuple
+				 *   - [<T>] // tuple in array
+				 *
+				 * - the beginning of a tuple type
 				 */
+
 				const prevType = this.prev()?.type;
 				// console.debug({prevType, currentRoot: this.currentRoot});
 
 				const literals: NodeType[] = ['BoolLiteral', 'NumberLiteral', 'StringLiteral'];
-				const tupleExpression = {
-					in: [
-						'ArgumentsList',
-						'ArrayExpression',
-						'BlockStatement',
-						'Parameter',
-						'Property',
-						'TupleExpression',
-						'VariableDeclaration',
-						'WhenCaseConsequent',
-					],
-					follow: {
-						tokens: [{type: 'assign', value: '='}],
-					},
-					notFollow: {
-						nodes: [
-							'Identifier',
-							...literals,
-							'CallExpression',
-							'MemberExpression',
-						],
-					},
-				};
-				const typeParametersList = {
-					in: [
-						'ClassDeclaration',
-						'FunctionDeclaration',
-						'InterfaceDeclaration',
-						'TypeDeclaration',
-					],
-					follow: {
-						nodes: ['Identifier'],
-						tokens: [{type: 'keyword', value: 'f'}],
-					},
-				};
-				const typeArgumentsList = {
-					in: [
-						'CallExpression',
-						'ClassExtensionsList',
-						'ClassImplementsList',
-						'InterfaceExtensionsList',
-						'NewExpression',
-						'TypeDeclaration',
-						'VariableDeclaration',
-					],
-					follow: {
-						nodes: ['Identifier', 'MemberExpression'],
-						tokens: [{type: 'assign', value: '='}],
-					},
-				};
-				const lessThan = {
-					follow: [
-						'Identifier',
-						...literals,
-						'CallExpression',
-						'MemberExpression',
-					],
-				};
+				const nodeTypesThatPrecedeABinaryExpression: NodeType[] = [
+					'Identifier',
+					...literals,
+					'CallExpression',
+					'MemberExpression',
+					'Nil',
+					'UnaryExpression',
+				];
 
-				if (prevType === 'NumberLiteral' || this.nextToken(i, 1)?.type === 'number') {
-					// if prev is a number, this is a comparison
+				if (this.currentRoot.type === 'FunctionReturns') {
+					this.beginExpressionWith(MakeNode('TupleType', token, this.currentRoot, true));
+
+				} else if (typeof prevType === 'undefined') {
+					// tuple
+					this.beginExpressionWith(MakeNode('TupleExpression', token, this.currentRoot, true));
+
+				} else if (nodeTypesThatPrecedeABinaryExpression.includes(prevType)) {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
-
-				} else if (prevType === 'AssignmentOperator') {
-					// this is a Tuple, eg `foo = <T>`
-					// TODO create Tuple Node
-				} else if (prevType === 'Identifier') {
-					/**
-					 * Since it follows an Identifier, this is a BinaryExpression
-					 *
-					 * - foo = 5; foo<6; // number comparison
-					 *
-					 * Some exceptions:
-					 * - <> // empty Tuple
-					 * - foo = <T>; // tuple
-					 * - foo(<T>) // tuple
-					 * - [<T>] // tuple in array
-					 *
-					 * Foo<T; // BinaryExpression
-					 * let foo = [Foo < T, U > 3]; // Bool Array with 2 BinaryExpressions
-					 * let foo = [Foo < T, U > (3+4)]; // same
-					 * // <> // Tuple
-					 * // <T> // Tuple
-					 *
-					 */
-
-					// if (this.currentRoot.type === 'ArgumentsList') {
-					// 	this.beginExpressionWith(MakeNode('GenericTypesList', token, this.currentRoot, true));
-					// } else {
-					// 	// 'less than' BinaryExpression
-					// 	this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
-					// }
 
 				} else if (prevType === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
 					// we need to go 2 levels up
@@ -549,11 +509,12 @@ export default class {
 				} else if (prevType === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
 					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
 
-				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
-				}
+				} else if (prevType === 'ColonSeparator' && this.currentRoot.type !== 'ObjectExpression') {
+					this.beginExpressionWith(MakeNode('TupleType', token, this.currentRoot, true));
 
-				// case 'VariableDeclaration':
+				} else {
+					this.beginExpressionWith(MakeNode('TupleExpression', token, this.currentRoot, true));
+				}
 			} else if (token.type === 'greater_than') {
 				/**
 				 * > can be:
@@ -562,7 +523,18 @@ export default class {
 				 */
 				const prevType = this.prev()?.type;
 
-				if (prevType === 'NumberLiteral') {
+				// first close out a ternary
+				if (this.currentRoot.type === 'TernaryElse') {
+					this.endExpression(); // end the TernaryElse
+					this.endExpression(); // end the TernaryExpression
+				}
+
+				// then, then other stuff
+
+				if (this.currentRoot.type === 'TupleExpression' || this.currentRoot.type === 'TupleType') {
+					this.endExpression(); // end the TupleExpression or TupleType
+
+				} else if (prevType === 'NumberLiteral') {
 					// if prev is a number, this is a comparison
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
 
@@ -727,6 +699,11 @@ export default class {
 				}
 			} else if (token.type === 'path') {
 				this.addNode(MakeNode('Path', token, this.currentRoot));
+			} else if (token.type === 'question') {
+				this.beginExpressionWithAdoptingPreviousNode(MakeNode('TernaryExpression', token, this.currentRoot, true));
+				this.beginExpressionWithAdoptingPreviousNode(MakeNode('TernaryCondition', token, this.currentRoot, true));
+				this.endExpression(); // end the TernaryCondition
+				this.beginExpressionWith(MakeNode('TernaryThen', token, this.currentRoot, true));
 			} else {
 				// this should eventually turn into an error
 				this.addNode(MakeNode('Unknown', token, this.currentRoot));

@@ -45,6 +45,8 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 			d: nil,
 		};
 
+		const myTuple = <1, true, 'string', nil, @/foo>;
+
 		let partialObj = myObject[a, d]; // new object {a: 1, d: nil}
 
 		const initializeAndAssignLater: number = 5;
