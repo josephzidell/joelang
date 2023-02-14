@@ -36,6 +36,7 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 			'ArgumentsList',
 			'ArrayExpression',
 			'BlockStatement',
+			'ObjectExpression',
 			'ParametersList',
 			'TypeArgumentsList',
 			'TypeParametersList',

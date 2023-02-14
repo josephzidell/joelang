@@ -616,6 +616,24 @@ describe('parser.ts', (): void => {
 				]);
 			});
 
+			it('tuple in object', () => {
+				expect(parse('const foo = {tpl: <1>};')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['ObjectExpression', [
+							['Property', [
+								['Identifier', 'tpl'],
+								['TupleExpression', [
+									['NumberLiteral', '1'],
+								]],
+							]],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			})
+
 		});
 
 		describe('arrays of', (): void => {
@@ -806,6 +824,163 @@ describe('parser.ts', (): void => {
 				]],
 				['SemicolonSeparator'],
 			]);
+		});
+
+		describe('pojos', () => {
+
+			it('pojo', () => {
+				expect(parse('const foo = {a: 1, b: "pizza", c: 3.14};')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['ObjectExpression', [
+							['Property', [
+								['Identifier', 'a'],
+								['NumberLiteral', '1'],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'b'],
+								['StringLiteral', 'pizza'],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'c'],
+								['NumberLiteral', '3.14'],
+							]],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('empty pojo', () => {
+				expect(parse('const foo = {};')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['ObjectExpression', []],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('nested pojos', () => {
+				expect(parse(`const foo = {
+					obj: {a: 1, b: 'pizza', pi: {two_digits: 3.14}},
+					bol: true,
+					pth: @/some/file.joe,
+					range: {range: 1..3},
+					tpl: <1, 2, 'fizz', 4, 'buzz'>
+				};`)).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['ObjectExpression', [
+							['Property', [
+								['Identifier', 'obj'],
+								['ObjectExpression', [
+									['Property', [
+										['Identifier', 'a'],
+										['NumberLiteral', '1'],
+									]],
+									['CommaSeparator'],
+									['Property', [
+										['Identifier', 'b'],
+										['StringLiteral', 'pizza'],
+									]],
+									['CommaSeparator'],
+									['Property', [
+										['Identifier', 'pi'],
+										['ObjectExpression', [
+											['Property', [
+												['Identifier', 'two_digits'],
+												['NumberLiteral', '3.14'],
+											]],
+										]],
+									]],
+								]],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'bol'],
+								['BoolLiteral', 'true'],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'pth'],
+								['Path', '@/some/file.joe'],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'range'],
+								['ObjectExpression', [
+									['Property', [
+										['Identifier', 'range'],
+										['RangeExpression', [
+											['NumberLiteral', '1'],
+											['NumberLiteral', '3'],
+										]],
+									]],
+								]],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'tpl'],
+								['TupleExpression', [
+									['NumberLiteral', '1'],
+									['CommaSeparator'],
+									['NumberLiteral', '2'],
+									['CommaSeparator'],
+									['StringLiteral', 'fizz'],
+									['CommaSeparator'],
+									['NumberLiteral', '4'],
+									['CommaSeparator'],
+									['StringLiteral', 'buzz'],
+								]],
+							]],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('with ternary in item', () => {
+				expect(parse(`{
+					a: 1,
+					b: someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
+					c: true
+				}`)).toMatchParseTree([
+					['ObjectExpression', [
+						['Property', [
+							['Identifier', 'a'],
+							['NumberLiteral', '1'],
+						]],
+						['CommaSeparator'],
+						['Property', [
+							['Identifier', 'b'],
+							['TernaryExpression', [
+								['TernaryCondition', [
+									['Identifier', 'someCondition'],
+								]],
+								['TernaryThen', [
+									['StringLiteral', 'burnt-orange'],
+								]],
+								['TernaryElse', [
+									['StringLiteral', ''],
+								]],
+							]],
+						]],
+						['CommaSeparator'],
+						['Comment', '// will always be defined, so the shape is correct'],
+						['Property', [
+							['Identifier', 'c'],
+							['BoolLiteral', 'true'],
+						]],
+					]],
+				]);
+			});
+
 		});
 
 	});

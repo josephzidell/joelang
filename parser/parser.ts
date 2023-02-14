@@ -166,7 +166,18 @@ export default class {
 
 				// this could be a BlockStatement or an ObjectExpression
 				const prevType = this.prev()?.type;
-				if (prevType === 'AssignmentOperator' || this.currentRoot.type === 'ArgumentsList' || this.currentRoot.type === 'TypeArgumentsList') {
+				const nodeTypesThatPrecedeAnObjectExpression: NodeType[] = [
+					'AssignmentOperator',
+					'ArgumentsList',
+					'TypeArgumentsList',
+				];
+				if (typeof prevType === 'undefined') {
+					if (this.debug) {
+						console.debug('Beginning a BlockStatement');
+					}
+
+					this.beginExpressionWith(MakeNode('BlockStatement', token, this.currentRoot, true));
+				} else if (nodeTypesThatPrecedeAnObjectExpression.includes(prevType) || (this.currentRoot.type === 'Property' && prevType === 'Identifier')) {
 					if (this.debug) {
 						console.debug('Beginning an ObjectExpression');
 					}
@@ -344,13 +355,21 @@ export default class {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('Property', token, this.currentRoot, true));
 
 				} else {
-					this.addNode(MakeNode('ColonSeparator', token, this.currentRoot));
+					if (this.currentRoot.type === 'BlockStatement') {
+						// convert BlockStatement to an ObjectExpression and create a Property node
+						this.currentRoot.type = 'ObjectExpression';
+
+						this.beginExpressionWithAdoptingPreviousNode(MakeNode('Property', token, this.currentRoot, true));
+					} else {
+						this.addNode(MakeNode('ColonSeparator', token, this.currentRoot));
+					}
 				}
 
 			} else if (token.type === 'comma') {
 				if (this.currentRoot.type === 'TernaryElse') {
 					this.endExpression(); // end the TernaryElse
 					this.endExpression(); // end the TernaryExpression
+					this.endExpressionIfIn('Property'); // end if in Property
 				} else if (this.currentRoot.type === 'WhenCaseConsequent') {
 					this.endExpression(); // end the WhenCaseConsequent
 					this.endExpression(); // end the WhenCase
@@ -475,6 +494,7 @@ export default class {
 				 *   - foo = <T>; // tuple
 				 *   - foo(<T>) // tuple
 				 *   - [<T>] // tuple in array
+				 *   - {a: <T>} // tuple in pojo
 				 *
 				 * - the beginning of a tuple type
 				 */
@@ -496,6 +516,10 @@ export default class {
 					this.beginExpressionWith(MakeNode('TupleType', token, this.currentRoot, true));
 
 				} else if (typeof prevType === 'undefined') {
+					// tuple
+					this.beginExpressionWith(MakeNode('TupleExpression', token, this.currentRoot, true));
+
+				} else if (this.currentRoot.type === 'Property' && prevType === 'Identifier') {
 					// tuple
 					this.beginExpressionWith(MakeNode('TupleExpression', token, this.currentRoot, true));
 
