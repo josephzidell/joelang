@@ -2010,6 +2010,71 @@ describe('parser.ts', (): void => {
 				]);
 			});
 
+			it('with two conditions', () => {
+				expect(parse('if foo() == 2 && a < 3 {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BinaryExpression', '&&', [
+							['BinaryExpression', '==', [
+								['CallExpression', [
+									['Identifier', 'foo'],
+									['ArgumentsList', []],
+								]],
+								['NumberLiteral', '2'],
+							]],
+							['BinaryExpression', '<', [
+								['Identifier', 'a'],
+								['NumberLiteral', '3'],
+							]],
+						]],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			describe('with parens', () => {
+
+				it('and one condition', () => {
+					expect(parse('if (foo() == 2) {}')).toMatchParseTree([
+						['IfStatement', {before: true}, [
+							['Parenthesized', [
+								['BinaryExpression', '==', [
+									['CallExpression', [
+										['Identifier', 'foo'],
+										['ArgumentsList', []],
+									]],
+									['NumberLiteral', '2'],
+								]],
+							]],
+							['BlockStatement', []],
+						]],
+					]);
+				});
+
+				it('and two conditions', () => {
+					expect(parse('if (foo() == 2 && a < 3) {}')).toMatchParseTree([
+						['IfStatement', {before: true}, [
+							['Parenthesized', [
+								['BinaryExpression', '&&', [
+									['BinaryExpression', '==', [
+										['CallExpression', [
+											['Identifier', 'foo'],
+											['ArgumentsList', []],
+										]],
+										['NumberLiteral', '2'],
+									]],
+									['BinaryExpression', '<', [
+										['Identifier', 'a'],
+										['NumberLiteral', '3'],
+									]],
+								]],
+							]],
+							['BlockStatement', []],
+						]],
+					]);
+				});
+
+			});
+
 		});
 
 		describe('after', () => {

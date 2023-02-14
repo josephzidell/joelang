@@ -133,7 +133,7 @@ export default class {
 
 				// check if we're in a BinaryExpression, if so, it's finished
 				// eg `while (foo != true) {}`
-				this.endExpressionIfIn('BinaryExpression');
+				this.endExpressionWhileIn('BinaryExpression');
 
 				// check if currentRoot is a UnaryExpression, if so, it's also finished
 				// eg `!foo()`
@@ -152,7 +152,7 @@ export default class {
 				// eg `(x * -2)`
 				this.endExpressionIfIn('UnaryExpression');
 			} else if (token.type === 'brace_open') {
-				this.endExpressionIfIn('BinaryExpression');
+				this.endExpressionWhileIn('BinaryExpression');
 				this.endExpressionIfIn('FunctionReturns');
 				this.endExpressionIfIn('ClassExtensionsList');
 				this.endExpressionIfIn('ClassImplementsList');
@@ -978,6 +978,16 @@ export default class {
 	 */
 	private endExpressionIfIn(type: NodeType) {
 		if (this.currentRoot.type === type) {
+			this.endExpression();
+		}
+	}
+
+	/**
+	 * check if currentRoot is of the desired type, if so, it's finished
+	 * rinse and repeat
+	 */
+	private endExpressionWhileIn(type: NodeType) {
+		while (this.currentRoot.type === type) {
 			this.endExpression();
 		}
 	}
