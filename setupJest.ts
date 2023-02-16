@@ -98,7 +98,7 @@ export function matchParseTree (tree: Node, simplifiedVersion: SParseTree): Cust
 		// console.debug(inspect(simplifiedVersion, {depth: null}));
 		// console.debug(inspect(simplifiedTree, {depth: null}));
 
-		return {pass: false, message: () => `they do not match. Diff: ${diff}`};
+		return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff: ${diff}`};
 		// return {pass: false, message: () => `they do not match.\nExpected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(simplifiedTree)}`};
 	}
 };
