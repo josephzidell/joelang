@@ -168,6 +168,30 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 			]],
 			['SemicolonSeparator'],
 		]);
+
+		expect(parse(`2 ${operator} this.foo['a']['c'].d;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['NumberLiteral', '2'],
+				['MemberExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['MemberExpression', [
+								['Keyword', 'this'],
+								['Identifier', 'foo'],
+							]],
+							['MembersList', [
+								['StringLiteral', 'a'],
+							]],
+						]],
+						['MembersList', [
+							['StringLiteral', 'c'],
+						]],
+					]],
+					['Identifier', 'd'],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
 	});
 
 	it(`${operator} with number literal and element access`, (): void => {
@@ -565,6 +589,55 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		it('path', (): void => {
+			expect(parse('const dir = @/path/to/dir/;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'dir'],
+					['AssignmentOperator'],
+					['Path', '@/path/to/dir/'],
+				]],
+				['SemicolonSeparator'],
+			]);
+
+			expect(parse('const dir = ./myDir/;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'dir'],
+					['AssignmentOperator'],
+					['Path', './myDir/'],
+				]],
+				['SemicolonSeparator'],
+			]);
+
+			expect(parse('const dir: path = @/path/to/dir/;')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'dir'],
+					['ColonSeparator'],
+					['Type', 'path'],
+					['AssignmentOperator'],
+					['Path', '@/path/to/dir/'],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
+		it('custom type', (): void => {
+			expect(parse('const myClass: MyClass = new MyClass();')).toMatchParseTree([
+				['VariableDeclaration', 'const', [
+					['Identifier', 'myClass'],
+					['ColonSeparator'],
+					['Identifier', 'MyClass'],
+					['AssignmentOperator'],
+					['NewExpression', [
+						['CallExpression', [
+							['Identifier', 'MyClass'],
+							['ArgumentsList', []],
+						]],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
+		});
+
 		it('nil', (): void => {
 			expect(parse('const x = nil')).toMatchParseTree([
 				['VariableDeclaration', 'const', [
@@ -715,7 +788,7 @@ describe('parser.ts', (): void => {
 			});
 
 			it('numbers', () => {
-				expect(parse('[1, -2, 3,456, 3^e-2, 3.14]')).toMatchParseTree([
+				expect(parse('[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]')).toMatchParseTree([
 					['ArrayExpression', [
 						['NumberLiteral', '1'],
 						['CommaSeparator'],
@@ -733,6 +806,8 @@ describe('parser.ts', (): void => {
 						]],
 						['CommaSeparator'],
 						['NumberLiteral', '3.14'],
+						['CommaSeparator'],
+						['NumberLiteral', '1,2,3'], // weird but legal
 					]],
 				]);
 			});
@@ -799,6 +874,43 @@ describe('parser.ts', (): void => {
 								['NumberLiteral', '900'],
 								['CommaSeparator'],
 								['BoolLiteral', 'true'],
+							]],
+						]],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('pojos', () => {
+				expect(parse("const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];")).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['ColonSeparator'],
+						['ArrayType', [
+							['ObjectType', [
+								['Property', [
+									['Identifier', 'a'],
+									['Type', 'number'],
+								]],
+								['CommaSeparator'],
+								['Property', [
+									['Identifier', 'b'],
+									['Type', 'string'],
+								]],
+							]],
+						]],
+						['AssignmentOperator'],
+						['ArrayExpression', [
+							['ObjectExpression', [
+								['Property', [
+									['Identifier', 'a'],
+									['NumberLiteral', '4'],
+								]],
+								['CommaSeparator'],
+								['Property', [
+									['Identifier', 'b'],
+									['StringLiteral', 'c'],
+								]],
 							]],
 						]],
 					]],
@@ -948,7 +1060,7 @@ describe('parser.ts', (): void => {
 		describe('pojos', () => {
 
 			it('pojo', () => {
-				expect(parse('const foo = {a: 1, b: "pizza", c: 3.14};')).toMatchParseTree([
+				expect(parse('const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};')).toMatchParseTree([
 					['VariableDeclaration', 'const', [
 						['Identifier', 'foo'],
 						['AssignmentOperator'],
@@ -966,6 +1078,15 @@ describe('parser.ts', (): void => {
 							['Property', [
 								['Identifier', 'c'],
 								['NumberLiteral', '3.14'],
+							]],
+							['CommaSeparator'],
+							['Property', [
+								['Identifier', 'd'],
+								['ArrayExpression', [
+									['NumberLiteral', '10'],
+									['CommaSeparator'],
+									['NumberLiteral', '11'],
+								]],
 							]],
 						]],
 					]],
@@ -1095,6 +1216,41 @@ describe('parser.ts', (): void => {
 						['Property', [
 							['Identifier', 'c'],
 							['BoolLiteral', 'true'],
+						]],
+					]],
+				]);
+			});
+
+			it('with array in item', () => {
+				expect(parse(`{
+					a: [1]
+				}`)).toMatchParseTree([
+					['ObjectExpression', [
+						['Property', [
+							['Identifier', 'a'],
+							['ArrayExpression', [
+								['NumberLiteral', '1'],
+							]],
+						]],
+					]],
+				]);
+			});
+
+			it('with MemberExpression in item', () => {
+				expect(parse(`{
+					a: [foo[1]]
+				}`)).toMatchParseTree([
+					['ObjectExpression', [
+						['Property', [
+							['Identifier', 'a'],
+							['ArrayExpression', [
+								['MemberExpression', [
+									['Identifier', 'foo'],
+									['MembersList', [
+										['NumberLiteral', '1'],
+									]],
+								]],
+							]],
 						]],
 					]],
 				]);
@@ -2963,7 +3119,22 @@ describe('parser.ts', (): void => {
 					['NumberLiteral', '5'],
 				]],
 				['SemicolonSeparator'],
-			])
+			]);
+		});
+
+		it('should work with a CallExpression', () => {
+			expect(parse('print myFoo.foo();')).toMatchParseTree([
+				['PrintStatement', [
+					['CallExpression', [
+						['MemberExpression', [
+							['Identifier', 'myFoo'],
+							['Identifier', 'foo'],
+						]],
+						['ArgumentsList', []],
+					]],
+				]],
+				['SemicolonSeparator'],
+			]);
 		})
 
 	})

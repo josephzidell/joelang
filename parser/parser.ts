@@ -171,6 +171,10 @@ export default class {
 					'ArgumentsList',
 					'TypeArgumentsList',
 				];
+				const nodeTypesThatParentAnObjectType: NodeType[] = [
+					'VariableDeclaration',
+					'ArgumentsList',
+				];
 				if (typeof prevType === 'undefined') {
 					if (this.debug) {
 						console.debug('Beginning a BlockStatement');
@@ -183,6 +187,12 @@ export default class {
 					}
 
 					this.beginExpressionWith(MakeNode('ObjectExpression', token, this.currentRoot, true));
+				} else if (nodeTypesThatParentAnObjectType.includes(this.currentRoot.type)) {
+					if (this.debug) {
+						console.debug('Beginning an ObjectType');
+					}
+
+					this.beginExpressionWith(MakeNode('ObjectType', token, this.currentRoot, true));
 				} else {
 					if (this.debug) {
 						console.debug('Beginning a BlockStatement');
@@ -198,6 +208,7 @@ export default class {
 				this.endExpressionIfIn('ClassDeclaration');
 				this.endExpressionIfIn('InterfaceDeclaration');
 				this.endExpressionIfIn('ObjectExpression');
+				this.endExpressionIfIn('ObjectType');
 				this.endExpressionIfIn('WhileStatement');
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.nextToken(i, 1)?.type === 'bracket_close';
@@ -205,10 +216,12 @@ export default class {
 
 				if (typeof prevType === 'undefined') {
 					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot, true));
-				} else if (isNextABracketClose && (prevType === 'ArrayType' || prevType === 'Identifier' || prevType === 'TupleType' || prevType === 'Type')) { // TODO or member chain
+				} else if (isNextABracketClose && ((['ArrayType', 'Identifier', 'ObjectType', 'TupleType', 'Type'] as NodeType[]).includes(prevType))) { // TODO or member chain
 					// we have an array type
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('ArrayType', token, this.currentRoot, true));
-				} else if ((['CallExpression', 'Identifier', 'MemberExpression'] as NodeType[]).includes(prevType)) {
+
+					// the second condition is to preclude this `{a: [1]}`
+				} else if ((['CallExpression', 'Identifier', 'MemberExpression'] as NodeType[]).includes(prevType) && !(this.currentRoot.type === 'Property' && prevType === 'Identifier')) {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot, true));
 					this.beginExpressionWith(MakeNode('MembersList', token, this.currentRoot, true));
 				} else {
@@ -353,7 +366,7 @@ export default class {
 					this.endExpression(); // end the TernaryThen
 					this.beginExpressionWith(MakeNode('TernaryElse', token, this.currentRoot, true));
 
-				} else if (this.currentRoot.type === 'ObjectExpression' && this.prev()?.type === 'Identifier') {
+				} else if (['ObjectExpression', 'ObjectType'].includes(this.currentRoot.type) && this.prev()?.type === 'Identifier') {
 					// POJOs notation
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('Property', token, this.currentRoot, true));
 

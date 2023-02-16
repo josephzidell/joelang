@@ -37,6 +37,7 @@ const nodeTypes = [
 	'Nil',
 	'NumberLiteral',
 	'ObjectExpression',
+	'ObjectType',
 	'Parameter',
 	'ParametersList',
 	'Parenthesized',
