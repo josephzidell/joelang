@@ -836,56 +836,82 @@ describe('parser.ts', (): void => {
 
 		});
 
-		it('ternary', () => {
-			expect(parse('const foo = bar ? 1 : 2;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'foo'],
-					['AssignmentOperator'],
-					['TernaryExpression', [
-						['TernaryCondition', [
-							['Identifier', 'bar'],
-						]],
-						['TernaryThen', [
-							['NumberLiteral', '1'],
-						]],
-						['TernaryElse', [
-							['NumberLiteral', '2'],
+		describe('ternary', () => {
+
+			it('should work in a variable declaration', () => {
+				expect(parse('const foo = bar ? 1 : 2;')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['TernaryExpression', [
+							['TernaryCondition', [
+								['Identifier', 'bar'],
+							]],
+							['TernaryThen', [
+								['NumberLiteral', '1'],
+							]],
+							['TernaryElse', [
+								['NumberLiteral', '2'],
+							]],
 						]],
 					]],
-				]],
-				['SemicolonSeparator'],
-			]);
+					['SemicolonSeparator'],
+				]);
+			});
 
-			expect(parse('const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'foo'],
-					['AssignmentOperator'],
-					['TernaryExpression', [
-						['TernaryCondition', [
-							['Identifier', 'bar'],
-						]],
-						['TernaryThen', [
-							['Parenthesized', [
-								['TernaryExpression', [
-									['TernaryCondition', [
-										['Identifier', 'baz'],
-									]],
-									['TernaryThen', [
-										['NumberLiteral', '3'],
-									]],
-									['TernaryElse', [
-										['NumberLiteral', '4'],
+			it('should work in a variable declaration', () => {
+				expect(parse('const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['TernaryExpression', [
+							['TernaryCondition', [
+								['Identifier', 'bar'],
+							]],
+							['TernaryThen', [
+								['Parenthesized', [
+									['TernaryExpression', [
+										['TernaryCondition', [
+											['Identifier', 'baz'],
+										]],
+										['TernaryThen', [
+											['NumberLiteral', '3'],
+										]],
+										['TernaryElse', [
+											['NumberLiteral', '4'],
+										]],
 									]],
 								]],
 							]],
-						]],
-						['TernaryElse', [
-							['NumberLiteral', '2'],
+							['TernaryElse', [
+								['NumberLiteral', '2'],
+							]],
 						]],
 					]],
-				]],
-				['SemicolonSeparator'],
-			]);
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('should work in an array', () => {
+				expect(parse('[foo ? 1 : 2, 3]')).toMatchParseTree([
+					['ArrayExpression', [
+						['TernaryExpression', [
+							['TernaryCondition', [
+								['Identifier', 'foo'],
+							]],
+							['TernaryThen', [
+								['NumberLiteral', '1'],
+							]],
+							['TernaryElse', [
+								['NumberLiteral', '2'],
+							]],
+						]],
+						['CommaSeparator'],
+						['NumberLiteral', '3'],
+					]],
+				]);
+			})
+
 		});
 
 		describe('pojos', () => {
