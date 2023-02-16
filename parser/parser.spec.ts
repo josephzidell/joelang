@@ -859,7 +859,7 @@ describe('parser.ts', (): void => {
 				]);
 			});
 
-			it('should work in a variable declaration', () => {
+			it('should work when nested', () => {
 				expect(parse('const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree([
 					['VariableDeclaration', 'const', [
 						['Identifier', 'foo'],
@@ -910,7 +910,38 @@ describe('parser.ts', (): void => {
 						['NumberLiteral', '3'],
 					]],
 				]);
-			})
+			});
+
+			it('should work in a return', () => {
+				expect(parse('f foo -> bool, number {return bar ? true : false, 3;}')).toMatchParseTree([
+					['FunctionDeclaration', [
+						['Identifier', 'foo'],
+						['FunctionReturns', [
+							['Type', 'bool'],
+							['CommaSeparator'],
+							['Type', 'number'],
+						]],
+						['BlockStatement', [
+							['ReturnStatement', [
+								['TernaryExpression', [
+									['TernaryCondition', [
+										['Identifier', 'bar'],
+									]],
+									['TernaryThen', [
+										['BoolLiteral', 'true'],
+									]],
+									['TernaryElse', [
+										['BoolLiteral', 'false'],
+									]],
+								]],
+								['CommaSeparator'],
+								['NumberLiteral', '3'],
+							]],
+							['SemicolonSeparator'],
+						]]
+					]],
+				]);
+			});
 
 		});
 
@@ -1523,7 +1554,9 @@ describe('parser.ts', (): void => {
 		});
 
 		it('no params with multiple return types', (): void => {
-			expect(parse('f foo -> bool, string {}')).toMatchParseTree([
+			expect(parse(`f foo -> bool, string {
+				return true, 'hey';
+			}`)).toMatchParseTree([
 				['FunctionDeclaration', [
 					['Identifier', 'foo'],
 					['FunctionReturns', [
@@ -1531,7 +1564,14 @@ describe('parser.ts', (): void => {
 						['CommaSeparator'],
 						['Type', 'string'],
 					]],
-					['BlockStatement', []],
+					['BlockStatement', [
+						['ReturnStatement', [
+							['BoolLiteral', 'true'],
+							['CommaSeparator'],
+							['StringLiteral', 'hey'],
+						]],
+						['SemicolonSeparator'],
+					]],
 				]],
 			]);
 		});
