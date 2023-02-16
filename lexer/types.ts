@@ -83,6 +83,7 @@ export const keywords = [
 	'break',
 	'class',
 	'const',
+	'else',
 	'extends',
 	'f',
 	'for',

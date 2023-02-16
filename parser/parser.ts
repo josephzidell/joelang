@@ -200,12 +200,14 @@ export default class {
 				this.endExpressionIfIn('WhileStatement');
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.nextToken(i, 1)?.type === 'bracket_close';
-				const prev = this.prev();
+				const prevType = this.prev()?.type;
 
-				if (isNextABracketClose && (prev?.type === 'ArrayType' || prev?.type === 'Identifier' || prev?.type === 'TupleType' || prev?.type === 'Type')) { // TODO or member chain
+				if (typeof prevType === 'undefined') {
+					this.beginExpressionWith(MakeNode('ArrayExpression', token, this.currentRoot, true));
+				} else if (isNextABracketClose && (prevType === 'ArrayType' || prevType === 'Identifier' || prevType === 'TupleType' || prevType === 'Type')) { // TODO or member chain
 					// we have an array type
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('ArrayType', token, this.currentRoot, true));
-				} else if (prev?.type === 'Identifier') {
+				} else if ((['CallExpression', 'Identifier', 'MemberExpression'] as NodeType[]).includes(prevType)) {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot, true));
 					this.beginExpressionWith(MakeNode('MembersList', token, this.currentRoot, true));
 				} else {
@@ -645,6 +647,15 @@ export default class {
 					case 'break':
 						this.addNode(MakeNode('BreakStatement', token, this.currentRoot, true));
 						break;
+					case 'else':
+						// no need to do anything with this.
+						// A subsequent BlockStatement will go into the previous IfStatement
+						// A subsequent IfStatement will do the same
+						// Just check if we're in an IfStatement
+						if (this.currentRoot.type !== 'IfStatement') {
+							throw new ParserError('`else` keyword is used with if statements', this.currentRoot);
+						}
+						break;
 					case 'extends':
 						if (this.currentRoot.type === 'ClassDeclaration') {
 							this.beginExpressionWith(MakeNode('ClassExtensionsList', token, this.currentRoot, true));
@@ -682,6 +693,13 @@ export default class {
 							this.beginExpressionWithAdoptingPreviousNode(MakeIfStatementNode(token, false, this.currentRoot));
 						} else {
 							// this is before
+
+							// if prev token is 'else', this IfStatement goes into current node
+							// Otherwise it's a new IfStatement and we must first close the current IfStatement.
+							if (i > 0 && !(this.tokens[i - 1].type === 'keyword' && this.tokens[i - 1].value === 'else')) {
+								this.endExpression(); // end the IfStatement
+							}
+
 							this.beginExpressionWith(MakeIfStatementNode(token, true, this.currentRoot));
 						}
 						break;

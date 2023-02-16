@@ -107,6 +107,67 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 			]],
 			['SemicolonSeparator'],
 		]);
+
+		expect(parse(`foo.a ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['MemberExpression', [
+					['Identifier', 'foo'],
+					['Identifier', 'a'],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`foo['a'].b ${operator} 2;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['MemberExpression', [
+					['MemberExpression', [
+						['Identifier', 'foo'],
+						['MembersList', [
+							['StringLiteral', 'a'],
+						]],
+					]],
+					['Identifier', 'b'],
+				]],
+				['NumberLiteral', '2'],
+			]],
+			['SemicolonSeparator'],
+		]);
+
+		expect(parse(`this.foo['a', 'b'].b ${operator} this.foo['a', 'c'].b;`)).toMatchParseTree([
+			[nodeType, operator, [
+				['MemberExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['Keyword', 'this'],
+							['Identifier', 'foo'],
+						]],
+						['MembersList', [
+							['StringLiteral', 'a'],
+							['CommaSeparator'],
+							['StringLiteral', 'b'],
+						]],
+					]],
+					['Identifier', 'b'],
+				]],
+				['MemberExpression', [
+					['MemberExpression', [
+						['MemberExpression', [
+							['Keyword', 'this'],
+							['Identifier', 'foo'],
+						]],
+						['MembersList', [
+							['StringLiteral', 'a'],
+							['CommaSeparator'],
+							['StringLiteral', 'c'],
+						]],
+					]],
+					['Identifier', 'b'],
+				]],
+			]],
+			['SemicolonSeparator'],
+		]);
 	});
 
 	it(`${operator} with number literal and element access`, (): void => {
@@ -176,6 +237,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 			['SemicolonSeparator'],
 		]);
 	});
+
 	it(`${operator} with method call and element access`, (): void => {
 		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
 			[nodeType, operator, [
@@ -2072,6 +2134,48 @@ describe('parser.ts', (): void => {
 						]],
 					]);
 				});
+
+			});
+
+			it('with just else', () => {
+
+				expect(parse('if true {} else {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BoolLiteral', 'true'],
+						['BlockStatement', []],
+						['BlockStatement', []],
+					]],
+				]);
+
+			});
+
+			it('with else if', () => {
+
+				expect(parse('if true {} else if false {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BoolLiteral', 'true'],
+						['BlockStatement', []],
+						['IfStatement', {before: true}, [
+							['BoolLiteral', 'false'],
+							['BlockStatement', []],
+						]],
+					]],
+				]);
+
+			});
+
+			it('with a subsequent if and should be two separate IfStatements', () => {
+
+				expect(parse('if true {} if false {}')).toMatchParseTree([
+					['IfStatement', {before: true}, [
+						['BoolLiteral', 'true'],
+						['BlockStatement', []],
+					]],
+					['IfStatement', {before: true}, [
+						['BoolLiteral', 'false'],
+						['BlockStatement', []],
+					]],
+				]);
 
 			});
 
