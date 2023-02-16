@@ -2472,6 +2472,66 @@ describe('parser.ts', (): void => {
 
 	})
 
+	describe('Loop', (): void => {
+
+		it('simple loop', () => {
+			expect(parse('loop {}')).toMatchParseTree([
+				['Loop', [
+					['BlockStatement', []],
+				]],
+			]);
+		});
+
+		it('with function call in body and break in a condition', () => {
+			expect(parse(`loop {
+				const response = http.server.listen(3,000);
+
+				if response.status.code > 300 {
+					break;
+				}
+			}`)).toMatchParseTree([
+				['Loop', [
+					['BlockStatement', [
+						['VariableDeclaration', 'const', [
+							['Identifier', 'response'],
+							['AssignmentOperator'],
+							['CallExpression', [
+								['MemberExpression', [
+									['MemberExpression', [
+										['Identifier', 'http'],
+										['Identifier', 'server'],
+									]],
+									['Identifier', 'listen'],
+								]],
+								['ArgumentsList', [
+									['NumberLiteral', '3,000'],
+								]],
+							]],
+						]],
+						['SemicolonSeparator'],
+						['IfStatement', {before: true}, [
+							['BinaryExpression', '>', [
+								['MemberExpression', [
+									['MemberExpression', [
+										['Identifier', 'response'],
+										['Identifier', 'status'],
+									]],
+									['Identifier', 'code'],
+								]],
+								['NumberLiteral', '300'],
+							]],
+							['BlockStatement', [
+								['BreakStatement'],
+								['SemicolonSeparator'],
+							]],
+						]],
+					]],
+				]],
+			]);
+		});
+
+	});
+
 	describe('MemberExpression', () => {
 
 		it('works with several nested layers', () => {

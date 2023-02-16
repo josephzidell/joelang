@@ -95,6 +95,7 @@ export const keywords = [
 	'interface',
 	'is',
 	'let',
+	'loop',
 	'new',
 	'print',
 	'private',

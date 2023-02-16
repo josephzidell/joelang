@@ -26,6 +26,7 @@ const nodeTypes = [
 	'InterfaceDeclaration',
 	'InterfaceExtensionsList',
 	'Keyword',
+	'Loop',
 	'MemberExpression',
 	'MembersList',
 	'Modifier', // for Class, Function, Interface, or Variable

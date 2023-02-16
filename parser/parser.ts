@@ -193,6 +193,7 @@ export default class {
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
+				this.endExpressionIfIn('Loop');
 				this.endExpressionIfIn('FunctionDeclaration');
 				this.endExpressionIfIn('ClassDeclaration');
 				this.endExpressionIfIn('InterfaceDeclaration');
@@ -695,8 +696,12 @@ export default class {
 							// this is before
 
 							// if prev token is 'else', this IfStatement goes into current node
-							// Otherwise it's a new IfStatement and we must first close the current IfStatement.
-							if (i > 0 && !(this.tokens[i - 1].type === 'keyword' && this.tokens[i - 1].value === 'else')) {
+							// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
+							if (this.currentRoot.type === 'IfStatement' && i > 0 && !(this.tokens[i - 1].type === 'keyword' && this.tokens[i - 1].value === 'else')) {
+								if (this.debug) {
+									console.debug('Found an "if" statement after another "if" without an "else"; now closing the first IfStatement');
+								}
+
 								this.endExpression(); // end the IfStatement
 							}
 
@@ -713,6 +718,9 @@ export default class {
 						break;
 					case 'interface':
 						this.beginExpressionWith(MakeNode('InterfaceDeclaration', token, this.currentRoot, true));
+						break;
+					case 'loop':
+						this.beginExpressionWith(MakeNode('Loop', token, this.currentRoot, true));
 						break;
 					case 'new':
 						this.beginExpressionWith(MakeNode('NewExpression', token, this.currentRoot, true));
