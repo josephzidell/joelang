@@ -20,7 +20,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 
 		expect(parse(`-1,000 ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '1,000'],
 				]],
 				['NumberLiteral', '2'],
@@ -31,7 +31,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, operator, [
 				['NumberLiteral', '1'],
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '2'],
 				]],
 			]],
@@ -40,10 +40,10 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 
 		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '1'],
 				]],
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '2'],
 				]],
 			]],
@@ -296,7 +296,7 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 
 		expect(parse(`-1 ${operator} 2;`)).toMatchParseTree([
 			[nodeType, [
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '1'],
 				]],
 				['NumberLiteral', '2'],
@@ -307,7 +307,7 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, [
 				['NumberLiteral', '1'],
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '2'],
 				]],
 			]],
@@ -316,10 +316,10 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 
 		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, [
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '1'],
 				]],
-				['UnaryExpression', '-', {before: true}, [
+				['UnaryExpression', '-', { before: true }, [
 					['NumberLiteral', '2'],
 				]],
 			]],
@@ -507,10 +507,10 @@ describe('parser.ts', (): void => {
 					['Identifier', 'x'],
 					['AssignmentOperator'],
 					['BinaryExpression', '^e', [
-						['UnaryExpression', '-', {before: true}, [
+						['UnaryExpression', '-', { before: true }, [
 							['NumberLiteral', '2,300.006'],
 						]],
-						['UnaryExpression', '-', {before: true}, [
+						['UnaryExpression', '-', { before: true }, [
 							['NumberLiteral', '2,000'],
 						]],
 					]],
@@ -792,7 +792,7 @@ describe('parser.ts', (): void => {
 					['ArrayExpression', [
 						['NumberLiteral', '1'],
 						['CommaSeparator'],
-						['UnaryExpression', '-', {before: true}, [
+						['UnaryExpression', '-', { before: true }, [
 							['NumberLiteral', '2'],
 						]],
 						['CommaSeparator'],
@@ -800,7 +800,7 @@ describe('parser.ts', (): void => {
 						['CommaSeparator'],
 						['BinaryExpression', '^e', [
 							['NumberLiteral', '3'],
-							['UnaryExpression', '-', {before: true}, [
+							['UnaryExpression', '-', { before: true }, [
 								['NumberLiteral', '2'],
 							]],
 						]],
@@ -1651,7 +1651,7 @@ describe('parser.ts', (): void => {
 						['NumberLiteral', '10'],
 					]],
 					['SemicolonSeparator'],
-					['UnaryExpression', '++', {before: false}, [
+					['UnaryExpression', '++', { before: false }, [
 						['Identifier', 'i'],
 					]],
 					['BlockStatement', []],
@@ -1674,7 +1674,7 @@ describe('parser.ts', (): void => {
 							['NumberLiteral', '10'],
 						]],
 						['SemicolonSeparator'],
-						['UnaryExpression', '++', {before: false}, [
+						['UnaryExpression', '++', { before: false }, [
 							['Identifier', 'i'],
 						]],
 					]],
@@ -1913,7 +1913,7 @@ describe('parser.ts', (): void => {
 								]],
 							]],
 						]],
-				]],
+					]],
 					['BlockStatement', []],
 				]],
 			]);
@@ -2240,6 +2240,64 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
+		describe('special function names', () => {
+
+			describe('new', () => {
+
+				// outside of a class
+				it('new as function name outside of a class should be weird', (): void => {
+					expect(parse(`f new {}`)).toMatchParseTree([
+						['FunctionDeclaration', [
+							['NewExpression', [
+								['BlockStatement', []],
+							]],
+						]],
+					]);
+				});
+
+				// in a class
+				it('new as function name inside of a class should be an innocent Identifier', (): void => {
+					expect(parse(`class A{f new {}}`)).toMatchParseTree([
+						['ClassDeclaration', [
+							['Identifier', 'A'],
+							['BlockStatement', [
+								['FunctionDeclaration', [
+									['Identifier', 'new'],
+									['BlockStatement', []],
+								]],
+							]],
+						]],
+					]);
+				});
+
+			});
+
+			describe('<=>', () => {
+
+				// outside of a class
+				it('<=> as function name outside of a class should throw a ParserError', (): void => {
+					expect(() => parse(`f <=> {}`)).toThrowError('"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!');
+				});
+
+				// in a class
+				it('<=> as function name inside of a class should be an innocent Identifier', (): void => {
+					expect(parse(`class A{f <=> {}}`)).toMatchParseTree([
+						['ClassDeclaration', [
+							['Identifier', 'A'],
+							['BlockStatement', [
+								['FunctionDeclaration', [
+									['Identifier', '<=>'],
+									['BlockStatement', []],
+								]],
+							]],
+						]],
+					]);
+				});
+
+			});
+
+		});
+
 	});
 
 	describe('IfStatement', (): void => {
@@ -2248,7 +2306,7 @@ describe('parser.ts', (): void => {
 
 			it('with bool conditional', () => {
 				expect(parse('if true {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BoolLiteral', 'true'],
 						['BlockStatement', []],
 					]],
@@ -2257,7 +2315,7 @@ describe('parser.ts', (): void => {
 
 			it('with BinaryExpression conditional using two NumberLiterals', () => {
 				expect(parse('if 1 < 2 {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BinaryExpression', '<', [
 							['NumberLiteral', '1'],
 							['NumberLiteral', '2'],
@@ -2269,7 +2327,7 @@ describe('parser.ts', (): void => {
 
 			it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
 				expect(parse('if foo == 2 {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BinaryExpression', '==', [
 							['Identifier', 'foo'],
 							['NumberLiteral', '2'],
@@ -2281,7 +2339,7 @@ describe('parser.ts', (): void => {
 
 			it('with BinaryExpression conditional using a CallExpression and a NumberLiteral', () => {
 				expect(parse('if foo() == 2 {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BinaryExpression', '==', [
 							['CallExpression', [
 								['Identifier', 'foo'],
@@ -2296,7 +2354,7 @@ describe('parser.ts', (): void => {
 
 			it('with two conditions', () => {
 				expect(parse('if foo() == 2 && a < 3 {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BinaryExpression', '&&', [
 							['BinaryExpression', '==', [
 								['CallExpression', [
@@ -2319,7 +2377,7 @@ describe('parser.ts', (): void => {
 
 				it('and one condition', () => {
 					expect(parse('if (foo() == 2) {}')).toMatchParseTree([
-						['IfStatement', {before: true}, [
+						['IfStatement', { before: true }, [
 							['Parenthesized', [
 								['BinaryExpression', '==', [
 									['CallExpression', [
@@ -2336,7 +2394,7 @@ describe('parser.ts', (): void => {
 
 				it('and two conditions', () => {
 					expect(parse('if (foo() == 2 && a < 3) {}')).toMatchParseTree([
-						['IfStatement', {before: true}, [
+						['IfStatement', { before: true }, [
 							['Parenthesized', [
 								['BinaryExpression', '&&', [
 									['BinaryExpression', '==', [
@@ -2362,7 +2420,7 @@ describe('parser.ts', (): void => {
 			it('with just else', () => {
 
 				expect(parse('if true {} else {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BoolLiteral', 'true'],
 						['BlockStatement', []],
 						['BlockStatement', []],
@@ -2374,10 +2432,10 @@ describe('parser.ts', (): void => {
 			it('with else if', () => {
 
 				expect(parse('if true {} else if false {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BoolLiteral', 'true'],
 						['BlockStatement', []],
-						['IfStatement', {before: true}, [
+						['IfStatement', { before: true }, [
 							['BoolLiteral', 'false'],
 							['BlockStatement', []],
 						]],
@@ -2389,11 +2447,11 @@ describe('parser.ts', (): void => {
 			it('with a subsequent if and should be two separate IfStatements', () => {
 
 				expect(parse('if true {} if false {}')).toMatchParseTree([
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BoolLiteral', 'true'],
 						['BlockStatement', []],
 					]],
-					['IfStatement', {before: true}, [
+					['IfStatement', { before: true }, [
 						['BoolLiteral', 'false'],
 						['BlockStatement', []],
 					]],
@@ -2407,7 +2465,7 @@ describe('parser.ts', (): void => {
 
 			it('after a CallExpression', () => {
 				expect(parse('do(1) if foo == 2;')).toMatchParseTree([
-					['IfStatement', {before: false}, [
+					['IfStatement', { before: false }, [
 						['CallExpression', [
 							['Identifier', 'do'],
 							['ArgumentsList', [
@@ -2429,7 +2487,7 @@ describe('parser.ts', (): void => {
 				it('with bool conditional', () => {
 					expect(parse('[foo if true, bar];')).toMatchParseTree([
 						['ArrayExpression', [
-							['IfStatement', {before: false}, [
+							['IfStatement', { before: false }, [
 								['Identifier', 'foo'],
 								['BoolLiteral', 'true'],
 							]],
@@ -2445,7 +2503,7 @@ describe('parser.ts', (): void => {
 						['ArrayExpression', [
 							['NumberLiteral', '9'],
 							['CommaSeparator'],
-							['IfStatement', {before: false}, [
+							['IfStatement', { before: false }, [
 								['NumberLiteral', '10'],
 								['Identifier', 'isDone?'],
 							]],
@@ -2461,7 +2519,7 @@ describe('parser.ts', (): void => {
 						['ArrayExpression', [
 							['NumberLiteral', '9'],
 							['CommaSeparator'],
-							['IfStatement', {before: false}, [
+							['IfStatement', { before: false }, [
 								['NumberLiteral', '10'],
 								['MemberExpression', [
 									['Keyword', 'this'],
@@ -2480,7 +2538,7 @@ describe('parser.ts', (): void => {
 						['ArrayExpression', [
 							['NumberLiteral', '9'],
 							['CommaSeparator'],
-							['IfStatement', {before: false}, [
+							['IfStatement', { before: false }, [
 								['NumberLiteral', '10'],
 								['CallExpression', [
 									['MemberExpression', [
@@ -2489,7 +2547,7 @@ describe('parser.ts', (): void => {
 									]],
 									['ArgumentsList', [
 										['ArrayExpression', [
-											['IfStatement', {before: false}, [
+											['IfStatement', { before: false }, [
 												['BoolLiteral', 'true'],
 												['BoolLiteral', 'true'],
 											]],
@@ -2509,7 +2567,7 @@ describe('parser.ts', (): void => {
 						['ArrayExpression', [
 							['StringLiteral', 'foo'],
 							['CommaSeparator'],
-							['IfStatement', {before: false}, [
+							['IfStatement', { before: false }, [
 								['StringLiteral', 'bar'],
 								['BinaryExpression', '<', [
 									['NumberLiteral', '1'],
@@ -2530,7 +2588,7 @@ describe('parser.ts', (): void => {
 							['CommaSeparator'],
 							['BoolLiteral', 'false'],
 							['CommaSeparator'],
-							['IfStatement', {before: false}, [
+							['IfStatement', { before: false }, [
 								['BoolLiteral', 'false'],
 								['BinaryExpression', '==', [
 									['Identifier', 'foo'],
@@ -2705,7 +2763,7 @@ describe('parser.ts', (): void => {
 							]],
 						]],
 						['SemicolonSeparator'],
-						['IfStatement', {before: true}, [
+						['IfStatement', { before: true }, [
 							['BinaryExpression', '>', [
 								['MemberExpression', [
 									['MemberExpression', [
@@ -2833,7 +2891,7 @@ describe('parser.ts', (): void => {
 
 				it('with Identifier', (): void => {
 					expect(parse('!foo;')).toMatchParseTree([
-						['UnaryExpression', '!', {before: true}, [
+						['UnaryExpression', '!', { before: true }, [
 							['Identifier', 'foo'],
 						]],
 						['SemicolonSeparator'],
@@ -2843,7 +2901,7 @@ describe('parser.ts', (): void => {
 				it('with Identifier in parens', (): void => {
 					expect(parse('(!foo);')).toMatchParseTree([
 						['Parenthesized', [
-							['UnaryExpression', '!', {before: true}, [
+							['UnaryExpression', '!', { before: true }, [
 								['Identifier', 'foo'],
 							]],
 						]],
@@ -2853,7 +2911,7 @@ describe('parser.ts', (): void => {
 
 				it('with CallExpression', (): void => {
 					expect(parse('!bar();')).toMatchParseTree([
-						['UnaryExpression', '!', {before: true}, [
+						['UnaryExpression', '!', { before: true }, [
 							['CallExpression', [
 								['Identifier', 'bar'],
 								['ArgumentsList', []],
@@ -2865,7 +2923,7 @@ describe('parser.ts', (): void => {
 
 				it('with nested CallExpression', (): void => {
 					expect(parse('!foo.bar();')).toMatchParseTree([
-						['UnaryExpression', '!', {before: true}, [
+						['UnaryExpression', '!', { before: true }, [
 							['CallExpression', [
 								['MemberExpression', [
 									['Identifier', 'foo'],
@@ -2884,7 +2942,7 @@ describe('parser.ts', (): void => {
 
 				it('without parens', (): void => {
 					expect(parse('-1')).toMatchParseTree([
-						['UnaryExpression', '-', {before: true}, [
+						['UnaryExpression', '-', { before: true }, [
 							['NumberLiteral', '1'],
 						]]
 					]);
@@ -2893,7 +2951,7 @@ describe('parser.ts', (): void => {
 				it('with parens', (): void => {
 					expect(parse('(-1)')).toMatchParseTree([
 						['Parenthesized', [
-							['UnaryExpression', '-', {before: true}, [
+							['UnaryExpression', '-', { before: true }, [
 								['NumberLiteral', '1'],
 							]],
 						]],
@@ -2906,7 +2964,7 @@ describe('parser.ts', (): void => {
 
 				it('pre-decrement', (): void => {
 					expect(parse('--foo')).toMatchParseTree([
-						['UnaryExpression', '--', {before: true}, [
+						['UnaryExpression', '--', { before: true }, [
 							['Identifier', 'foo'],
 						]],
 					]);
@@ -2914,13 +2972,13 @@ describe('parser.ts', (): void => {
 
 				it('post-decrement', (): void => {
 					expect(parse('foo--')).toMatchParseTree([
-						['UnaryExpression', '--', {before: false}, [
+						['UnaryExpression', '--', { before: false }, [
 							['Identifier', 'foo'],
 						]],
 					]);
 
 					expect(parse('foo---')).toMatchParseTree([
-						['UnaryExpression', '--', {before: false}, [
+						['UnaryExpression', '--', { before: false }, [
 							['Identifier', 'foo'],
 						]],
 						['SubtractionOperator', '-'],
@@ -2929,7 +2987,7 @@ describe('parser.ts', (): void => {
 
 				it('pre-increment', (): void => {
 					expect(parse('++foo')).toMatchParseTree([
-						['UnaryExpression', '++', {before: true}, [
+						['UnaryExpression', '++', { before: true }, [
 							['Identifier', 'foo'],
 						]],
 					]);
@@ -2937,13 +2995,13 @@ describe('parser.ts', (): void => {
 
 				it('post-increment', (): void => {
 					expect(parse('foo++')).toMatchParseTree([
-						['UnaryExpression', '++', {before: false}, [
+						['UnaryExpression', '++', { before: false }, [
 							['Identifier', 'foo'],
 						]],
 					]);
 
 					expect(parse('foo+++')).toMatchParseTree([
-						['UnaryExpression', '++', {before: false}, [
+						['UnaryExpression', '++', { before: false }, [
 							['Identifier', 'foo'],
 						]],
 						['AdditionOperator', '+'],
@@ -3063,11 +3121,11 @@ describe('parser.ts', (): void => {
 						['NumberLiteral', '2'],
 						['MultiplicationOperator', '*'],
 						['Parenthesized', [
-							['UnaryExpression', '-', {before: true}, [
+							['UnaryExpression', '-', { before: true }, [
 								['NumberLiteral', '3'],
 							]],
 							['DivisionOperator', '/'],
-							['UnaryExpression', '-', {before: true}, [
+							['UnaryExpression', '-', { before: true }, [
 								['Parenthesized', [
 									['NumberLiteral', '2.3'],
 									['SubtractionOperator', '-'],
@@ -3092,7 +3150,7 @@ describe('parser.ts', (): void => {
 					['VariableDeclaration', 'let', [
 						['Identifier', 'bar'],
 						['AssignmentOperator'],
-						['UnaryExpression', '-', {before: true}, [
+						['UnaryExpression', '-', { before: true }, [
 							['Identifier', 'foo'],
 						]],
 					]],
@@ -3403,7 +3461,7 @@ describe('parser.ts', (): void => {
 		it('with UnaryExpression test', () => {
 			expect(parse('while !i {}')).toMatchParseTree([
 				['WhileStatement', [
-					['UnaryExpression', '!', {before: true}, [
+					['UnaryExpression', '!', { before: true }, [
 						['Identifier', 'i'],
 					]],
 					['BlockStatement', []],
@@ -3432,7 +3490,7 @@ describe('parser.ts', (): void => {
 			expect(parse('while (!this.foo()) {}')).toMatchParseTree([
 				['WhileStatement', [
 					['Parenthesized', [
-						['UnaryExpression', '!', {before: true}, [
+						['UnaryExpression', '!', { before: true }, [
 							['CallExpression', [
 								['MemberExpression', [
 									['Keyword', 'this'],
@@ -3451,7 +3509,7 @@ describe('parser.ts', (): void => {
 			expect(parse('while (!foo) {\ndo();\n}')).toMatchParseTree([
 				['WhileStatement', [
 					['Parenthesized', [
-						['UnaryExpression', '!', {before: true}, [
+						['UnaryExpression', '!', { before: true }, [
 							['Identifier', 'foo'],
 						]],
 					]],

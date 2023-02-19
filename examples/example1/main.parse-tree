@@ -794,21 +794,27 @@
                                     ],
                                     [length]: 2
                                   ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [
-                                    'Comment',
-                                    '// regular ternary - property will always be there, value differs',
-                                    [length]: 2
-                                  ],
-                                  [ 'Identifier', 'd', [length]: 2 ],
-                                  [ 'ColonSeparator', [length]: 1 ],
-                                  [ 'Nil', 'nil', [length]: 2 ],
-                                  [length]: 7
+                                  [length]: 2
                                 ],
                                 [length]: 2
                               ],
                               [ 'CommaSeparator', [length]: 1 ],
-                              [length]: 7
+                              [
+                                'Comment',
+                                '// regular ternary - property will always be there, value differs',
+                                [length]: 2
+                              ],
+                              [
+                                'Property',
+                                [
+                                  [ 'Identifier', 'd', [length]: 2 ],
+                                  [ 'Nil', 'nil', [length]: 2 ],
+                                  [length]: 2
+                                ],
+                                [length]: 2
+                              ],
+                              [ 'CommaSeparator', [length]: 1 ],
+                              [length]: 10
                             ],
                             [length]: 2
                           ],

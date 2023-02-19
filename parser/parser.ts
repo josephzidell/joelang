@@ -416,9 +416,12 @@ export default class {
 			} else if (['and', 'compare', 'equals', 'greater_than_equals', 'less_than_equals', 'not_equals', 'or'].includes(token.type)) {
 				const prev = this.prev();
 
-				// we need to go 2 levels up
+				// '<=>' can be a function name
+				if (token.type === 'compare' && this.isCurrentRootAFunctionInAClass()) {
+					this.addNode(MakeNode('Identifier', token, this.currentRoot));
 
-				if (this.currentRoot.type === 'BinaryExpression' && ['and', 'or'].includes(token.type)) {
+				// we need to go 2 levels up
+				} else if (this.currentRoot.type === 'BinaryExpression' && ['and', 'or'].includes(token.type)) {
 					// && and || have higher order precedence than equality checks
 					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
 				} else if (prev?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
@@ -426,7 +429,7 @@ export default class {
 				} else if (prev?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
 					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot), 'a value');
 				}
 			} else if (token.type === 'type') {
 				this.addNode(MakeNode('Type', token, this.currentRoot));
@@ -736,7 +739,12 @@ export default class {
 						this.beginExpressionWith(MakeNode('Loop', token, this.currentRoot, true));
 						break;
 					case 'new':
-						this.beginExpressionWith(MakeNode('NewExpression', token, this.currentRoot, true));
+						// 'new' can be a function name, duh
+						if (this.isCurrentRootAFunctionInAClass()) {
+							this.addNode(MakeNode('Identifier', token, this.currentRoot));
+						} else {
+							this.beginExpressionWith(MakeNode('NewExpression', token, this.currentRoot, true));
+						}
 						break;
 					case 'or':
 						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
@@ -778,6 +786,11 @@ export default class {
 		}
 
 		return this.root;
+	}
+
+	/** Shortcut method to check if the current root is a FunctionDeclaration and is inside of a ClassDeclaration */
+	private isCurrentRootAFunctionInAClass() {
+		return this.currentRoot.type === 'FunctionDeclaration' && this.currentRoot.parent?.parent?.type === 'ClassDeclaration';
 	}
 
 	private ifInWhenExpressionBlockStatementBeginCase(token: Token) {
@@ -862,12 +875,13 @@ export default class {
 	 *                                        │
 	 *
 	 * @param newKid - To begin expression with
+	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
 	 * @returns - newKid
 	 *
 	 * @throws Error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingPreviousNode(newKid: Node): Node {
-		return this.beginExpressionWithAdopting(newKid, this.prev());
+	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Node {
+		return this.beginExpressionWithAdopting(newKid, this.prev(), whatWeExpectInPrevNode);
 	}
 
 	/**
@@ -920,15 +934,12 @@ export default class {
 	 *
 	 * @param newKid - Node to begin expression with and is the adopter
 	 * @param adoptee - Node To adopt
+ 	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
 	 * @returns - newKid
 	 */
-	private beginExpressionWithAdopting(newKid: Node, adoptee: Node | undefined): Node {
+	private beginExpressionWithAdopting(newKid: Node, adoptee: Node | undefined, whatWeExpectInPrevNode?: string): Node {
 		if (typeof adoptee === 'undefined') {
-			throw new ParserError('Cannot find previous node', this.currentRoot);
-		}
-
-		if (typeof adoptee === 'undefined') {
-			throw new ParserError('Cannot find previous node', this.currentRoot);
+			throw new ParserError(`"${newKid.value}" is a ${newKid.type} and we hoped to find ${whatWeExpectInPrevNode || 'something'} before it, but alas!`, this.currentRoot);
 		}
 
 		if (this.debug) {
