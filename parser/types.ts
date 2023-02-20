@@ -1,5 +1,4 @@
 const nodeTypes = [
-	'AdditionOperator',
 	'ArgumentsList',
 	'ArrayExpression',
 	'ArrayType',
@@ -15,7 +14,6 @@ const nodeTypes = [
 	'ColonSeparator',
 	'CommaSeparator',
 	'Comment',
-	'DivisionOperator',
 	'ElseStatement',
 	'ForStatement',
 	'FunctionDeclaration',
@@ -31,8 +29,6 @@ const nodeTypes = [
 	'MembersList',
 	'Modifier', // for Class, Function, Interface, or Variable
 	'ModifiersList', // for Class, Function, Interface, or Variable
-	'ModOperator',
-	'MultiplicationOperator',
 	'NewExpression',
 	'Nil',
 	'NumberLiteral',
@@ -53,7 +49,6 @@ const nodeTypes = [
 	'RightArrowOperator',
 	'SemicolonSeparator',
 	'StringLiteral',
-	'SubtractionOperator',
 	'TernaryCondition',
 	'TernaryElse',
 	'TernaryExpression',

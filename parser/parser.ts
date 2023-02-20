@@ -290,14 +290,14 @@ export default class {
 				this.addNode(MakeNode('AssignmentOperator', token, this.currentRoot, true));
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn('UnaryExpression');
-				this.addNode(MakeNode('AdditionOperator', token, this.currentRoot));
+				this.handleBinaryExpression(token, this.prev());
 			} else if (token.type === 'minus') {
 				if (this.currentRoot.children.length > 0 &&
 					nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
 					this.currentRoot.type !== 'BinaryExpression' && this.currentRoot.type !== 'RangeExpression' // excludes scenarios such as `3^e-2`, `3 + -2`, `1..-2`
 				) {
 					this.endExpressionIfIn('UnaryExpression');
-					this.addNode(MakeNode('SubtractionOperator', token, this.currentRoot));
+					this.handleBinaryExpression(token, this.prev());
 				} else {
 					// otherwise this is a unary operator
 					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
@@ -314,11 +314,11 @@ export default class {
 					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 				}
 			} else if (token.type === 'asterisk') {
-				this.addNode(MakeNode('MultiplicationOperator', token, this.currentRoot));
+				this.handleBinaryExpression(token, this.prev());
 			} else if (token.type === 'forward_slash') {
-				this.addNode(MakeNode('DivisionOperator', token, this.currentRoot));
+				this.handleBinaryExpression(token, this.prev());
 			} else if (token.type === 'mod') {
-				this.addNode(MakeNode('ModOperator', token, this.currentRoot));
+				this.handleBinaryExpression(token, this.prev());
 			} else if (token.type === 'exponent') {
 				this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));
 			} else if (token.type === 'semicolon') {
@@ -420,16 +420,8 @@ export default class {
 				if (token.type === 'compare' && this.isCurrentRootAFunctionInAClass()) {
 					this.addNode(MakeNode('Identifier', token, this.currentRoot));
 
-				// we need to go 2 levels up
-				} else if (this.currentRoot.type === 'BinaryExpression' && ['and', 'or'].includes(token.type)) {
-					// && and || have higher order precedence than equality checks
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
-				} else if (prev?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
-				} else if (prev?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot), 'a value');
+					this.handleBinaryExpression(token, prev);
 				}
 			} else if (token.type === 'type') {
 				this.addNode(MakeNode('Type', token, this.currentRoot));
@@ -786,6 +778,25 @@ export default class {
 		}
 
 		return this.root;
+	}
+
+	/**
+	 * Shortcut method to handle all scenarios of a BinaryExpression
+	 *
+	 * @param token Current token
+	 * @param prev Previous Node
+	 */
+	private handleBinaryExpression(token: Token, prev: Node | undefined) {
+		if (this.currentRoot.type === 'BinaryExpression' && ['and', 'or'].includes(token.type)) {
+			// && and || have higher order precedence than equality checks
+			this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+		} else if (prev?.type === 'ArgumentsList' && this.currentRoot.type === 'CallExpression') {
+			this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+		} else if (prev?.type === 'MembersList' && this.currentRoot.type === 'MemberExpression') {
+			this.beginExpressionWithAdoptingCurrentRoot(MakeNode('BinaryExpression', token, this.currentRoot));
+		} else {
+			this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot), 'a value');
+		}
 	}
 
 	/** Shortcut method to check if the current root is a FunctionDeclaration and is inside of a ClassDeclaration */

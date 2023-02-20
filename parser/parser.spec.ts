@@ -2978,10 +2978,11 @@ describe('parser.ts', (): void => {
 					]);
 
 					expect(parse('foo---')).toMatchParseTree([
-						['UnaryExpression', '--', { before: false }, [
-							['Identifier', 'foo'],
+						['BinaryExpression', '-', [
+							['UnaryExpression', '--', { before: false }, [
+								['Identifier', 'foo'],
+							]],
 						]],
-						['SubtractionOperator', '-'],
 					]);
 				});
 
@@ -3001,10 +3002,11 @@ describe('parser.ts', (): void => {
 					]);
 
 					expect(parse('foo+++')).toMatchParseTree([
-						['UnaryExpression', '++', { before: false }, [
-							['Identifier', 'foo'],
+						['BinaryExpression', '+', [
+							['UnaryExpression', '++', { before: false }, [
+								['Identifier', 'foo'],
+							]],
 						]],
-						['AdditionOperator', '+'],
 					]);
 				});
 			});
@@ -3115,28 +3117,33 @@ describe('parser.ts', (): void => {
 		describe('mathematical expressions', (): void => {
 			it('a simple mathematical formula', (): void => {
 				expect(parse('1 + (2 * (-3/-(2.3-4)%9))')).toMatchParseTree([
-					['NumberLiteral', '1'],
-					['AdditionOperator', '+'],
-					['Parenthesized', [
-						['NumberLiteral', '2'],
-						['MultiplicationOperator', '*'],
+					['BinaryExpression', '+', [
+						['NumberLiteral', '1'],
 						['Parenthesized', [
-							['UnaryExpression', '-', { before: true }, [
-								['NumberLiteral', '3'],
-							]],
-							['DivisionOperator', '/'],
-							['UnaryExpression', '-', { before: true }, [
+							['BinaryExpression', '*', [
+								['NumberLiteral', '2'],
 								['Parenthesized', [
-									['NumberLiteral', '2.3'],
-									['SubtractionOperator', '-'],
-									['NumberLiteral', '4'],
+									['BinaryExpression', '/', [
+										['UnaryExpression', '-', { before: true }, [
+											['NumberLiteral', '3'],
+										]],
+										['BinaryExpression', '%', [
+											['UnaryExpression', '-', { before: true }, [
+												['Parenthesized', [
+													['BinaryExpression', '-', [
+														['NumberLiteral', '2.3'],
+														['NumberLiteral', '4'],
+													]],
+												]],
+											]],
+											['NumberLiteral', '9'],
+										]],
+									]],
 								]],
 							]],
-							['ModOperator', '%'],
-							['NumberLiteral', '9'],
-						]]
-					]]
-				])
+						]],
+					]],
+				]);
 			});
 
 			it('supports mathematical expressions with variables', (): void => {
