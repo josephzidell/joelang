@@ -160,5 +160,6 @@ export const patterns = {
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	PATH: /[a-zA-Z0-9-_./]/, // characters in path, excluding the front: @ or .
+	UNICODE: /[^\x00-\x7F]/, // characters above ASCII and in the Unicode standard, see https://stackoverflow.com/a/72733569
 	WHITESPACE: /\s/,
 };

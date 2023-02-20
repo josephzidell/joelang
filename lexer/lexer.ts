@@ -305,9 +305,9 @@ export default class {
 				continue;
 			}
 
-			/** Letters */
-			if (this.matchesRegex(patterns.LETTERS, this.char)) {
-				let value = this.gobbleAsLongAs(() => this.matchesRegex(patterns.LETTERS, this.char) || this.matchesRegex(patterns.DIGITS, this.char) || this.char === patterns.UNDERSCORE);
+			/** Letters or unicode */
+			if (this.matchesRegex(patterns.LETTERS, this.char) || this.matchesRegex(patterns.UNICODE, this.char)) {
+				let value = this.gobbleAsLongAs(() => this.matchesRegex(patterns.LETTERS, this.char) || this.matchesRegex(patterns.DIGITS, this.char) || this.matchesRegex(patterns.UNICODE, this.char) || this.char === patterns.UNDERSCORE);
 
 				// check for '?'
 				if (this.char === patterns.QUESTION) {
