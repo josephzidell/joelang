@@ -2968,6 +2968,17 @@ describe('parser.ts', (): void => {
 							['Identifier', 'foo'],
 						]],
 					]);
+
+					expect(parse('foo[--i]')).toMatchParseTree([
+						['MemberExpression', [
+							['Identifier', 'foo'],
+							['MembersList', [
+								['UnaryExpression', '--', { before: true }, [
+									['Identifier', 'i'],
+								]],
+							]],
+						]],
+					]);
 				});
 
 				it('post-decrement', (): void => {
@@ -2984,12 +2995,34 @@ describe('parser.ts', (): void => {
 							]],
 						]],
 					]);
+
+					expect(parse('foo[i--]')).toMatchParseTree([
+						['MemberExpression', [
+							['Identifier', 'foo'],
+							['MembersList', [
+								['UnaryExpression', '--', { before: false }, [
+									['Identifier', 'i'],
+								]],
+							]],
+						]],
+					]);
 				});
 
 				it('pre-increment', (): void => {
 					expect(parse('++foo')).toMatchParseTree([
 						['UnaryExpression', '++', { before: true }, [
 							['Identifier', 'foo'],
+						]],
+					]);
+
+					expect(parse('foo[++i]')).toMatchParseTree([
+						['MemberExpression', [
+							['Identifier', 'foo'],
+							['MembersList', [
+								['UnaryExpression', '++', { before: true }, [
+									['Identifier', 'i'],
+								]],
+							]],
 						]],
 					]);
 				});
@@ -3005,6 +3038,17 @@ describe('parser.ts', (): void => {
 						['BinaryExpression', '+', [
 							['UnaryExpression', '++', { before: false }, [
 								['Identifier', 'foo'],
+							]],
+						]],
+					]);
+
+					expect(parse('foo[i++]')).toMatchParseTree([
+						['MemberExpression', [
+							['Identifier', 'foo'],
+							['MembersList', [
+								['UnaryExpression', '++', { before: false }, [
+									['Identifier', 'i'],
+								]],
 							]],
 						]],
 					]);
