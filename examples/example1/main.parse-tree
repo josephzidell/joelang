@@ -200,13 +200,13 @@
               [ 'SemicolonSeparator', [length]: 1 ],
               [ 'Comment', '// const', [length]: 2 ],
               [
-                'Comment',
-                '/** method with no args and no return */',
-                [length]: 2
-              ],
-              [
                 'FunctionDeclaration',
                 [
+                  [
+                    'JoeDoc',
+                    '/** method with no args and no return */',
+                    [length]: 2
+                  ],
                   [ 'Identifier', 'foo', [length]: 2 ],
                   [
                     'FunctionReturns',
@@ -822,17 +822,7 @@
                                 '// regular ternary - property will always be there, value differs',
                                 [length]: 2
                               ],
-                              [
-                                'Property',
-                                [
-                                  [ 'Identifier', 'd', [length]: 2 ],
-                                  [ 'Nil', 'nil', [length]: 2 ],
-                                  [length]: 2
-                                ],
-                                [length]: 2
-                              ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [length]: 10
+                              [length]: 8
                             ],
                             [length]: 2
                           ],
@@ -860,10 +850,8 @@
                                 [length]: 2
                               ],
                               [ 'CommaSeparator', [length]: 1 ],
-                              [ 'Nil', 'nil', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
                               [ 'Path', '@/foo', [length]: 2 ],
-                              [length]: 9
+                              [length]: 7
                             ],
                             [length]: 2
                           ],
@@ -903,7 +891,7 @@
                       [ 'SemicolonSeparator', [length]: 1 ],
                       [
                         'Comment',
-                        '// new object {a: 1, d: nil}',
+                        "// new object {a: 1, d: 'foo'}",
                         [length]: 2
                       ],
                       [
@@ -941,14 +929,14 @@
                     ],
                     [length]: 2
                   ],
-                  [length]: 3
+                  [length]: 4
                 ],
                 [length]: 2
               ],
-              [ 'Comment', '/** with args */', [length]: 2 ],
               [
                 'FunctionDeclaration',
                 [
+                  [ 'JoeDoc', '/** with args */', [length]: 2 ],
                   [ 'Identifier', 'methodWithArgs', [length]: 2 ],
                   [
                     'ParametersList',
@@ -1016,14 +1004,18 @@
                     ],
                     [length]: 2
                   ],
-                  [length]: 3
+                  [length]: 4
                 ],
                 [length]: 2
               ],
-              [ 'Comment', '/** with one return val */', [length]: 2 ],
               [
                 'FunctionDeclaration',
                 [
+                  [
+                    'JoeDoc',
+                    '/** with one return val */',
+                    [length]: 2
+                  ],
                   [
                     'Identifier',
                     'methodThatReturnsBool?',
@@ -1050,14 +1042,18 @@
                     ],
                     [length]: 2
                   ],
-                  [length]: 3
+                  [length]: 4
                 ],
                 [length]: 2
               ],
-              [ 'Comment', '/** multiple return vals */', [length]: 2 ],
               [
                 'FunctionDeclaration',
                 [
+                  [
+                    'JoeDoc',
+                    '/** multiple return vals */',
+                    [length]: 2
+                  ],
                   [
                     'Identifier',
                     'methodThatReturnsBool?',
@@ -1123,18 +1119,18 @@
                     ],
                     [length]: 2
                   ],
-                  [length]: 3
+                  [length]: 4
                 ],
-                [length]: 2
-              ],
-              [
-                'Comment',
-                '/** method that throws error */',
                 [length]: 2
               ],
               [
                 'FunctionDeclaration',
                 [
+                  [
+                    'JoeDoc',
+                    '/** method that throws error */',
+                    [length]: 2
+                  ],
                   [ 'Identifier', 'careful!', [length]: 2 ],
                   [
                     'BlockStatement',
@@ -1144,18 +1140,18 @@
                     ],
                     [length]: 2
                   ],
-                  [length]: 2
+                  [length]: 3
                 ],
-                [length]: 2
-              ],
-              [
-                'Comment',
-                '/** method with bool return that throws error */',
                 [length]: 2
               ],
               [
                 'FunctionDeclaration',
                 [
+                  [
+                    'JoeDoc',
+                    '/** method with bool return that throws error */',
+                    [length]: 2
+                  ],
                   [ 'Identifier', 'careful?!', [length]: 2 ],
                   [
                     'FunctionReturns',
@@ -1170,11 +1166,11 @@
                     ],
                     [length]: 2
                   ],
-                  [length]: 3
+                  [length]: 4
                 ],
                 [length]: 2
               ],
-              [length]: 18
+              [length]: 12
             ],
             [length]: 2
           ],

@@ -286,7 +286,11 @@ export default class {
 					this.endExpressionIfIn('MemberExpression');
 				}
 			} else if (token.type === 'comment') {
-				this.addNode(MakeNode('Comment', token, this.currentRoot));
+				if (token.value.substring(0, 3) === '/**') {
+					this.addNode(MakeNode('JoeDoc', token, this.currentRoot));
+				} else {
+					this.addNode(MakeNode('Comment', token, this.currentRoot));
+				}
 			} else if (token.type === 'assign') {
 				this.addNode(MakeNode('AssignmentOperator', token, this.currentRoot, true));
 			} else if (token.type === 'plus') {
@@ -627,36 +631,43 @@ export default class {
 						break;
 					case 'class':
 						// the ClassDeclaration may have already started with some Modifier(s)
+						let classNode: Node;
 						if (this.currentRoot.type === 'ModifiersList') {
 							if (this.debug) {
 								console.debug('Currently there is a ModifiersList open; now beginning ClassDeclaration and adopting the ModifiersList');
 							}
 
-							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('ClassDeclaration', token, this.currentRoot, true));
+							classNode = this.beginExpressionWithAdoptingCurrentRoot(MakeNode('ClassDeclaration', token, this.currentRoot, true));
 						} else {
 							if (this.debug) {
 								console.debug('There is no ModifiersList open; now beginning a ClassDeclaration');
 							}
 
-							this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot, true));
+							classNode = this.beginExpressionWith(MakeNode('ClassDeclaration', token, this.currentRoot, true));
 						}
+
+						this.adoptPrecedingJoeDocIfPresent(classNode);
 						break;
 					case 'const':
 					case 'let':
+						let variableNode: Node;
+
 						// the VariableDeclaration may have already started with some Modifier(s)
 						if (this.currentRoot.type === 'ModifiersList') {
 							if (this.debug) {
 								console.debug('Currently there is a ModifiersList open; now beginning VariableDeclaration and adopting the ModifiersList');
 							}
 
-							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('VariableDeclaration', token, this.currentRoot));
+							variableNode = this.beginExpressionWithAdoptingCurrentRoot(MakeNode('VariableDeclaration', token, this.currentRoot));
 						} else {
 							if (this.debug) {
 								console.debug('There is no ModifiersList open; now beginning a VariableDeclaration');
 							}
 
-							this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
+							variableNode = this.beginExpressionWith(MakeNode('VariableDeclaration', token, this.currentRoot));
 						}
+
+						this.adoptPrecedingJoeDocIfPresent(variableNode);
 						break;
 					case 'break':
 						this.addNode(MakeNode('BreakStatement', token, this.currentRoot, true));
@@ -681,19 +692,22 @@ export default class {
 						break;
 					case 'f':
 						// the FunctionDeclaration may have already started with a Modifier
+						let fNode: Node;
 						if (this.currentRoot.type === 'ModifiersList') {
 							if (this.debug) {
 								console.debug('Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList');
 							}
 
-							this.beginExpressionWithAdoptingCurrentRoot(MakeNode('FunctionDeclaration', token, this.currentRoot, true));
+							fNode = this.beginExpressionWithAdoptingCurrentRoot(MakeNode('FunctionDeclaration', token, this.currentRoot, true));
 						} else {
 							if (this.debug) {
 								console.debug('There is no ModifiersList open; now beginning a FunctionDeclaration');
 							}
 
-							this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot, true));
+							fNode = this.beginExpressionWith(MakeNode('FunctionDeclaration', token, this.currentRoot, true));
 						}
+
+						this.adoptPrecedingJoeDocIfPresent(fNode);
 						break;
 					case 'for':
 						this.beginExpressionWith(MakeNode('ForStatement', token, this.currentRoot, true));
@@ -730,7 +744,8 @@ export default class {
 						this.beginExpressionWith(MakeNode('ImportDeclaration', token, this.currentRoot, true));
 						break;
 					case 'interface':
-						this.beginExpressionWith(MakeNode('InterfaceDeclaration', token, this.currentRoot, true));
+						const interfaceNode = this.beginExpressionWith(MakeNode('InterfaceDeclaration', token, this.currentRoot, true));
+						this.adoptPrecedingJoeDocIfPresent(interfaceNode);
 						break;
 					case 'loop':
 						this.beginExpressionWith(MakeNode('Loop', token, this.currentRoot, true));
@@ -775,6 +790,22 @@ export default class {
 		}
 
 		return this.root;
+	}
+
+	/**
+	 * When applicable, checks for the presence of a preceding JoeDoc and adopts it
+	 *
+	 * @param applicableNode for Class, Function, Interface, or Variable
+	 * @returns the applicableNode regardless
+	 */
+	private adoptPrecedingJoeDocIfPresent(applicableNode: Node): Node {
+		const maybeJoeDoc = this.currentRoot.parent?.children.at(-2);
+		// grab preceding JoeDoc, if any
+		if (typeof maybeJoeDoc !== 'undefined' && maybeJoeDoc?.type === 'JoeDoc') {
+			this.adoptNode(this.currentRoot.parent, maybeJoeDoc, applicableNode);
+		}
+
+		return applicableNode;
 	}
 
 	/**
@@ -847,10 +878,13 @@ export default class {
 	 * Begins an expression with a node
 	 *
 	 * @param node - To push
+	 * @returns the node, for ease of development
 	 */
-	private beginExpressionWith(node: Node, addingTo?: Node) {
+	private beginExpressionWith(node: Node, addingTo?: Node): Node {
 		this.addNode(node, addingTo);
 		this.currentRoot = node;
+
+		return node;
 	}
 
 	/**

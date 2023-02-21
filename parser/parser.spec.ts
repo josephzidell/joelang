@@ -2675,6 +2675,111 @@ describe('parser.ts', (): void => {
 
 	})
 
+	describe('JoeDoc', () => {
+		// for Class, Function, Interface, or Variable
+
+		describe('for a class', () => {
+			it('a properly formatted JoeDoc should be adopted', () => {
+				expect(parse(`/** foo */
+				class Foo {}`)).toMatchParseTree([
+					['ClassDeclaration', [
+						['JoeDoc', '/** foo */'],
+						['Identifier', 'Foo'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			it('but a regular comment should not be adopted', () => {
+				expect(parse(`/* foo */
+				class Foo {}`)).toMatchParseTree([
+					['Comment', '/* foo */'],
+					['ClassDeclaration', [
+						['Identifier', 'Foo'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+		});
+
+		describe('for a function', () => {
+			it('a properly formatted JoeDoc should be adopted', () => {
+				expect(parse(`/** foo */
+				f foo {}`)).toMatchParseTree([
+					['FunctionDeclaration', [
+						['JoeDoc', '/** foo */'],
+						['Identifier', 'foo'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			it('but a regular comment should not be adopted', () => {
+				expect(parse(`/* foo */
+				f foo {}`)).toMatchParseTree([
+					['Comment', '/* foo */'],
+					['FunctionDeclaration', [
+						['Identifier', 'foo'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+		});
+
+		describe('for an interface', () => {
+			it('a properly formatted JoeDoc should be adopted', () => {
+				expect(parse(`/** foo */
+				interface Foo {}`)).toMatchParseTree([
+					['InterfaceDeclaration', [
+						['JoeDoc', '/** foo */'],
+						['Identifier', 'Foo'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+
+			it('but a regular comment should not be adopted', () => {
+				expect(parse(`/* foo */
+				interface Foo {}`)).toMatchParseTree([
+					['Comment', '/* foo */'],
+					['InterfaceDeclaration', [
+						['Identifier', 'Foo'],
+						['BlockStatement', []],
+					]],
+				]);
+			});
+		});
+
+		describe('for a variable', () => {
+			it('a properly formatted JoeDoc should be adopted', () => {
+				expect(parse(`/** foo */
+				const foo = 1;`)).toMatchParseTree([
+					['VariableDeclaration', 'const', [
+						['JoeDoc', '/** foo */'],
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['NumberLiteral', '1'],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+
+			it('but a regular comment should not be adopted', () => {
+				expect(parse(`/* foo */
+				const foo = 1;`)).toMatchParseTree([
+					['Comment', '/* foo */'],
+					['VariableDeclaration', 'const', [
+						['Identifier', 'foo'],
+						['AssignmentOperator'],
+						['NumberLiteral', '1'],
+					]],
+					['SemicolonSeparator'],
+				]);
+			});
+		});
+
+	})
+
 	describe('Loop', (): void => {
 
 		it('simple loop', () => {

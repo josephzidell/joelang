@@ -23,6 +23,7 @@ const nodeTypes = [
 	'ImportDeclaration',
 	'InterfaceDeclaration',
 	'InterfaceExtensionsList',
+	'JoeDoc', // for Class, Function, Interface, or Variable
 	'Keyword',
 	'Loop',
 	'MemberExpression',

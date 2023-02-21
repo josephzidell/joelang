@@ -42,12 +42,11 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 			a: 1,
 			b: 'coat' if this.isDone?, // if false, property will not be in object
 			c: cond ? true : false, // regular ternary - property will always be there, value differs
-			d: nil,
 		};
 
-		const myTuple = <1, true, 'string', nil, @/foo>;
+		const myTuple = <1, true, 'string', @/foo>;
 
-		let partialObj = myObject[a, d]; // new object {a: 1, d: nil}
+		let partialObj = myObject[a, d]; // new object {a: 1, d: 'foo'}
 
 		const initializeAndAssignLater: number = 5;
 
