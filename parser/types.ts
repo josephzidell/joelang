@@ -29,7 +29,6 @@ const nodeTypes = [
 	'MembersList',
 	'Modifier', // for Class, Function, Interface, or Variable
 	'ModifiersList', // for Class, Function, Interface, or Variable
-	'NewExpression',
 	'Nil',
 	'NumberLiteral',
 	'ObjectExpression',
@@ -57,7 +56,7 @@ const nodeTypes = [
 	'TupleType',
 	'Type',
 	'TypeArgumentsList',
-	'TypeDeclaration',
+	'Typed',
 	'TypeParameter',
 	'TypeParametersList',
 	'UnaryExpression',

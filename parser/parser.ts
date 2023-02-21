@@ -87,8 +87,9 @@ export default class {
 			if (token.type === 'paren_open') {
 				const prev = this.prev();
 				switch (prev?.type) {
-					// if previous is an Identifier, then this is either a CallExpression or FunctionDeclaration
+					// if previous is an Identifier or Typed, then this is either a CallExpression or FunctionDeclaration
 					case 'Identifier':
+					case 'Typed':
 						if (this.currentRoot.type === 'FunctionDeclaration') {
 							this.beginExpressionWith(MakeNode('ParametersList', token, this.currentRoot, true));
 						} else {
@@ -99,7 +100,7 @@ export default class {
 					case 'TypeArgumentsList':
 						const twoBack = this.prev(2);
 
-						if (twoBack?.type === 'Identifier' || twoBack?.type === 'MemberExpression') {
+						if (twoBack?.type && (['Identifier', 'MemberExpression', 'Typed'] as NodeType[]).includes(twoBack?.type)) {
 							// we're in a CallExpression after the GenericTypesList
 							const callExpressionNode = MakeNode('CallExpression', token, this.currentRoot, true);
 							this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
@@ -282,8 +283,10 @@ export default class {
 
 				this.addNode(MakeNode('Identifier', token, this.currentRoot));
 
-				// check if currentRoot is a MemberExpression, if so, it's finished
-				this.endExpressionIfIn('MemberExpression');
+				// check if currentRoot is a MemberExpression and next token is not a <| (types), and if so, it's finished
+				if (this.nextToken(i, 1)?.type !== 'triangle_open') {
+					this.endExpressionIfIn('MemberExpression');
+				}
 			} else if (token.type === 'comment') {
 				this.addNode(MakeNode('Comment', token, this.currentRoot));
 			} else if (token.type === 'assign') {
@@ -344,9 +347,11 @@ export default class {
 				this.addNode(MakeNode('SemicolonSeparator', token, this.currentRoot));
 			} else if (token.type === 'dot') {
 				const prev = this.prev();
+
 				if (prev?.type === 'CallExpression' ||
 					prev?.type === 'Identifier' ||
 					prev?.type === 'MemberExpression' ||
+					prev?.type === 'Typed' ||
 					(prev?.type === 'Keyword' && prev.value === 'this')
 				) {
 					this.beginExpressionWithAdoptingPreviousNode(MakeNode('MemberExpression', token, this.currentRoot, true));
@@ -394,8 +399,6 @@ export default class {
 					this.endExpression(); // end the WhenCaseConsequent
 					this.endExpression(); // end the WhenCase
 				} else if (this.currentRoot.type === 'BinaryExpression') {
-					this.endExpression();
-				} else if (this.currentRoot.type === 'NewExpression') {
 					this.endExpression();
 				} else if (this.currentRoot.type === 'Parameter' || this.currentRoot.type === 'TypeParameter') {
 					this.endExpression();
@@ -452,10 +455,10 @@ export default class {
 			} else if (token.type === 'triangle_open') {
 				/**
 				 *
-				 * + f foo<|T|> {} // FunctionDeclaration
-				 * + a(B<|T|>); // CallExpression
+				 * + f foo<|T|> {} // FunctionDeclaration[TypeDeclaration[Identifier, TypeParametersList[TypeParameter...]], BlockStatement]
+				 * + a(B<|T|>); // CallExpression[Identifier, ArgumentsList[Argument[TypeInstantiation[Identifier, TypeArgumentsList[Type...]]]]]
 				 *
-				 * - class Foo<|T|> {} // ClassDeclaration
+				 * - class Foo<|T|> {} // ClassDeclaration[Type]
 				 * - class Foo extends Bar<|T|> {} //
 				 *
 				 * - interface Foo<|T|> {} // InterfaceDeclaration
@@ -473,24 +476,26 @@ export default class {
 				 * class B implements A<|T|> {}
 				 */
 
-				if (this.currentRoot.type === 'FunctionDeclaration' || this.currentRoot.type === 'ClassDeclaration' || this.currentRoot.type === 'InterfaceDeclaration') {
-					this.beginExpressionWith(MakeNode('TypeParametersList', token, this.currentRoot, true));
-					this.beginExpressionWith(MakeNode('TypeParameter', token, this.currentRoot, true));
-				} else {
-					const prev = this.prev();
-					// this.parent<|A|>
-					if (prev?.type === 'MemberExpression') {
-						this.beginExpressionWith(MakeNode('TypeArgumentsList', token, this.currentRoot, true), prev);
-					} else {
-						this.beginExpressionWith(MakeNode('TypeArgumentsList', token, this.currentRoot, true));
+				if ((['ClassDeclaration', 'FunctionDeclaration', 'InterfaceDeclaration'] as NodeType[]).includes(this.currentRoot.type)) {
+					if (this.prev()?.type === 'Identifier') {
+						this.beginExpressionWithAdoptingPreviousNode(MakeNode('Typed', token, this.currentRoot, true));
 					}
 
-					// throw error
+					this.beginExpressionWith(MakeNode('TypeParametersList', token, this.currentRoot, true));
+				} else {
+					this.beginExpressionWithAdoptingPreviousNode(MakeNode('Typed', token, this.currentRoot, true));
+
+					this.beginExpressionWith(MakeNode('TypeArgumentsList', token, this.currentRoot, true));
 				}
 			} else if (token.type === 'triangle_close') {
 				this.endExpressionIfIn('TypeArgumentsList');
+				this.endExpressionIfIn('Typed');
+
 				this.endExpressionIfIn('TypeParameter');
 				this.endExpressionIfIn('TypeParametersList');
+				this.endExpressionIfIn('Typed');
+
+				this.endExpressionIfIn('MemberExpression');
 			} else if (token.type === 'less_than') {
 				/**
 				 * < can be:
@@ -603,16 +608,19 @@ export default class {
 
 				switch (token.value) {
 					case 'abstract':
+					case 'static':
 						// can either be a ClassDeclaration, FunctionDeclaration or VariableDeclaration
 
 						// the simplest way is to start a ModifiersList,
 						// then when we come across a one of those declarations, we check if this.currentRoot is a ModifiersList
 
-						if (this.debug) {
-							console.debug('Beginning a ModifiersList');
-						}
+						if (this.currentRoot.type !== 'ModifiersList') {
+							if (this.debug) {
+								console.debug('Beginning a ModifiersList');
+							}
 
-						this.beginExpressionWith(MakeNode('ModifiersList', token, this.currentRoot, true));
+							this.beginExpressionWith(MakeNode('ModifiersList', token, this.currentRoot, true));
+						}
 
 						if (this.debug) {
 							console.debug(`Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
@@ -729,14 +737,6 @@ export default class {
 						break;
 					case 'loop':
 						this.beginExpressionWith(MakeNode('Loop', token, this.currentRoot, true));
-						break;
-					case 'new':
-						// 'new' can be a function name, duh
-						if (this.isCurrentRootAFunctionInAClass()) {
-							this.addNode(MakeNode('Identifier', token, this.currentRoot));
-						} else {
-							this.beginExpressionWith(MakeNode('NewExpression', token, this.currentRoot, true));
-						}
 						break;
 					case 'or':
 						this.beginExpressionWithAdoptingPreviousNode(MakeNode('BinaryExpression', token, this.currentRoot));

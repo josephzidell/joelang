@@ -31,22 +31,19 @@
                   [ 'Identifier', 'myFoo', [length]: 2 ],
                   [ 'AssignmentOperator', [length]: 1 ],
                   [
-                    'NewExpression',
+                    'CallExpression',
                     [
                       [
-                        'CallExpression',
+                        'MemberExpression',
                         [
                           [ 'Identifier', 'Foo', [length]: 2 ],
-                          [
-                            'ArgumentsList',
-                            [ [length]: 0 ],
-                            [length]: 2
-                          ],
+                          [ 'Identifier', 'create', [length]: 2 ],
                           [length]: 2
                         ],
                         [length]: 2
                       ],
-                      [length]: 1
+                      [ 'ArgumentsList', [ [length]: 0 ], [length]: 2 ],
+                      [length]: 2
                     ],
                     [length]: 2
                   ],
@@ -109,46 +106,67 @@
       [
         'ClassDeclaration',
         [
-          [ 'Identifier', 'Foo', [length]: 2 ],
           [
-            'TypeParametersList',
+            'Typed',
             [
+              [ 'Identifier', 'Foo', [length]: 2 ],
               [
-                'TypeParameter',
-                [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                'TypeParametersList',
+                [
+                  [
+                    'TypeParameter',
+                    [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                    [length]: 2
+                  ],
+                  [length]: 1
+                ],
                 [length]: 2
               ],
-              [length]: 1
+              [length]: 2
             ],
             [length]: 2
           ],
           [
             'ClassExtensionsList',
             [
-              [ 'Identifier', 'Bar', [length]: 2 ],
               [
-                'TypeArgumentsList',
-                [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                'Typed',
+                [
+                  [ 'Identifier', 'Bar', [length]: 2 ],
+                  [
+                    'TypeArgumentsList',
+                    [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                    [length]: 2
+                  ],
+                  [length]: 2
+                ],
                 [length]: 2
               ],
               [ 'CommaSeparator', [length]: 1 ],
               [ 'Identifier', 'Baz', [length]: 2 ],
-              [length]: 4
+              [length]: 3
             ],
             [length]: 2
           ],
           [
             'ClassImplementsList',
             [
-              [ 'Identifier', 'AbstractFooBar', [length]: 2 ],
               [
-                'TypeArgumentsList',
-                [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                'Typed',
+                [
+                  [ 'Identifier', 'AbstractFooBar', [length]: 2 ],
+                  [
+                    'TypeArgumentsList',
+                    [ [ 'Identifier', 'A', [length]: 2 ], [length]: 1 ],
+                    [length]: 2
+                  ],
+                  [length]: 2
+                ],
                 [length]: 2
               ],
               [ 'CommaSeparator', [length]: 1 ],
               [ 'Identifier', 'AnotherAbstractClass', [length]: 2 ],
-              [length]: 4
+              [length]: 3
             ],
             [length]: 2
           ],
@@ -1068,10 +1086,10 @@
                           [ 'NumberLiteral', '5', [length]: 2 ],
                           [ 'CommaSeparator', [length]: 1 ],
                           [
-                            'NewExpression',
+                            'CallExpression',
                             [
                               [
-                                'CallExpression',
+                                'MemberExpression',
                                 [
                                   [
                                     'Identifier',
@@ -1079,15 +1097,20 @@
                                     [length]: 2
                                   ],
                                   [
-                                    'ArgumentsList',
-                                    [ [length]: 0 ],
+                                    'Identifier',
+                                    'create',
                                     [length]: 2
                                   ],
                                   [length]: 2
                                 ],
                                 [length]: 2
                               ],
-                              [length]: 1
+                              [
+                                'ArgumentsList',
+                                [ [length]: 0 ],
+                                [length]: 2
+                              ],
+                              [length]: 2
                             ],
                             [length]: 2
                           ],
@@ -1155,7 +1178,7 @@
             ],
             [length]: 2
           ],
-          [length]: 5
+          [length]: 4
         ],
         [length]: 2
       ],

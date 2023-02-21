@@ -3,7 +3,7 @@
 
 f main {
 	// instantiate and call a method
-	const myFoo = new Foo();
+	const myFoo = Foo.create();
 	print myFoo.foo();
 
 	// static
@@ -64,7 +64,7 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 
 	/** multiple return vals */
 	f methodThatReturnsBool? -> bool, number, Thing {
-		return false, 5, new Thing();
+		return false, 5, Thing.create();
 	}
 
 	/** method that throws error */
