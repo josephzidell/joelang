@@ -72,27 +72,6 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 		]);
 	});
 
-	// nil and number
-	it(`${operator} with nil and number literal`, (): void => {
-		expect(parse(`nil ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
-				['Nil', 'nil'],
-				['NumberLiteral', '2'],
-			]],
-			['SemicolonSeparator'],
-		]);
-	});
-
-	it(`${operator} with number literal and nil`, (): void => {
-		expect(parse(`1 ${operator} nil;`)).toMatchParseTree([
-			[nodeType, operator, [
-				['NumberLiteral', '1'],
-				['Nil', 'nil'],
-			]],
-			['SemicolonSeparator'],
-		]);
-	});
-
 	// element access and number
 	it(`${operator} with element access and number literal`, (): void => {
 		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
@@ -343,27 +322,6 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 			[nodeType, [
 				['NumberLiteral', '1'],
 				['Identifier', 'foo'],
-			]],
-			['SemicolonSeparator'],
-		]);
-	});
-
-	// nil and number
-	it(`${operator} with nil and number literal`, (): void => {
-		expect(parse(`nil ${operator} 2;`)).toMatchParseTree([
-			[nodeType, [
-				['Nil', 'nil'],
-				['NumberLiteral', '2'],
-			]],
-			['SemicolonSeparator'],
-		]);
-	});
-
-	it(`${operator} with number literal and nil`, (): void => {
-		expect(parse(`1 ${operator} nil;`)).toMatchParseTree([
-			[nodeType, [
-				['NumberLiteral', '1'],
-				['Nil', 'nil'],
 			]],
 			['SemicolonSeparator'],
 		]);
@@ -637,16 +595,6 @@ describe('parser.ts', (): void => {
 				]],
 				['SemicolonSeparator'],
 			]);
-		});
-
-		it('nil', (): void => {
-			expect(parse('const x = nil')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'x'],
-					['AssignmentOperator'],
-					['Nil', 'nil'],
-				]],
-			])
 		});
 
 		describe('tuples', () => {
@@ -1830,25 +1778,6 @@ describe('parser.ts', (): void => {
 						['Type', 'regex'],
 						['CommaSeparator'],
 						['Type', 'bool'],
-					]],
-					['BlockStatement', []],
-				]],
-			]);
-		});
-
-		it('params and return types using nil', (): void => {
-			expect(parse('f foo (a: nil) -> nil {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['Nil', 'nil'],
-						]],
-					]],
-					['FunctionReturns', [
-						['Nil', 'nil'],
 					]],
 					['BlockStatement', []],
 				]],

@@ -47,7 +47,6 @@ const otherTokenTypes = [
 	'comment',
 	'identifier',
 	'keyword',
-	'nil',
 	'number',
 	'path',
 	'regex',
@@ -119,12 +118,11 @@ export const types = [
 type Type = typeof types[number];
 
 // special Values
-const specialValues = ['true', 'false', 'nil'] as const;
+const specialValues = ['true', 'false'] as const;
 type SpecialValue = typeof specialValues[number];
 export const specialValueTypes: Record<SpecialValue, TokenType> = {
 	true: 'bool',
 	false: 'bool',
-	nil: 'nil',
 };
 
 // syntax patterns

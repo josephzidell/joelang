@@ -237,8 +237,6 @@ export default class {
 				this.endExpressionIfIn('MemberExpression');
 			} else if (token.type === 'bool') {
 				this.addNode(MakeNode('BoolLiteral', token, this.currentRoot));
-			} else if (token.type === 'nil') {
-				this.addNode(MakeNode('Nil', token, this.currentRoot));
 			} else if (token.type === 'number') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
@@ -524,7 +522,6 @@ export default class {
 					...literals,
 					'CallExpression',
 					'MemberExpression',
-					'Nil',
 					'UnaryExpression',
 				];
 
