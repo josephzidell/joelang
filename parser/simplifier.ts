@@ -1,4 +1,4 @@
-import { IfStatementNode, Node, NodeType, UnaryExpressionNode } from "./types";
+import { IfStatementNode, Node, NT, UnaryExpressionNode } from "./types";
 
 // SParseTree = Simplified Parse Tree
 
@@ -6,12 +6,12 @@ import { IfStatementNode, Node, NodeType, UnaryExpressionNode } from "./types";
 type extraInformation = {
 	before?: boolean;
 }
-type SParseNodeWithoutValueAndWithoutChildren = [NodeType]; // eg ['SemicolonSeparator']
-type SParseNodeWithValueAndWithoutChildren = [NodeType, string]; // eg ['NumberLiteral', '1']
-type SParseNodeWithoutValueWithChildren = [NodeType, SParseTree] // eg ['ArgumentList', [...]]
-type SParseNodeWithoutValueWithChildrenWithExtraInformation = [NodeType, extraInformation, SParseTree] // eg ['IfStatement', {before}, [...]]
-type SParseNodeWithValueWithChildren = [NodeType, string, SParseTree] // eg ['BinaryExpression', '==', [...]]
-type SParseNodeWithValueWithChildrenWithExtraInformation = [NodeType, string, extraInformation, SParseTree] // eg ['UnaryExpression', '++', {before}, [...]]
+type SParseNodeWithoutValueAndWithoutChildren = [NT]; // eg [NodeType.SemicolonSeparator]
+type SParseNodeWithValueAndWithoutChildren = [NT, string]; // eg [NodeType.NumberLiteral, '1']
+type SParseNodeWithoutValueWithChildren = [NT, SParseTree] // eg ['ArgumentList', [...]]
+type SParseNodeWithoutValueWithChildrenWithExtraInformation = [NT, extraInformation, SParseTree] // eg [NodeType.IfStatement, {before}, [...]]
+type SParseNodeWithValueWithChildren = [NT, string, SParseTree] // eg [NodeType.BinaryExpression, '==', [...]]
+type SParseNodeWithValueWithChildrenWithExtraInformation = [NT, string, extraInformation, SParseTree] // eg [NodeType.UnaryExpression, '++', {before}, [...]]
 type SParseNode = SParseNodeWithoutValueAndWithoutChildren |
 	SParseNodeWithValueAndWithoutChildren |
 	SParseNodeWithoutValueWithChildren |
@@ -27,20 +27,20 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 		// a node will have either a value, or children, or both, or neither
 		let hasValue = typeof node.value !== 'undefined';
 		// in a few cases, we really don't need the value
-		if (node.type === 'ColonSeparator' || node.type === 'CommaSeparator' || node.type === 'SemicolonSeparator') {
+		if (node.type === NT.ColonSeparator || node.type === NT.CommaSeparator || node.type === NT.SemicolonSeparator) {
 			hasValue = false;
 		}
 
 		// in a few cases we want the children array to be there even when empty
-		const nodeTypesThatShouldAlwaysHaveChildren: NodeType[] = [
-			'ArgumentsList',
-			'ArrayExpression',
-			'BlockStatement',
-			'ObjectExpression',
-			'ParametersList',
-			'TypeArgumentsList',
-			'TypeParametersList',
-			'TupleExpression',
+		const nodeTypesThatShouldAlwaysHaveChildren: NT[] = [
+			NT.ArgumentsList,
+			NT.ArrayExpression,
+			NT.BlockStatement,
+			NT.ObjectExpression,
+			NT.ParametersList,
+			NT.TypeArgumentsList,
+			NT.TypeParametersList,
+			NT.TupleExpression,
 		];
 		let hasChildren = children.length > 0;
 		if (nodeTypesThatShouldAlwaysHaveChildren.includes(node.type)) {
@@ -49,10 +49,10 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 
 		let extraInformation = {};
 		switch (node.type) {
-			case 'IfStatement':
+			case NT.IfStatement:
 				extraInformation = {before: (node as IfStatementNode).before};
 				break;
-			case 'UnaryExpression':
+			case NT.UnaryExpression:
 				extraInformation = {before: (node as UnaryExpressionNode).before};
 				break;
 		}

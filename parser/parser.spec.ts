@@ -1,53 +1,53 @@
 import Lexer from '../lexer/lexer';
 import { types } from '../lexer/types';
 import Parser from './parser';
-import { Node, NodeType } from './types';
+import { Node, NT } from './types';
 import '../setupJest'; // for the types
 
 /** Shortcut method to `new Parser(new Lexer(code).lexify()).parse()` */
 const parse = (code: string): Node => new Parser(new Lexer(code).lexify()).parse();
 
-const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NodeType) => {
+const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NT) => {
 	// 2 numbers
 	it(`${operator} with 2 number literals`, (): void => {
 		expect(parse(`1 ${operator} 2,000;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['NumberLiteral', '1'],
-				['NumberLiteral', '2,000'],
+				[NT.NumberLiteral, '1'],
+				[NT.NumberLiteral, '2,000'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`-1,000 ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '1,000'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '1,000'],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['NumberLiteral', '1'],
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '2'],
+				[NT.NumberLiteral, '1'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '2'],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '1'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '1'],
 				]],
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '2'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '2'],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
@@ -55,20 +55,20 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 	it(`${operator} with identifier and number literal`, (): void => {
 		expect(parse(`foo ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['Identifier', 'foo'],
-				['NumberLiteral', '2'],
+				[NT.Identifier, 'foo'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with number literal and identifier`, (): void => {
 		expect(parse(`1 ${operator} foo;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['NumberLiteral', '1'],
-				['Identifier', 'foo'],
+				[NT.NumberLiteral, '1'],
+				[NT.Identifier, 'foo'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
@@ -76,116 +76,116 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 	it(`${operator} with element access and number literal`, (): void => {
 		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['MembersList', [
-						['StringLiteral', 'a'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`foo.a ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['Identifier', 'a'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.Identifier, 'a'],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`foo['a'].b ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['MemberExpression', [
-					['MemberExpression', [
-						['Identifier', 'foo'],
-						['MembersList', [
-							['StringLiteral', 'a'],
+				[NT.MemberExpression, [
+					[NT.MemberExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'a'],
 						]],
 					]],
-					['Identifier', 'b'],
+					[NT.Identifier, 'b'],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`this.foo['a', 'b'].b ${operator} this.foo['a', 'c'].b;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['MemberExpression', [
-					['MemberExpression', [
-						['MemberExpression', [
-							['Keyword', 'this'],
-							['Identifier', 'foo'],
+				[NT.MemberExpression, [
+					[NT.MemberExpression, [
+						[NT.MemberExpression, [
+							[NT.Keyword, 'this'],
+							[NT.Identifier, 'foo'],
 						]],
-						['MembersList', [
-							['StringLiteral', 'a'],
-							['CommaSeparator'],
-							['StringLiteral', 'b'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'a'],
+							[NT.CommaSeparator],
+							[NT.StringLiteral, 'b'],
 						]],
 					]],
-					['Identifier', 'b'],
+					[NT.Identifier, 'b'],
 				]],
-				['MemberExpression', [
-					['MemberExpression', [
-						['MemberExpression', [
-							['Keyword', 'this'],
-							['Identifier', 'foo'],
+				[NT.MemberExpression, [
+					[NT.MemberExpression, [
+						[NT.MemberExpression, [
+							[NT.Keyword, 'this'],
+							[NT.Identifier, 'foo'],
 						]],
-						['MembersList', [
-							['StringLiteral', 'a'],
-							['CommaSeparator'],
-							['StringLiteral', 'c'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'a'],
+							[NT.CommaSeparator],
+							[NT.StringLiteral, 'c'],
 						]],
 					]],
-					['Identifier', 'b'],
+					[NT.Identifier, 'b'],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`2 ${operator} this.foo['a']['c'].d;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['NumberLiteral', '2'],
-				['MemberExpression', [
-					['MemberExpression', [
-						['MemberExpression', [
-							['MemberExpression', [
-								['Keyword', 'this'],
-								['Identifier', 'foo'],
+				[NT.NumberLiteral, '2'],
+				[NT.MemberExpression, [
+					[NT.MemberExpression, [
+						[NT.MemberExpression, [
+							[NT.MemberExpression, [
+								[NT.Keyword, 'this'],
+								[NT.Identifier, 'foo'],
 							]],
-							['MembersList', [
-								['StringLiteral', 'a'],
+							[NT.MembersList, [
+								[NT.StringLiteral, 'a'],
 							]],
 						]],
-						['MembersList', [
-							['StringLiteral', 'c'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'c'],
 						]],
 					]],
-					['Identifier', 'd'],
+					[NT.Identifier, 'd'],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with number literal and element access`, (): void => {
 		expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchParseTree([
 			[nodeType, operator, [
-				['NumberLiteral', '1'],
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['MembersList', [
-						['StringLiteral', 'a'],
+				[NT.NumberLiteral, '1'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
-			['StringLiteral', 'a'],
+			[NT.SemicolonSeparator],
+			[NT.StringLiteral, 'a'],
 		]);
 	});
 
@@ -193,30 +193,30 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 	it(`${operator} with method call and number literal`, (): void => {
 		expect(parse(`foo('a') ${operator} 2;`)).toMatchParseTree([
 			[nodeType, operator, [
-				['CallExpression', [
-					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['StringLiteral', 'a'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with number literal and method call`, (): void => {
 		expect(parse(`1 ${operator} foo('a');`)).toMatchParseTree([
 			[nodeType, operator, [
-				['NumberLiteral', '1'],
-				['CallExpression', [
-					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['StringLiteral', 'a'],
+				[NT.NumberLiteral, '1'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
@@ -224,85 +224,85 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 	it(`${operator} with element access and method call`, (): void => {
 		expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchParseTree([
 			[nodeType, operator, [
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['MembersList', [
-						['StringLiteral', 'a'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['CallExpression', [
-					['Identifier', 'bar'],
-					['ArgumentsList', [
-						['StringLiteral', 'b'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'bar'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'b'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with method call and element access`, (): void => {
 		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
 			[nodeType, operator, [
-				['CallExpression', [
-					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['StringLiteral', 'a'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['MemberExpression', [
-					['Identifier', 'bar'],
-					['MembersList', [
-						['StringLiteral', 'b'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'bar'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'b'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 };
 
-const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType: NodeType) => {
+const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType: NT) => {
 	// 2 numbers
 	it(`${operator} with 2 number literals`, (): void => {
 		expect(parse(`1 ${operator} 2;`)).toMatchParseTree([
 			[nodeType, [
-				['NumberLiteral', '1'],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '1'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`-1 ${operator} 2;`)).toMatchParseTree([
 			[nodeType, [
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '1'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '1'],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, [
-				['NumberLiteral', '1'],
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '2'],
+				[NT.NumberLiteral, '1'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '2'],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 
 		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
 			[nodeType, [
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '1'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '1'],
 				]],
-				['UnaryExpression', '-', { before: true }, [
-					['NumberLiteral', '2'],
+				[NT.UnaryExpression, '-', { before: true }, [
+					[NT.NumberLiteral, '2'],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
@@ -310,20 +310,20 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 	it(`${operator} with identifier and number literal`, (): void => {
 		expect(parse(`foo ${operator} 2;`)).toMatchParseTree([
 			[nodeType, [
-				['Identifier', 'foo'],
-				['NumberLiteral', '2'],
+				[NT.Identifier, 'foo'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with number literal and identifier`, (): void => {
 		expect(parse(`1 ${operator} foo;`)).toMatchParseTree([
 			[nodeType, [
-				['NumberLiteral', '1'],
-				['Identifier', 'foo'],
+				[NT.NumberLiteral, '1'],
+				[NT.Identifier, 'foo'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
@@ -331,31 +331,31 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 	it(`${operator} with element access and number literal`, (): void => {
 		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
 			[nodeType, [
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['MembersList', [
-						['StringLiteral', 'a'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with number literal and element access`, (): void => {
 		expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchParseTree([
 			[nodeType, [
-				['NumberLiteral', '1'],
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['MembersList', [
-						['StringLiteral', 'a'],
+				[NT.NumberLiteral, '1'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
-			['StringLiteral', 'a'],
+			[NT.SemicolonSeparator],
+			[NT.StringLiteral, 'a'],
 		]);
 	});
 
@@ -363,30 +363,30 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 	it(`${operator} with method call and number literal`, (): void => {
 		expect(parse(`foo('a') ${operator} 2;`)).toMatchParseTree([
 			[nodeType, [
-				['CallExpression', [
-					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['StringLiteral', 'a'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['NumberLiteral', '2'],
+				[NT.NumberLiteral, '2'],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
 	it(`${operator} with number literal and method call`, (): void => {
 		expect(parse(`1 ${operator} foo('a');`)).toMatchParseTree([
 			[nodeType, [
-				['NumberLiteral', '1'],
-				['CallExpression', [
-					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['StringLiteral', 'a'],
+				[NT.NumberLiteral, '1'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 
@@ -394,39 +394,39 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 	it(`${operator} with element access and method call`, (): void => {
 		expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchParseTree([
 			[nodeType, [
-				['MemberExpression', [
-					['Identifier', 'foo'],
-					['MembersList', [
-						['StringLiteral', 'a'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['CallExpression', [
-					['Identifier', 'bar'],
-					['ArgumentsList', [
-						['StringLiteral', 'b'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'bar'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'b'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 	it(`${operator} with method call and element access`, (): void => {
 		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
 			[nodeType, [
-				['CallExpression', [
-					['Identifier', 'foo'],
-					['ArgumentsList', [
-						['StringLiteral', 'a'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'foo'],
+					[NT.ArgumentsList, [
+						[NT.StringLiteral, 'a'],
 					]],
 				]],
-				['MemberExpression', [
-					['Identifier', 'bar'],
-					['MembersList', [
-						['StringLiteral', 'b'],
+				[NT.MemberExpression, [
+					[NT.Identifier, 'bar'],
+					[NT.MembersList, [
+						[NT.StringLiteral, 'b'],
 					]],
 				]],
 			]],
-			['SemicolonSeparator'],
+			[NT.SemicolonSeparator],
 		]);
 	});
 };
@@ -435,165 +435,165 @@ describe('parser.ts', (): void => {
 	describe('VariableDeclaration', (): void => {
 		it('a let assignment with a bool literal', (): void => {
 			expect(parse('let x = false')).toMatchParseTree([
-				['VariableDeclaration', 'let', [
-					['Identifier', 'x'],
-					['AssignmentOperator'],
-					['BoolLiteral', 'false'],
+				[NT.VariableDeclaration, 'let', [
+					[NT.Identifier, 'x'],
+					[NT.AssignmentOperator],
+					[NT.BoolLiteral, 'false'],
 				]],
 			]);
 
 			expect(parse('let x? = false')).toMatchParseTree([
-				['VariableDeclaration', 'let', [
-					['Identifier', 'x?'],
-					['AssignmentOperator'],
-					['BoolLiteral', 'false'],
+				[NT.VariableDeclaration, 'let', [
+					[NT.Identifier, 'x?'],
+					[NT.AssignmentOperator],
+					[NT.BoolLiteral, 'false'],
 				]],
 			]);
 		});
 
 		it('a let assignment with a number literal', (): void => {
 			expect(parse('let x = 1')).toMatchParseTree([
-				['VariableDeclaration', 'let', [
-					['Identifier', 'x'],
-					['AssignmentOperator'],
-					['NumberLiteral', '1'],
+				[NT.VariableDeclaration, 'let', [
+					[NT.Identifier, 'x'],
+					[NT.AssignmentOperator],
+					[NT.NumberLiteral, '1'],
 				]],
 			])
 
 			expect(parse('const x = -2,300.006^e-2,000; const y = 5;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'x'],
-					['AssignmentOperator'],
-					['BinaryExpression', '^e', [
-						['UnaryExpression', '-', { before: true }, [
-							['NumberLiteral', '2,300.006'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'x'],
+					[NT.AssignmentOperator],
+					[NT.BinaryExpression, '^e', [
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '2,300.006'],
 						]],
-						['UnaryExpression', '-', { before: true }, [
-							['NumberLiteral', '2,000'],
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '2,000'],
 						]],
 					]],
 				]],
-				['SemicolonSeparator'],
-				['VariableDeclaration', 'const', [
-					['Identifier', 'y'],
-					['AssignmentOperator'],
-					['NumberLiteral', '5'],
+				[NT.SemicolonSeparator],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'y'],
+					[NT.AssignmentOperator],
+					[NT.NumberLiteral, '5'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			])
 		});
 
 		it('a let assignment with a string literal', (): void => {
 			expect(parse('let x = "foo"')).toMatchParseTree([
-				['VariableDeclaration', 'let', [
-					['Identifier', 'x'],
-					['AssignmentOperator'],
-					['StringLiteral', 'foo'],
+				[NT.VariableDeclaration, 'let', [
+					[NT.Identifier, 'x'],
+					[NT.AssignmentOperator],
+					[NT.StringLiteral, 'foo'],
 				]],
 			])
 		});
 
 		it('a let with a specified type', (): void => {
 			expect(parse('let x: string;')).toMatchParseTree([
-				['VariableDeclaration', 'let', [
-					['Identifier', 'x'],
-					['ColonSeparator'],
-					['Type', 'string'],
+				[NT.VariableDeclaration, 'let', [
+					[NT.Identifier, 'x'],
+					[NT.ColonSeparator],
+					[NT.Type, 'string'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 
 			expect(parse('let x?: bool;')).toMatchParseTree([
-				['VariableDeclaration', 'let', [
-					['Identifier', 'x?'],
-					['ColonSeparator'],
-					['Type', 'bool'],
+				[NT.VariableDeclaration, 'let', [
+					[NT.Identifier, 'x?'],
+					[NT.ColonSeparator],
+					[NT.Type, 'bool'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('a const assignment with a specified type', (): void => {
 			expect(parse('const x: string = "foo"')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'x'],
-					['ColonSeparator'],
-					['Type', 'string'],
-					['AssignmentOperator'],
-					['StringLiteral', 'foo'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'x'],
+					[NT.ColonSeparator],
+					[NT.Type, 'string'],
+					[NT.AssignmentOperator],
+					[NT.StringLiteral, 'foo'],
 				]],
 			]);
 		});
 
 		it('regex', (): void => {
 			expect(parse('const x = /[a-z/;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'x'],
-					['AssignmentOperator'],
-					['RegularExpression', '/[a-z/'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'x'],
+					[NT.AssignmentOperator],
+					[NT.RegularExpression, '/[a-z/'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 
 			expect(parse('const x: regex = /[a-z/g;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'x'],
-					['ColonSeparator'],
-					['Type', 'regex'],
-					['AssignmentOperator'],
-					['RegularExpression', '/[a-z/g'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'x'],
+					[NT.ColonSeparator],
+					[NT.Type, 'regex'],
+					[NT.AssignmentOperator],
+					[NT.RegularExpression, '/[a-z/g'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('path', (): void => {
 			expect(parse('const dir = @/path/to/dir/;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'dir'],
-					['AssignmentOperator'],
-					['Path', '@/path/to/dir/'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'dir'],
+					[NT.AssignmentOperator],
+					[NT.Path, '@/path/to/dir/'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 
 			expect(parse('const dir = ./myDir/;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'dir'],
-					['AssignmentOperator'],
-					['Path', './myDir/'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'dir'],
+					[NT.AssignmentOperator],
+					[NT.Path, './myDir/'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 
 			expect(parse('const dir: path = @/path/to/dir/;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'dir'],
-					['ColonSeparator'],
-					['Type', 'path'],
-					['AssignmentOperator'],
-					['Path', '@/path/to/dir/'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'dir'],
+					[NT.ColonSeparator],
+					[NT.Type, 'path'],
+					[NT.AssignmentOperator],
+					[NT.Path, '@/path/to/dir/'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('custom type', (): void => {
 			expect(parse('const myClass: MyClass = MyClass.create();')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'myClass'],
-					['ColonSeparator'],
-					['Identifier', 'MyClass'],
-					['AssignmentOperator'],
-					['CallExpression', [
-						['MemberExpression', [
-							['Identifier', 'MyClass'],
-							['Identifier', 'create'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'myClass'],
+					[NT.ColonSeparator],
+					[NT.Identifier, 'MyClass'],
+					[NT.AssignmentOperator],
+					[NT.CallExpression, [
+						[NT.MemberExpression, [
+							[NT.Identifier, 'MyClass'],
+							[NT.Identifier, 'create'],
 						]],
-						['ArgumentsList', []],
+						[NT.ArgumentsList, []],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
@@ -601,29 +601,29 @@ describe('parser.ts', (): void => {
 
 			it('tuple', () => {
 				expect(parse('const foo = <1, "pizza", 3.14>;')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['TupleExpression', [
-							['NumberLiteral', '1'],
-							['CommaSeparator'],
-							['StringLiteral', 'pizza'],
-							['CommaSeparator'],
-							['NumberLiteral', '3.14'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TupleExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.StringLiteral, 'pizza'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3.14'],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('empty tuple', () => {
 				expect(parse('const foo = <>;')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['TupleExpression', []],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TupleExpression, []],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
@@ -635,41 +635,41 @@ describe('parser.ts', (): void => {
 					1..3,
 					<1, 2, 'fizz', 4, 'buzz'>
 				>;`)).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['TupleExpression', [
-							['TupleExpression', [
-								['NumberLiteral', '1'],
-								['CommaSeparator'],
-								['StringLiteral', 'pizza'],
-								['CommaSeparator'],
-								['NumberLiteral', '3.14'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TupleExpression, [
+							[NT.TupleExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'pizza'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3.14'],
 							]],
-							['CommaSeparator'],
-							['BoolLiteral', 'true'],
-							['CommaSeparator'],
-							['Path', '@/some/file.joe'],
-							['CommaSeparator'],
-							['RangeExpression', [
-								['NumberLiteral', '1'],
-								['NumberLiteral', '3'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.Path, '@/some/file.joe'],
+							[NT.CommaSeparator],
+							[NT.RangeExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.NumberLiteral, '3'],
 							]],
-							['CommaSeparator'],
-							['TupleExpression', [
-								['NumberLiteral', '1'],
-								['CommaSeparator'],
-								['NumberLiteral', '2'],
-								['CommaSeparator'],
-								['StringLiteral', 'fizz'],
-								['CommaSeparator'],
-								['NumberLiteral', '4'],
-								['CommaSeparator'],
-								['StringLiteral', 'buzz'],
+							[NT.CommaSeparator],
+							[NT.TupleExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '2'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'fizz'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '4'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'buzz'],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
@@ -679,42 +679,42 @@ describe('parser.ts', (): void => {
 					someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
 					true
 				>`)).toMatchParseTree([
-					['TupleExpression', [
-						['NumberLiteral', '1'],
-						['CommaSeparator'],
-						['TernaryExpression', [
-							['TernaryCondition', [
-								['Identifier', 'someCondition'],
+					[NT.TupleExpression, [
+						[NT.NumberLiteral, '1'],
+						[NT.CommaSeparator],
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'someCondition'],
 							]],
-							['TernaryThen', [
-								['StringLiteral', 'burnt-orange'],
+							[NT.TernaryThen, [
+								[NT.StringLiteral, 'burnt-orange'],
 							]],
-							['TernaryElse', [
-								['StringLiteral', ''],
+							[NT.TernaryElse, [
+								[NT.StringLiteral, ''],
 							]],
 						]],
-						['CommaSeparator'],
-						['Comment', '// will always be defined, so the shape is correct'],
-						['BoolLiteral', 'true'],
+						[NT.CommaSeparator],
+						[NT.Comment, '// will always be defined, so the shape is correct'],
+						[NT.BoolLiteral, 'true'],
 					]],
 				]);
 			});
 
 			it('tuple in object', () => {
 				expect(parse('const foo = {tpl: <1>};')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['ObjectExpression', [
-							['Property', [
-								['Identifier', 'tpl'],
-								['TupleExpression', [
-									['NumberLiteral', '1'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'tpl'],
+								[NT.TupleExpression, [
+									[NT.NumberLiteral, '1'],
 								]],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			})
 
@@ -724,174 +724,174 @@ describe('parser.ts', (): void => {
 
 			it('bools', (): void => {
 				expect(parse('[false, true, true, false]')).toMatchParseTree([
-					['ArrayExpression', [
-						['BoolLiteral', 'false'],
-						['CommaSeparator'],
-						['BoolLiteral', 'true'],
-						['CommaSeparator'],
-						['BoolLiteral', 'true'],
-						['CommaSeparator'],
-						['BoolLiteral', 'false'],
+					[NT.ArrayExpression, [
+						[NT.BoolLiteral, 'false'],
+						[NT.CommaSeparator],
+						[NT.BoolLiteral, 'true'],
+						[NT.CommaSeparator],
+						[NT.BoolLiteral, 'true'],
+						[NT.CommaSeparator],
+						[NT.BoolLiteral, 'false'],
 					]],
 				]);
 			});
 
 			it('numbers', () => {
 				expect(parse('[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]')).toMatchParseTree([
-					['ArrayExpression', [
-						['NumberLiteral', '1'],
-						['CommaSeparator'],
-						['UnaryExpression', '-', { before: true }, [
-							['NumberLiteral', '2'],
+					[NT.ArrayExpression, [
+						[NT.NumberLiteral, '1'],
+						[NT.CommaSeparator],
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '2'],
 						]],
-						['CommaSeparator'],
-						['NumberLiteral', '3,456'],
-						['CommaSeparator'],
-						['BinaryExpression', '^e', [
-							['NumberLiteral', '3'],
-							['UnaryExpression', '-', { before: true }, [
-								['NumberLiteral', '2'],
+						[NT.CommaSeparator],
+						[NT.NumberLiteral, '3,456'],
+						[NT.CommaSeparator],
+						[NT.BinaryExpression, '^e', [
+							[NT.NumberLiteral, '3'],
+							[NT.UnaryExpression, '-', { before: true }, [
+								[NT.NumberLiteral, '2'],
 							]],
 						]],
-						['CommaSeparator'],
-						['NumberLiteral', '3.14'],
-						['CommaSeparator'],
-						['NumberLiteral', '1,2,3'], // weird but legal
+						[NT.CommaSeparator],
+						[NT.NumberLiteral, '3.14'],
+						[NT.CommaSeparator],
+						[NT.NumberLiteral, '1,2,3'], // weird but legal
 					]],
 				]);
 			});
 
 			it('paths', (): void => {
 				expect(parse('[@/file.joe, @/another/file.joe]')).toMatchParseTree([
-					['ArrayExpression', [
-						['Path', '@/file.joe'],
-						['CommaSeparator'],
-						['Path', '@/another/file.joe'],
+					[NT.ArrayExpression, [
+						[NT.Path, '@/file.joe'],
+						[NT.CommaSeparator],
+						[NT.Path, '@/another/file.joe'],
 					]],
 				]);
 			});
 
 			it('regexes', (): void => {
 				expect(parse('[/[a-z]/i, /[0-9]/g, /\d/]')).toMatchParseTree([
-					['ArrayExpression', [
-						['RegularExpression', '/[a-z]/i'],
-						['CommaSeparator'],
-						['RegularExpression', '/[0-9]/g'],
-						['CommaSeparator'],
-						['RegularExpression', '/\d/'],
+					[NT.ArrayExpression, [
+						[NT.RegularExpression, '/[a-z]/i'],
+						[NT.CommaSeparator],
+						[NT.RegularExpression, '/[0-9]/g'],
+						[NT.CommaSeparator],
+						[NT.RegularExpression, '/\d/'],
 					]],
 				]);
 			});
 
 			it('strings', (): void => {
 				expect(parse('[\'foo\', "bar"]')).toMatchParseTree([
-					['ArrayExpression', [
-						['StringLiteral', 'foo'],
-						['CommaSeparator'],
-						['StringLiteral', 'bar'],
+					[NT.ArrayExpression, [
+						[NT.StringLiteral, 'foo'],
+						[NT.CommaSeparator],
+						[NT.StringLiteral, 'bar'],
 					]],
 				]);
 			});
 
 			it('tuples', () => {
 				expect(parse("const foo: <string, number, bool>[] = [<'foo', 3.14, false>, <'bar', 900, true>];")).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['ColonSeparator'],
-						['ArrayType', [
-							['TupleType', [
-								['Type', 'string'],
-								['CommaSeparator'],
-								['Type', 'number'],
-								['CommaSeparator'],
-								['Type', 'bool'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.ColonSeparator],
+						[NT.ArrayType, [
+							[NT.TupleType, [
+								[NT.Type, 'string'],
+								[NT.CommaSeparator],
+								[NT.Type, 'number'],
+								[NT.CommaSeparator],
+								[NT.Type, 'bool'],
 							]],
 						]],
-						['AssignmentOperator'],
-						['ArrayExpression', [
-							['TupleExpression', [
-								['StringLiteral', 'foo'],
-								['CommaSeparator'],
-								['NumberLiteral', '3.14'],
-								['CommaSeparator'],
-								['BoolLiteral', 'false'],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, [
+							[NT.TupleExpression, [
+								[NT.StringLiteral, 'foo'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3.14'],
+								[NT.CommaSeparator],
+								[NT.BoolLiteral, 'false'],
 							]],
-							['CommaSeparator'],
-							['TupleExpression', [
-								['StringLiteral', 'bar'],
-								['CommaSeparator'],
-								['NumberLiteral', '900'],
-								['CommaSeparator'],
-								['BoolLiteral', 'true'],
+							[NT.CommaSeparator],
+							[NT.TupleExpression, [
+								[NT.StringLiteral, 'bar'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '900'],
+								[NT.CommaSeparator],
+								[NT.BoolLiteral, 'true'],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('pojos', () => {
 				expect(parse("const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];")).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['ColonSeparator'],
-						['ArrayType', [
-							['ObjectType', [
-								['Property', [
-									['Identifier', 'a'],
-									['Type', 'number'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.ColonSeparator],
+						[NT.ArrayType, [
+							[NT.ObjectType, [
+								[NT.Property, [
+									[NT.Identifier, 'a'],
+									[NT.Type, 'number'],
 								]],
-								['CommaSeparator'],
-								['Property', [
-									['Identifier', 'b'],
-									['Type', 'string'],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'b'],
+									[NT.Type, 'string'],
 								]],
 							]],
 						]],
-						['AssignmentOperator'],
-						['ArrayExpression', [
-							['ObjectExpression', [
-								['Property', [
-									['Identifier', 'a'],
-									['NumberLiteral', '4'],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, [
+							[NT.ObjectExpression, [
+								[NT.Property, [
+									[NT.Identifier, 'a'],
+									[NT.NumberLiteral, '4'],
 								]],
-								['CommaSeparator'],
-								['Property', [
-									['Identifier', 'b'],
-									['StringLiteral', 'c'],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'b'],
+									[NT.StringLiteral, 'c'],
 								]],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('assignments', () => {
 				expect(parse('const numbers = [1, 2];')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'numbers'],
-						['AssignmentOperator'],
-						['ArrayExpression', [
-							['NumberLiteral', '1'],
-							['CommaSeparator'],
-							['NumberLiteral', '2'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'numbers'],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '2'],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 
 				expect(parse('let myArray: bool[] = [];')).toMatchParseTree([
-					['VariableDeclaration', 'let', [
-						['Identifier', 'myArray'],
-						['ColonSeparator'],
-						['ArrayType', [
-							['Type', 'bool'],
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'myArray'],
+						[NT.ColonSeparator],
+						[NT.ArrayType, [
+							[NT.Type, 'bool'],
 						]],
-						['AssignmentOperator'],
-						['ArrayExpression', []],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, []],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
@@ -901,104 +901,104 @@ describe('parser.ts', (): void => {
 
 			it('should work in a variable declaration', () => {
 				expect(parse('const foo = bar ? 1 : 2;')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['TernaryExpression', [
-							['TernaryCondition', [
-								['Identifier', 'bar'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'bar'],
 							]],
-							['TernaryThen', [
-								['NumberLiteral', '1'],
+							[NT.TernaryThen, [
+								[NT.NumberLiteral, '1'],
 							]],
-							['TernaryElse', [
-								['NumberLiteral', '2'],
+							[NT.TernaryElse, [
+								[NT.NumberLiteral, '2'],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('should work when nested', () => {
 				expect(parse('const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['TernaryExpression', [
-							['TernaryCondition', [
-								['Identifier', 'bar'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'bar'],
 							]],
-							['TernaryThen', [
-								['Parenthesized', [
-									['TernaryExpression', [
-										['TernaryCondition', [
-											['Identifier', 'baz'],
+							[NT.TernaryThen, [
+								[NT.Parenthesized, [
+									[NT.TernaryExpression, [
+										[NT.TernaryCondition, [
+											[NT.Identifier, 'baz'],
 										]],
-										['TernaryThen', [
-											['NumberLiteral', '3'],
+										[NT.TernaryThen, [
+											[NT.NumberLiteral, '3'],
 										]],
-										['TernaryElse', [
-											['NumberLiteral', '4'],
+										[NT.TernaryElse, [
+											[NT.NumberLiteral, '4'],
 										]],
 									]],
 								]],
 							]],
-							['TernaryElse', [
-								['NumberLiteral', '2'],
+							[NT.TernaryElse, [
+								[NT.NumberLiteral, '2'],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('should work in an array', () => {
 				expect(parse('[foo ? 1 : 2, 3]')).toMatchParseTree([
-					['ArrayExpression', [
-						['TernaryExpression', [
-							['TernaryCondition', [
-								['Identifier', 'foo'],
+					[NT.ArrayExpression, [
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'foo'],
 							]],
-							['TernaryThen', [
-								['NumberLiteral', '1'],
+							[NT.TernaryThen, [
+								[NT.NumberLiteral, '1'],
 							]],
-							['TernaryElse', [
-								['NumberLiteral', '2'],
+							[NT.TernaryElse, [
+								[NT.NumberLiteral, '2'],
 							]],
 						]],
-						['CommaSeparator'],
-						['NumberLiteral', '3'],
+						[NT.CommaSeparator],
+						[NT.NumberLiteral, '3'],
 					]],
 				]);
 			});
 
 			it('should work in a return', () => {
 				expect(parse('f foo -> bool, number {return bar ? true : false, 3;}')).toMatchParseTree([
-					['FunctionDeclaration', [
-						['Identifier', 'foo'],
-						['FunctionReturns', [
-							['Type', 'bool'],
-							['CommaSeparator'],
-							['Type', 'number'],
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.FunctionReturns, [
+							[NT.Type, 'bool'],
+							[NT.CommaSeparator],
+							[NT.Type, 'number'],
 						]],
-						['BlockStatement', [
-							['ReturnStatement', [
-								['TernaryExpression', [
-									['TernaryCondition', [
-										['Identifier', 'bar'],
+						[NT.BlockStatement, [
+							[NT.ReturnStatement, [
+								[NT.TernaryExpression, [
+									[NT.TernaryCondition, [
+										[NT.Identifier, 'bar'],
 									]],
-									['TernaryThen', [
-										['BoolLiteral', 'true'],
+									[NT.TernaryThen, [
+										[NT.BoolLiteral, 'true'],
 									]],
-									['TernaryElse', [
-										['BoolLiteral', 'false'],
+									[NT.TernaryElse, [
+										[NT.BoolLiteral, 'false'],
 									]],
 								]],
-								['CommaSeparator'],
-								['NumberLiteral', '3'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3'],
 							]],
-							['SemicolonSeparator'],
+							[NT.SemicolonSeparator],
 						]]
 					]],
 				]);
@@ -1010,47 +1010,47 @@ describe('parser.ts', (): void => {
 
 			it('pojo', () => {
 				expect(parse('const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['ObjectExpression', [
-							['Property', [
-								['Identifier', 'a'],
-								['NumberLiteral', '1'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'a'],
+								[NT.NumberLiteral, '1'],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'b'],
-								['StringLiteral', 'pizza'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'b'],
+								[NT.StringLiteral, 'pizza'],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'c'],
-								['NumberLiteral', '3.14'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'c'],
+								[NT.NumberLiteral, '3.14'],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'd'],
-								['ArrayExpression', [
-									['NumberLiteral', '10'],
-									['CommaSeparator'],
-									['NumberLiteral', '11'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'd'],
+								[NT.ArrayExpression, [
+									[NT.NumberLiteral, '10'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '11'],
 								]],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('empty pojo', () => {
 				expect(parse('const foo = {};')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['ObjectExpression', []],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, []],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
@@ -1062,75 +1062,75 @@ describe('parser.ts', (): void => {
 					range: {range: 1..3},
 					tpl: <1, 2, 'fizz', 4, 'buzz'>
 				};`)).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['ObjectExpression', [
-							['Property', [
-								['Identifier', 'obj'],
-								['ObjectExpression', [
-									['Property', [
-										['Identifier', 'a'],
-										['NumberLiteral', '1'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'obj'],
+								[NT.ObjectExpression, [
+									[NT.Property, [
+										[NT.Identifier, 'a'],
+										[NT.NumberLiteral, '1'],
 									]],
-									['CommaSeparator'],
-									['Property', [
-										['Identifier', 'b'],
-										['StringLiteral', 'pizza'],
+									[NT.CommaSeparator],
+									[NT.Property, [
+										[NT.Identifier, 'b'],
+										[NT.StringLiteral, 'pizza'],
 									]],
-									['CommaSeparator'],
-									['Property', [
-										['Identifier', 'pi'],
-										['ObjectExpression', [
-											['Property', [
-												['Identifier', 'two_digits'],
-												['NumberLiteral', '3.14'],
+									[NT.CommaSeparator],
+									[NT.Property, [
+										[NT.Identifier, 'pi'],
+										[NT.ObjectExpression, [
+											[NT.Property, [
+												[NT.Identifier, 'two_digits'],
+												[NT.NumberLiteral, '3.14'],
 											]],
 										]],
 									]],
 								]],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'bol'],
-								['BoolLiteral', 'true'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'bol'],
+								[NT.BoolLiteral, 'true'],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'pth'],
-								['Path', '@/some/file.joe'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'pth'],
+								[NT.Path, '@/some/file.joe'],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'range'],
-								['ObjectExpression', [
-									['Property', [
-										['Identifier', 'range'],
-										['RangeExpression', [
-											['NumberLiteral', '1'],
-											['NumberLiteral', '3'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'range'],
+								[NT.ObjectExpression, [
+									[NT.Property, [
+										[NT.Identifier, 'range'],
+										[NT.RangeExpression, [
+											[NT.NumberLiteral, '1'],
+											[NT.NumberLiteral, '3'],
 										]],
 									]],
 								]],
 							]],
-							['CommaSeparator'],
-							['Property', [
-								['Identifier', 'tpl'],
-								['TupleExpression', [
-									['NumberLiteral', '1'],
-									['CommaSeparator'],
-									['NumberLiteral', '2'],
-									['CommaSeparator'],
-									['StringLiteral', 'fizz'],
-									['CommaSeparator'],
-									['NumberLiteral', '4'],
-									['CommaSeparator'],
-									['StringLiteral', 'buzz'],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'tpl'],
+								[NT.TupleExpression, [
+									[NT.NumberLiteral, '1'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '2'],
+									[NT.CommaSeparator],
+									[NT.StringLiteral, 'fizz'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '4'],
+									[NT.CommaSeparator],
+									[NT.StringLiteral, 'buzz'],
 								]],
 							]],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
@@ -1140,31 +1140,31 @@ describe('parser.ts', (): void => {
 					b: someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
 					c: true
 				}`)).toMatchParseTree([
-					['ObjectExpression', [
-						['Property', [
-							['Identifier', 'a'],
-							['NumberLiteral', '1'],
+					[NT.ObjectExpression, [
+						[NT.Property, [
+							[NT.Identifier, 'a'],
+							[NT.NumberLiteral, '1'],
 						]],
-						['CommaSeparator'],
-						['Property', [
-							['Identifier', 'b'],
-							['TernaryExpression', [
-								['TernaryCondition', [
-									['Identifier', 'someCondition'],
+						[NT.CommaSeparator],
+						[NT.Property, [
+							[NT.Identifier, 'b'],
+							[NT.TernaryExpression, [
+								[NT.TernaryCondition, [
+									[NT.Identifier, 'someCondition'],
 								]],
-								['TernaryThen', [
-									['StringLiteral', 'burnt-orange'],
+								[NT.TernaryThen, [
+									[NT.StringLiteral, 'burnt-orange'],
 								]],
-								['TernaryElse', [
-									['StringLiteral', ''],
+								[NT.TernaryElse, [
+									[NT.StringLiteral, ''],
 								]],
 							]],
 						]],
-						['CommaSeparator'],
-						['Comment', '// will always be defined, so the shape is correct'],
-						['Property', [
-							['Identifier', 'c'],
-							['BoolLiteral', 'true'],
+						[NT.CommaSeparator],
+						[NT.Comment, '// will always be defined, so the shape is correct'],
+						[NT.Property, [
+							[NT.Identifier, 'c'],
+							[NT.BoolLiteral, 'true'],
 						]],
 					]],
 				]);
@@ -1174,11 +1174,11 @@ describe('parser.ts', (): void => {
 				expect(parse(`{
 					a: [1]
 				}`)).toMatchParseTree([
-					['ObjectExpression', [
-						['Property', [
-							['Identifier', 'a'],
-							['ArrayExpression', [
-								['NumberLiteral', '1'],
+					[NT.ObjectExpression, [
+						[NT.Property, [
+							[NT.Identifier, 'a'],
+							[NT.ArrayExpression, [
+								[NT.NumberLiteral, '1'],
 							]],
 						]],
 					]],
@@ -1189,14 +1189,14 @@ describe('parser.ts', (): void => {
 				expect(parse(`{
 					a: [foo[1]]
 				}`)).toMatchParseTree([
-					['ObjectExpression', [
-						['Property', [
-							['Identifier', 'a'],
-							['ArrayExpression', [
-								['MemberExpression', [
-									['Identifier', 'foo'],
-									['MembersList', [
-										['NumberLiteral', '1'],
+					[NT.ObjectExpression, [
+						[NT.Property, [
+							[NT.Identifier, 'a'],
+							[NT.ArrayExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'foo'],
+									[NT.MembersList, [
+										[NT.NumberLiteral, '1'],
 									]],
 								]],
 							]],
@@ -1213,52 +1213,52 @@ describe('parser.ts', (): void => {
 
 		it('works with several nested layers', () => {
 			expect(parse('a.b.c.d(); 4')).toMatchParseTree([
-				['CallExpression', [
-					['MemberExpression', [
-						['MemberExpression', [
-							['MemberExpression', [
-								['Identifier', 'a'],
-								['Identifier', 'b'],
+				[NT.CallExpression, [
+					[NT.MemberExpression, [
+						[NT.MemberExpression, [
+							[NT.MemberExpression, [
+								[NT.Identifier, 'a'],
+								[NT.Identifier, 'b'],
 							]],
-							['Identifier', 'c'],
+							[NT.Identifier, 'c'],
 						]],
-						['Identifier', 'd'],
+						[NT.Identifier, 'd'],
 					]],
-					['ArgumentsList', []],
+					[NT.ArgumentsList, []],
 				]],
-				['SemicolonSeparator'],
-				['NumberLiteral', '4'],
+				[NT.SemicolonSeparator],
+				[NT.NumberLiteral, '4'],
 			]);
 		});
 
 		it('call followed by property', () => {
 			expect(parse('a(1).b')).toMatchParseTree([
-				['MemberExpression', [
-					['CallExpression', [
-						['Identifier', 'a'],
-						['ArgumentsList', [
-							['NumberLiteral', '1'],
+				[NT.MemberExpression, [
+					[NT.CallExpression, [
+						[NT.Identifier, 'a'],
+						[NT.ArgumentsList, [
+							[NT.NumberLiteral, '1'],
 						]],
 					]],
-					['Identifier', 'b'],
+					[NT.Identifier, 'b'],
 				]],
 			]);
 		});
 
 		it('call followed by a call', () => {
 			expect(parse('a(1).b(2)')).toMatchParseTree([
-				['CallExpression', [
-					['MemberExpression', [
-						['CallExpression', [
-							['Identifier', 'a'],
-							['ArgumentsList', [
-								['NumberLiteral', '1'],
+				[NT.CallExpression, [
+					[NT.MemberExpression, [
+						[NT.CallExpression, [
+							[NT.Identifier, 'a'],
+							[NT.ArgumentsList, [
+								[NT.NumberLiteral, '1'],
 							]],
 						]],
-						['Identifier', 'b'],
+						[NT.Identifier, 'b'],
 					]],
-					['ArgumentsList', [
-						['NumberLiteral', '2'],
+					[NT.ArgumentsList, [
+						[NT.NumberLiteral, '2'],
 					]],
 				]],
 			]);
@@ -1266,61 +1266,61 @@ describe('parser.ts', (): void => {
 
 		it('generics', () => {
 			expect(parse('a(B<|T|>);')).toMatchParseTree([
-				['CallExpression', [
-					['Identifier', 'a'],
-					['ArgumentsList', [
-						['Typed', [
-							['Identifier', 'B'],
-							['TypeArgumentsList', [
-								['Identifier', 'T'],
+				[NT.CallExpression, [
+					[NT.Identifier, 'a'],
+					[NT.ArgumentsList, [
+						[NT.Typed, [
+							[NT.Identifier, 'B'],
+							[NT.TypeArgumentsList, [
+								[NT.Identifier, 'T'],
 							]],
 						]],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 
 			expect(parse('a<|T|>(B);')).toMatchParseTree([
-				['CallExpression', [
-					['Typed', [
-						['Identifier', 'a'],
-						['TypeArgumentsList', [
-							['Identifier', 'T'],
+				[NT.CallExpression, [
+					[NT.Typed, [
+						[NT.Identifier, 'a'],
+						[NT.TypeArgumentsList, [
+							[NT.Identifier, 'T'],
 						]],
 					]],
-					['ArgumentsList', [
-						['Identifier', 'B'],
+					[NT.ArgumentsList, [
+						[NT.Identifier, 'B'],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('more advanced generics', () => {
 			expect(parse('const foo = Foo<|{T: T}, T[]|>();')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'foo'],
-					['AssignmentOperator'],
-					['CallExpression', [
-						['Typed', [
-							['Identifier', 'Foo'],
-							['TypeArgumentsList', [
-								['ObjectExpression', [
-									['Property', [
-										['Identifier', 'T'],
-										['Identifier', 'T'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'foo'],
+					[NT.AssignmentOperator],
+					[NT.CallExpression, [
+						[NT.Typed, [
+							[NT.Identifier, 'Foo'],
+							[NT.TypeArgumentsList, [
+								[NT.ObjectExpression, [
+									[NT.Property, [
+										[NT.Identifier, 'T'],
+										[NT.Identifier, 'T'],
 									]],
 								]],
-								['CommaSeparator'],
-								['ArrayType', [
-									['Identifier', 'T'],
+								[NT.CommaSeparator],
+								[NT.ArrayType, [
+									[NT.Identifier, 'T'],
 								]],
 							]],
 						]],
-						['ArgumentsList', []],
+						[NT.ArgumentsList, []],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
@@ -1330,37 +1330,37 @@ describe('parser.ts', (): void => {
 					return this.parent<|A|>.foo(); // <-- Specify to use B.foo
 				}
 			}`)).toMatchParseTree([
-				['ClassDeclaration', [
-					['Identifier', 'C'],
-					['ClassExtensionsList', [
-						['Identifier', 'A'],
-						['CommaSeparator'],
-						['Identifier', 'B'],
+				[NT.ClassDeclaration, [
+					[NT.Identifier, 'C'],
+					[NT.ClassExtensionsList, [
+						[NT.Identifier, 'A'],
+						[NT.CommaSeparator],
+						[NT.Identifier, 'B'],
 					]],
-					['BlockStatement', [
-						['FunctionDeclaration', [
-							['Identifier', 'foo'],
-							['ParametersList', []],
-							['BlockStatement', [
-								['ReturnStatement', [
-									['CallExpression', [
-										['MemberExpression', [
-											['MemberExpression', [
-												['Keyword', 'this'],
-												['Typed', [
-													['Identifier', 'parent'],
-													['TypeArgumentsList', [
-														['Identifier', 'A'],
+					[NT.BlockStatement, [
+						[NT.FunctionDeclaration, [
+							[NT.Identifier, 'foo'],
+							[NT.ParametersList, []],
+							[NT.BlockStatement, [
+								[NT.ReturnStatement, [
+									[NT.CallExpression, [
+										[NT.MemberExpression, [
+											[NT.MemberExpression, [
+												[NT.Keyword, 'this'],
+												[NT.Typed, [
+													[NT.Identifier, 'parent'],
+													[NT.TypeArgumentsList, [
+														[NT.Identifier, 'A'],
 													]],
 												]],
 											]],
-											['Identifier', 'foo'],
+											[NT.Identifier, 'foo'],
 										]],
-										['ArgumentsList', []],
+										[NT.ArgumentsList, []],
 									]],
 								]],
-								['SemicolonSeparator'],
-								['Comment', '// <-- Specify to use B.foo'],
+								[NT.SemicolonSeparator],
+								[NT.Comment, '// <-- Specify to use B.foo'],
 							]],
 						]],
 					]],
@@ -1373,148 +1373,148 @@ describe('parser.ts', (): void => {
 	describe('ClassDeclaration and InterfaceDeclaration', (): void => {
 		it('empty class', (): void => {
 			expect(parse('class Foo {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
+				[NT.ClassDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, []],
 				]],
 			]);
 
 			expect(parse('class Foo <| T, U |> {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['Typed', [
-						['Identifier', 'Foo'],
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+				[NT.ClassDeclaration, [
+					[NT.Typed, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
-							['CommaSeparator'],
-							['TypeParameter', [
-								['Identifier', 'U'],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.Identifier, 'U'],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('class with comment', (): void => {
 			expect(parse('class Foo {\n# foo\n}\n# bar\n')).toMatchParseTree([
-				['ClassDeclaration', [
-					['Identifier', 'Foo'],
-					['BlockStatement', [
-						['Comment', '# foo'],
+				[NT.ClassDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, [
+						[NT.Comment, '# foo'],
 					]],
 				]],
-				['Comment', '# bar'],
+				[NT.Comment, '# bar'],
 			]);
 		});
 
 		it('class with properties and methods', (): void => {
 			expect(parse('class Foo {\nconst foo = "bar";\nf bar {}}\n# bar\n')).toMatchParseTree([
-				['ClassDeclaration', [
-					['Identifier', 'Foo'],
-					['BlockStatement', [
-						['VariableDeclaration', 'const', [
-							['Identifier', 'foo'],
-							['AssignmentOperator'],
-							['StringLiteral', 'bar'],
+				[NT.ClassDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, [
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'foo'],
+							[NT.AssignmentOperator],
+							[NT.StringLiteral, 'bar'],
 						]],
-						['SemicolonSeparator'],
-						['FunctionDeclaration', [
-							['Identifier', 'bar'],
-							['BlockStatement', []],
+						[NT.SemicolonSeparator],
+						[NT.FunctionDeclaration, [
+							[NT.Identifier, 'bar'],
+							[NT.BlockStatement, []],
 						]],
 					]],
 				]],
-				['Comment', '# bar'],
+				[NT.Comment, '# bar'],
 			]);
 		});
 
 		it('class extends multiple and implements multiple', (): void => {
 			expect(parse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['Identifier', 'Foo'],
-					['ClassExtensionsList', [
-						['Identifier', 'Bar'],
-						['CommaSeparator'],
-						['Identifier', 'Baz'],
+				[NT.ClassDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.ClassExtensionsList, [
+						[NT.Identifier, 'Bar'],
+						[NT.CommaSeparator],
+						[NT.Identifier, 'Baz'],
 					]],
-					['ClassImplementsList', [
-						['Identifier', 'AbstractFooBar'],
-						['CommaSeparator'],
-						['Identifier', 'AnotherAbstractClass'],
+					[NT.ClassImplementsList, [
+						[NT.Identifier, 'AbstractFooBar'],
+						[NT.CommaSeparator],
+						[NT.Identifier, 'AnotherAbstractClass'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('class extends multiple and implements multiple with generics', (): void => {
 			expect(parse('class Foo<|T,U|> extends Bar<|T|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['Typed', [
-						['Identifier', 'Foo'],
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+				[NT.ClassDeclaration, [
+					[NT.Typed, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
-							['CommaSeparator'],
-							['TypeParameter', [
-								['Identifier', 'U'],
-							]],
-						]],
-					]],
-					['ClassExtensionsList', [
-						['Typed', [
-							['Identifier', 'Bar'],
-							['TypeArgumentsList', [
-								['Identifier', 'T'],
-							]],
-						]],
-						['CommaSeparator'],
-						['Identifier', 'Baz'],
-					]],
-					['ClassImplementsList', [
-						['Identifier', 'AbstractFooBar'],
-						['CommaSeparator'],
-						['Typed', [
-							['Identifier', 'AnotherAbstractClass'],
-							['TypeArgumentsList', [
-								['Identifier', 'U'],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.Identifier, 'U'],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.ClassExtensionsList, [
+						[NT.Typed, [
+							[NT.Identifier, 'Bar'],
+							[NT.TypeArgumentsList, [
+								[NT.Identifier, 'T'],
+							]],
+						]],
+						[NT.CommaSeparator],
+						[NT.Identifier, 'Baz'],
+					]],
+					[NT.ClassImplementsList, [
+						[NT.Identifier, 'AbstractFooBar'],
+						[NT.CommaSeparator],
+						[NT.Typed, [
+							[NT.Identifier, 'AnotherAbstractClass'],
+							[NT.TypeArgumentsList, [
+								[NT.Identifier, 'U'],
+							]],
+						]],
+					]],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('abstract class', (): void => {
 			expect(parse('abstract class Foo {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['ModifiersList', [
-						['Modifier', 'abstract'],
+				[NT.ClassDeclaration, [
+					[NT.ModifiersList, [
+						[NT.Modifier, 'abstract'],
 					]],
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, []],
 				]],
 			]);
 
 			expect(parse('abstract class Foo<|T|> {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['ModifiersList', [
-						['Modifier', 'abstract'],
+				[NT.ClassDeclaration, [
+					[NT.ModifiersList, [
+						[NT.Modifier, 'abstract'],
 					]],
-					['Typed', [
-						['Identifier', 'Foo'],
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+					[NT.Typed, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 
@@ -1526,80 +1526,80 @@ describe('parser.ts', (): void => {
 
 				static f world (name = 'Earth');
 			}`)).toMatchParseTree([
-				['ClassDeclaration', [
-					['ModifiersList', [
-						['Modifier', 'abstract'],
+				[NT.ClassDeclaration, [
+					[NT.ModifiersList, [
+						[NT.Modifier, 'abstract'],
 					]],
-					['Identifier', 'Foo'],
-					['BlockStatement', [
-						['VariableDeclaration', 'const', [
-							['ModifiersList', [
-								['Modifier', 'abstract'],
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, [
+						[NT.VariableDeclaration, 'const', [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'abstract'],
 							]],
-							['Identifier', 'baz'],
-							['ColonSeparator'],
-							['Type', 'number'],
+							[NT.Identifier, 'baz'],
+							[NT.ColonSeparator],
+							[NT.Type, 'number'],
 						]],
-						['SemicolonSeparator'],
-						['FunctionDeclaration', [
-							['ModifiersList', [
-								['Modifier', 'abstract'],
-								['Modifier', 'static'],
+						[NT.SemicolonSeparator],
+						[NT.FunctionDeclaration, [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'abstract'],
+								[NT.Modifier, 'static'],
 							]],
-							['Typed', [
-								['Identifier', 'hello'],
-								['TypeParametersList', [
-									['TypeParameter', [
-										['Identifier', 'T'],
+							[NT.Typed, [
+								[NT.Identifier, 'hello'],
+								[NT.TypeParametersList, [
+									[NT.TypeParameter, [
+										[NT.Identifier, 'T'],
 									]],
 								]],
 							]],
-							['ParametersList', [
-								['Parameter', [
-									['Identifier', 'name'],
-									['AssignmentOperator'],
-									['StringLiteral', 'World'],
+							[NT.ParametersList, [
+								[NT.Parameter, [
+									[NT.Identifier, 'name'],
+									[NT.AssignmentOperator],
+									[NT.StringLiteral, 'World'],
 								]],
 							]],
-							['FunctionReturns', [
-								['Identifier', 'Greeting'],
-								['CommaSeparator'],
-								['Identifier', 'T'],
+							[NT.FunctionReturns, [
+								[NT.Identifier, 'Greeting'],
+								[NT.CommaSeparator],
+								[NT.Identifier, 'T'],
 							]],
 						]],
-						['SemicolonSeparator'],
-						['FunctionDeclaration', [
-							['ModifiersList', [
-								['Modifier', 'static'],
+						[NT.SemicolonSeparator],
+						[NT.FunctionDeclaration, [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'static'],
 							]],
-							['Identifier', 'world'],
-							['ParametersList', [
-								['Parameter', [
-									['Identifier', 'name'],
-									['AssignmentOperator'],
-									['StringLiteral', 'Earth'],
+							[NT.Identifier, 'world'],
+							[NT.ParametersList, [
+								[NT.Parameter, [
+									[NT.Identifier, 'name'],
+									[NT.AssignmentOperator],
+									[NT.StringLiteral, 'Earth'],
 								]],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
 
 			expect(parse('abstract class Foo {}\nclass Bar extends Foo {}')).toMatchParseTree([
-				['ClassDeclaration', [
-					['ModifiersList', [
-						['Modifier', 'abstract'],
+				[NT.ClassDeclaration, [
+					[NT.ModifiersList, [
+						[NT.Modifier, 'abstract'],
 					]],
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, []],
 				]],
-				['ClassDeclaration', [
-					['Identifier', 'Bar'],
-					['ClassExtensionsList', [
-						['Identifier', 'Foo'],
+				[NT.ClassDeclaration, [
+					[NT.Identifier, 'Bar'],
+					[NT.ClassExtensionsList, [
+						[NT.Identifier, 'Foo'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
@@ -1609,13 +1609,13 @@ describe('parser.ts', (): void => {
 	describe('Comment', (): void => {
 		it('a single-line comment', (): void => {
 			expect(parse('# let x = "foo"')).toMatchParseTree([
-				['Comment', '# let x = "foo"'],
+				[NT.Comment, '# let x = "foo"'],
 			])
 		});
 
 		it('a multi-line comment', (): void => {
 			expect(parse('/* let x = "foo" */')).toMatchParseTree([
-				['Comment', '/* let x = "foo" */'],
+				[NT.Comment, '/* let x = "foo" */'],
 			])
 		});
 
@@ -1625,73 +1625,73 @@ describe('parser.ts', (): void => {
 
 		it('simple for statement', () => {
 			expect(parse('for let i = 0; i < 10; i++ {}')).toMatchParseTree([
-				['ForStatement', [
-					['VariableDeclaration', 'let', [
-						['Identifier', 'i'],
-						['AssignmentOperator'],
-						['NumberLiteral', '0'],
+				[NT.ForStatement, [
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'i'],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '0'],
 					]],
-					['SemicolonSeparator'],
-					['BinaryExpression', '<', [
-						['Identifier', 'i'],
-						['NumberLiteral', '10'],
+					[NT.SemicolonSeparator],
+					[NT.BinaryExpression, '<', [
+						[NT.Identifier, 'i'],
+						[NT.NumberLiteral, '10'],
 					]],
-					['SemicolonSeparator'],
-					['UnaryExpression', '++', { before: false }, [
-						['Identifier', 'i'],
+					[NT.SemicolonSeparator],
+					[NT.UnaryExpression, '++', { before: false }, [
+						[NT.Identifier, 'i'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with parens', () => {
 			expect(parse('for (let i = 0; i < 10; i++) {}')).toMatchParseTree([
-				['ForStatement', [
-					['Parenthesized', [
-						['VariableDeclaration', 'let', [
-							['Identifier', 'i'],
-							['AssignmentOperator'],
-							['NumberLiteral', '0'],
+				[NT.ForStatement, [
+					[NT.Parenthesized, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+							[NT.AssignmentOperator],
+							[NT.NumberLiteral, '0'],
 						]],
-						['SemicolonSeparator'],
-						['BinaryExpression', '<', [
-							['Identifier', 'i'],
-							['NumberLiteral', '10'],
+						[NT.SemicolonSeparator],
+						[NT.BinaryExpression, '<', [
+							[NT.Identifier, 'i'],
+							[NT.NumberLiteral, '10'],
 						]],
-						['SemicolonSeparator'],
-						['UnaryExpression', '++', { before: false }, [
-							['Identifier', 'i'],
+						[NT.SemicolonSeparator],
+						[NT.UnaryExpression, '++', { before: false }, [
+							[NT.Identifier, 'i'],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 	});
 
-	describe('FunctionDeclaration', (): void => {
+	describe(NT.FunctionDeclaration, (): void => {
 		it('no params or return types', (): void => {
 			expect(parse('f foo {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['BlockStatement', []],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('no params with single return type', (): void => {
 			expect(parse('f foo -> bool {} 5;')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['FunctionReturns', [
-						['Type', 'bool'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'bool'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
-				['NumberLiteral', '5'],
-				['SemicolonSeparator'],
+				[NT.NumberLiteral, '5'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
@@ -1699,20 +1699,20 @@ describe('parser.ts', (): void => {
 			expect(parse(`f foo -> bool, string {
 				return true, 'hey';
 			}`)).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['FunctionReturns', [
-						['Type', 'bool'],
-						['CommaSeparator'],
-						['Type', 'string'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'bool'],
+						[NT.CommaSeparator],
+						[NT.Type, 'string'],
 					]],
-					['BlockStatement', [
-						['ReturnStatement', [
-							['BoolLiteral', 'true'],
-							['CommaSeparator'],
-							['StringLiteral', 'hey'],
+					[NT.BlockStatement, [
+						[NT.ReturnStatement, [
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.StringLiteral, 'hey'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -1720,168 +1720,168 @@ describe('parser.ts', (): void => {
 
 		it('param parens but no return types', (): void => {
 			expect(parse('f foo () {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', []],
-					['BlockStatement', []],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('param parens with return types', (): void => {
 			expect(parse('f foo () -> bool {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', []],
-					['FunctionReturns', [
-						['Type', 'bool'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, []],
+					[NT.FunctionReturns, [
+						[NT.Type, 'bool'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('params but no return types', (): void => {
 			expect(parse('f foo (a: number) {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['Type', 'number'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.Type, 'number'],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('params and return types', (): void => {
 			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['Type', 'number'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.Type, 'number'],
 						]],
-						['CommaSeparator'],
-						['Parameter', [
-							['Identifier', 'r'],
-							['ColonSeparator'],
-							['Type', 'regex'],
+						[NT.CommaSeparator],
+						[NT.Parameter, [
+							[NT.Identifier, 'r'],
+							[NT.ColonSeparator],
+							[NT.Type, 'regex'],
 						]],
 					]],
-					['FunctionReturns', [
-						['Type', 'regex'],
-						['CommaSeparator'],
-						['Type', 'bool'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'regex'],
+						[NT.CommaSeparator],
+						[NT.Type, 'bool'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('params and return types using tuples', (): void => {
 			expect(parse('f foo (a: <bool>) -> <number> {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['TupleType', [
-								['Type', 'bool'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.TupleType, [
+								[NT.Type, 'bool'],
 							]],
 						]],
 					]],
-					['FunctionReturns', [
-						['TupleType', [
-							['Type', 'number'],
+					[NT.FunctionReturns, [
+						[NT.TupleType, [
+							[NT.Type, 'number'],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('params and return types using tuples and arrays', (): void => {
 			expect(parse('f foo (a: <bool[]>[]) -> <number> {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['ArrayType', [
-								['TupleType', [
-									['ArrayType', [
-										['Type', 'bool'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.ArrayType, [
+								[NT.TupleType, [
+									[NT.ArrayType, [
+										[NT.Type, 'bool'],
 									]],
 								]],
 							]],
 						]],
 					]],
-					['FunctionReturns', [
-						['TupleType', [
-							['Type', 'number'],
+					[NT.FunctionReturns, [
+						[NT.TupleType, [
+							[NT.Type, 'number'],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with arrays', (): void => {
 			expect(parse('f foo(a: number[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['ArrayType', [
-								['Type', 'number'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.ArrayType, [
+								[NT.Type, 'number'],
 							]],
-							['AssignmentOperator'],
-							['ArrayExpression', [
-								['NumberLiteral', '5'],
+							[NT.AssignmentOperator],
+							[NT.ArrayExpression, [
+								[NT.NumberLiteral, '5'],
 							]],
 						]],
-						['CommaSeparator'],
-						['Parameter', [
-							['Identifier', 'b'],
-							['ColonSeparator'],
-							['ArrayType', [
-								['ArrayType', [
-									['Type', 'string'],
+						[NT.CommaSeparator],
+						[NT.Parameter, [
+							[NT.Identifier, 'b'],
+							[NT.ColonSeparator],
+							[NT.ArrayType, [
+								[NT.ArrayType, [
+									[NT.Type, 'string'],
 								]],
 							]],
 						]],
-						['CommaSeparator'],
-						['Parameter', [
-							['RestElement', '...'],
-							['Identifier', 'c'],
-							['ColonSeparator'],
-							['ArrayType', [
-								['Identifier', 'Foo'],
+						[NT.CommaSeparator],
+						[NT.Parameter, [
+							[NT.RestElement, '...'],
+							[NT.Identifier, 'c'],
+							[NT.ColonSeparator],
+							[NT.ArrayType, [
+								[NT.Identifier, 'Foo'],
 							]],
 						]],
 					]],
-					['FunctionReturns', [
-						['Type', 'regex'],
-						['CommaSeparator'],
-						['ArrayType', [
-							['ArrayType', [
-								['ArrayType', [
-									['Type', 'path'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'regex'],
+						[NT.CommaSeparator],
+						[NT.ArrayType, [
+							[NT.ArrayType, [
+								[NT.ArrayType, [
+									[NT.Type, 'path'],
 								]],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
@@ -1894,57 +1894,57 @@ describe('parser.ts', (): void => {
 					... -> 'University',
 				};
 			}`)).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'school'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'age'],
-							['ColonSeparator'],
-							['Type', 'number'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'school'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'age'],
+							[NT.ColonSeparator],
+							[NT.Type, 'number'],
 						]],
 					]],
-					['FunctionReturns', [
-						['Type', 'string'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'string'],
 					]],
-					['BlockStatement', [
-						['ReturnStatement', [
-							['WhenExpression', [
-								['Identifier', 'age'],
-								['BlockStatement', [
-									['WhenCase', [
-										['WhenCaseTests', [
-											['NumberLiteral', '11'],
+					[NT.BlockStatement, [
+						[NT.ReturnStatement, [
+							[NT.WhenExpression, [
+								[NT.Identifier, 'age'],
+								[NT.BlockStatement, [
+									[NT.WhenCase, [
+										[NT.WhenCaseTests, [
+											[NT.NumberLiteral, '11'],
 										]],
-										['WhenCaseConsequent', [
-											['StringLiteral', 'Hogwarts First Year'],
+										[NT.WhenCaseConsequent, [
+											[NT.StringLiteral, 'Hogwarts First Year'],
 										]],
 									]],
-									['CommaSeparator'],
-									['WhenCase', [
-										['WhenCaseTests', [
-											['RangeExpression', [
-												['NumberLiteral', '12'],
-												['NumberLiteral', '17'],
+									[NT.CommaSeparator],
+									[NT.WhenCase, [
+										[NT.WhenCaseTests, [
+											[NT.RangeExpression, [
+												[NT.NumberLiteral, '12'],
+												[NT.NumberLiteral, '17'],
 											]],
 										]],
-										['WhenCaseConsequent', [
-											['StringLiteral', 'Another Year at Hogwarts'],
+										[NT.WhenCaseConsequent, [
+											[NT.StringLiteral, 'Another Year at Hogwarts'],
 										]],
 									]],
-									['CommaSeparator'],
-									['WhenCase', [
-										['WhenCaseTests', [
-											['RestElement', '...'],
+									[NT.CommaSeparator],
+									[NT.WhenCase, [
+										[NT.WhenCaseTests, [
+											[NT.RestElement, '...'],
 										]],
-										['WhenCaseConsequent', [
-											['StringLiteral', 'University'],
+										[NT.WhenCaseConsequent, [
+											[NT.StringLiteral, 'University'],
 										]],
 									]],
-									['CommaSeparator'],
+									[NT.CommaSeparator],
 								]],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -1954,40 +1954,40 @@ describe('parser.ts', (): void => {
 			expect(parse(`f foo (age: number) -> number, string {
 				return 5, when age {... -> 'No more foos',};
 			}`)).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'age'],
-							['ColonSeparator'],
-							['Type', 'number'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'age'],
+							[NT.ColonSeparator],
+							[NT.Type, 'number'],
 						]],
 					]],
-					['FunctionReturns', [
-						['Type', 'number'],
-						['CommaSeparator'],
-						['Type', 'string'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'number'],
+						[NT.CommaSeparator],
+						[NT.Type, 'string'],
 					]],
-					['BlockStatement', [
-						['ReturnStatement', [
-							['NumberLiteral', '5'],
-							['CommaSeparator'],
-							['WhenExpression', [
-								['Identifier', 'age'],
-								['BlockStatement', [
-									['WhenCase', [
-										['WhenCaseTests', [
-											['RestElement', '...'],
+					[NT.BlockStatement, [
+						[NT.ReturnStatement, [
+							[NT.NumberLiteral, '5'],
+							[NT.CommaSeparator],
+							[NT.WhenExpression, [
+								[NT.Identifier, 'age'],
+								[NT.BlockStatement, [
+									[NT.WhenCase, [
+										[NT.WhenCaseTests, [
+											[NT.RestElement, '...'],
 										]],
-										['WhenCaseConsequent', [
-											['StringLiteral', 'No more foos'],
+										[NT.WhenCaseConsequent, [
+											[NT.StringLiteral, 'No more foos'],
 										]],
 									]],
-									['CommaSeparator'],
+									[NT.CommaSeparator],
 								]],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -1995,26 +1995,26 @@ describe('parser.ts', (): void => {
 
 		it('generics', (): void => {
 			expect(parse('f foo <|T|> (a: T) -> T {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Typed', [
-						['Identifier', 'foo'],
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+				[NT.FunctionDeclaration, [
+					[NT.Typed, [
+						[NT.Identifier, 'foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
 						]],
 					]],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['Identifier', 'T'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.Identifier, 'T'],
 						]],
 					]],
-					['FunctionReturns', [
-						['Identifier', 'T'],
+					[NT.FunctionReturns, [
+						[NT.Identifier, 'T'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
@@ -2026,71 +2026,71 @@ describe('parser.ts', (): void => {
 				abstract f foo3<| T |> -> bool;
 				abstract f foo4 (arg: number) -> bool;
 			}`)).toMatchParseTree([
-				['ClassDeclaration', [
-					['ModifiersList', [
-						['Modifier', 'abstract'],
+				[NT.ClassDeclaration, [
+					[NT.ModifiersList, [
+						[NT.Modifier, 'abstract'],
 					]],
-					['Identifier', 'A'],
-					['BlockStatement', [
+					[NT.Identifier, 'A'],
+					[NT.BlockStatement, [
 						// foo1
-						['FunctionDeclaration', [
-							['ModifiersList', [
-								['Modifier', 'abstract'],
+						[NT.FunctionDeclaration, [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'abstract'],
 							]],
-							['Identifier', 'foo1'],
+							[NT.Identifier, 'foo1'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 						// foo2
-						['FunctionDeclaration', [
-							['ModifiersList', [
-								['Modifier', 'abstract'],
+						[NT.FunctionDeclaration, [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'abstract'],
 							]],
-							['Identifier', 'foo2'],
-							['ParametersList', [
-								['Parameter', [
-									['Identifier', 'arg'],
-									['ColonSeparator'],
-									['Type', 'number'],
+							[NT.Identifier, 'foo2'],
+							[NT.ParametersList, [
+								[NT.Parameter, [
+									[NT.Identifier, 'arg'],
+									[NT.ColonSeparator],
+									[NT.Type, 'number'],
 								]],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 						// foo3
-						['FunctionDeclaration', [
-							['ModifiersList', [
-								['Modifier', 'abstract'],
+						[NT.FunctionDeclaration, [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'abstract'],
 							]],
-							['Typed', [
-								['Identifier', 'foo3'],
-								['TypeParametersList', [
-									['TypeParameter', [
-										['Identifier', 'T'],
+							[NT.Typed, [
+								[NT.Identifier, 'foo3'],
+								[NT.TypeParametersList, [
+									[NT.TypeParameter, [
+										[NT.Identifier, 'T'],
 									]],
 								]],
 							]],
-							['FunctionReturns', [
-								['Type', 'bool'],
+							[NT.FunctionReturns, [
+								[NT.Type, 'bool'],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 						// foo4
-						['FunctionDeclaration', [
-							['ModifiersList', [
-								['Modifier', 'abstract'],
+						[NT.FunctionDeclaration, [
+							[NT.ModifiersList, [
+								[NT.Modifier, 'abstract'],
 							]],
-							['Identifier', 'foo4'],
-							['ParametersList', [
-								['Parameter', [
-									['Identifier', 'arg'],
-									['ColonSeparator'],
-									['Type', 'number'],
+							[NT.Identifier, 'foo4'],
+							[NT.ParametersList, [
+								[NT.Parameter, [
+									[NT.Identifier, 'arg'],
+									[NT.ColonSeparator],
+									[NT.Type, 'number'],
 								]],
 							]],
-							['FunctionReturns', [
-								['Type', 'bool'],
+							[NT.FunctionReturns, [
+								[NT.Type, 'bool'],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -2098,62 +2098,62 @@ describe('parser.ts', (): void => {
 
 		it('anonymous simple', () => {
 			expect(parse('const foo = f {};')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'foo'],
-					['AssignmentOperator'],
-					['FunctionDeclaration', [
-						['BlockStatement', []],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'foo'],
+					[NT.AssignmentOperator],
+					[NT.FunctionDeclaration, [
+						[NT.BlockStatement, []],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('anonymous complex', () => {
 			expect(parse('const foo = f <|T|>(a: T) -> T {\ndo();\n};')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'foo'],
-					['AssignmentOperator'],
-					['FunctionDeclaration', [
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'foo'],
+					[NT.AssignmentOperator],
+					[NT.FunctionDeclaration, [
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
 						]],
-						['ParametersList', [
-							['Parameter', [
-								['Identifier', 'a'],
-								['ColonSeparator'],
-								['Identifier', 'T'],
+						[NT.ParametersList, [
+							[NT.Parameter, [
+								[NT.Identifier, 'a'],
+								[NT.ColonSeparator],
+								[NT.Identifier, 'T'],
 							]],
 						]],
-						['FunctionReturns', [
-							['Identifier', 'T'],
+						[NT.FunctionReturns, [
+							[NT.Identifier, 'T'],
 						]],
-						['BlockStatement', [
-							['CallExpression', [
-								['Identifier', 'do'],
-								['ArgumentsList', []],
+						[NT.BlockStatement, [
+							[NT.CallExpression, [
+								[NT.Identifier, 'do'],
+								[NT.ArgumentsList, []],
 							]],
-							['SemicolonSeparator'],
+							[NT.SemicolonSeparator],
 						]],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('anonymous abstract', () => {
 			expect(parse('abstract const foo = f;')).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['ModifiersList', [
-						['Modifier', 'abstract'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.ModifiersList, [
+						[NT.Modifier, 'abstract'],
 					]],
-					['Identifier', 'foo'],
-					['AssignmentOperator'],
-					['FunctionDeclaration'],
+					[NT.Identifier, 'foo'],
+					[NT.AssignmentOperator],
+					[NT.FunctionDeclaration],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
@@ -2161,16 +2161,16 @@ describe('parser.ts', (): void => {
 			expect(parse(`f danger? -> bool {
 				return true;
 			}`)).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'danger?'],
-					['FunctionReturns', [
-						['Type', 'bool'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'danger?'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'bool'],
 					]],
-					['BlockStatement', [
-						['ReturnStatement', [
-							['BoolLiteral', 'true'],
+					[NT.BlockStatement, [
+						[NT.ReturnStatement, [
+							[NT.BoolLiteral, 'true'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -2188,12 +2188,12 @@ describe('parser.ts', (): void => {
 				// in a class
 				it('<=> as function name inside of a class should be an innocent Identifier', (): void => {
 					expect(parse(`class A{f <=> {}}`)).toMatchParseTree([
-						['ClassDeclaration', [
-							['Identifier', 'A'],
-							['BlockStatement', [
-								['FunctionDeclaration', [
-									['Identifier', '<=>'],
-									['BlockStatement', []],
+						[NT.ClassDeclaration, [
+							[NT.Identifier, 'A'],
+							[NT.BlockStatement, [
+								[NT.FunctionDeclaration, [
+									[NT.Identifier, '<=>'],
+									[NT.BlockStatement, []],
 								]],
 							]],
 						]],
@@ -2206,75 +2206,75 @@ describe('parser.ts', (): void => {
 
 	});
 
-	describe('IfStatement', (): void => {
+	describe(NT.IfStatement, (): void => {
 
 		describe('before', () => {
 
 			it('with bool conditional', () => {
 				expect(parse('if true {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BoolLiteral', 'true'],
-						['BlockStatement', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
 
 			it('with BinaryExpression conditional using two NumberLiterals', () => {
 				expect(parse('if 1 < 2 {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BinaryExpression', '<', [
-							['NumberLiteral', '1'],
-							['NumberLiteral', '2'],
+					[NT.IfStatement, { before: true }, [
+						[NT.BinaryExpression, '<', [
+							[NT.NumberLiteral, '1'],
+							[NT.NumberLiteral, '2'],
 						]],
-						['BlockStatement', []],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
 
 			it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
 				expect(parse('if foo == 2 {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BinaryExpression', '==', [
-							['Identifier', 'foo'],
-							['NumberLiteral', '2'],
+					[NT.IfStatement, { before: true }, [
+						[NT.BinaryExpression, '==', [
+							[NT.Identifier, 'foo'],
+							[NT.NumberLiteral, '2'],
 						]],
-						['BlockStatement', []],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
 
 			it('with BinaryExpression conditional using a CallExpression and a NumberLiteral', () => {
 				expect(parse('if foo() == 2 {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BinaryExpression', '==', [
-							['CallExpression', [
-								['Identifier', 'foo'],
-								['ArgumentsList', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BinaryExpression, '==', [
+							[NT.CallExpression, [
+								[NT.Identifier, 'foo'],
+								[NT.ArgumentsList, []],
 							]],
-							['NumberLiteral', '2'],
+							[NT.NumberLiteral, '2'],
 						]],
-						['BlockStatement', []],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
 
 			it('with two conditions', () => {
 				expect(parse('if foo() == 2 && a < 3 {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BinaryExpression', '&&', [
-							['BinaryExpression', '==', [
-								['CallExpression', [
-									['Identifier', 'foo'],
-									['ArgumentsList', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BinaryExpression, '&&', [
+							[NT.BinaryExpression, '==', [
+								[NT.CallExpression, [
+									[NT.Identifier, 'foo'],
+									[NT.ArgumentsList, []],
 								]],
-								['NumberLiteral', '2'],
+								[NT.NumberLiteral, '2'],
 							]],
-							['BinaryExpression', '<', [
-								['Identifier', 'a'],
-								['NumberLiteral', '3'],
+							[NT.BinaryExpression, '<', [
+								[NT.Identifier, 'a'],
+								[NT.NumberLiteral, '3'],
 							]],
 						]],
-						['BlockStatement', []],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2283,40 +2283,40 @@ describe('parser.ts', (): void => {
 
 				it('and one condition', () => {
 					expect(parse('if (foo() == 2) {}')).toMatchParseTree([
-						['IfStatement', { before: true }, [
-							['Parenthesized', [
-								['BinaryExpression', '==', [
-									['CallExpression', [
-										['Identifier', 'foo'],
-										['ArgumentsList', []],
+						[NT.IfStatement, { before: true }, [
+							[NT.Parenthesized, [
+								[NT.BinaryExpression, '==', [
+									[NT.CallExpression, [
+										[NT.Identifier, 'foo'],
+										[NT.ArgumentsList, []],
 									]],
-									['NumberLiteral', '2'],
+									[NT.NumberLiteral, '2'],
 								]],
 							]],
-							['BlockStatement', []],
+							[NT.BlockStatement, []],
 						]],
 					]);
 				});
 
 				it('and two conditions', () => {
 					expect(parse('if (foo() == 2 && a < 3) {}')).toMatchParseTree([
-						['IfStatement', { before: true }, [
-							['Parenthesized', [
-								['BinaryExpression', '&&', [
-									['BinaryExpression', '==', [
-										['CallExpression', [
-											['Identifier', 'foo'],
-											['ArgumentsList', []],
+						[NT.IfStatement, { before: true }, [
+							[NT.Parenthesized, [
+								[NT.BinaryExpression, '&&', [
+									[NT.BinaryExpression, '==', [
+										[NT.CallExpression, [
+											[NT.Identifier, 'foo'],
+											[NT.ArgumentsList, []],
 										]],
-										['NumberLiteral', '2'],
+										[NT.NumberLiteral, '2'],
 									]],
-									['BinaryExpression', '<', [
-										['Identifier', 'a'],
-										['NumberLiteral', '3'],
+									[NT.BinaryExpression, '<', [
+										[NT.Identifier, 'a'],
+										[NT.NumberLiteral, '3'],
 									]],
 								]],
 							]],
-							['BlockStatement', []],
+							[NT.BlockStatement, []],
 						]],
 					]);
 				});
@@ -2326,10 +2326,10 @@ describe('parser.ts', (): void => {
 			it('with just else', () => {
 
 				expect(parse('if true {} else {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BoolLiteral', 'true'],
-						['BlockStatement', []],
-						['BlockStatement', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
+						[NT.BlockStatement, []],
 					]],
 				]);
 
@@ -2338,12 +2338,12 @@ describe('parser.ts', (): void => {
 			it('with else if', () => {
 
 				expect(parse('if true {} else if false {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BoolLiteral', 'true'],
-						['BlockStatement', []],
-						['IfStatement', { before: true }, [
-							['BoolLiteral', 'false'],
-							['BlockStatement', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
+						[NT.IfStatement, { before: true }, [
+							[NT.BoolLiteral, 'false'],
+							[NT.BlockStatement, []],
 						]],
 					]],
 				]);
@@ -2353,13 +2353,13 @@ describe('parser.ts', (): void => {
 			it('with a subsequent if and should be two separate IfStatements', () => {
 
 				expect(parse('if true {} if false {}')).toMatchParseTree([
-					['IfStatement', { before: true }, [
-						['BoolLiteral', 'true'],
-						['BlockStatement', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
 					]],
-					['IfStatement', { before: true }, [
-						['BoolLiteral', 'false'],
-						['BlockStatement', []],
+					[NT.IfStatement, { before: true }, [
+						[NT.BoolLiteral, 'false'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 
@@ -2371,19 +2371,19 @@ describe('parser.ts', (): void => {
 
 			it('after a CallExpression', () => {
 				expect(parse('do(1) if foo == 2;')).toMatchParseTree([
-					['IfStatement', { before: false }, [
-						['CallExpression', [
-							['Identifier', 'do'],
-							['ArgumentsList', [
-								['NumberLiteral', '1'],
+					[NT.IfStatement, { before: false }, [
+						[NT.CallExpression, [
+							[NT.Identifier, 'do'],
+							[NT.ArgumentsList, [
+								[NT.NumberLiteral, '1'],
 							]],
 						]],
-						['BinaryExpression', '==', [
-							['Identifier', 'foo'],
-							['NumberLiteral', '2'],
+						[NT.BinaryExpression, '==', [
+							[NT.Identifier, 'foo'],
+							[NT.NumberLiteral, '2'],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
@@ -2392,123 +2392,123 @@ describe('parser.ts', (): void => {
 
 				it('with bool conditional', () => {
 					expect(parse('[foo if true, bar];')).toMatchParseTree([
-						['ArrayExpression', [
-							['IfStatement', { before: false }, [
-								['Identifier', 'foo'],
-								['BoolLiteral', 'true'],
+						[NT.ArrayExpression, [
+							[NT.IfStatement, { before: false }, [
+								[NT.Identifier, 'foo'],
+								[NT.BoolLiteral, 'true'],
 							]],
-							['CommaSeparator'],
-							['Identifier', 'bar'],
+							[NT.CommaSeparator],
+							[NT.Identifier, 'bar'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with identifier conditional', () => {
 					expect(parse('[9, 10 if isDone?, 11];')).toMatchParseTree([
-						['ArrayExpression', [
-							['NumberLiteral', '9'],
-							['CommaSeparator'],
-							['IfStatement', { before: false }, [
-								['NumberLiteral', '10'],
-								['Identifier', 'isDone?'],
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '9'],
+							[NT.CommaSeparator],
+							[NT.IfStatement, { before: false }, [
+								[NT.NumberLiteral, '10'],
+								[NT.Identifier, 'isDone?'],
 							]],
-							['CommaSeparator'],
-							['NumberLiteral', '11'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '11'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with MemberExpression conditional', () => {
 					expect(parse('[9, 10 if this.isDone?, 11];')).toMatchParseTree([
-						['ArrayExpression', [
-							['NumberLiteral', '9'],
-							['CommaSeparator'],
-							['IfStatement', { before: false }, [
-								['NumberLiteral', '10'],
-								['MemberExpression', [
-									['Keyword', 'this'],
-									['Identifier', 'isDone?'],
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '9'],
+							[NT.CommaSeparator],
+							[NT.IfStatement, { before: false }, [
+								[NT.NumberLiteral, '10'],
+								[NT.MemberExpression, [
+									[NT.Keyword, 'this'],
+									[NT.Identifier, 'isDone?'],
 								]],
 							]],
-							['CommaSeparator'],
-							['NumberLiteral', '11'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '11'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with CallExpression conditional', () => {
 					expect(parse('[9, 10 if this.isDone?([true if true]), 11];')).toMatchParseTree([
-						['ArrayExpression', [
-							['NumberLiteral', '9'],
-							['CommaSeparator'],
-							['IfStatement', { before: false }, [
-								['NumberLiteral', '10'],
-								['CallExpression', [
-									['MemberExpression', [
-										['Keyword', 'this'],
-										['Identifier', 'isDone?'],
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '9'],
+							[NT.CommaSeparator],
+							[NT.IfStatement, { before: false }, [
+								[NT.NumberLiteral, '10'],
+								[NT.CallExpression, [
+									[NT.MemberExpression, [
+										[NT.Keyword, 'this'],
+										[NT.Identifier, 'isDone?'],
 									]],
-									['ArgumentsList', [
-										['ArrayExpression', [
-											['IfStatement', { before: false }, [
-												['BoolLiteral', 'true'],
-												['BoolLiteral', 'true'],
+									[NT.ArgumentsList, [
+										[NT.ArrayExpression, [
+											[NT.IfStatement, { before: false }, [
+												[NT.BoolLiteral, 'true'],
+												[NT.BoolLiteral, 'true'],
 											]],
 										]],
 									]],
 								]],
 							]],
-							['CommaSeparator'],
-							['NumberLiteral', '11'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '11'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with BinaryExpression conditional using two NumberLiterals', () => {
 					expect(parse('[\'foo\', "bar" if 1 < 2];')).toMatchParseTree([
-						['ArrayExpression', [
-							['StringLiteral', 'foo'],
-							['CommaSeparator'],
-							['IfStatement', { before: false }, [
-								['StringLiteral', 'bar'],
-								['BinaryExpression', '<', [
-									['NumberLiteral', '1'],
-									['NumberLiteral', '2'],
+						[NT.ArrayExpression, [
+							[NT.StringLiteral, 'foo'],
+							[NT.CommaSeparator],
+							[NT.IfStatement, { before: false }, [
+								[NT.StringLiteral, 'bar'],
+								[NT.BinaryExpression, '<', [
+									[NT.NumberLiteral, '1'],
+									[NT.NumberLiteral, '2'],
 								]],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
 					expect(parse('[true, true, false, false if foo == 2, true, false, true];')).toMatchParseTree([
-						['ArrayExpression', [
-							['BoolLiteral', 'true'],
-							['CommaSeparator'],
-							['BoolLiteral', 'true'],
-							['CommaSeparator'],
-							['BoolLiteral', 'false'],
-							['CommaSeparator'],
-							['IfStatement', { before: false }, [
-								['BoolLiteral', 'false'],
-								['BinaryExpression', '==', [
-									['Identifier', 'foo'],
-									['NumberLiteral', '2'],
+						[NT.ArrayExpression, [
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
+							[NT.IfStatement, { before: false }, [
+								[NT.BoolLiteral, 'false'],
+								[NT.BinaryExpression, '==', [
+									[NT.Identifier, 'foo'],
+									[NT.NumberLiteral, '2'],
 								]],
 							]],
-							['CommaSeparator'],
-							['BoolLiteral', 'true'],
-							['CommaSeparator'],
-							['BoolLiteral', 'false'],
-							['CommaSeparator'],
-							['BoolLiteral', 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
@@ -2517,140 +2517,140 @@ describe('parser.ts', (): void => {
 		});
 	});
 
-	describe('ImportDeclaration', (): void => {
+	describe(NT.ImportDeclaration, (): void => {
 		describe('imports', (): void => {
 			it('single, default import', (): void => {
 				expect(parse('import lexer from ./lexer;import lexer2 from @/lexer;import lexer3 from @/lexer.joe;')).toMatchParseTree([
-					['ImportDeclaration', [
-						['Identifier', 'lexer'],
-						['Keyword', 'from'],
-						['Path', './lexer'],
+					[NT.ImportDeclaration, [
+						[NT.Identifier, 'lexer'],
+						[NT.Keyword, 'from'],
+						[NT.Path, './lexer'],
 					]],
-					['SemicolonSeparator'],
-					['ImportDeclaration', [
-						['Identifier', 'lexer2'],
-						['Keyword', 'from'],
-						['Path', '@/lexer'],
+					[NT.SemicolonSeparator],
+					[NT.ImportDeclaration, [
+						[NT.Identifier, 'lexer2'],
+						[NT.Keyword, 'from'],
+						[NT.Path, '@/lexer'],
 					]],
-					['SemicolonSeparator'],
-					['ImportDeclaration', [
-						['Identifier', 'lexer3'],
-						['Keyword', 'from'],
-						['Path', '@/lexer.joe'],
+					[NT.SemicolonSeparator],
+					[NT.ImportDeclaration, [
+						[NT.Identifier, 'lexer3'],
+						[NT.Keyword, 'from'],
+						[NT.Path, '@/lexer.joe'],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 		});
 	});
 
-	describe('InterfaceDeclaration', (): void => {
+	describe(NT.InterfaceDeclaration, (): void => {
 
 		it('empty interface', (): void => {
 			expect(parse('interface Foo {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
+				[NT.InterfaceDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, []],
 				]],
 			]);
 
 			expect(parse('interface Foo <| T, U |> {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Typed', [
-						['Identifier', 'Foo'],
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+				[NT.InterfaceDeclaration, [
+					[NT.Typed, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
-							['CommaSeparator'],
-							['TypeParameter', [
-								['Identifier', 'U'],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.Identifier, 'U'],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('interface extends other', (): void => {
 			expect(parse('interface Foo {} interface Bar extends Foo {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Identifier', 'Foo'],
-					['BlockStatement', []],
+				[NT.InterfaceDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.BlockStatement, []],
 				]],
-				['InterfaceDeclaration', [
-					['Identifier', 'Bar'],
-					['InterfaceExtensionsList', [
-						['Identifier', 'Foo'],
+				[NT.InterfaceDeclaration, [
+					[NT.Identifier, 'Bar'],
+					[NT.InterfaceExtensionsList, [
+						[NT.Identifier, 'Foo'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('interface extends multiple', (): void => {
 			expect(parse('interface Foo extends Bar, Baz {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Identifier', 'Foo'],
-					['InterfaceExtensionsList', [
-						['Identifier', 'Bar'],
-						['CommaSeparator'],
-						['Identifier', 'Baz'],
+				[NT.InterfaceDeclaration, [
+					[NT.Identifier, 'Foo'],
+					[NT.InterfaceExtensionsList, [
+						[NT.Identifier, 'Bar'],
+						[NT.CommaSeparator],
+						[NT.Identifier, 'Baz'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('interface extends multiple with generics', (): void => {
 			expect(parse('interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}')).toMatchParseTree([
-				['InterfaceDeclaration', [
-					['Typed', [
-						['Identifier', 'Foo'],
-						['TypeParametersList', [
-							['TypeParameter', [
-								['Identifier', 'T'],
+				[NT.InterfaceDeclaration, [
+					[NT.Typed, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
 							]],
-							['CommaSeparator'],
-							['TypeParameter', [
-								['Identifier', 'U'],
-							]],
-						]],
-					]],
-					['InterfaceExtensionsList', [
-						['Typed', [
-							['Identifier', 'Bar'],
-							['TypeArgumentsList', [
-								['Identifier', 'T'],
-							]],
-						]],
-						['CommaSeparator'],
-						['Typed', [
-							['Identifier', 'Baz'],
-							['TypeArgumentsList', [
-								['Identifier', 'U'],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.Identifier, 'U'],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.InterfaceExtensionsList, [
+						[NT.Typed, [
+							[NT.Identifier, 'Bar'],
+							[NT.TypeArgumentsList, [
+								[NT.Identifier, 'T'],
+							]],
+						]],
+						[NT.CommaSeparator],
+						[NT.Typed, [
+							[NT.Identifier, 'Baz'],
+							[NT.TypeArgumentsList, [
+								[NT.Identifier, 'U'],
+							]],
+						]],
+					]],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 	})
 
-	describe('JoeDoc', () => {
+	describe(NT.JoeDoc, () => {
 		// for Class, Function, Interface, or Variable
 
 		describe('for a class', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
 				expect(parse(`/** foo */
 				class Foo {}`)).toMatchParseTree([
-					['ClassDeclaration', [
-						['JoeDoc', '/** foo */'],
-						['Identifier', 'Foo'],
-						['BlockStatement', []],
+					[NT.ClassDeclaration, [
+						[NT.JoeDoc, '/** foo */'],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2658,10 +2658,10 @@ describe('parser.ts', (): void => {
 			it('but a regular comment should not be adopted', () => {
 				expect(parse(`/* foo */
 				class Foo {}`)).toMatchParseTree([
-					['Comment', '/* foo */'],
-					['ClassDeclaration', [
-						['Identifier', 'Foo'],
-						['BlockStatement', []],
+					[NT.Comment, '/* foo */'],
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2671,10 +2671,10 @@ describe('parser.ts', (): void => {
 			it('a properly formatted JoeDoc should be adopted', () => {
 				expect(parse(`/** foo */
 				f foo {}`)).toMatchParseTree([
-					['FunctionDeclaration', [
-						['JoeDoc', '/** foo */'],
-						['Identifier', 'foo'],
-						['BlockStatement', []],
+					[NT.FunctionDeclaration, [
+						[NT.JoeDoc, '/** foo */'],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2682,10 +2682,10 @@ describe('parser.ts', (): void => {
 			it('but a regular comment should not be adopted', () => {
 				expect(parse(`/* foo */
 				f foo {}`)).toMatchParseTree([
-					['Comment', '/* foo */'],
-					['FunctionDeclaration', [
-						['Identifier', 'foo'],
-						['BlockStatement', []],
+					[NT.Comment, '/* foo */'],
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2695,10 +2695,10 @@ describe('parser.ts', (): void => {
 			it('a properly formatted JoeDoc should be adopted', () => {
 				expect(parse(`/** foo */
 				interface Foo {}`)).toMatchParseTree([
-					['InterfaceDeclaration', [
-						['JoeDoc', '/** foo */'],
-						['Identifier', 'Foo'],
-						['BlockStatement', []],
+					[NT.InterfaceDeclaration, [
+						[NT.JoeDoc, '/** foo */'],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2706,10 +2706,10 @@ describe('parser.ts', (): void => {
 			it('but a regular comment should not be adopted', () => {
 				expect(parse(`/* foo */
 				interface Foo {}`)).toMatchParseTree([
-					['Comment', '/* foo */'],
-					['InterfaceDeclaration', [
-						['Identifier', 'Foo'],
-						['BlockStatement', []],
+					[NT.Comment, '/* foo */'],
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
 				]);
 			});
@@ -2719,38 +2719,38 @@ describe('parser.ts', (): void => {
 			it('a properly formatted JoeDoc should be adopted', () => {
 				expect(parse(`/** foo */
 				const foo = 1;`)).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['JoeDoc', '/** foo */'],
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['NumberLiteral', '1'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.JoeDoc, '/** foo */'],
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '1'],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 
 			it('but a regular comment should not be adopted', () => {
 				expect(parse(`/* foo */
 				const foo = 1;`)).toMatchParseTree([
-					['Comment', '/* foo */'],
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['NumberLiteral', '1'],
+					[NT.Comment, '/* foo */'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '1'],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 		});
 
 	})
 
-	describe('Loop', (): void => {
+	describe(NT.Loop, (): void => {
 
 		it('simple loop', () => {
 			expect(parse('loop {}')).toMatchParseTree([
-				['Loop', [
-					['BlockStatement', []],
+				[NT.Loop, [
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
@@ -2763,39 +2763,39 @@ describe('parser.ts', (): void => {
 					break;
 				}
 			}`)).toMatchParseTree([
-				['Loop', [
-					['BlockStatement', [
-						['VariableDeclaration', 'const', [
-							['Identifier', 'response'],
-							['AssignmentOperator'],
-							['CallExpression', [
-								['MemberExpression', [
-									['MemberExpression', [
-										['Identifier', 'http'],
-										['Identifier', 'server'],
+				[NT.Loop, [
+					[NT.BlockStatement, [
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'response'],
+							[NT.AssignmentOperator],
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.MemberExpression, [
+										[NT.Identifier, 'http'],
+										[NT.Identifier, 'server'],
 									]],
-									['Identifier', 'listen'],
+									[NT.Identifier, 'listen'],
 								]],
-								['ArgumentsList', [
-									['NumberLiteral', '3,000'],
+								[NT.ArgumentsList, [
+									[NT.NumberLiteral, '3,000'],
 								]],
 							]],
 						]],
-						['SemicolonSeparator'],
-						['IfStatement', { before: true }, [
-							['BinaryExpression', '>', [
-								['MemberExpression', [
-									['MemberExpression', [
-										['Identifier', 'response'],
-										['Identifier', 'status'],
+						[NT.SemicolonSeparator],
+						[NT.IfStatement, { before: true }, [
+							[NT.BinaryExpression, '>', [
+								[NT.MemberExpression, [
+									[NT.MemberExpression, [
+										[NT.Identifier, 'response'],
+										[NT.Identifier, 'status'],
 									]],
-									['Identifier', 'code'],
+									[NT.Identifier, 'code'],
 								]],
-								['NumberLiteral', '300'],
+								[NT.NumberLiteral, '300'],
 							]],
-							['BlockStatement', [
-								['BreakStatement'],
-								['SemicolonSeparator'],
+							[NT.BlockStatement, [
+								[NT.BreakStatement],
+								[NT.SemicolonSeparator],
 							]],
 						]],
 					]],
@@ -2805,28 +2805,28 @@ describe('parser.ts', (): void => {
 
 	});
 
-	describe('MemberExpression', () => {
+	describe(NT.MemberExpression, () => {
 
 		it('works with several nested layers', () => {
 			expect(parse('a.b.c.d')).toMatchParseTree([
-				['MemberExpression', [
-					['MemberExpression', [
-						['MemberExpression', [
-							['Identifier', 'a'],
-							['Identifier', 'b'],
+				[NT.MemberExpression, [
+					[NT.MemberExpression, [
+						[NT.MemberExpression, [
+							[NT.Identifier, 'a'],
+							[NT.Identifier, 'b'],
 						]],
-						['Identifier', 'c'],
+						[NT.Identifier, 'c'],
 					]],
-					['Identifier', 'd'],
+					[NT.Identifier, 'd'],
 				]],
 			]);
 		});
 
 		it('works with this', () => {
 			expect(parse('this.foo')).toMatchParseTree([
-				['MemberExpression', [
-					['Keyword', 'this'],
-					['Identifier', 'foo'],
+				[NT.MemberExpression, [
+					[NT.Keyword, 'this'],
+					[NT.Identifier, 'foo'],
 				]],
 			]);
 		});
@@ -2837,74 +2837,74 @@ describe('parser.ts', (): void => {
 
 		it('simple', () => {
 			expect(parse('A.create();')).toMatchParseTree([
-				['CallExpression', [
-					['MemberExpression', [
-						['Identifier', 'A'],
-						['Identifier', 'create'],
+				[NT.CallExpression, [
+					[NT.MemberExpression, [
+						[NT.Identifier, 'A'],
+						[NT.Identifier, 'create'],
 					]],
-					['ArgumentsList', []],
+					[NT.ArgumentsList, []],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('with GenericTypes and Arguments', () => {
 			expect(parse('A<|T, U|>.create(T.create(), U.create(), "foo");')).toMatchParseTree([
-				['CallExpression', [
-					['MemberExpression', [
-						['Typed', [
-							['Identifier', 'A'],
-							['TypeArgumentsList', [
-								['Identifier', 'T'],
-								['CommaSeparator'],
-								['Identifier', 'U'],
+				[NT.CallExpression, [
+					[NT.MemberExpression, [
+						[NT.Typed, [
+							[NT.Identifier, 'A'],
+							[NT.TypeArgumentsList, [
+								[NT.Identifier, 'T'],
+								[NT.CommaSeparator],
+								[NT.Identifier, 'U'],
 							]],
 						]],
-						['Identifier', 'create'],
+						[NT.Identifier, 'create'],
 					]],
-					['ArgumentsList', [
-						['CallExpression', [
-							['MemberExpression', [
-								['Identifier', 'T'],
-								['Identifier', 'create'],
+					[NT.ArgumentsList, [
+						[NT.CallExpression, [
+							[NT.MemberExpression, [
+								[NT.Identifier, 'T'],
+								[NT.Identifier, 'create'],
 							]],
-							['ArgumentsList', []],
+							[NT.ArgumentsList, []],
 						]],
-						['CommaSeparator'],
-						['CallExpression', [
-							['MemberExpression', [
-								['Identifier', 'U'],
-								['Identifier', 'create'],
+						[NT.CommaSeparator],
+						[NT.CallExpression, [
+							[NT.MemberExpression, [
+								[NT.Identifier, 'U'],
+								[NT.Identifier, 'create'],
 							]],
-							['ArgumentsList', []],
+							[NT.ArgumentsList, []],
 						]],
-						['CommaSeparator'],
-						['StringLiteral', 'foo'],
+						[NT.CommaSeparator],
+						[NT.StringLiteral, 'foo'],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('with several nested layers', () => {
 			expect(parse('A.B.C.D.create();')).toMatchParseTree([
-				['CallExpression', [
-					['MemberExpression', [
-						['MemberExpression', [
-							['MemberExpression', [
-								['MemberExpression', [
-									['Identifier', 'A'],
-									['Identifier', 'B'],
+				[NT.CallExpression, [
+					[NT.MemberExpression, [
+						[NT.MemberExpression, [
+							[NT.MemberExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'A'],
+									[NT.Identifier, 'B'],
 								]],
-								['Identifier', 'C'],
+								[NT.Identifier, 'C'],
 							]],
-							['Identifier', 'D'],
+							[NT.Identifier, 'D'],
 						]],
-						['Identifier', 'create'],
+						[NT.Identifier, 'create'],
 					]],
-					['ArgumentsList', []],
+					[NT.ArgumentsList, []],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
@@ -2917,48 +2917,48 @@ describe('parser.ts', (): void => {
 
 				it('with Identifier', (): void => {
 					expect(parse('!foo;')).toMatchParseTree([
-						['UnaryExpression', '!', { before: true }, [
-							['Identifier', 'foo'],
+						[NT.UnaryExpression, '!', { before: true }, [
+							[NT.Identifier, 'foo'],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with Identifier in parens', (): void => {
 					expect(parse('(!foo);')).toMatchParseTree([
-						['Parenthesized', [
-							['UnaryExpression', '!', { before: true }, [
-								['Identifier', 'foo'],
+						[NT.Parenthesized, [
+							[NT.UnaryExpression, '!', { before: true }, [
+								[NT.Identifier, 'foo'],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with CallExpression', (): void => {
 					expect(parse('!bar();')).toMatchParseTree([
-						['UnaryExpression', '!', { before: true }, [
-							['CallExpression', [
-								['Identifier', 'bar'],
-								['ArgumentsList', []],
+						[NT.UnaryExpression, '!', { before: true }, [
+							[NT.CallExpression, [
+								[NT.Identifier, 'bar'],
+								[NT.ArgumentsList, []],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
 				it('with nested CallExpression', (): void => {
 					expect(parse('!foo.bar();')).toMatchParseTree([
-						['UnaryExpression', '!', { before: true }, [
-							['CallExpression', [
-								['MemberExpression', [
-									['Identifier', 'foo'],
-									['Identifier', 'bar'],
+						[NT.UnaryExpression, '!', { before: true }, [
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'foo'],
+									[NT.Identifier, 'bar'],
 								]],
-								['ArgumentsList', []],
+								[NT.ArgumentsList, []],
 							]],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]);
 				});
 
@@ -2968,17 +2968,17 @@ describe('parser.ts', (): void => {
 
 				it('without parens', (): void => {
 					expect(parse('-1')).toMatchParseTree([
-						['UnaryExpression', '-', { before: true }, [
-							['NumberLiteral', '1'],
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '1'],
 						]]
 					]);
 				});
 
 				it('with parens', (): void => {
 					expect(parse('(-1)')).toMatchParseTree([
-						['Parenthesized', [
-							['UnaryExpression', '-', { before: true }, [
-								['NumberLiteral', '1'],
+						[NT.Parenthesized, [
+							[NT.UnaryExpression, '-', { before: true }, [
+								[NT.NumberLiteral, '1'],
 							]],
 						]],
 					]);
@@ -2990,17 +2990,17 @@ describe('parser.ts', (): void => {
 
 				it('pre-decrement', (): void => {
 					expect(parse('--foo')).toMatchParseTree([
-						['UnaryExpression', '--', { before: true }, [
-							['Identifier', 'foo'],
+						[NT.UnaryExpression, '--', { before: true }, [
+							[NT.Identifier, 'foo'],
 						]],
 					]);
 
 					expect(parse('foo[--i]')).toMatchParseTree([
-						['MemberExpression', [
-							['Identifier', 'foo'],
-							['MembersList', [
-								['UnaryExpression', '--', { before: true }, [
-									['Identifier', 'i'],
+						[NT.MemberExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.MembersList, [
+								[NT.UnaryExpression, '--', { before: true }, [
+									[NT.Identifier, 'i'],
 								]],
 							]],
 						]],
@@ -3009,25 +3009,25 @@ describe('parser.ts', (): void => {
 
 				it('post-decrement', (): void => {
 					expect(parse('foo--')).toMatchParseTree([
-						['UnaryExpression', '--', { before: false }, [
-							['Identifier', 'foo'],
+						[NT.UnaryExpression, '--', { before: false }, [
+							[NT.Identifier, 'foo'],
 						]],
 					]);
 
 					expect(parse('foo---')).toMatchParseTree([
-						['BinaryExpression', '-', [
-							['UnaryExpression', '--', { before: false }, [
-								['Identifier', 'foo'],
+						[NT.BinaryExpression, '-', [
+							[NT.UnaryExpression, '--', { before: false }, [
+								[NT.Identifier, 'foo'],
 							]],
 						]],
 					]);
 
 					expect(parse('foo[i--]')).toMatchParseTree([
-						['MemberExpression', [
-							['Identifier', 'foo'],
-							['MembersList', [
-								['UnaryExpression', '--', { before: false }, [
-									['Identifier', 'i'],
+						[NT.MemberExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.MembersList, [
+								[NT.UnaryExpression, '--', { before: false }, [
+									[NT.Identifier, 'i'],
 								]],
 							]],
 						]],
@@ -3036,17 +3036,17 @@ describe('parser.ts', (): void => {
 
 				it('pre-increment', (): void => {
 					expect(parse('++foo')).toMatchParseTree([
-						['UnaryExpression', '++', { before: true }, [
-							['Identifier', 'foo'],
+						[NT.UnaryExpression, '++', { before: true }, [
+							[NT.Identifier, 'foo'],
 						]],
 					]);
 
 					expect(parse('foo[++i]')).toMatchParseTree([
-						['MemberExpression', [
-							['Identifier', 'foo'],
-							['MembersList', [
-								['UnaryExpression', '++', { before: true }, [
-									['Identifier', 'i'],
+						[NT.MemberExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.MembersList, [
+								[NT.UnaryExpression, '++', { before: true }, [
+									[NT.Identifier, 'i'],
 								]],
 							]],
 						]],
@@ -3055,25 +3055,25 @@ describe('parser.ts', (): void => {
 
 				it('post-increment', (): void => {
 					expect(parse('foo++')).toMatchParseTree([
-						['UnaryExpression', '++', { before: false }, [
-							['Identifier', 'foo'],
+						[NT.UnaryExpression, '++', { before: false }, [
+							[NT.Identifier, 'foo'],
 						]],
 					]);
 
 					expect(parse('foo+++')).toMatchParseTree([
-						['BinaryExpression', '+', [
-							['UnaryExpression', '++', { before: false }, [
-								['Identifier', 'foo'],
+						[NT.BinaryExpression, '+', [
+							[NT.UnaryExpression, '++', { before: false }, [
+								[NT.Identifier, 'foo'],
 							]],
 						]],
 					]);
 
 					expect(parse('foo[i++]')).toMatchParseTree([
-						['MemberExpression', [
-							['Identifier', 'foo'],
-							['MembersList', [
-								['UnaryExpression', '++', { before: false }, [
-									['Identifier', 'i'],
+						[NT.MemberExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.MembersList, [
+								[NT.UnaryExpression, '++', { before: false }, [
+									[NT.Identifier, 'i'],
 								]],
 							]],
 						]],
@@ -3083,34 +3083,34 @@ describe('parser.ts', (): void => {
 
 		});
 
-		describe('BinaryExpression', (): void => {
+		describe(NT.BinaryExpression, (): void => {
 			describe('with bools', (): void => {
 				it('double pipe', (): void => {
 					expect(parse('a ||')).toMatchParseTree([
-						['BinaryExpression', '||', [
-							['Identifier', 'a'],
+						[NT.BinaryExpression, '||', [
+							[NT.Identifier, 'a'],
 						]],
 					]);
 
 					expect(parse('a || true')).toMatchParseTree([
-						['BinaryExpression', '||', [
-							['Identifier', 'a'],
-							['BoolLiteral', 'true'],
+						[NT.BinaryExpression, '||', [
+							[NT.Identifier, 'a'],
+							[NT.BoolLiteral, 'true'],
 						]],
 					]);
 				});
 
 				it('double ampersand', (): void => {
 					expect(parse('a &&')).toMatchParseTree([
-						['BinaryExpression', '&&', [
-							['Identifier', 'a'],
+						[NT.BinaryExpression, '&&', [
+							[NT.Identifier, 'a'],
 						]],
 					]);
 
 					expect(parse('a && true')).toMatchParseTree([
-						['BinaryExpression', '&&', [
-							['Identifier', 'a'],
-							['BoolLiteral', 'true'],
+						[NT.BinaryExpression, '&&', [
+							[NT.Identifier, 'a'],
+							[NT.BoolLiteral, 'true'],
 						]],
 					]);
 				});
@@ -3118,31 +3118,31 @@ describe('parser.ts', (): void => {
 
 			describe('with numbers', (): void => {
 				describe('compare', (): void => {
-					doubleExpressionScenariosCheckingOperator('<=>', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('<=>', NT.BinaryExpression);
 				});
 
 				describe('equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('==', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('==', NT.BinaryExpression);
 				});
 
 				describe('not equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('!=', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('!=', NT.BinaryExpression);
 				});
 
 				describe('less than', (): void => {
-					doubleExpressionScenariosCheckingOperator('<', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('<', NT.BinaryExpression);
 				});
 
 				describe('less than or equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('<=', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('<=', NT.BinaryExpression);
 				});
 
 				describe('greater than', (): void => {
-					doubleExpressionScenariosCheckingOperator('>', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('>', NT.BinaryExpression);
 				});
 
 				describe('greater than or equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('>=', 'BinaryExpression');
+					doubleExpressionScenariosCheckingOperator('>=', NT.BinaryExpression);
 				});
 			});
 
@@ -3150,14 +3150,14 @@ describe('parser.ts', (): void => {
 
 				it('makes && higher precedence than equality checks', () => {
 					expect(parse('foo >= 2 && foo <= 5')).toMatchParseTree([
-						['BinaryExpression', '&&', [
-							['BinaryExpression', '>=', [
-								['Identifier', 'foo'],
-								['NumberLiteral', '2'],
+						[NT.BinaryExpression, '&&', [
+							[NT.BinaryExpression, '>=', [
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '2'],
 							]],
-							['BinaryExpression', '<=', [
-								['Identifier', 'foo'],
-								['NumberLiteral', '5'],
+							[NT.BinaryExpression, '<=', [
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '5'],
 							]],
 						]],
 					]);
@@ -3165,14 +3165,14 @@ describe('parser.ts', (): void => {
 
 				it('makes || higher precedence than equality checks', () => {
 					expect(parse('foo > 2 || foo < 5')).toMatchParseTree([
-						['BinaryExpression', '||', [
-							['BinaryExpression', '>', [
-								['Identifier', 'foo'],
-								['NumberLiteral', '2'],
+						[NT.BinaryExpression, '||', [
+							[NT.BinaryExpression, '>', [
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '2'],
 							]],
-							['BinaryExpression', '<', [
-								['Identifier', 'foo'],
-								['NumberLiteral', '5'],
+							[NT.BinaryExpression, '<', [
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '5'],
 							]],
 						]],
 					]);
@@ -3187,26 +3187,26 @@ describe('parser.ts', (): void => {
 		describe('mathematical expressions', (): void => {
 			it('a simple mathematical formula', (): void => {
 				expect(parse('1 + (2 * (-3/-(2.3-4)%9))')).toMatchParseTree([
-					['BinaryExpression', '+', [
-						['NumberLiteral', '1'],
-						['Parenthesized', [
-							['BinaryExpression', '*', [
-								['NumberLiteral', '2'],
-								['Parenthesized', [
-									['BinaryExpression', '/', [
-										['UnaryExpression', '-', { before: true }, [
-											['NumberLiteral', '3'],
+					[NT.BinaryExpression, '+', [
+						[NT.NumberLiteral, '1'],
+						[NT.Parenthesized, [
+							[NT.BinaryExpression, '*', [
+								[NT.NumberLiteral, '2'],
+								[NT.Parenthesized, [
+									[NT.BinaryExpression, '/', [
+										[NT.UnaryExpression, '-', { before: true }, [
+											[NT.NumberLiteral, '3'],
 										]],
-										['BinaryExpression', '%', [
-											['UnaryExpression', '-', { before: true }, [
-												['Parenthesized', [
-													['BinaryExpression', '-', [
-														['NumberLiteral', '2.3'],
-														['NumberLiteral', '4'],
+										[NT.BinaryExpression, '%', [
+											[NT.UnaryExpression, '-', { before: true }, [
+												[NT.Parenthesized, [
+													[NT.BinaryExpression, '-', [
+														[NT.NumberLiteral, '2.3'],
+														[NT.NumberLiteral, '4'],
 													]],
 												]],
 											]],
-											['NumberLiteral', '9'],
+											[NT.NumberLiteral, '9'],
 										]],
 									]],
 								]],
@@ -3218,20 +3218,20 @@ describe('parser.ts', (): void => {
 
 			it('supports mathematical expressions with variables', (): void => {
 				expect(parse('const foo = 1; let bar = -foo;')).toMatchParseTree([
-					['VariableDeclaration', 'const', [
-						['Identifier', 'foo'],
-						['AssignmentOperator'],
-						['NumberLiteral', '1'],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '1'],
 					]],
-					['SemicolonSeparator'],
-					['VariableDeclaration', 'let', [
-						['Identifier', 'bar'],
-						['AssignmentOperator'],
-						['UnaryExpression', '-', { before: true }, [
-							['Identifier', 'foo'],
+					[NT.SemicolonSeparator],
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'bar'],
+						[NT.AssignmentOperator],
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.Identifier, 'foo'],
 						]],
 					]],
-					['SemicolonSeparator'],
+					[NT.SemicolonSeparator],
 				]);
 			});
 		});
@@ -3241,34 +3241,34 @@ describe('parser.ts', (): void => {
 
 		it('is closed with a semicolon', () => {
 			expect(parse('print foo[5];print 5;')).toMatchParseTree([
-				['PrintStatement', [
-					['MemberExpression', [
-						['Identifier', 'foo'],
-						['MembersList', [
-							['NumberLiteral', '5'],
+				[NT.PrintStatement, [
+					[NT.MemberExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.MembersList, [
+							[NT.NumberLiteral, '5'],
 						]],
 					]],
 				]],
-				['SemicolonSeparator'],
-				['PrintStatement', [
-					['NumberLiteral', '5'],
+				[NT.SemicolonSeparator],
+				[NT.PrintStatement, [
+					[NT.NumberLiteral, '5'],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('should work with a CallExpression', () => {
 			expect(parse('print myFoo.foo();')).toMatchParseTree([
-				['PrintStatement', [
-					['CallExpression', [
-						['MemberExpression', [
-							['Identifier', 'myFoo'],
-							['Identifier', 'foo'],
+				[NT.PrintStatement, [
+					[NT.CallExpression, [
+						[NT.MemberExpression, [
+							[NT.Identifier, 'myFoo'],
+							[NT.Identifier, 'foo'],
 						]],
-						['ArgumentsList', []],
+						[NT.ArgumentsList, []],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		})
 
@@ -3278,18 +3278,18 @@ describe('parser.ts', (): void => {
 
 		it('simple repeat statement', () => {
 			expect(parse('repeat {}')).toMatchParseTree([
-				['RepeatStatement', [
-					['BlockStatement', []],
+				[NT.RepeatStatement, [
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with break', () => {
 			expect(parse('repeat {\nbreak;\n}')).toMatchParseTree([
-				['RepeatStatement', [
-					['BlockStatement', [
-						['BreakStatement'],
-						['SemicolonSeparator'],
+				[NT.RepeatStatement, [
+					[NT.BlockStatement, [
+						[NT.BreakStatement],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -3301,23 +3301,23 @@ describe('parser.ts', (): void => {
 		describe('should understand built-in types', () => {
 			it.each(types)('%s is recognized as a type', (type) => {
 				expect(parse(type)).toMatchParseTree([
-					['Type', type],
+					[NT.Type, type],
 				]);
 			});
 
 			it.each(types)('%s[] is recognized as a one-dimensional array of type', (type) => {
 				expect(parse(`${type}[]`)).toMatchParseTree([
-					['ArrayType', [
-						['Type', type],
+					[NT.ArrayType, [
+						[NT.Type, type],
 					]],
 				]);
 			});
 
 			it.each(types)('%s[][] is recognized as a two-dimensional array of type', (type) => {
 				expect(parse(`${type}[][]`)).toMatchParseTree([
-					['ArrayType', [
-						['ArrayType', [
-							['Type', type],
+					[NT.ArrayType, [
+						[NT.ArrayType, [
+							[NT.Type, type],
 						]],
 					]],
 				]);
@@ -3328,47 +3328,47 @@ describe('parser.ts', (): void => {
 
 			it('should understand a custom array', () => {
 				expect(parse('Foo[]')).toMatchParseTree([
-					['ArrayType', [
-						['Identifier', 'Foo'],
+					[NT.ArrayType, [
+						[NT.Identifier, 'Foo'],
 					]],
 				]);
 
 				expect(parse('Foo[][]')).toMatchParseTree([
-					['ArrayType', [
-						['ArrayType', [
-							['Identifier', 'Foo'],
+					[NT.ArrayType, [
+						[NT.ArrayType, [
+							[NT.Identifier, 'Foo'],
 						]],
 					]],
 				]);
 			});
 
 			describe('ranges', (): void => {
-				doubleExpressionScenariosNotCheckingOperator('..', 'RangeExpression');
+				doubleExpressionScenariosNotCheckingOperator('..', NT.RangeExpression);
 			});
 
 		});
 	});
 
-	describe('WhenExpression', (): void => {
+	describe(NT.WhenExpression, (): void => {
 
 		it('works with a small example', () => {
 			expect(parse(`when (someNumber) {
 				1 -> 'small',
 			}`)).toMatchParseTree([
-				['WhenExpression', [
-					['Parenthesized', [
-						['Identifier', 'someNumber'],
+				[NT.WhenExpression, [
+					[NT.Parenthesized, [
+						[NT.Identifier, 'someNumber'],
 					]],
-					['BlockStatement', [
-						['WhenCase', [
-							['WhenCaseTests', [
-								['NumberLiteral', '1'],
+					[NT.BlockStatement, [
+						[NT.WhenCase, [
+							[NT.WhenCaseTests, [
+								[NT.NumberLiteral, '1'],
 							]],
-							['WhenCaseConsequent', [
-								['StringLiteral', 'small'],
+							[NT.WhenCaseConsequent, [
+								[NT.StringLiteral, 'small'],
 							]],
 						]],
-						['CommaSeparator'],
+						[NT.CommaSeparator],
 					]],
 				]],
 			]);
@@ -3383,33 +3383,33 @@ describe('parser.ts', (): void => {
 					return 'large';
 				},
 			}`)).toMatchParseTree([
-				['WhenExpression', [
-					['Identifier', 'someNumber'],
-					['BlockStatement', [
-						['WhenCase', [
-							['WhenCaseTests', [
-								['NumberLiteral', '1'],
+				[NT.WhenExpression, [
+					[NT.Identifier, 'someNumber'],
+					[NT.BlockStatement, [
+						[NT.WhenCase, [
+							[NT.WhenCaseTests, [
+								[NT.NumberLiteral, '1'],
 							]],
-							['WhenCaseConsequent', [
-								['BlockStatement', [
-									['CallExpression', [
-										['Identifier', 'doThing1'],
-										['ArgumentsList', []],
+							[NT.WhenCaseConsequent, [
+								[NT.BlockStatement, [
+									[NT.CallExpression, [
+										[NT.Identifier, 'doThing1'],
+										[NT.ArgumentsList, []],
 									]],
-									['SemicolonSeparator'],
-									['CallExpression', [
-										['Identifier', 'doThing2'],
-										['ArgumentsList', []],
+									[NT.SemicolonSeparator],
+									[NT.CallExpression, [
+										[NT.Identifier, 'doThing2'],
+										[NT.ArgumentsList, []],
 									]],
-									['SemicolonSeparator'],
-									['ReturnStatement', [
-										['StringLiteral', 'large'],
+									[NT.SemicolonSeparator],
+									[NT.ReturnStatement, [
+										[NT.StringLiteral, 'large'],
 									]],
-									['SemicolonSeparator'],
+									[NT.SemicolonSeparator],
 								]],
 							]],
 						]],
-						['CommaSeparator'],
+						[NT.CommaSeparator],
 					]],
 				]],
 			]);
@@ -3428,80 +3428,80 @@ describe('parser.ts', (): void => {
 				12 -> doSomethingElse(),
 				... -> 'off the charts',
 			}`)).toMatchParseTree([
-				['VariableDeclaration', 'const', [
-					['Identifier', 'size'],
-					['AssignmentOperator'],
-					['WhenExpression', [
-						['Identifier', 'someNumber'],
-						['BlockStatement', [
-							['WhenCase', [
-								['WhenCaseTests', [
-									['NumberLiteral', '1'],
-									['CommaSeparator'],
-									['NumberLiteral', '2'],
+				[NT.VariableDeclaration, 'const', [
+					[NT.Identifier, 'size'],
+					[NT.AssignmentOperator],
+					[NT.WhenExpression, [
+						[NT.Identifier, 'someNumber'],
+						[NT.BlockStatement, [
+							[NT.WhenCase, [
+								[NT.WhenCaseTests, [
+									[NT.NumberLiteral, '1'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '2'],
 								]],
-								['WhenCaseConsequent', [
-									['StringLiteral', 'small'],
+								[NT.WhenCaseConsequent, [
+									[NT.StringLiteral, 'small'],
 								]]
 							]],
-							['CommaSeparator'],
-							['WhenCase', [
-								['WhenCaseTests', [
-									['RangeExpression', [
-										['NumberLiteral', '3'],
-										['NumberLiteral', '10'],
+							[NT.CommaSeparator],
+							[NT.WhenCase, [
+								[NT.WhenCaseTests, [
+									[NT.RangeExpression, [
+										[NT.NumberLiteral, '3'],
+										[NT.NumberLiteral, '10'],
 									]],
 								]],
-								['WhenCaseConsequent', [
-									['StringLiteral', 'medium'],
+								[NT.WhenCaseConsequent, [
+									[NT.StringLiteral, 'medium'],
 								]],
 							]],
-							['CommaSeparator'],
-							['WhenCase', [
-								['WhenCaseTests', [
-									['NumberLiteral', '11'],
+							[NT.CommaSeparator],
+							[NT.WhenCase, [
+								[NT.WhenCaseTests, [
+									[NT.NumberLiteral, '11'],
 								]],
-								['WhenCaseConsequent', [
-									['BlockStatement', [
-										['CallExpression', [
-											['Identifier', 'doThing1'],
-											['ArgumentsList', []],
+								[NT.WhenCaseConsequent, [
+									[NT.BlockStatement, [
+										[NT.CallExpression, [
+											[NT.Identifier, 'doThing1'],
+											[NT.ArgumentsList, []],
 										]],
-										['SemicolonSeparator'],
-										['CallExpression', [
-											['Identifier', 'doThing2'],
-											['ArgumentsList', []],
+										[NT.SemicolonSeparator],
+										[NT.CallExpression, [
+											[NT.Identifier, 'doThing2'],
+											[NT.ArgumentsList, []],
 										]],
-										['SemicolonSeparator'],
-										['ReturnStatement', [
-											['StringLiteral', 'large'],
+										[NT.SemicolonSeparator],
+										[NT.ReturnStatement, [
+											[NT.StringLiteral, 'large'],
 										]],
-										['SemicolonSeparator'],
-									]],
-								]],
-							]],
-							['CommaSeparator'],
-							['WhenCase', [
-								['WhenCaseTests', [
-									['NumberLiteral', '12'],
-								]],
-								['WhenCaseConsequent', [
-									['CallExpression', [
-										['Identifier', 'doSomethingElse'],
-										['ArgumentsList', []],
+										[NT.SemicolonSeparator],
 									]],
 								]],
 							]],
-							['CommaSeparator'],
-							['WhenCase', [
-								['WhenCaseTests', [
-									['RestElement', '...'],
+							[NT.CommaSeparator],
+							[NT.WhenCase, [
+								[NT.WhenCaseTests, [
+									[NT.NumberLiteral, '12'],
 								]],
-								['WhenCaseConsequent', [
-									['StringLiteral', 'off the charts'],
+								[NT.WhenCaseConsequent, [
+									[NT.CallExpression, [
+										[NT.Identifier, 'doSomethingElse'],
+										[NT.ArgumentsList, []],
+									]],
 								]],
 							]],
-							['CommaSeparator'],
+							[NT.CommaSeparator],
+							[NT.WhenCase, [
+								[NT.WhenCaseTests, [
+									[NT.RestElement, '...'],
+								]],
+								[NT.WhenCaseConsequent, [
+									[NT.StringLiteral, 'off the charts'],
+								]],
+							]],
+							[NT.CommaSeparator],
 						]],
 					]],
 				]],
@@ -3513,89 +3513,89 @@ describe('parser.ts', (): void => {
 
 		it('with CallExpression test', () => {
 			expect(parse('while foo() {}')).toMatchParseTree([
-				['WhileStatement', [
-					['CallExpression', [
-						['Identifier', 'foo'],
-						['ArgumentsList', []],
+				[NT.WhileStatement, [
+					[NT.CallExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.ArgumentsList, []],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with BinaryExpression test', () => {
 			expect(parse('while i < 10 {}')).toMatchParseTree([
-				['WhileStatement', [
-					['BinaryExpression', '<', [
-						['Identifier', 'i'],
-						['NumberLiteral', '10'],
+				[NT.WhileStatement, [
+					[NT.BinaryExpression, '<', [
+						[NT.Identifier, 'i'],
+						[NT.NumberLiteral, '10'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with UnaryExpression test', () => {
 			expect(parse('while !i {}')).toMatchParseTree([
-				['WhileStatement', [
-					['UnaryExpression', '!', { before: true }, [
-						['Identifier', 'i'],
+				[NT.WhileStatement, [
+					[NT.UnaryExpression, '!', { before: true }, [
+						[NT.Identifier, 'i'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with parens and BinaryExpression', () => {
 			expect(parse('while (this.foo != true) {}')).toMatchParseTree([
-				['WhileStatement', [
-					['Parenthesized', [
-						['BinaryExpression', '!=', [
-							['MemberExpression', [
-								['Keyword', 'this'],
-								['Identifier', 'foo'],
+				[NT.WhileStatement, [
+					[NT.Parenthesized, [
+						[NT.BinaryExpression, '!=', [
+							[NT.MemberExpression, [
+								[NT.Keyword, 'this'],
+								[NT.Identifier, 'foo'],
 							]],
-							['BoolLiteral', 'true'],
+							[NT.BoolLiteral, 'true'],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with parens and UnaryExpression', () => {
 			expect(parse('while (!this.foo()) {}')).toMatchParseTree([
-				['WhileStatement', [
-					['Parenthesized', [
-						['UnaryExpression', '!', { before: true }, [
-							['CallExpression', [
-								['MemberExpression', [
-									['Keyword', 'this'],
-									['Identifier', 'foo'],
+				[NT.WhileStatement, [
+					[NT.Parenthesized, [
+						[NT.UnaryExpression, '!', { before: true }, [
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Keyword, 'this'],
+									[NT.Identifier, 'foo'],
 								]],
-								['ArgumentsList', []],
+								[NT.ArgumentsList, []],
 							]],
 						]],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});
 
 		it('with contents in body', () => {
 			expect(parse('while (!foo) {\ndo();\n}')).toMatchParseTree([
-				['WhileStatement', [
-					['Parenthesized', [
-						['UnaryExpression', '!', { before: true }, [
-							['Identifier', 'foo'],
+				[NT.WhileStatement, [
+					[NT.Parenthesized, [
+						[NT.UnaryExpression, '!', { before: true }, [
+							[NT.Identifier, 'foo'],
 						]],
 					]],
-					['BlockStatement', [
-						['CallExpression', [
-							['Identifier', 'do'],
-							['ArgumentsList', []],
+					[NT.BlockStatement, [
+						[NT.CallExpression, [
+							[NT.Identifier, 'do'],
+							[NT.ArgumentsList, []],
 						]],
-						['SemicolonSeparator'],
+						[NT.SemicolonSeparator],
 					]],
 				]],
 			]);
@@ -3606,56 +3606,56 @@ describe('parser.ts', (): void => {
 	describe('bugs fixed', (): void => {
 		it('"foo()..3" should place the RangeExpression outside of the CallExpression', (): void => {
 			expect(parse('foo()..3')).toMatchParseTree([
-				['RangeExpression', [
-					['CallExpression', [
-						['Identifier', 'foo'],
-						['ArgumentsList', []],
+				[NT.RangeExpression, [
+					[NT.CallExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.ArgumentsList, []],
 					]],
-					['NumberLiteral', '3'],
+					[NT.NumberLiteral, '3'],
 				]]
 			]);
 		});
 
 		it('"[1<2, 3>2];" should be a bool array, not a tuple', (): void => {
 			expect(parse('[1<2, 4>3];')).toMatchParseTree([
-				['ArrayExpression', [
-					['BinaryExpression', '<', [
-						['NumberLiteral', '1'],
-						['NumberLiteral', '2'],
+				[NT.ArrayExpression, [
+					[NT.BinaryExpression, '<', [
+						[NT.NumberLiteral, '1'],
+						[NT.NumberLiteral, '2'],
 					]],
-					['CommaSeparator'],
-					['BinaryExpression', '>', [
-						['NumberLiteral', '4'],
-						['NumberLiteral', '3'],
+					[NT.CommaSeparator],
+					[NT.BinaryExpression, '>', [
+						[NT.NumberLiteral, '4'],
+						[NT.NumberLiteral, '3'],
 					]],
 				]],
-				['SemicolonSeparator'],
+				[NT.SemicolonSeparator],
 			]);
 		});
 
 		it('"f foo(a: number = 1,234, b = true) -> bool {}" should correctly see the comma as a separator', () => {
 			expect(parse('f foo(a: number = 1,234, b = true) -> bool {}')).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'foo'],
-					['ParametersList', [
-						['Parameter', [
-							['Identifier', 'a'],
-							['ColonSeparator'],
-							['Type', 'number'],
-							['AssignmentOperator'],
-							['NumberLiteral', '1,234'],
+				[NT.FunctionDeclaration, [
+					[NT.Identifier, 'foo'],
+					[NT.ParametersList, [
+						[NT.Parameter, [
+							[NT.Identifier, 'a'],
+							[NT.ColonSeparator],
+							[NT.Type, 'number'],
+							[NT.AssignmentOperator],
+							[NT.NumberLiteral, '1,234'],
 						]],
-						['CommaSeparator'],
-						['Parameter', [
-							['Identifier', 'b'],
-							['AssignmentOperator'],
-							['BoolLiteral', 'true'],
+						[NT.CommaSeparator],
+						[NT.Parameter, [
+							[NT.Identifier, 'b'],
+							[NT.AssignmentOperator],
+							[NT.BoolLiteral, 'true'],
 						]],
 					]],
-					['FunctionReturns', [
-						['Type', 'bool'],
+					[NT.FunctionReturns, [
+						[NT.Type, 'bool'],
 					]],
-					['BlockStatement', []],
+					[NT.BlockStatement, []],
 				]],
 			]);
 		});

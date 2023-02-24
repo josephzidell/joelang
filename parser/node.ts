@@ -1,4 +1,4 @@
-import { IfStatementNode, Node, NodeType, UnaryExpressionNode } from "./types";
+import { IfStatementNode, Node, NT, UnaryExpressionNode } from "./types";
 import { Token, TokenType } from "../lexer/types";
 import ParserError from './error';
 
@@ -11,7 +11,7 @@ import ParserError from './error';
  * @param discardValue - Should the value be discarded? Sometimes the value is useless and adds noise
  * @returns A Node
  */
-export function MakeNode (type: NodeType, token: Token, parent: Node, discardValue = false): Node {
+export function MakeNode (type: NT, token: Token, parent: Node, discardValue = false): Node {
 	const node: Node = {
 		type,
 		value: discardValue ? undefined : token.value,
@@ -38,7 +38,7 @@ export function MakeNode (type: NodeType, token: Token, parent: Node, discardVal
  */
 export function MakeIfStatementNode (token: Token, before: boolean, parent: Node): IfStatementNode {
 	const node: IfStatementNode = {
-		type: 'IfStatement',
+		type: NT.IfStatement,
 		value: undefined,
 		before,
 		pos: {
@@ -64,7 +64,7 @@ export function MakeIfStatementNode (token: Token, before: boolean, parent: Node
  */
 export function MakeUnaryExpressionNode (token: Token, before: boolean, parent: Node): UnaryExpressionNode {
 	const node: UnaryExpressionNode = {
-		type: 'UnaryExpression',
+		type: NT.UnaryExpression,
 		value: token.value,
 		before,
 		pos: {
