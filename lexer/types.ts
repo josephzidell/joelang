@@ -39,13 +39,14 @@ export const tokenTypesUsingSymbols = {
 	'question': '?',
 	'right_arrow': '->',
 	'semicolon': ';',
+	'triangle_open': '<|',
+	'triangle_close': '|>',
 };
 const otherTokenTypes = [
 	'bool',
 	'comment',
 	'identifier',
 	'keyword',
-	'nil',
 	'number',
 	'path',
 	'regex',
@@ -77,8 +78,11 @@ export type Token = {
 
 // reserved keywords
 export const keywords = [
+	'abstract',
+	'break',
 	'class',
 	'const',
+	'else',
 	'extends',
 	'f',
 	'for',
@@ -87,17 +91,19 @@ export const keywords = [
 	'implements',
 	'import',
 	'in',
+	'interface',
 	'is',
 	'let',
-	'new',
+	'loop',
 	'print',
 	'private',
 	'public',
+	'repeat',
 	'return',
 	'static',
-	'switch',
 	'this',
 	'when',
+	'while',
 ] as const;
 type Keyword = typeof keywords[number];
 
@@ -112,12 +118,11 @@ export const types = [
 type Type = typeof types[number];
 
 // special Values
-const specialValues = ['true', 'false', 'nil'] as const;
+const specialValues = ['true', 'false'] as const;
 type SpecialValue = typeof specialValues[number];
 export const specialValueTypes: Record<SpecialValue, TokenType> = {
 	true: 'bool',
 	false: 'bool',
-	nil: 'nil',
 };
 
 // syntax patterns
@@ -152,5 +157,6 @@ export const patterns = {
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	PATH: /[a-zA-Z0-9-_./]/, // characters in path, excluding the front: @ or .
+	UNICODE: /[^\x00-\x7F]/, // characters above ASCII and in the Unicode standard, see https://stackoverflow.com/a/72733569
 	WHITESPACE: /\s/,
 };

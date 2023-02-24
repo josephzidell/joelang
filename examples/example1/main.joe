@@ -3,14 +3,14 @@
 
 f main {
 	// instantiate and call a method
-	const myFoo = new Foo();
+	const myFoo = Foo.create();
 	print myFoo.foo();
 
 	// static
 	print Foo.bar;
 }
 
-class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
+class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbstractClass {
 	let bar = 'baz'; // let
 	const isDone? = true; // const
 
@@ -42,10 +42,11 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 			a: 1,
 			b: 'coat' if this.isDone?, // if false, property will not be in object
 			c: cond ? true : false, // regular ternary - property will always be there, value differs
-			d: nil,
 		};
 
-		let partialObj = myObject[a, d]; // new object {a: 1, d: nil}
+		const myTuple = <1, true, 'string', @/foo>;
+
+		let partialObj = myObject[a, d]; // new object {a: 1, d: 'foo'}
 
 		const initializeAndAssignLater: number = 5;
 
@@ -62,12 +63,6 @@ class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {
 
 	/** multiple return vals */
 	f methodThatReturnsBool? -> bool, number, Thing {
-		return false, 5, new Thing();
+		return false, 5, Thing.create();
 	}
-
-	/** method that throws error */
-	f careful! { /* ... */ }
-
-	/** method with bool return that throws error */
-	f careful?! -> bool { /* ... */ }
 }

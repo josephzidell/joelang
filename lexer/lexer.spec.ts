@@ -4,6 +4,26 @@ import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from "./typ
 /** Shortcut method to `new Lexer(code).lexify()` */
 const lexify = (code: string): Token[] => new Lexer(code).lexify();
 
+const unicodeIdentifiers = [
+	'ሀሎ', // amharic
+	'مرحبا', // Arabic
+	'٠١٢٣٤٥٦٧٨٩', // Arabic numerals
+	'你好世界', // Chinese
+	'〇一二三四五六七八九十', // Chinese numerals
+	'€¥£₽₹', // Currency symbols
+	'कंप्यूटर', // Devanagari script (used for Hindi, Marathi, Nepali, etc.)
+	'😀😂🤣😊🙃🤔🤨🤯👋🌸🐘🍕🎉🚀🎸🎨🏳️‍🌈💻', // Emoji
+	'αβγδεζηθικλμνξοπρστυφχψω', // Greek
+	'नमस्ते', // Hindi
+	'שלום', // Hebrew
+	'こんにちは', // Japanese
+	'안녕하세요', // Korean
+	'∑∫Δ√∞π≠±×÷', // Mathematical symbols
+	'olá', // Portuguese
+	'здравствуйте', // Russian
+	'สวัสดี', // Thai
+];
+
 describe('lexer.ts', (): void => {
 	describe('keywords', (): void => {
 		it.each(keywords)('%s is recognized as a keyword - simplified', (keyword) => {
@@ -17,7 +37,8 @@ describe('lexer.ts', (): void => {
 		for (const type in tokenTypesUsingSymbols) {
 			if (Object.prototype.hasOwnProperty.call(tokenTypesUsingSymbols, type)) {
 				const symbol = tokenTypesUsingSymbols[type as keyof typeof tokenTypesUsingSymbols];
-				it(`${symbol} is recognized as a ${type} symbol`, () => {
+				const testName = `${symbol} is recognized as ${['a', 'e', 'i', 'o', 'u'].includes(type.at(0) ?? '') ? 'an' : 'a'} ${type} symbol`;
+				it(testName, () => {
 					expect(lexify(symbol)).toMatchTokens([
 						[type as TokenType, symbol],
 					]);
@@ -170,12 +191,30 @@ describe('lexer.ts', (): void => {
 				['brace_close', '}'],
 			]);
 		});
+
+		describe('unicode', () => {
+			it.each(unicodeIdentifiers)('%s is recognized as an identifier in a function name', (identifier) => {
+				expect(lexify(`f ${identifier} {}`)).toMatchTokens([
+					['keyword', 'f'],
+					['identifier', identifier],
+					['brace_open', '{'],
+					['brace_close', '}'],
+				]);
+			});
+		});
+
 	});
 
 	describe('identifiers', (): void => {
 		it('should work with lower case letters, upper case letters, and numbers', (): void => {
 			expect(lexify('aR_g1')).toMatchTokens([
 				['identifier', 'aR_g1'],
+			]);
+		});
+
+		it.each(unicodeIdentifiers)('%s is recognized as a general identifier', (identifier) => {
+			expect(lexify(identifier)).toMatchTokens([
+				['identifier', identifier],
 			]);
 		});
 	});
@@ -691,6 +730,14 @@ describe('lexer.ts', (): void => {
 					['string', "a\\'b"],
 				]);
 			});
+
+			describe('unicode', () => {
+				it.each(unicodeIdentifiers)('%s is recognized in a double-quoted string', (identifier) => {
+					expect(lexify(`"${identifier}"`)).toMatchTokens([
+						['string', identifier],
+					]);
+				});
+			});
 		});
 
 		describe('single-quoted', (): void => {
@@ -721,13 +768,15 @@ describe('lexer.ts', (): void => {
 				]);
 			});
 
-			it('utf-8', (): void => {
-				expect(lexify("const foo = '大'")).toMatchTokens([
-					['keyword', 'const'],
-					['identifier', 'foo'],
-					['assign', '='],
-					['string', '大'],
-				]);
+			describe('unicode', () => {
+				it.each(unicodeIdentifiers)('%s is recognized in a single-quoted string', (identifier) => {
+					expect(lexify("const foo = '" + identifier + "'")).toMatchTokens([
+						['keyword', 'const'],
+						['identifier', 'foo'],
+						['assign', '='],
+						['string', identifier],
+					]);
+				});
 			});
 
 			it('keeps escaped quotes', (): void => {

@@ -18,12 +18,11 @@ joelang is a strongly typed scripting language focused on easy code writing/read
 - Numbers `123`, `9,876`, `100001.0002`, `3^e2`
 - Strings `'foo'`, `"foo"`
 - Boolean `true`, `false`
-- Nil `nil`
 - Path `@/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `./code/joe/file` instead of `.\code\joe\file`
 - Array `[1, 2, 3]`, `['a', 'b']`, `[1, 2 if condition, 3]`
 - Tuple `<1, 'pizza', 3.14>`, `<1, 'pizza' if they have, 3.14>`
 - POJO (Plain Ol' Joe Object) `{a: 1, b: 2 if condition, c: 3}`
-- Switch statements return a value (returns `nil` if no else case)
+- When statements return a value
 
 ### Type Inference
 
@@ -36,7 +35,7 @@ const num = 3; // number
 const str = "hello"; // string
 const ary = ['foo', 'bar']; // array<string>
 const range = 1..10; // array<number> since it's a range. In joelang, ranges are always inclusive on both sides
-const tpl = <1, 'fun', 3.4, false, nil>; // tuple
+const tpl = <1, 'fun', 3.4, false>; // tuple
 const object = {a: 1, b: 2}; // object (POJO - Plain Ol' Joe Object)
 const myMethod = f {...} // function type (as opposed to a regular function `f myMethod {}`)
 ```
@@ -99,24 +98,6 @@ Function names that end with a `?` must return a bool, only. But it is not requi
 f isDone? -> bool {}
 ```
 
-Functions that (may) throw an error **must** end with a `!`. Conversely, functions that end with a `!` must throw an error in at least one situation.
-
-```joelang
-f danger! {
-	throw Error if something bad happens;
-}
-```
-
-If a function returns a bool **and** throws an error, the `?` preceeds the `!`
-
-```joelang
-f isDone?! {
-	throw Error if something bad happens;
-
-	return true;
-}
-```
-
 ## Conditionals
 
 If statements can be specified before or after the statement.
@@ -142,7 +123,7 @@ do() if someCondition;
 [1, 2 if someCondition, 3] // array will either be [1, 2, 3] or [1, 3]
 
 // in tuples
-<1, 'fun', 3.14 if wantPie, false, nil> // same idea
+<1, 'fun', 3.14 if wantPie, false> // same idea
 
 // and in POJOs
 {a: 1, b: 2 if condition, c: 3} // `b` will not be in object if condition is false
