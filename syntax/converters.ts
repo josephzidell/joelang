@@ -13,17 +13,17 @@ const Converters = {
 		// 	throw new SyntaxError('Function name cannot be found', null);
 		// }
 
-		// name: parseNode.children.filter(child => child.type === 'Identifier')[0].value ?? (() => {throw new SyntaxError('Function name cannot be found', null)})(),
-		// types: getNested<string>(parseNode, 'GenericTypesList.0', (child: Parse.Node, path: 'value') => get<string>(child, path),
-		const types = Converters.GenericTypesList(foo.GenericTypesList, node);
-		// node.types = Converters.GenericTypesList(parseNode.children.filter(child => child.type === 'GenericTypesList')[0], node);
-		// parameters: parseNode.children.filter(child => child.type === 'ParametersList')[0],
+		// name: parseNode.children.filter(child => child.type === Parse.NT.Identifier)[0].value ?? (() => {throw new SyntaxError('Function name cannot be found', null)})(),
+		// types: getNested<string>(parseNode, 'TypeParametersList.0', (child: Parse.Node, path: 'value') => get<string>(child, path),
+		const types = Converters.TypeParametersList(foo.TypeParametersList, node);
+		// node.types = Converters.TypeParametersList(parseNode.children.filter(child => child.type === Parse.NT.TypeParametersList)[0], node);
+		// parameters: parseNode.children.filter(child => child.type === Parse.NT.ParametersList)[0],
 		const parameters = Converters.ParametersList(foo.ParametersList, node);
 		const returns = Converters.FunctionReturns(foo.FunctionReturns, node);
 		const body = Converters.BlockStatement(foo.BlockStatement, node);
 
 		const node: Syntax.FunctionDeclarationNode = {
-			type: 'FunctionDeclaration',
+			type: Parse.NT.FunctionDeclaration,
 			name,
 			types,
 			parameters,
@@ -36,22 +36,10 @@ const Converters = {
 		return node;
 	},
 	FunctionReturns: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.FunctionReturnsNode => {
-		const types = parseNode.children.map(child => child.type === 'Identifier' ? Converters.Identifier(child, node) : Converters.Type(child, node));
+		const types = parseNode.children.map(child => child.type === Parse.NT.Identifier ? Converters.Identifier(child, node) : Converters.Type(child, node));
 
 		const node: Syntax.FunctionReturnsNode = {
-			type: 'FunctionReturns',
-			types,
-			pos: parseNode.pos,
-			parent,
-		};
-
-		return node;
-	},
-	GenericTypesList: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.GenericTypesListNode => {
-		const types = parseNode.children.map(child => child.type === 'Identifier' ? Converters.Identifier(child, node) : Converters.Type(child, node));
-
-		const node: Syntax.GenericTypesListNode = {
-			type: 'GenericTypesList',
+			type: Parse.NT.FunctionReturns,
 			types,
 			pos: parseNode.pos,
 			parent,
@@ -61,7 +49,7 @@ const Converters = {
 	},
 	Identifier: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.IdentifierNode => {
 		return {
-			type: 'Identifier',
+			type: Parse.NT.Identifier,
 			name: parseNode.value as string,
 			pos: parent.pos,
 			parent,
@@ -71,7 +59,7 @@ const Converters = {
 	// 	const argType = parseNode.children.map(child => Converters.Parameter(child, node));
 
 	// 	const node: Syntax.ParameterNode = {
-	// 		type: 'Parameter',
+	// 		type: Parse.NT.Parameter,
 	// 		// parameters,
 	// 		pos: parseNode.pos,
 	// 		parent,
@@ -101,20 +89,20 @@ const Converters = {
 				}
 
 				switch (child.type) {
-					case 'RestElement':
+					case Parse.NT.RestElement:
 						// must be at beginning of param
 						if ()
-					case 'Identifier':
+					case Parse.NT.Identifier:
 
 				}
 			}
-			const firstParam = _.takeWhile(parseNode.children, (child) => child.type !== 'CommaSeparator');
+			const firstParam = _.takeWhile(parseNode.children, (child) => child.type !== Parse.NT.CommaSeparator);
 
 			parseNode.children.map(child => Converters.Parameter(child, node));
 		}
 
 		const node: Syntax.ParametersListNode = {
-			type: 'ParametersList',
+			type: Parse.NT.ParametersList,
 			parameters,
 			pos: parseNode.pos,
 			parent,
@@ -129,11 +117,35 @@ const Converters = {
 		}
 
 		return {
-			type: 'Type',
+			type: Parse.NT.Type,
 			value,
 			pos: parseNode.pos,
 			parent,
 		}
+	},
+	TypeArgumentsList: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.TypeArgumentsListNode => {
+		const types = parseNode.children.map(child => child.type === Parse.NT.Identifier ? Converters.Identifier(child, node) : Converters.Type(child, node));
+
+		const node: Syntax.TypeArgumentsListNode = {
+			type: Parse.NT.TypeArgumentsList,
+			types,
+			pos: parseNode.pos,
+			parent,
+		};
+
+		return node;
+	},
+	TypeParametersList: (parseNode: Parse.Node, parent: Syntax.Node): Syntax.TypeParametersListNode => {
+		const types = parseNode.children.map(child => child.type === Parse.NT.Identifier ? Converters.Identifier(child, node) : Converters.Type(child, node));
+
+		const node: Syntax.TypeParametersListNode = {
+			type: Parse.NT.TypeParametersList,
+			types,
+			pos: parseNode.pos,
+			parent,
+		};
+
+		return node;
 	},
 }
 

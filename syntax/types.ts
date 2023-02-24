@@ -1,4 +1,5 @@
 import {ValueOf} from 'type-fest';
+import * as Parse from '../parser/types';
 
 /** A node's positional information */
 type Pos = {
@@ -21,77 +22,63 @@ export type BaseNode = {
 	parent: Node;
 }
 
-export type AdditionOperatorNode = BaseNode & {
-	type: 'AdditionOperator';
-};
-
-export type ArgumentNode = BaseNode & {
-	type: 'Argument';
-	value: LiteralNode;
-	rest: boolean;
-};
-
 export type ArgumentsListNode = BaseNode & {
-	type: 'ArgumentsList';
-	args: Array<ArgumentNode>;
+	type: Parse.NT.ArgumentsList;
+	args: Array<BaseNode>;
 };
 
 export type ArrayExpressionNode = BaseNode & {
-	type: 'ArrayExpression';
+	type: Parse.NT.ArrayExpression;
 	elements: Array<BaseNode>;
 };
 
 export type AssignmentOperatorNode = BaseNode & {
-	type: 'AssignmentOperator';
+	type: Parse.NT.AssignmentOperator;
 	operator: string;
 	subject: Node;
 };
 
 export type BinaryExpressionNode = BaseNode & {
-	type: 'BinaryExpression';
+	type: Parse.NT.BinaryExpression;
 	lhs: Node;
 	operator: string;
 	rhs: Node;
 };
 
 export type BlockStatementNode = BaseNode & {
-	type: 'BlockStatement';
+	type: Parse.NT.BlockStatement;
 	stmts: Array<BaseNode>;
 };
 
 export type BoolLiteralNode = BaseNode & {
-	type: 'BoolLiteral';
+	type: Parse.NT.BoolLiteral;
 	value: boolean;
 };
 
 export type CallExpressionNode = BaseNode & {
-	type: 'CallExpression';
+	type: Parse.NT.CallExpression;
 	callee: IdentifierNode; // TODO add nested calls this.foo
-	types?: GenericTypesListNode;
+	types?: TypeArgumentsListNode;
 	arguments: ArgumentsListNode;
 };
 
 export type ColonSeparatorNode = BaseNode & {
-	type: 'ColonSeparator';
+	type: Parse.NT.ColonSeparator;
 };
 
 export type CommaSeparatorNode = BaseNode & {
-	type: 'CommaSeparator';
+	type: Parse.NT.CommaSeparator;
 };
 
 export type CommentNode = BaseNode & {
-	type: 'Comment';
+	type: Parse.NT.Comment;
 	content: string;
 };
 
-export type DivisionOperatorNode = BaseNode & {
-	type: 'DivisionOperator';
-};
-
 export type FunctionDeclarationNode = BaseNode & {
-	type: 'FunctionDeclaration';
+	type: Parse.NT.FunctionDeclaration;
 	name: IdentifierNode;
-	types?: GenericTypesListNode;
+	types?: TypeParametersListNode;
 	parameters: ParametersListNode;
 	returns?: FunctionReturnsNode;
 	body: BlockStatementNode;
@@ -99,61 +86,44 @@ export type FunctionDeclarationNode = BaseNode & {
 };
 
 export type FunctionReturnsNode = BaseNode & {
-	type: 'FunctionReturns';
-	types: Array<IdentifierNode | TypeNode>;
-};
-
-export type GenericTypesListNode = BaseNode & {
-	type: 'GenericTypesList';
+	type: Parse.NT.FunctionReturns;
 	types: Array<IdentifierNode | TypeNode>;
 };
 
 export type IdentifierNode = BaseNode & {
-	type: 'Identifier';
+	type: Parse.NT.Identifier;
 	name: string;
 };
 
 export type ImportDeclarationNode = BaseNode & {
-	type: 'ImportDeclaration';
+	type: Parse.NT.ImportDeclaration;
 	specifier: IdentifierNode;
 	source: PathNode; // TODO add support for package
 };
 
 export type KeywordNode = BaseNode & {
-	type: 'Keyword';
+	type: Parse.NT.Keyword;
 	which: string;
 };
 
 export type MemberExpressionNode = BaseNode & {
-	type: 'MemberExpression';
+	type: Parse.NT.MemberExpression;
 	object: IdentifierNode;
 	properties: MembersListNode;
 };
 
 export type MembersListNode = BaseNode & {
-	type: 'MembersList';
+	type: Parse.NT.MembersList;
 	members: Array<IdentifierNode>;
 };
 
-export type ModOperatorNode = BaseNode & {
-	type: 'ModOperator';
-};
-
-export type MultiplicationOperatorNode = BaseNode & {
-	type: 'MultiplicationOperator';
-};
-
-export type NilNode = BaseNode & {
-	type: 'Nil';
-};
-
 export type NumberLiteralNode = BaseNode & {
-	type: 'NumberLiteral';
+	type: Parse.NT.NumberLiteral;
 	value: string; // since we support exponents and commas, which Typescript does not
 };
 
 export type ParameterNode = BaseNode & {
-	type: 'Parameter';
+	type: Parse.NT.Parameter;
 	name: IdentifierNode;
 	argType: TypeNode;
 	default?: LiteralNode;
@@ -161,87 +131,93 @@ export type ParameterNode = BaseNode & {
 };
 
 export type ParametersListNode = BaseNode & {
-	type: 'ParametersList';
+	type: Parse.NT.ParametersList;
 	parameters: Array<ParameterNode>;
 };
 
 export type ParenthesizedNode = BaseNode & {
-	type: 'Parenthesized';
+	type: Parse.NT.Parenthesized;
 	content: Node;
 };
 
 export type PathNode = BaseNode & {
-	type: 'Path';
+	type: Parse.NT.Path;
 	dest: string;
 };
 
 export type PrintStatementNode = BaseNode & {
-	type: 'PrintStatement';
+	type: Parse.NT.PrintStatement;
 	contents: Array<Node>;
 };
 
 export type ProgramNode = Omit<BaseNode, 'parent'> & {
 // export type ProgramNode = BaseNode & {
-	type: 'Program';
+	type: Parse.NT.Program;
 	children: Node[];
 };
 
 export type RangeExpressionNode = BaseNode & {
-	type: 'RangeExpression';
+	type: Parse.NT.RangeExpression;
 	lhs: NumberLiteralNode | MemberExpressionNode | CallExpressionNode;
 	rhs: NumberLiteralNode | MemberExpressionNode | CallExpressionNode;
 };
 
 export type RegularExpressionNode = BaseNode & {
-	type: 'RegularExpression';
+	type: Parse.NT.RegularExpression;
 	pattern: string;
 	flags?: string;
 };
 
 export type RestElementNode = BaseNode & {
-	type: 'RestElement';
+	type: Parse.NT.RestElement;
 };
 
 export type ReturnStatementNode = BaseNode & {
-	type: 'ReturnStatement';
+	type: Parse.NT.ReturnStatement;
 	values: Array<BaseNode>;
 };
 
 export type RightArrowOperatorNode = BaseNode & {
-	type: 'RightArrowOperator';
+	type: Parse.NT.RightArrowOperator;
 };
 
 export type SemicolonSeparatorNode = BaseNode & {
-	type: 'SemicolonSeparator';
+	type: Parse.NT.SemicolonSeparator;
 };
 
 export type StringLiteralNode = BaseNode & {
-	type: 'StringLiteral';
+	type: Parse.NT.StringLiteral;
 	value: string;
 };
 
-export type SubtractionOperatorNode = BaseNode & {
-	type: 'SubtractionOperator';
+export type TypeArgumentsListNode = BaseNode & {
+	type: Parse.NT.TypeArgumentsList;
+	types: Array<IdentifierNode | TypeNode>;
 };
 
 export type TypeNode = BaseNode & {
-	type: 'Type';
+	type: Parse.NT.Type;
 	value: string;
 };
 
+export type TypeParametersListNode = BaseNode & {
+	type: Parse.NT.TypeParametersList;
+	types: Array<IdentifierNode | TypeNode>;
+};
+
 export type UnaryExpressionNode = BaseNode & {
-	type: 'UnaryExpression';
+	type: Parse.NT.UnaryExpression;
 	operator: string;
 	before: boolean;
 	object: Node;
 }
 
 export type UnknownNode = BaseNode & {
-	type: 'Unknown';
+	type: Parse.NT.Unknown;
 };
 
 export type VariableDeclarationNode = BaseNode & {
-	type: 'VariableDeclaration';
+	type: Parse.NT.VariableDeclaration;
 	kind: 'const' | 'let';
 	identifier: IdentifierNode;
 	idenType?: TypeNode;
@@ -249,24 +225,24 @@ export type VariableDeclarationNode = BaseNode & {
 };
 
 export type WhenExpressionNode = BaseNode & {
-	type: 'WhenExpression';
+	type: Parse.NT.WhenExpression;
 	discriminant: IdentifierNode; // TODO add more types
 	cases: Array<WhenCaseNode>;
 };
 
 export type WhenCaseNode = BaseNode & {
-	type: 'WhenCase';
+	type: Parse.NT.WhenCase;
 	test: WhenCaseTestsNode;
 	consequent: WhenCaseConsequentNode;
 };
 
 export type WhenCaseTestsNode = BaseNode & {
-	type: 'WhenCaseTests';
+	type: Parse.NT.WhenCaseTests;
 	tests: RangeExpressionNode | RestElementNode | Array<BoolLiteralNode | NumberLiteralNode | StringLiteralNode | RegularExpressionNode>;
 };
 
 export type WhenCaseConsequentNode = BaseNode & {
-	type: 'WhenCaseConsequent';
+	type: Parse.NT.WhenCaseConsequent;
 	body: BlockStatementNode | BoolLiteralNode | NumberLiteralNode | StringLiteralNode | RegularExpressionNode | CallExpressionNode;
 };
 
@@ -274,8 +250,6 @@ export type WhenCaseConsequentNode = BaseNode & {
 export type LiteralNode = ArrayExpressionNode | BoolLiteralNode | NumberLiteralNode | RegularExpressionNode | StringLiteralNode;
 
 export type nodes = {
-	AdditionOperator: AdditionOperatorNode;
-	Argument: ArgumentNode;
 	ArgumentsList: ArgumentsListNode;
 	ArrayExpression: ArrayExpressionNode;
 	AssignmentOperator: AssignmentOperatorNode;
@@ -286,18 +260,13 @@ export type nodes = {
 	ColonSeparator: ColonSeparatorNode;
 	CommaSeparator: CommaSeparatorNode;
 	Comment: CommentNode;
-	DivisionOperator: DivisionOperatorNode;
 	FunctionDeclaration: FunctionDeclarationNode;
 	FunctionReturns: FunctionReturnsNode;
-	GenericTypesList: GenericTypesListNode;
 	Identifier: IdentifierNode;
 	ImportDeclaration: ImportDeclarationNode;
 	Keyword: KeywordNode;
 	MemberExpression: MemberExpressionNode;
 	MembersList: MembersListNode;
-	ModOperator: ModOperatorNode;
-	MultiplicationOperator: MultiplicationOperatorNode;
-	Nil: NilNode;
 	NumberLiteral: NumberLiteralNode;
 	Parameter: ParameterNode;
 	ParametersList: ParametersListNode;
@@ -312,8 +281,9 @@ export type nodes = {
 	RightArrowOperator: RightArrowOperatorNode;
 	SemicolonSeparator: SemicolonSeparatorNode;
 	StringLiteral: StringLiteralNode;
-	SubtractionOperator: SubtractionOperatorNode;
 	Type: TypeNode;
+	TypeArgumentsList: TypeArgumentsListNode;
+	TypeParametersList: TypeParametersListNode;
 	UnaryExpression: UnaryExpressionNode;
 	Unknown: UnknownNode;
 	VariableDeclaration: VariableDeclarationNode;

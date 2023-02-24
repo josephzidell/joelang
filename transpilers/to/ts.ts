@@ -1,5 +1,7 @@
 import { TODO, Visitor, VisitorSet } from "../types";
-import { BaseNode as SyntaxNode } from "../../parser/types";
+import { Node as SyntaxNode } from "../../parser/types";
+import * as Parse from "../../parser/types";
+import { ParameterNode, ParametersListNode } from "../../syntax/types";
 
 export default class GoTranspiler {
 	private syntaxTree;
@@ -15,7 +17,6 @@ export default class GoTranspiler {
 	}
 
 	visitors: VisitorSet = {
-		AdditionOperator: TODO,
 		ArgumentsList: TODO,
 		ArrayExpression: TODO,
 		AssignmentOperator: TODO,
@@ -27,7 +28,6 @@ export default class GoTranspiler {
 		CommaSeparator: TODO,
 		Comment: (node: SyntaxNode): string => {
 			// Typescript doesn't support # style comments
-
 			const comment = node.value || '//';
 			if (comment.at(0) === '#') {
 				return comment.replace('#', '//'); // replace just the first instance
@@ -35,27 +35,24 @@ export default class GoTranspiler {
 
 			return comment;
 		},
-		DivisionOperator: TODO,
 		FunctionDeclaration: TODO,
 		FunctionReturns: TODO,
-		GenericTypesList: TODO,
 		Identifier: TODO,
 		ImportDeclaration: TODO,
 		Keyword: TODO,
 		MemberExpression: TODO,
 		MembersList: TODO,
-		ModOperator: TODO,
-		MultiplicationOperator: TODO,
-		Nil: TODO,
 		NumberLiteral: (node: SyntaxNode): string => node.value || '0',
+		Parameter: TODO,
+		ParametersList: TODO,
 		Parenthesized: TODO,
 		Path: TODO,
 		PrintStatement: (node: SyntaxNode): string => {
 			let out = 'console.log(';
 			node.children.forEach(child => {
 				switch (child.type) {
-					case 'NumberLiteral':
-					case 'StringLiteral':
+					case Parse.NT.NumberLiteral:
+					case Parse.NT.StringLiteral:
 						out += this.visitors[child.type](child);
 						break;
 				}
@@ -72,8 +69,9 @@ export default class GoTranspiler {
 		RightArrowOperator: TODO,
 		SemicolonSeparator: TODO,
 		StringLiteral: (node: SyntaxNode): string => `"${node.value}"` || '""',
-		SubtractionOperator: TODO,
 		Type: TODO,
+		TypeArgumentsList: TODO,
+		TypeParametersList: TODO,
 		UnaryExpression: TODO,
 		Unknown: TODO,
 		VariableDeclaration: TODO,

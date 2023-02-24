@@ -1,18 +1,12 @@
-import { AdditionOperatorNode, BaseNode, IdentifierNode, LiteralNode, Node, ParameterNode, ParametersListNode, TypeNode, UnaryExpressionNode } from "./types";
+import { BaseNode, IdentifierNode, LiteralNode, Node, ParameterNode, ParametersListNode, TypeNode, UnaryExpressionNode } from "./types";
 import { Token, TokenType } from "../lexer/types";
 import ParserError from './error';
+import * as Parse from '../parser/types';
 
 export const MakeSyntaxNode = {
-	AdditionOperator: (token: Token, parent: Node): AdditionOperatorNode => {
-		return {
-			type: 'AdditionOperator',
-			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
-			parent,
-		}
-	},
 	Parameter: (token: Token, name: IdentifierNode, type: TypeNode, defaultVal: LiteralNode, rest: boolean, parent: Node): ParameterNode => {
 		return {
-			type: 'Parameter',
+			type: Parse.NT.Parameter,
 			name,
 			argType: type,
 			default: defaultVal,
@@ -23,7 +17,7 @@ export const MakeSyntaxNode = {
 	},
 	ParametersList: (token: Token, args: ParameterNode[], parent: Node): ParametersListNode => {
 		return {
-			type: 'ParametersList',
+			type: Parse.NT.ParametersList,
 			args,
 			pos: { start: token.start, end: token.end, line: token.line, col: token.col },
 			parent,
@@ -31,7 +25,7 @@ export const MakeSyntaxNode = {
 	},
 	UnaryExpression: (token: Token, operator: string, before: boolean, object: Node, parent: Node): UnaryExpressionNode => {
 		return {
-			type: 'UnaryExpression',
+			type: Parse.NT.UnaryExpression,
 			operator,
 			before,
 			object,
@@ -52,18 +46,13 @@ export const MakeSyntaxNode = {
 // ColonSeparator
 // CommaSeparator
 // Comment
-// DivisionOperator
 // FunctionDeclaration
 // FunctionReturns
-// GenericTypesList
 // Identifier
 // ImportDeclaration
 // Keyword
 // MemberExpression
 // MembersList
-// ModOperator
-// MultiplicationOperator
-// Nil
 // NumberLiteral
 // Parenthesized
 // Path
@@ -75,8 +64,9 @@ export const MakeSyntaxNode = {
 // RightArrowOperator
 // SemicolonSeparator
 // StringLiteral
-// SubtractionOperator
 // Type
+// TypeArgumentsList
+// TypeParametersList
 // UnaryExpression
 // Unknown
 // VariableDeclaration
