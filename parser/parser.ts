@@ -1,12 +1,15 @@
-import { Token, TokenType } from "../lexer/types";
+import { Token, TokenType, tokenTypesUsingSymbols } from "../lexer/types";
 import { LiteralTypes, Node, NT } from './types';
 import ParserError from './error';
 import { MakeIfStatementNode, MakeNode, MakeUnaryExpressionNode } from './node';
 import { inspect } from 'util';
 import _ from 'lodash';
+import Lexer from "../lexer/lexer";
 
 export default class {
-	tokens: Token[] = [];
+	prevToken: Token | undefined;
+
+	currentToken: Token | undefined;
 
 	/** Root node of the Concrete Syntax Tree (CST) */
 	root: Node;
@@ -17,8 +20,40 @@ export default class {
 	/** if on, will output the CST at the end */
 	debug = false;
 
-	constructor(tokens: Token[], debug = false) {
-		this.tokens = tokens;
+	// node types that would come before a minus `-` symbol indicating it's a subtraction operator, rather than a unary operator
+	nodeTypesPrecedingArithmeticOperator: NT[] = [NT.NumberLiteral, NT.Identifier];
+
+	// node types that when faced with a semicolon, will be ended
+	nodeTypesThatASemicolonEnds: NT[] = [
+		NT.ArrayExpression,
+		NT.BinaryExpression,
+		NT.FunctionDeclaration, // for abstract functions
+		NT.FunctionReturns, // for abstract functions
+		NT.IfStatement,
+		NT.MemberExpression,
+		NT.ObjectExpression,
+		NT.PrintStatement,
+		NT.Property,
+		NT.RangeExpression,
+		NT.RegularExpression,
+		NT.ReturnStatement,
+		NT.TernaryElse,
+		NT.TernaryExpression,
+		NT.UnaryExpression,
+		NT.VariableDeclaration,
+		NT.WhenExpression,
+	];
+
+	nodeTypesThatAllowAPostfixIf: NT[] = [
+		NT.ArrayExpression,
+		NT.Property,
+	];
+
+	lexer: Lexer;
+	
+	constructor(code: string, debug = false) {
+		this.lexer = new Lexer(code);
+
 		this.root = {
 			type: NT.Program,
 			pos: {
@@ -35,7 +70,7 @@ export default class {
 		this.debug = debug;
 
 		if (this.debug) {
-			console.debug(`Getting started with ${this.tokens.length} tokens`);
+			console.debug(`Getting started parsing`);
 		}
 	}
 
@@ -48,37 +83,13 @@ export default class {
 	}
 
 	public parse(): Node {
-		// node types that would come before a minus `-` symbol indicating it's a subtraction operator, rather than a unary operator
-		const nodeTypesPrecedingArithmeticOperator: NT[] = [NT.NumberLiteral, NT.Identifier];
+		do {
+			this.currentToken = this.getNextToken();
+			if (typeof this.currentToken === 'undefined') {
+				break;
+			}
 
-		// node types that when faced with a semicolon, will be ended
-		const nodeTypesThatASemicolonEnds: NT[] = [
-			NT.ArrayExpression,
-			NT.BinaryExpression,
-			NT.FunctionDeclaration, // for abstract functions
-			NT.FunctionReturns, // for abstract functions
-			NT.IfStatement,
-			NT.MemberExpression,
-			NT.ObjectExpression,
-			NT.PrintStatement,
-			NT.Property,
-			NT.RangeExpression,
-			NT.RegularExpression,
-			NT.ReturnStatement,
-			NT.TernaryElse,
-			NT.TernaryExpression,
-			NT.UnaryExpression,
-			NT.VariableDeclaration,
-			NT.WhenExpression,
-		];
-
-		const nodeTypesThatAllowAPostfixIf: NT[] = [
-			NT.ArrayExpression,
-			NT.Property,
-		];
-
-		for (let i = 0; i < this.tokens.length; i++) {
-			const token = this.tokens[i];
+			const token = this.currentToken;
 
 			if (this.debug) {
 				console.debug(`Found token type "${token.type}" with value "${token.value}"`);
@@ -212,7 +223,7 @@ export default class {
 				this.endExpressionIfIn(NT.ObjectType);
 				this.endExpressionIfIn(NT.WhileStatement);
 			} else if (token.type === 'bracket_open') {
-				const isNextABracketClose = this.nextToken(i, 1)?.type === 'bracket_close';
+				const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
 				const prevType = this.prev()?.type;
 
 				if (typeof prevType === 'undefined') {
@@ -282,7 +293,7 @@ export default class {
 				this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
 
 				// check if currentRoot is a MemberExpression and next token is not a <| (types), and if so, it's finished
-				if (this.nextToken(i, 1)?.type !== 'triangle_open') {
+				if (`${this.lexer.peek(0)}${this.lexer.peek(1)}` !== tokenTypesUsingSymbols.triangle_open) {
 					this.endExpressionIfIn(NT.MemberExpression);
 				}
 			} else if (token.type === 'comment') {
@@ -298,7 +309,7 @@ export default class {
 				this.handleBinaryExpression(token, this.prev());
 			} else if (token.type === 'minus') {
 				if (this.currentRoot.children.length > 0 &&
-					nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
+					this.nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
 					this.currentRoot.type !== NT.BinaryExpression && this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1..-2`
 				) {
 					this.endExpressionIfIn(NT.UnaryExpression);
@@ -342,7 +353,7 @@ export default class {
 				}
 
 				// greedy ending - end as many nodes as relevantly possible
-				while (nodeTypesThatASemicolonEnds.includes(this.currentRoot.type)) {
+				while (this.nodeTypesThatASemicolonEnds.includes(this.currentRoot.type)) {
 					this.endExpression();
 				}
 
@@ -716,7 +727,7 @@ export default class {
 						// check token before, then check token after
 						// works on a CallExpression as well as Literal in an ArrayExpression
 						const prev = this.prev();
-						if (prev?.type === NT.CallExpression || nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
+						if (prev?.type === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
 							// this is after, therefore take the CallExpression, array element, or Property
 							this.beginExpressionWithAdoptingPreviousNode(MakeIfStatementNode(token, false, this.currentRoot));
 						} else {
@@ -724,7 +735,10 @@ export default class {
 
 							// if prev token is 'else', this IfStatement goes into current node
 							// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
-							if (this.currentRoot.type === NT.IfStatement && i > 0 && !(this.tokens[i - 1].type === 'keyword' && this.tokens[i - 1].value === 'else')) {
+							
+							// the token is already ready for the next, so we need to go 2 back
+							const prevToken = this.lexer.prevToken(2);
+							if (this.currentRoot.type === NT.IfStatement && typeof prevToken !== 'undefined' && !(prevToken.type === 'keyword' && prevToken.value === 'else')) {
 								if (this.debug) {
 									console.debug('Found an "if" statement after another "if" without an "else"; now closing the first IfStatement');
 								}
@@ -783,7 +797,7 @@ export default class {
 				// this should eventually turn into an error
 				this.addNode(MakeNode(NT.Unknown, token, this.currentRoot));
 			}
-		}
+		} while (typeof this.currentToken !== 'undefined');
 
 		if (this.debug) {
 			console.debug(inspect(this.root, { showHidden: true, depth: null }));
@@ -850,17 +864,12 @@ export default class {
 	}
 
 	/**
-	 * Gets a next token
+	 * Gets the next token
 	 *
-	 * @param howMany - How many to go forward? Defaults to 1
 	 * @returns the next token
 	 */
-	private nextToken(i: number, howMany = 1): Token | undefined {
-		if (i + howMany > this.tokens.length) {
-			return undefined;
-		}
-
-		return this.tokens[i + howMany];
+	private getNextToken(): Token | undefined {
+		return this.lexer.getToken();
 	}
 
 	private addNode(node: Node, to?: Node) {

@@ -2,7 +2,7 @@ import Lexer from "./lexer";
 import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from "./types";
 
 /** Shortcut method to `new Lexer(code).lexify()` */
-const lexify = (code: string): Token[] => new Lexer(code).lexify();
+const lexify = (code: string): Token[] => new Lexer(code).getAllTokens();
 
 const unicodeIdentifiers = [
 	'ሀሎ', // amharic

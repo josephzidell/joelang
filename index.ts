@@ -16,7 +16,7 @@ void (async (): Promise<void> => {
 			try {
 				const [, , , sourceCode, outputFile] = process.argv;
 
-				const tokens = new Lexer(sourceCode).lexify();
+				const tokens = new Lexer(sourceCode).getAllTokens();
 
 				// filename is 3rd arg
 				if (outputFile) {
@@ -46,7 +46,7 @@ void (async (): Promise<void> => {
 
 				// output simplified tree
 				// TODO add `-v|--verbose` option
-				const parseTree = simplifyTree([new Parser(new Lexer(sourceCode).lexify(), debug).parse()]);
+				const parseTree = simplifyTree([new Parser(sourceCode, debug).parse()]);
 
 				if (outputFile) {
 					await fs.writeFile(outputFile, inspect(parseTree, { showHidden: true, depth: null }));
@@ -58,7 +58,9 @@ void (async (): Promise<void> => {
 
 				console.log(`Error: ${error.message}`);
 				console.debug('Derived CST:');
-				console.debug(error.getTree());
+				if ('getTree' in error) {
+					console.debug(error.getTree());
+				}
 
 				console.log('Stack Trace:');
 				console.error(error.stack);

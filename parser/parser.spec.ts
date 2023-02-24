@@ -5,7 +5,7 @@ import { Node, NT } from './types';
 import '../setupJest'; // for the types
 
 /** Shortcut method to `new Parser(new Lexer(code).lexify()).parse()` */
-const parse = (code: string): Node => new Parser(new Lexer(code).lexify()).parse();
+const parse = (code: string): Node => new Parser(code).parse();
 
 const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NT) => {
 	// 2 numbers
