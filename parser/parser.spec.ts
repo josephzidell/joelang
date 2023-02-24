@@ -2157,19 +2157,6 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('ending with a bang', () => {
-			expect(parse(`f danger! {
-				// throw Error if something bad happens
-			}`)).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'danger!'],
-					['BlockStatement', [
-						['Comment', '// throw Error if something bad happens'],
-					]],
-				]],
-			]);
-		});
-
 		it('ending with a question mark', () => {
 			expect(parse(`f danger? -> bool {
 				return true;
@@ -2180,28 +2167,6 @@ describe('parser.ts', (): void => {
 						['Type', 'bool'],
 					]],
 					['BlockStatement', [
-						['ReturnStatement', [
-							['BoolLiteral', 'true'],
-						]],
-						['SemicolonSeparator'],
-					]],
-				]],
-			]);
-		});
-
-		it('ending with a question mark and bang', () => {
-			expect(parse(`f isDone?! -> bool {
-				// throw Error if something bad happens
-
-				return true;
-			}`)).toMatchParseTree([
-				['FunctionDeclaration', [
-					['Identifier', 'isDone?!'],
-					['FunctionReturns', [
-						['Type', 'bool'],
-					]],
-					['BlockStatement', [
-						['Comment', '// throw Error if something bad happens'],
 						['ReturnStatement', [
 							['BoolLiteral', 'true'],
 						]],
@@ -2475,7 +2440,7 @@ describe('parser.ts', (): void => {
 				});
 
 				it('with CallExpression conditional', () => {
-					expect(parse('[9, 10 if this.isDone?!([true if true]), 11];')).toMatchParseTree([
+					expect(parse('[9, 10 if this.isDone?([true if true]), 11];')).toMatchParseTree([
 						['ArrayExpression', [
 							['NumberLiteral', '9'],
 							['CommaSeparator'],
@@ -2484,7 +2449,7 @@ describe('parser.ts', (): void => {
 								['CallExpression', [
 									['MemberExpression', [
 										['Keyword', 'this'],
-										['Identifier', 'isDone?!'],
+										['Identifier', 'isDone?'],
 									]],
 									['ArgumentsList', [
 										['ArrayExpression', [

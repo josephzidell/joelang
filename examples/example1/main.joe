@@ -65,10 +65,4 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 	f methodThatReturnsBool? -> bool, number, Thing {
 		return false, 5, Thing.create();
 	}
-
-	/** method that throws error */
-	f careful! { /* ... */ }
-
-	/** method with bool return that throws error */
-	f careful?! -> bool { /* ... */ }
 }

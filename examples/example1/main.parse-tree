@@ -1123,54 +1123,7 @@
                 ],
                 [length]: 2
               ],
-              [
-                'FunctionDeclaration',
-                [
-                  [
-                    'JoeDoc',
-                    '/** method that throws error */',
-                    [length]: 2
-                  ],
-                  [ 'Identifier', 'careful!', [length]: 2 ],
-                  [
-                    'BlockStatement',
-                    [
-                      [ 'Comment', '/* ... */', [length]: 2 ],
-                      [length]: 1
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 3
-                ],
-                [length]: 2
-              ],
-              [
-                'FunctionDeclaration',
-                [
-                  [
-                    'JoeDoc',
-                    '/** method with bool return that throws error */',
-                    [length]: 2
-                  ],
-                  [ 'Identifier', 'careful?!', [length]: 2 ],
-                  [
-                    'FunctionReturns',
-                    [ [ 'Type', 'bool', [length]: 2 ], [length]: 1 ],
-                    [length]: 2
-                  ],
-                  [
-                    'BlockStatement',
-                    [
-                      [ 'Comment', '/* ... */', [length]: 2 ],
-                      [length]: 1
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 4
-                ],
-                [length]: 2
-              ],
-              [length]: 12
+              [length]: 10
             ],
             [length]: 2
           ],

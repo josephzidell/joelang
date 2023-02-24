@@ -98,24 +98,6 @@ Function names that end with a `?` must return a bool, only. But it is not requi
 f isDone? -> bool {}
 ```
 
-Functions that (may) throw an error **must** end with a `!`. Conversely, functions that end with a `!` must throw an error in at least one situation.
-
-```joelang
-f danger! {
-	throw Error if something bad happens;
-}
-```
-
-If a function returns a bool **and** throws an error, the `?` precedes the `!`
-
-```joelang
-f isDone?! {
-	throw Error if something bad happens;
-
-	return true;
-}
-```
-
 ## Conditionals
 
 If statements can be specified before or after the statement.

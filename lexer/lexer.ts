@@ -314,11 +314,6 @@ export default class {
 					value += this.getChar();
 				}
 
-				// check for '!'
-				if (this.char === patterns.BANG) {
-					value += this.getChar();
-				}
-
 				// check if it's a keyword, then check if it's a special value, otherwise it's an identifier
 				// keywords in joelang are case sensitive
 				if ((keywords as unknown as string[]).includes(value)) {
@@ -340,7 +335,7 @@ export default class {
 			 * It can be one of many things:
 			 * - A singular dot, for member access
 			 * - A double dot, for a range
-			 * - A triple dot, for destructuring
+			 * - A triple dot, for destructuring or rest
 			 * - The beginning of a FileType
 			 */
 			if (this.char === patterns.PERIOD) {
