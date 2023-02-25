@@ -6,7 +6,7 @@ import { inspect } from 'util';
 import _ from 'lodash';
 import Lexer from "../lexer/lexer";
 
-export default class {
+export default class Parser {
 	prevToken: Token | undefined;
 
 	currentToken: Token | undefined;

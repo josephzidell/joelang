@@ -2,7 +2,7 @@ import LexerError from "./error";
 import { Token, TokenType, keywords, patterns, specialValueTypes, types } from './types';
 import { regexFlags, standardizeLineEndings } from "./util";
 
-export default class {
+export default class Lexer {
 	/** position begins at 0 and counts till the end of the script */
 	cursorPosition = 0;
 
