@@ -4,15 +4,15 @@ A scripting language focused on easy reading
 ## Quick Start
 
 ```bash
-# run the lexer
+# run the compiler (ATM only parses)
+./joec main.joe # compiles a .joe file
+./joec main.joe -o outfile # specify output file
+./joec -i '...' # compiles an expression
+
+# play with the lexer
 npm run --silent lexify -- 'your expression' # lexify an expression
 npm run --silent lexify -- "$(cat path/to/file.joe)" # lexify a .joe file
 npm run --silent lexify -- '...' file.tokens # send the tokens output to a file
-
-# run the parser
-npm run --silent parse -- 'your expression' # parse an expression
-npm run --silent parse -- "$(cat path/to/file.joe)" # parse a .joe file
-npm run --silent parse -- '...' file.parse-tree # send the Parse Tree output to a file
 
 # run the tests
 npm test
@@ -20,7 +20,7 @@ npm test
 # run lexer example1
 npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
 # run parser example1
-npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.parse-tree
+./joec examples/example1/main.joe -o examples/example1/main.parse-tree
 ```
 
 ## Challenge
