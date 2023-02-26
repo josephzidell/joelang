@@ -1,6 +1,6 @@
 export default class ErrorContext {
 	/** the source code */
-	code: string = '';	
+	code: string = '';
 
 	/** line begins at 1 */
 	line = 1;
@@ -14,7 +14,7 @@ export default class ErrorContext {
 		this.col = col;
 	}
 
-	toStringArray (): string[] {
+	toStringArray (errorMessage: string): string[] {
 		const lines = this.code.split("\n");
 
 		type Line = {
@@ -54,16 +54,16 @@ export default class ErrorContext {
 
 			// previous line, if any
 			...prevLine ? [lineToString(prevLine)] : [],
-			
+
 			// current line
 			lineToString(currentLine),
-			
+
 			// ^^^
-			`${prefix} ${' '.repeat(this.col - 1)}^`,
-			
+			`${prefix} ${' '.repeat(this.col - 1)}^ ${errorMessage}`,
+
 			// next line, if any
 			...nextLine ? [lineToString(nextLine)] : [],
-			
+
 			// blank line to end
 			prefix,
 		]

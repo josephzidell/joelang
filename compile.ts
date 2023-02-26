@@ -62,7 +62,7 @@ void (async (): Promise<void> => {
 		case 'ok':
 			const parseTree = simplifyTree([treeResult.value]);
 			const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
-	
+
 			if (typeof outfile === 'string') {
 				try {
 					await fsPromises.writeFile(outfile, output);
@@ -80,14 +80,14 @@ void (async (): Promise<void> => {
 					const lexerError = treeResult.error as LexerError;
 
 					console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
-					lexerError.getContext().toStringArray().forEach(str => console.log(str));
+					lexerError.getContext().toStringArray(lexerError.message).forEach(str => console.log(str));
 					console.groupEnd();
 					break;
 				case ParserError:
 					const parserError = treeResult.error as ParserError;
 
 					console.groupCollapsed(`Error[${parserError.getErrorCode()}]: ${parserError.message}`);
-					parserError.getContext().toStringArray().forEach(str => console.log(str));
+					parserError.getContext().toStringArray(parserError.message).forEach(str => console.log(str));
 					console.groupEnd();
 
 					if ('getTree' in parserError) {
