@@ -45,6 +45,7 @@ export const tokenTypesUsingSymbols = {
 const otherTokenTypes = [
 	'bool',
 	'comment',
+	'eof',
 	'identifier',
 	'keyword',
 	'number',

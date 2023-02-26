@@ -1,8 +1,8 @@
+import { diffString } from 'json-diff';
 import { Token, TokenType } from "./lexer/types";
-import { Node, UnaryExpressionNode } from "./parser/types";
-import { diffString, diff } from 'json-diff';
-import { inspect } from 'util';
 import { simplifyTree, SParseTree } from "./parser/simplifier";
+import { Node } from "./parser/types";
+import { Result } from "./shared/result";
 
 export interface CustomMatchers<R = unknown> {
 	/**
@@ -45,25 +45,31 @@ export type SToken = [
 	value: string,
 ];
 
-function matchTokens (tokens: Token[], simplifiedVersion: SToken[]): CustomMatcherResult {
-	if (typeof simplifiedVersion === 'undefined') {
-		return {message: () => `a simplified token array expected, found none`, pass: false};
-	}
-
-	// the lengths should be equal
-	if (tokens.length !== simplifiedVersion.length) {
-		return { message: () => `expected ${tokens.length} tokens, ${simplifiedVersion.length} found`, pass: false };
-	}
-
-	// first convert tokens to simplified tokens, where we only need the type and value
-	const simplifiedTokens = tokens.map((token: Token): SToken => [token.type, token.value]);
-
-	try {
-		expect(simplifiedTokens).toStrictEqual(simplifiedVersion);
-
-		return {pass: true, message: () => 'they match'};
-	} catch {
-		return {pass: false, message: () => `they do not match. Expected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(simplifiedTokens)}`};
+function matchTokens (tokens: Result<Token[]>, simplifiedVersion: SToken[]): CustomMatcherResult {
+	switch (tokens.outcome) {
+		case 'ok':
+			if (typeof simplifiedVersion === 'undefined') {
+				return {message: () => `a simplified token array expected, found none`, pass: false};
+			}
+		
+			// the lengths should be equal
+			if (tokens.value.length !== simplifiedVersion.length) {
+				return { message: () => `expected ${tokens.value.length} tokens, ${simplifiedVersion.length} found`, pass: false };
+			}
+		
+			// first convert tokens to simplified tokens, where we only need the type and value
+			const simplifiedTokens = tokens.value.map((token: Token): SToken => [token.type, token.value]);
+		
+			try {
+				expect(simplifiedTokens).toStrictEqual(simplifiedVersion);
+		
+				return {pass: true, message: () => 'they match'};
+			} catch {
+				return {pass: false, message: () => `they do not match. Expected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(simplifiedTokens)}`};
+			}
+			break;
+		case 'error':
+			return {pass: false, message: () => tokens.error.message};
 	}
 }
 
@@ -75,31 +81,34 @@ expect.extend({
 // Parser Stuff
 ////////////////////////////////////////////////////////////
 
-export function matchParseTree (tree: Node, simplifiedVersion: SParseTree): CustomMatcherResult {
-	const treeNodes = tree.children;
+export function matchParseTree (treeResult: Result<Node>, simplifiedVersion: SParseTree): CustomMatcherResult {
+	switch (treeResult.outcome) {
+		case 'ok':
+			const treeNodes = treeResult.value.children;
 
-	if (typeof simplifiedVersion === 'undefined') {
-		return {message: () => `child nodes expected, found none`, pass: false};
-	}
-
-	// the lengths should be equal
-	if (treeNodes.length !== simplifiedVersion.length) {
-		return { message: () => `expected ${treeNodes.length} nodes, ${simplifiedVersion.length} found in ${tree.type}`, pass: false };
-	}
-
-	const simplifiedTree = simplifyTree(treeNodes);
-
-	try {
-		expect(simplifiedTree).toStrictEqual(simplifiedVersion);
-
-		return {pass: true, message: () => 'they match'};
-	} catch {
-		let diff = diffString(simplifiedVersion, simplifiedTree);
-		// console.debug(inspect(simplifiedVersion, {depth: null}));
-		// console.debug(inspect(simplifiedTree, {depth: null}));
-
-		return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff: ${diff}`};
-		// return {pass: false, message: () => `they do not match.\nExpected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(simplifiedTree)}`};
+			if (typeof simplifiedVersion === 'undefined') {
+				return {message: () => `child nodes expected, found none`, pass: false};
+			}
+		
+			// the lengths should be equal
+			if (treeNodes.length !== simplifiedVersion.length) {
+				return { message: () => `expected ${treeNodes.length} nodes, ${simplifiedVersion.length} found in ${treeResult.value.type}`, pass: false };
+			}
+		
+			const simplifiedTree = simplifyTree(treeNodes);
+		
+			try {
+				expect(simplifiedTree).toStrictEqual(simplifiedVersion);
+		
+				return {pass: true, message: () => 'they match'};
+			} catch {
+				let diff = diffString(simplifiedVersion, simplifiedTree);
+		
+				return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff: ${diff}`};
+			}
+			break;
+		case 'error':
+			return {pass: false, message: () => treeResult.error.message};
 	}
 };
 

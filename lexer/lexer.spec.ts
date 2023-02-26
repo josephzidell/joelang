@@ -1,8 +1,9 @@
+import { Result } from "../shared/result";
 import Lexer from "./lexer";
 import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from "./types";
 
 /** Shortcut method to `new Lexer(code).lexify()` */
-const lexify = (code: string): Token[] => new Lexer(code).getAllTokens();
+const lexify = (code: string): Result<Token[]> => new Lexer(code).getAllTokens();
 
 const unicodeIdentifiers = [
 	'ሀሎ', // amharic
@@ -222,14 +223,17 @@ describe('lexer.ts', (): void => {
 	describe('line and col counts', (): void => {
 		it('works as it should', (): void => {
 			// this uses toStrictEqual() rather than toMatchTokens() in order to check the counts
-			expect(lexify(" foo ? \n''\n   23^e5")).toStrictEqual([
-				{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
-				{ type: 'question', start: 5, end: 6, value: '?', line: 1, col: 6 },
-				{ type: 'string', start: 8, end: 10, value: '', line: 2, col: 1 },
-				{ type: 'number', start: 14, end: 16, value: '23', line: 3, col: 4 },
-				{ type: 'exponent', start: 16, end: 18, value: '^e', line: 3, col: 6 },
-				{ type: 'number', start: 18, end: 19, value: '5', line: 3, col: 8 },
-			])
+			expect(lexify(" foo ? \n''\n   23^e5")).toStrictEqual({
+				outcome: 'ok',
+				value: [
+					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
+					{ type: 'question', start: 5, end: 6, value: '?', line: 1, col: 6 },
+					{ type: 'string', start: 8, end: 10, value: '', line: 2, col: 1 },
+					{ type: 'number', start: 14, end: 16, value: '23', line: 3, col: 4 },
+					{ type: 'exponent', start: 16, end: 18, value: '^e', line: 3, col: 6 },
+					{ type: 'number', start: 18, end: 19, value: '5', line: 3, col: 8 },
+				]
+			} satisfies Result<Token[]>)
 		});
 	});
 

@@ -1,36 +1,43 @@
 #!/usr/bin/env node
 
-import Lexer from "./lexer/lexer";
-import LexerError from "./lexer/error";
 import fs from 'fs-extra';
+import LexerError from "./lexer/error";
+import Lexer from "./lexer/lexer";
 
 void (async (): Promise<void> => {
 	const command = process.argv[2];
 
 	switch (command) {
 		case 'lexify':
-			try {
-				const [, , , sourceCode, outputFile] = process.argv;
+			const [, , , sourceCode, outputFile] = process.argv;
 
-				const tokens = new Lexer(sourceCode).getAllTokens();
+			const tokensResult = new Lexer(sourceCode).getAllTokens();
+			if (tokensResult.outcome === 'error') {
+				const error = tokensResult.error as LexerError;
 
-				// filename is 3rd arg
-				if (outputFile) {
-					await fs.writeFile(outputFile, JSON.stringify(tokens, undefined, '\t'));
-				} else {
-					console.table(tokens);
-				}
-			} catch (e) {
-				const error = e as LexerError;
-
-				console.log(`Error: ${error.message}`);
+				console.error(`Error: ${error.message}`);
 				if (typeof error.getTokens === 'function') {
-					console.debug('Extracted tokens:');
+					console.info('Extracted tokens:');
 					console.table(error.getTokens());
 				}
 
-				console.log('Stack Trace:');
+				console.groupCollapsed('Stack Trace:');
 				console.error(error.stack);
+				console.groupEnd();
+
+				process.exit(1);
+			}
+
+			if (tokensResult.value.length === 0) {
+				console.error('No source code found');
+				process.exit(1);
+			}
+
+			// filename is 3rd arg
+			if (outputFile) {
+				await fs.writeFile(outputFile, JSON.stringify(tokensResult.value, undefined, '\t'));
+			} else {
+				console.table(tokensResult.value);
 			}
 			break;
 	}

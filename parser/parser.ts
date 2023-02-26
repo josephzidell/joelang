@@ -1,15 +1,16 @@
-import { Token, TokenType, tokenTypesUsingSymbols } from "../lexer/types";
-import { LiteralTypes, Node, NT } from './types';
-import ParserError from './error';
-import { MakeIfStatementNode, MakeNode, MakeUnaryExpressionNode } from './node';
 import { inspect } from 'util';
-import _ from 'lodash';
 import Lexer from "../lexer/lexer";
+import { Token, tokenTypesUsingSymbols } from "../lexer/types";
+import ErrorContext from "../shared/errorContext";
+import { error, ok, Result } from "../shared/result";
+import ParserError, { ParserErrorCode } from './error';
+import { MakeIfStatementNode, MakeNode, MakeUnaryExpressionNode } from './node';
+import { Node, NT } from './types';
 
 export default class Parser {
 	prevToken: Token | undefined;
 
-	currentToken: Token | undefined;
+	currentToken: Result<Token> = error(new Error('No tokens found'));
 
 	/** Root node of the Concrete Syntax Tree (CST) */
 	root: Node;
@@ -74,6 +75,23 @@ export default class Parser {
 		}
 	}
 
+	getErrorContext (): ErrorContext {
+		switch (this.currentToken.outcome) {
+			case 'ok':
+				return new ErrorContext(
+					this.lexer.code,
+					this.currentToken.value.line,
+					this.currentToken.value.col,
+				);
+				break;
+			case 'error':
+				// we have no information about the line or col
+				// since line and col are 1-based, 0 can have special meaning,
+				// perhaps a more fundamental issue with parsing the script
+				return new ErrorContext(this.lexer.code, 0, 0);
+		}
+	}
+
 	public lineage(node: Node | undefined, separator = '>'): string {
 		if (typeof node === 'undefined') {
 			return 'end';
@@ -82,14 +100,17 @@ export default class Parser {
 		return `${node.type}${separator}${this.lineage(node.parent, separator)}`;
 	}
 
-	public parse(): Node {
+	public parse(): Result<Node> {
 		do {
 			this.currentToken = this.getNextToken();
-			if (typeof this.currentToken === 'undefined') {
-				break;
+			if (this.currentToken.outcome === 'error') {
+				return error(this.currentToken.error);
 			}
 
-			const token = this.currentToken;
+			const token = this.currentToken.value;
+			if (token.type === 'eof') {
+				return ok(this.root);
+			}
 
 			if (this.debug) {
 				console.debug(`Found token type "${token.type}" with value "${token.value}"`);
@@ -114,8 +135,12 @@ export default class Parser {
 						if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.Typed] as NT[]).includes(twoBack?.type)) {
 							// we're in a CallExpression after the GenericTypesList
 							const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
-							this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
-							this.adoptNode(this.currentRoot, prev, callExpressionNode);
+							let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
+							if (wasAdopted.outcome === 'error') {
+								return error(wasAdopted.error);
+							}
+
+							wasAdopted = this.adoptNode(this.currentRoot, prev, callExpressionNode);
 							this.beginExpressionWith(callExpressionNode);
 						}
 
@@ -306,7 +331,10 @@ export default class Parser {
 				this.addNode(MakeNode(NT.AssignmentOperator, token, this.currentRoot, true));
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn(NT.UnaryExpression);
-				this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token, this.prev());
+				if (result.outcome === 'error') {
+					return result;
+				}
 			} else if (token.type === 'minus') {
 				if (this.currentRoot.children.length > 0 &&
 					this.nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
@@ -437,7 +465,10 @@ export default class Parser {
 					this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
 
 				} else {
-					this.handleBinaryExpression(token, prev);
+					const result = this.handleBinaryExpression(token, prev);
+					if (result.outcome === 'error') {
+						return result;
+					}
 				}
 			} else if (token.type === 'type') {
 				this.addNode(MakeNode(NT.Type, token, this.currentRoot));
@@ -642,7 +673,7 @@ export default class Parser {
 						break;
 					case 'class':
 						// the ClassDeclaration may have already started with some Modifier(s)
-						let classNode: Node;
+						let classNode: Result<Node>;
 						if (this.currentRoot.type === NT.ModifiersList) {
 							if (this.debug) {
 								console.debug('Currently there is a ModifiersList open; now beginning ClassDeclaration and adopting the ModifiersList');
@@ -654,14 +685,18 @@ export default class Parser {
 								console.debug('There is no ModifiersList open; now beginning a ClassDeclaration');
 							}
 
-							classNode = this.beginExpressionWith(MakeNode(NT.ClassDeclaration, token, this.currentRoot, true));
+							// beginExpressionWith doesn't result a Result<>
+							classNode = ok(this.beginExpressionWith(MakeNode(NT.ClassDeclaration, token, this.currentRoot, true)));
 						}
 
-						this.adoptPrecedingJoeDocIfPresent(classNode);
+						switch (classNode.outcome) {
+							case 'ok': this.adoptPrecedingJoeDocIfPresent(classNode.value); break;
+							case 'error': return error(classNode.error); break;
+						}
 						break;
 					case 'const':
 					case 'let':
-						let variableNode: Node;
+						let variableNode: Result<Node>;
 
 						// the VariableDeclaration may have already started with some Modifier(s)
 						if (this.currentRoot.type === NT.ModifiersList) {
@@ -675,10 +710,13 @@ export default class Parser {
 								console.debug('There is no ModifiersList open; now beginning a VariableDeclaration');
 							}
 
-							variableNode = this.beginExpressionWith(MakeNode(NT.VariableDeclaration, token, this.currentRoot));
+							variableNode = ok(this.beginExpressionWith(MakeNode(NT.VariableDeclaration, token, this.currentRoot)));
 						}
 
-						this.adoptPrecedingJoeDocIfPresent(variableNode);
+						switch (variableNode.outcome) {
+							case 'ok': this.adoptPrecedingJoeDocIfPresent(variableNode.value); break;
+							case 'error': return error(variableNode.error); break;
+						}
 						break;
 					case 'break':
 						this.addNode(MakeNode(NT.BreakStatement, token, this.currentRoot, true));
@@ -689,7 +727,12 @@ export default class Parser {
 						// A subsequent IfStatement will do the same
 						// Just check if we're in an IfStatement
 						if (this.currentRoot.type !== NT.IfStatement) {
-							throw new ParserError('`else` keyword is used with if statements', this.currentRoot);
+							return error(new ParserError(
+								ParserErrorCode.MisplacedKeyword,
+								'`else` keyword is used with if statements',
+								this.currentRoot,
+								this.getErrorContext(),
+							));
 						}
 						break;
 					case 'extends':
@@ -698,12 +741,17 @@ export default class Parser {
 						} else if (this.currentRoot.type === NT.InterfaceDeclaration) {
 							this.beginExpressionWith(MakeNode(NT.InterfaceExtensionsList, token, this.currentRoot, true));
 						} else {
-							throw new ParserError('`extends` keyword is used for a Class or Interface to extend another', this.currentRoot);
+							return error(new ParserError(
+								ParserErrorCode.MisplacedKeyword,
+								'`extends` keyword is used for a Class or Interface to extend another',
+								this.currentRoot,
+								this.getErrorContext(),
+							));
 						}
 						break;
 					case 'f':
 						// the FunctionDeclaration may have already started with a Modifier
-						let fNode: Node;
+						let fNode: Result<Node>;
 						if (this.currentRoot.type === NT.ModifiersList) {
 							if (this.debug) {
 								console.debug('Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList');
@@ -715,10 +763,13 @@ export default class Parser {
 								console.debug('There is no ModifiersList open; now beginning a FunctionDeclaration');
 							}
 
-							fNode = this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true));
+							fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)));
 						}
 
-						this.adoptPrecedingJoeDocIfPresent(fNode);
+						switch (fNode.outcome) {
+							case 'ok': this.adoptPrecedingJoeDocIfPresent(fNode.value); break;
+							case 'error': return error(fNode.error); break;
+						}
 						break;
 					case 'for':
 						this.beginExpressionWith(MakeNode(NT.ForStatement, token, this.currentRoot, true));
@@ -797,13 +848,13 @@ export default class Parser {
 				// this should eventually turn into an error
 				this.addNode(MakeNode(NT.Unknown, token, this.currentRoot));
 			}
-		} while (typeof this.currentToken !== 'undefined');
+		} while (this.currentToken.outcome === 'ok');
 
 		if (this.debug) {
 			console.debug(inspect(this.root, { showHidden: true, depth: null }));
 		}
 
-		return this.root;
+		return ok(this.root);
 	}
 
 	/**
@@ -812,14 +863,20 @@ export default class Parser {
 	 * @param applicableNode for Class, Function, Interface, or Variable
 	 * @returns the applicableNode regardless
 	 */
-	private adoptPrecedingJoeDocIfPresent(applicableNode: Node): Node {
-		const maybeJoeDoc = this.currentRoot.parent?.children.at(-2);
+	private adoptPrecedingJoeDocIfPresent(applicableNode: Node): Result<Node> {
 		// grab preceding JoeDoc, if any
-		if (typeof maybeJoeDoc !== 'undefined' && maybeJoeDoc?.type === NT.JoeDoc) {
-			this.adoptNode(this.currentRoot.parent, maybeJoeDoc, applicableNode);
+		const prevNode = this.currentRoot.parent?.children.at(-2);
+
+		// if can't find, that's ok and just return
+		if (typeof prevNode === 'undefined' || prevNode?.type !== NT.JoeDoc) {
+			return ok(applicableNode);
 		}
 
-		return applicableNode;
+		const wasAdopted = this.adoptNode(this.currentRoot.parent, prevNode, applicableNode);
+		switch (wasAdopted.outcome) {
+			case 'ok': return ok(applicableNode); break;
+			case 'error': return error(wasAdopted.error); break;
+		}
 	}
 
 	/**
@@ -828,16 +885,16 @@ export default class Parser {
 	 * @param token Current token
 	 * @param prev Previous Node
 	 */
-	private handleBinaryExpression(token: Token, prev: Node | undefined) {
+	private handleBinaryExpression(token: Token, prev: Node | undefined): Result<Node> {
 		if (this.currentRoot.type === NT.BinaryExpression && ['and', 'or'].includes(token.type)) {
 			// && and || have higher order precedence than equality checks
-			this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
 		} else if (prev?.type === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
-			this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
 		} else if (prev?.type === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-			this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
 		} else {
-			this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot), 'a value');
+			return this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot), 'a value');
 		}
 	}
 
@@ -868,7 +925,7 @@ export default class Parser {
 	 *
 	 * @returns the next token
 	 */
-	private getNextToken(): Token | undefined {
+	private getNextToken(): Result<Token> {
 		return this.lexer.getToken();
 	}
 
@@ -929,9 +986,9 @@ export default class Parser {
 	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
 	 * @returns - newKid
 	 *
-	 * @throws Error if there is no previous node
+	 * @returns A response error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Node {
+	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Result<Node> {
 		return this.beginExpressionWithAdopting(newKid, this.prev(), whatWeExpectInPrevNode);
 	}
 
@@ -974,9 +1031,9 @@ export default class Parser {
 	 * @param newKid - To begin the expression with
 	 * @returns - newKid
 	 *
-	 * @throws Error if there is no previous node
+	 * @returns A response error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingCurrentRoot(newKid: Node): Node {
+	private beginExpressionWithAdoptingCurrentRoot(newKid: Node): Result<Node> {
 		return this.beginExpressionWithAdopting(newKid, this.currentRoot);
 	}
 
@@ -988,9 +1045,14 @@ export default class Parser {
  	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
 	 * @returns - newKid
 	 */
-	private beginExpressionWithAdopting(newKid: Node, adoptee: Node | undefined, whatWeExpectInPrevNode?: string): Node {
+	private beginExpressionWithAdopting(newKid: Node, adoptee: Node | undefined, whatWeExpectInPrevNode?: string): Result<Node> {
 		if (typeof adoptee === 'undefined') {
-			throw new ParserError(`"${newKid.value}" is a ${newKid.type} and we hoped to find ${whatWeExpectInPrevNode || 'something'} before it, but alas!`, this.currentRoot);
+			return error(new ParserError(
+				ParserErrorCode.MissingPreviousNode,
+				`"${newKid.value}" is a ${newKid.type} and we hoped to find ${whatWeExpectInPrevNode || 'something'} before it, but alas!`,
+				this.currentRoot,
+				this.getErrorContext(),
+			));
 		}
 
 		if (this.debug) {
@@ -1002,21 +1064,25 @@ export default class Parser {
 
 		// this.currentRoot will be reassigned toward the end
 
-		this.adoptNode(adopteesParent, adoptee, newKid);
+		const wasAdopted = this.adoptNode(adopteesParent, adoptee, newKid);
+		switch (wasAdopted.outcome) {
+			case 'ok':
+				// (c) Attach newKid to currentRoot's parent's children
+				adopteesParent.children.push(newKid);
+				newKid.parent = adopteesParent;
 
-		// (c) Attach newKid to currentRoot's parent's children
-		adopteesParent.children.push(newKid);
-		newKid.parent = adopteesParent;
+				// (d) Update this.currentRoot = newKid
+				// The currentRoot is dead (well, not really). Long live the currentRoot.
+				this.currentRoot = newKid;
 
-		// (d) Update this.currentRoot = newKid
-		// The currentRoot is dead (well, not really). Long live the currentRoot.
-		this.currentRoot = newKid;
+				if (this.debug) {
+					console.debug(`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`);
+				}
 
-		if (this.debug) {
-			console.debug(`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`);
+				return ok(newKid);
+			case 'error':
+				return error(wasAdopted.error);
 		}
-
-		return newKid;
 	}
 
 	/**
@@ -1029,9 +1095,14 @@ export default class Parser {
 	 * @param childIndex - Of the child up for adoption
 	 * @param adopter - The adopter
 	 */
-	 private adoptNode(adopteesParent: Node | undefined, adoptee: Node, adopter: Node): void {
+	 private adoptNode(adopteesParent: Node | undefined, adoptee: Node, adopter: Node): Result<undefined> {
 		if (typeof adopteesParent === 'undefined') {
-			throw new ParserError('Cannot find parent node', this.currentRoot);
+			return error(new ParserError(
+				ParserErrorCode.MissingParentNode,
+				'Cannot find parent node',
+				this.currentRoot,
+				this.getErrorContext(),
+			));
 		}
 
 		// make a copy to avoid circular reference issues
@@ -1049,6 +1120,8 @@ export default class Parser {
 		// (b) Attach currentRoot to newKid's children
 		adopter.children.push(copy);
 		copy.parent = adopter;
+
+		return ok(undefined);
 	}
 
 	/**

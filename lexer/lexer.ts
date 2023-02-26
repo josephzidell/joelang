@@ -1,5 +1,7 @@
+import ErrorContext from "../shared/errorContext";
+import { error, ok, Result } from "../shared/result";
 import LexerError from "./error";
-import { Token, TokenType, keywords, patterns, specialValueTypes, types } from './types';
+import { keywords, patterns, specialValueTypes, Token, TokenType, types } from './types';
 import { regexFlags, standardizeLineEndings } from "./util";
 
 export default class Lexer {
@@ -40,10 +42,6 @@ export default class Lexer {
 	 * @param code - Source code
 	 */
 	constructor(code: string) {
-		if (typeof code !== 'string' || code.length === 0) {
-			throw new LexerError('No source code found', this.tokens);
-		}
-
 		this.code = code;
 
 		// fix line endings
@@ -55,11 +53,18 @@ export default class Lexer {
 	 *
 	 * @returns a Token
 	 */
-	getToken(): Token | undefined {
+	getToken(): Result<Token> {
 		// get a char
 		this.char = this.code[this.cursorPosition];
 		if (typeof this.char === 'undefined') {
-			return undefined;
+			return ok({
+				type: 'eof',
+				start: this.cursorPosition,
+				end: this.cursorPosition,
+				value: this.char,
+				line: this.line,
+				col: this.col,
+			});
 		}
 
 		// joelang ignores whitespace
@@ -68,7 +73,14 @@ export default class Lexer {
 
 			this.char = this.code[this.cursorPosition];
 			if (typeof this.char === 'undefined') {
-				return undefined;
+				return ok({
+					type: 'eof',
+					start: this.cursorPosition,
+					end: this.cursorPosition,
+					value: this.char,
+					line: this.line,
+					col: this.col,
+				});
 			}
 		}
 
@@ -127,14 +139,14 @@ export default class Lexer {
 				this.tokens.push({ type: 'regex', start, end: this.cursorPosition, value, line, col });
 			}, line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Hash */
 		if (this.char === patterns.HASH) {
 			this.processSingleLineComment();
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/**
@@ -146,7 +158,7 @@ export default class Lexer {
 				[patterns.EQUALS]: 'plus_equals',
 			}, 'plus', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.MINUS) {
@@ -156,7 +168,7 @@ export default class Lexer {
 				[patterns.GREATER_THAN]: 'right_arrow',
 			}, 'minus', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.ASTERISK) {
@@ -164,7 +176,7 @@ export default class Lexer {
 				[patterns.EQUALS]: 'asterisk_equals',
 			}, 'asterisk', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.MOD) {
@@ -172,7 +184,7 @@ export default class Lexer {
 				[patterns.EQUALS]: 'mod_equals',
 			}, 'mod', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.PIPE) {
@@ -181,7 +193,7 @@ export default class Lexer {
 				[patterns.GREATER_THAN]: 'triangle_close',
 			}, undefined, line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.AMPERSAND) {
@@ -189,7 +201,7 @@ export default class Lexer {
 				[patterns.AMPERSAND]: 'and',
 			}, undefined, line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Other operators */
@@ -198,7 +210,7 @@ export default class Lexer {
 				[patterns.EQUALS]: 'equals',
 			}, 'assign', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.BANG) {
@@ -206,7 +218,7 @@ export default class Lexer {
 				[patterns.EQUALS]: 'not_equals',
 			}, 'bang', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.LESS_THAN) {
@@ -219,7 +231,7 @@ export default class Lexer {
 				[patterns.PIPE]: 'triangle_open',
 			}, 'less_than', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.GREATER_THAN) {
@@ -227,14 +239,14 @@ export default class Lexer {
 				[patterns.EQUALS]: 'greater_than_equals',
 			}, 'greater_than', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Numbers */
 		if (this.matchesRegex(patterns.DIGITS, this.char)) {
 			this.processNumbers();
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/**
@@ -258,7 +270,7 @@ export default class Lexer {
 				e: 'exponent',
 			}, 'caret', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Strings */
@@ -294,20 +306,20 @@ export default class Lexer {
 
 			this.next();
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.SEMICOLON) {
 			this.tokens.push({ type: 'semicolon', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
 			this.next();
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Single Character Tokens */
 		if (typeof this.singleCharTokens[this.char] !== 'undefined') {
 			this.tokens.push({ type: this.singleCharTokens[this.char], start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
 			this.next();
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Letters or unicode */
@@ -331,7 +343,7 @@ export default class Lexer {
 				this.tokens.push({ type, start, end: this.cursorPosition, value, line, col });
 			}
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/**
@@ -353,7 +365,7 @@ export default class Lexer {
 				},
 			}, 'dot', line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.AT) {
@@ -361,25 +373,33 @@ export default class Lexer {
 				[patterns.FORWARD_SLASH]: () => this.processPath(),
 			}, undefined, line, col);
 
-			return this.tokens.at(-1);
+			return ok(this.tokens.at(-1) as Token);
 		}
 
 		// something we don't recognize
-		throw new LexerError('Syntax Error. Unknown character: "' + this.char + '"', this.tokens);
+		return error(new LexerError('Syntax Error. Unknown character: "' + this.char + '"', this.tokens, this.getErrorContext()));
 	}
 
-	public getAllTokens(): Token[] {
+	public getAllTokens(): Result<Token[]> {
 		const tokens: Token[] = [];
 
 		let currentToken = this.getToken();
-		while (typeof currentToken !== 'undefined') {
-			tokens.push(currentToken);
+		while (currentToken.outcome !== 'error') {
+			if (currentToken.value.type === 'eof') {
+				return ok(tokens);
+			}
+			
+			tokens.push(currentToken.value);
 
 			// get next
 			currentToken = this.getToken();
 		}
 
-		return tokens;
+		if (currentToken.outcome === 'error') {
+			return error(currentToken.error);
+		}
+
+		return ok(tokens);
 	}
 
 	/**
@@ -406,12 +426,12 @@ export default class Lexer {
 	 * ```
 	 *
 	 * @param mapNextChar - mapping of the next possible char with what to do: a string means it's a token type, or a callback to run (in that case, we don't call this.next())
-	 * @param fallback - token type to fall back on if none of the next chars match. May be undefined. In that case, if we cannot find a valid next character and the fallback is undefined, an error will be thrown
+	 * @param fallback - token type to fall back on if none of the next chars match. May be undefined. In that case, if we cannot find a valid next character and the fallback is undefined, a result error will be returned
 	 * @param line - of the token
 	 * @param col - of the token
 	 * @param level - which level is this being called at. This defaults to 1, and equals the number chars to process for the fallback case. Each time this method is nested, increase this.
 	 *
-	 * @throws Error if fallback is undefined and next char isn't defined in the map
+	 * @returns Result error if fallback is undefined and next char isn't defined in the map
 	 */
 	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | (() => void) | undefined, line: number, col: number, level = 1) {
 		const nextChar = this.peek(level);
@@ -463,7 +483,11 @@ export default class Lexer {
 			// if fallback is undefined and the next character isn't accounted for
 		} else {
 			// something we don't recognize
-			throw new LexerError('Syntax Error. Unknown syntax: "' + this.code.substring(this.cursorPosition, this.cursorPosition + level) + '"', this.tokens);
+			return error(new LexerError(
+				'Syntax Error. Unknown syntax: "' + this.code.substring(this.cursorPosition, this.cursorPosition + level) + '"',
+				this.tokens,
+				this.getErrorContext(),
+			));
 		}
 	}
 
@@ -624,5 +648,9 @@ export default class Lexer {
 
 		let value = this.gobbleUntil(() => this.matchesRegex(patterns.NEWLINE, this.char));
 		this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value, line, col });
+	}
+
+	getErrorContext (): ErrorContext {
+		return new ErrorContext(this.code, this.line, this.col);
 	}
 }

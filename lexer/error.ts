@@ -1,3 +1,4 @@
+import ErrorContext from '../shared/errorContext';
 import { Token } from './types';
 
 /**
@@ -6,14 +7,20 @@ import { Token } from './types';
  */
 export default class LexerError extends TypeError {
 	private tokens;
+	private context;
 
-	constructor (message: string, tokens: Token[]) {
+	constructor (message: string, tokens: Token[], context: ErrorContext) {
 		super(message);
 
 		this.tokens = tokens;
+		this.context = context;
 	}
 
 	getTokens (): Token[] {
 		return this.tokens;
+	}
+
+	getContext (): ErrorContext {
+		return this.context;
 	}
 }

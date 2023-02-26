@@ -1,11 +1,12 @@
-import Lexer from '../lexer/lexer';
+import assert from 'node:assert/strict';
 import { types } from '../lexer/types';
+import '../setupJest'; // for the types
+import { Result } from '../shared/result';
 import Parser from './parser';
 import { Node, NT } from './types';
-import '../setupJest'; // for the types
 
 /** Shortcut method to `new Parser(new Lexer(code).lexify()).parse()` */
-const parse = (code: string): Node => new Parser(code).parse();
+const parse = (code: string): Result<Node> => new Parser(code).parse();
 
 const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NT) => {
 	// 2 numbers
@@ -2181,8 +2182,12 @@ describe('parser.ts', (): void => {
 			describe('<=>', () => {
 
 				// outside of a class
-				it('<=> as function name outside of a class should throw a ParserError', (): void => {
-					expect(() => parse(`f <=> {}`)).toThrowError('"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!');
+				it('<=> as function name outside of a class should return a response ParserError', (): void => {
+					const result = parse(`f <=> {}`);
+
+					// use assert instead of expect, since we need TS to narrow the type
+					assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+					expect(result.error.message).toBe('"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!');
 				});
 
 				// in a class
