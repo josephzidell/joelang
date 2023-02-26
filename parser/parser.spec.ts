@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import { types } from '../lexer/types';
 import '../setupJest'; // for the types
-import { Result } from '../shared/result';
-import Parser from './parser';
-import { Node, NT } from './types';
-
-/** Shortcut method to `new Parser(new Lexer(code).lexify()).parse()` */
-const parse = (code: string): Result<Node> => new Parser(code).parse();
+import { NT } from './types';
+import { parse } from './util';
 
 const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NT) => {
 	// 2 numbers

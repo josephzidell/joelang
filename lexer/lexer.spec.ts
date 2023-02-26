@@ -1,9 +1,6 @@
 import { Result } from "../shared/result";
-import Lexer from "./lexer";
 import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from "./types";
-
-/** Shortcut method to `new Lexer(code).lexify()` */
-const lexify = (code: string): Result<Token[]> => new Lexer(code).getAllTokens();
+import { lexify } from "./util";
 
 const unicodeIdentifiers = [
 	'ሀሎ', // amharic

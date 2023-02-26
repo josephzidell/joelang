@@ -8,10 +8,14 @@ export default class ErrorContext {
 	/** position on the line begins at one and resets each time the line changes */
 	col = 1;
 
-	constructor (code: string, line: number, col: number) {
+	/** The length of the erroneous code, or how many ^^^s to use */
+	length = 1;
+
+	constructor (code: string, line: number, col: number, length: number) {
 		this.code = code;
 		this.line = line;
 		this.col = col;
+		this.length = length;
 	}
 
 	toStringArray (errorMessage: string): string[] {
@@ -59,7 +63,7 @@ export default class ErrorContext {
 			lineToString(currentLine),
 
 			// ^^^
-			`${prefix} ${' '.repeat(this.col - 1)}^ ${errorMessage}`,
+			`${prefix} ${' '.repeat(this.col - 1)}${'^'.repeat(this.length)} ${errorMessage}`,
 
 			// next line, if any
 			...nextLine ? [lineToString(nextLine)] : [],

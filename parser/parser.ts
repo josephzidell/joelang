@@ -51,7 +51,7 @@ export default class Parser {
 	];
 
 	lexer: Lexer;
-	
+
 	constructor(code: string, debug = false) {
 		this.lexer = new Lexer(code);
 
@@ -75,20 +75,21 @@ export default class Parser {
 		}
 	}
 
-	getErrorContext (): ErrorContext {
+	getErrorContext (length: number): ErrorContext {
 		switch (this.currentToken.outcome) {
 			case 'ok':
 				return new ErrorContext(
 					this.lexer.code,
 					this.currentToken.value.line,
 					this.currentToken.value.col,
+					length,
 				);
 				break;
 			case 'error':
 				// we have no information about the line or col
 				// since line and col are 1-based, 0 can have special meaning,
 				// perhaps a more fundamental issue with parsing the script
-				return new ErrorContext(this.lexer.code, 0, 0);
+				return new ErrorContext(this.lexer.code, 0, 0, 0);
 		}
 	}
 
@@ -125,7 +126,11 @@ export default class Parser {
 						if (this.currentRoot.type === NT.FunctionDeclaration) {
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
+							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
+							if (result.outcome === 'error') {
+								return result;
+							}
+
 							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
 						}
 						break;
@@ -155,7 +160,11 @@ export default class Parser {
 						}
 						break;
 					case NT.MemberExpression:
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
+						if (result.outcome === 'error') {
+							return result;
+						}
+
 						this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
 						break;
 					default:
@@ -255,11 +264,19 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
 				} else if (isNextABracketClose && (([NT.ArrayType, NT.Identifier, NT.ObjectType, NT.TupleType, NT.Type] as NT[]).includes(prevType))) { // TODO or member chain
 					// we have an array type
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayType, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayType, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+
 
 					// the second condition is to preclude this `{a: [1]}`
 				} else if (([NT.CallExpression, NT.Identifier, NT.MemberExpression] as NT[]).includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+
 					this.beginExpressionWith(MakeNode(NT.MembersList, token, this.currentRoot, true));
 				} else {
 					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
@@ -341,7 +358,10 @@ export default class Parser {
 					this.currentRoot.type !== NT.BinaryExpression && this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1..-2`
 				) {
 					this.endExpressionIfIn(NT.UnaryExpression);
-					this.handleBinaryExpression(token, this.prev());
+					const result = this.handleBinaryExpression(token, this.prev());
+					if (result.outcome === 'error') {
+						return result;
+					}
 				} else {
 					// otherwise this is a unary operator
 					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
@@ -352,19 +372,35 @@ export default class Parser {
 				const prev = this.prev();
 				if (prev?.type === NT.Identifier || prev?.type === NT.MemberExpression) {
 					// this is postfix
-					this.beginExpressionWithAdoptingPreviousNode(MakeUnaryExpressionNode(token, false, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeUnaryExpressionNode(token, false, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
+
 				} else {
 					// this is prefix
 					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 				}
 			} else if (token.type === 'asterisk') {
-				this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token, this.prev());
+				if (result.outcome === 'error') {
+					return result;
+				}
 			} else if (token.type === 'forward_slash') {
-				this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token, this.prev());
+				if (result.outcome === 'error') {
+					return result;
+				}
 			} else if (token.type === 'mod') {
-				this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token, this.prev());
+				if (result.outcome === 'error') {
+					return result;
+				}
 			} else if (token.type === 'exponent') {
-				this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+				const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+				if (result.outcome === 'error') {
+					return result;
+				}
 			} else if (token.type === 'semicolon') {
 				/**
 				 * this conditional is needed for situations like this
@@ -395,7 +431,11 @@ export default class Parser {
 					prev?.type === NT.Typed ||
 					(prev?.type === NT.Keyword && prev.value === 'this')
 				) {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+
 				}
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
@@ -414,14 +454,20 @@ export default class Parser {
 
 				} else if ([NT.ObjectExpression, NT.ObjectType].includes(this.currentRoot.type) && this.prev()?.type === NT.Identifier) {
 					// POJOs notation
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else {
 					if (this.currentRoot.type === NT.BlockStatement) {
 						// convert BlockStatement to an ObjectExpression and create a Property node
 						this.currentRoot.type = NT.ObjectExpression;
 
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+						if (result.outcome === 'error') {
+							return result;
+						}
 					} else {
 						this.addNode(MakeNode(NT.ColonSeparator, token, this.currentRoot));
 					}
@@ -488,13 +534,25 @@ export default class Parser {
 
 				// we need to go 2 levels up
 				if (this.currentRoot.type === NT.BinaryExpression || this.currentRoot.type === NT.Parenthesized) {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
 				} else if (prev?.type === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
 				} else if (prev?.type === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
 				}
 			} else if (token.type === 'triangle_open') {
 				/**
@@ -522,12 +580,18 @@ export default class Parser {
 
 				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
 					if (this.prev()?.type === NT.Identifier) {
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Typed, token, this.currentRoot, true));
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Typed, token, this.currentRoot, true));
+						if (result.outcome === 'error') {
+							return result;
+						}
 					}
 
 					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 				} else {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Typed, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Typed, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 					this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
 				}
@@ -583,14 +647,23 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
 
 				} else if (nodeTypesThatPrecedeABinaryExpression.includes(prevType)) {
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
 					// we need to go 2 levels up
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else if (prevType === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
 					this.beginExpressionWith(MakeNode(NT.TupleType, token, this.currentRoot, true));
@@ -619,7 +692,10 @@ export default class Parser {
 
 				} else if (prevType === NT.NumberLiteral) {
 					// if prev is a number, this is a comparison
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else if (prevType === NT.Identifier) {
 					/**
@@ -629,19 +705,31 @@ export default class Parser {
 					 */
 
 					// 'less than' BinaryExpression
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
 					// we need to go 2 levels up
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else if (prevType === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
 					// we need to go 2 levels up
-					this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 
 				} else {
 					// 'greater than' BinaryExpression
-					this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.outcome === 'error') {
+						return result;
+					}
 				}
 
 			} else if (token.type === 'keyword') {
@@ -690,6 +778,7 @@ export default class Parser {
 						}
 
 						switch (classNode.outcome) {
+							// do NOT return for ok bec if you do, it will exit the loop
 							case 'ok': this.adoptPrecedingJoeDocIfPresent(classNode.value); break;
 							case 'error': return error(classNode.error); break;
 						}
@@ -714,6 +803,7 @@ export default class Parser {
 						}
 
 						switch (variableNode.outcome) {
+							// do NOT return for ok bec if you do, it will exit the loop
 							case 'ok': this.adoptPrecedingJoeDocIfPresent(variableNode.value); break;
 							case 'error': return error(variableNode.error); break;
 						}
@@ -731,7 +821,7 @@ export default class Parser {
 								ParserErrorCode.MisplacedKeyword,
 								'`else` keyword is used with if statements',
 								this.currentRoot,
-								this.getErrorContext(),
+								this.getErrorContext(token.value.length),
 							));
 						}
 						break;
@@ -745,7 +835,7 @@ export default class Parser {
 								ParserErrorCode.MisplacedKeyword,
 								'`extends` keyword is used for a Class or Interface to extend another',
 								this.currentRoot,
-								this.getErrorContext(),
+								this.getErrorContext(token.value.length),
 							));
 						}
 						break;
@@ -767,6 +857,7 @@ export default class Parser {
 						}
 
 						switch (fNode.outcome) {
+							// do NOT return for ok bec if you do, it will exit the loop
 							case 'ok': this.adoptPrecedingJoeDocIfPresent(fNode.value); break;
 							case 'error': return error(fNode.error); break;
 						}
@@ -780,13 +871,16 @@ export default class Parser {
 						const prev = this.prev();
 						if (prev?.type === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
 							// this is after, therefore take the CallExpression, array element, or Property
-							this.beginExpressionWithAdoptingPreviousNode(MakeIfStatementNode(token, false, this.currentRoot));
+							const result = this.beginExpressionWithAdoptingPreviousNode(MakeIfStatementNode(token, false, this.currentRoot));
+							if (result.outcome === 'error') {
+								return result;
+							}
 						} else {
 							// this is before
 
 							// if prev token is 'else', this IfStatement goes into current node
 							// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
-							
+
 							// the token is already ready for the next, so we need to go 2 back
 							const prevToken = this.lexer.prevToken(2);
 							if (this.currentRoot.type === NT.IfStatement && typeof prevToken !== 'undefined' && !(prevToken.type === 'keyword' && prevToken.value === 'else')) {
@@ -809,14 +903,25 @@ export default class Parser {
 						this.beginExpressionWith(MakeNode(NT.ImportDeclaration, token, this.currentRoot, true));
 						break;
 					case 'interface':
-						const interfaceNode = this.beginExpressionWith(MakeNode(NT.InterfaceDeclaration, token, this.currentRoot, true));
-						this.adoptPrecedingJoeDocIfPresent(interfaceNode);
+						{
+							const interfaceNode = this.beginExpressionWith(MakeNode(NT.InterfaceDeclaration, token, this.currentRoot, true));
+							const result = this.adoptPrecedingJoeDocIfPresent(interfaceNode);
+							// do NOT return for ok bec if you do, it will exit the loop
+							if (result.outcome === 'error') {
+								return result;
+							}
+						}
 						break;
 					case 'loop':
 						this.beginExpressionWith(MakeNode(NT.Loop, token, this.currentRoot, true));
 						break;
 					case 'or':
-						this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+						{
+							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+							if (result.outcome === 'error') {
+								return result;
+							}
+						}
 						break;
 					case 'print':
 						this.beginExpressionWith(MakeNode(NT.PrintStatement, token, this.currentRoot, true));
@@ -840,8 +945,20 @@ export default class Parser {
 			} else if (token.type === 'path') {
 				this.addNode(MakeNode(NT.Path, token, this.currentRoot));
 			} else if (token.type === 'question') {
-				this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.TernaryExpression, token, this.currentRoot, true));
-				this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.TernaryCondition, token, this.currentRoot, true));
+				{
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.TernaryExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+				}
+
+				{
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.TernaryCondition, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+				}
+
 				this.endExpression(); // end the TernaryCondition
 				this.beginExpressionWith(MakeNode(NT.TernaryThen, token, this.currentRoot, true));
 			} else {
@@ -1051,7 +1168,7 @@ export default class Parser {
 				ParserErrorCode.MissingPreviousNode,
 				`"${newKid.value}" is a ${newKid.type} and we hoped to find ${whatWeExpectInPrevNode || 'something'} before it, but alas!`,
 				this.currentRoot,
-				this.getErrorContext(),
+				this.getErrorContext((newKid.value || '').length),
 			));
 		}
 
@@ -1101,7 +1218,7 @@ export default class Parser {
 				ParserErrorCode.MissingParentNode,
 				'Cannot find parent node',
 				this.currentRoot,
-				this.getErrorContext(),
+				this.getErrorContext((adoptee.value || '').length),
 			));
 		}
 

@@ -61,7 +61,7 @@ export default class Lexer {
 				type: 'eof',
 				start: this.cursorPosition,
 				end: this.cursorPosition,
-				value: this.char,
+				value: '',
 				line: this.line,
 				col: this.col,
 			});
@@ -77,7 +77,7 @@ export default class Lexer {
 					type: 'eof',
 					start: this.cursorPosition,
 					end: this.cursorPosition,
-					value: this.char,
+					value: '',
 					line: this.line,
 					col: this.col,
 				});
@@ -97,28 +97,34 @@ export default class Lexer {
 		 * - The beginning of a regular expression
 		 */
 		if (this.char === patterns.FORWARD_SLASH) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.EQUALS]: 'forward_slash_equals',
-				[patterns.FORWARD_SLASH]: () => this.processSingleLineComment(),
-				[patterns.ASTERISK]: () => {
+				[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processSingleLineComment()),
+				[patterns.ASTERISK]: (): Result<Token> => {
 					// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
 					let value = this.gobbleUntil(() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH);
 
 					// skip the trailing asterisk and slash
 					this.cursorPosition += 2;
 					this.col += 2;
-					this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col });
+
+					const token: Token = { type: 'comment', start, end: this.cursorPosition, value: value + '*/', line, col };
+					this.tokens.push(token);
+
+					return ok(token);
 				},
-			}, () => {
+			}, (): Token => {
 				// these tokens precede a forward slash, so if they're found, this is NOT a regular expression
 				const tokensThatPrecedeForwardSlash: TokenType[] = ['bracket_close', 'identifier', 'number', 'paren_close'];
 				const prevToken = this.prevToken();
 				const nextChar = this.peek();
 				if ((typeof prevToken !== 'undefined' && tokensThatPrecedeForwardSlash.includes(prevToken.type)) || typeof nextChar === 'undefined' || this.matchesRegex(patterns.WHITESPACE, nextChar)) {
-					this.tokens.push({ type: 'forward_slash', start, end: this.cursorPosition + 1, value: '/', line, col });
+					const token: Token = { type: 'forward_slash', start, end: this.cursorPosition + 1, value: '/', line, col };
+					this.tokens.push(token);
+
 					this.next();
 
-					return;
+					return token;
 				}
 
 				// regular expression
@@ -136,117 +142,94 @@ export default class Lexer {
 					// check for flags
 					+ this.gobbleAsLongAs(() => regexFlags.includes(this.char));
 
-				this.tokens.push({ type: 'regex', start, end: this.cursorPosition, value, line, col });
-			}, line, col);
+				const token: Token = { type: 'regex', start, end: this.cursorPosition, value, line, col };
+				this.tokens.push(token);
 
-			return ok(this.tokens.at(-1) as Token);
+				return token;
+			}, line, col);
 		}
 
 		/** Hash */
 		if (this.char === patterns.HASH) {
-			this.processSingleLineComment();
-
-			return ok(this.tokens.at(-1) as Token);
+			return ok(this.processSingleLineComment());
 		}
 
 		/**
 		 * Operator characters that can be single or double: + ++, - --, | ||, & &&, ? ??
 		 */
 		if (this.char === patterns.PLUS) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.PLUS]: 'plus_plus',
 				[patterns.EQUALS]: 'plus_equals',
 			}, 'plus', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.MINUS) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.MINUS]: 'minus_minus',
 				[patterns.EQUALS]: 'minus_equals',
 				[patterns.GREATER_THAN]: 'right_arrow',
 			}, 'minus', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.ASTERISK) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.EQUALS]: 'asterisk_equals',
 			}, 'asterisk', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.MOD) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.EQUALS]: 'mod_equals',
 			}, 'mod', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.PIPE) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.PIPE]: 'or',
 				[patterns.GREATER_THAN]: 'triangle_close',
 			}, undefined, line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.AMPERSAND) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.AMPERSAND]: 'and',
 			}, undefined, line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Other operators */
 		if (this.char === patterns.EQUALS) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.EQUALS]: 'equals',
 			}, 'assign', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.BANG) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.EQUALS]: 'not_equals',
 			}, 'bang', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.LESS_THAN) {
-			this.peekAndHandle({
-				[patterns.EQUALS]: () => {
-					this.peekAndHandle({
+			return this.peekAndHandle({
+				[patterns.EQUALS]: (): Result<Token> => {
+					return this.peekAndHandle({
 						[patterns.GREATER_THAN]: 'compare', // <=>
 					}, 'less_than_equals', line, col, 2);
 				},
 				[patterns.PIPE]: 'triangle_open',
 			}, 'less_than', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.GREATER_THAN) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				[patterns.EQUALS]: 'greater_than_equals',
 			}, 'greater_than', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Numbers */
 		if (this.matchesRegex(patterns.DIGITS, this.char)) {
-			this.processNumbers();
-
-			return ok(this.tokens.at(-1) as Token);
+			return ok(this.processNumbers());
 		}
 
 		/**
@@ -266,11 +249,9 @@ export default class Lexer {
 		 * if it's a caret, we check the previous and next chars
 		 */
 		if (this.char === patterns.CARET) {
-			this.peekAndHandle({
+			return this.peekAndHandle({
 				e: 'exponent',
 			}, 'caret', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		/** Strings */
@@ -302,24 +283,31 @@ export default class Lexer {
 			}
 
 			// skip the closing quote char
-			this.tokens.push({ type: 'string', start, end: this.cursorPosition + 1, value, line, col });
+			const token: Token = { type: 'string', start, end: this.cursorPosition + 1, value, line, col };
+			this.tokens.push(token);
 
 			this.next();
 
-			return ok(this.tokens.at(-1) as Token);
+			return ok(token);
 		}
 
 		if (this.char === patterns.SEMICOLON) {
-			this.tokens.push({ type: 'semicolon', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+			const token: Token = { type: 'semicolon', start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col };
+			this.tokens.push(token);
+
 			this.next();
-			return ok(this.tokens.at(-1) as Token);
+
+			return ok(token);
 		}
 
 		/** Single Character Tokens */
 		if (typeof this.singleCharTokens[this.char] !== 'undefined') {
-			this.tokens.push({ type: this.singleCharTokens[this.char], start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col });
+			const token: Token = { type: this.singleCharTokens[this.char], start: this.cursorPosition, end: this.cursorPosition + 1, value: this.char, line, col };
+			this.tokens.push(token);
+
 			this.next();
-			return ok(this.tokens.at(-1) as Token);
+
+			return ok(token);
 		}
 
 		/** Letters or unicode */
@@ -333,17 +321,20 @@ export default class Lexer {
 
 			// check if it's a keyword, then check if it's a special value, otherwise it's an identifier
 			// keywords in joelang are case sensitive
+			let token: Token;
 			if ((keywords as unknown as string[]).includes(value)) {
-				this.tokens.push({ type: 'keyword', start, end: this.cursorPosition, value, line, col });
+				token = { type: 'keyword', start, end: this.cursorPosition, value, line, col };
 			} else if ((types as unknown as string[]).includes(value)) {
-				this.tokens.push({ type: 'type', start, end: this.cursorPosition, value, line, col });
+				token = { type: 'type', start, end: this.cursorPosition, value, line, col };
 			} else {
 				let type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'identifier';
 
-				this.tokens.push({ type, start, end: this.cursorPosition, value, line, col });
+				token = { type, start, end: this.cursorPosition, value, line, col };
 			}
 
-			return ok(this.tokens.at(-1) as Token);
+			this.tokens.push(token);
+
+			return ok(token);
 		}
 
 		/**
@@ -356,28 +347,28 @@ export default class Lexer {
 		 * - The beginning of a FileType
 		 */
 		if (this.char === patterns.PERIOD) {
-			this.peekAndHandle({
-				[patterns.FORWARD_SLASH]: () => this.processPath(),
-				[patterns.PERIOD]: () => {
-					this.peekAndHandle({
+			return this.peekAndHandle({
+				[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processPath()),
+				[patterns.PERIOD]: (): Result<Token> => {
+					return this.peekAndHandle({
 						[patterns.PERIOD]: 'dotdotdot',
 					}, 'dotdot', line, col, 2);
 				},
 			}, 'dot', line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		if (this.char === patterns.AT) {
-			this.peekAndHandle({
-				[patterns.FORWARD_SLASH]: () => this.processPath(),
+			return this.peekAndHandle({
+				[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processPath()),
 			}, undefined, line, col);
-
-			return ok(this.tokens.at(-1) as Token);
 		}
 
 		// something we don't recognize
-		return error(new LexerError('Syntax Error. Unknown character: "' + this.char + '"', this.tokens, this.getErrorContext()));
+		return error(new LexerError(
+			`Syntax Error. Unknown character: "${this.char}"`,
+			this.tokens,
+			this.getErrorContext(this.char.length),
+		));
 	}
 
 	public getAllTokens(): Result<Token[]> {
@@ -388,7 +379,7 @@ export default class Lexer {
 			if (currentToken.value.type === 'eof') {
 				return ok(tokens);
 			}
-			
+
 			tokens.push(currentToken.value);
 
 			// get next
@@ -407,7 +398,7 @@ export default class Lexer {
 	 *
 	 * Ex:
 	 * ```ts
-	 * this.peekAndHandle({
+	 * return this.peekAndHandle({
 	 *     [patterns.MINUS]: 'minus_minus',
 	 *     [patterns.EQUALS]: 'minus_equals',
 	 * }, 'minus', line, col);
@@ -415,10 +406,10 @@ export default class Lexer {
 	 *
 	 * Nested example:
 	 * ```ts
-	 * this.peekAndHandle({
-	 *     [patterns.FORWARD_SLASH]: () => this.processPath(),
-	 *     [patterns.PERIOD]: () => {
-	 *         this.peekAndHandle({
+	 * return this.peekAndHandle({
+	 *     [patterns.FORWARD_SLASH]: (): Result<Node> => ok(this.processPath()),
+	 *     [patterns.PERIOD]: (): Result<Node> => {
+	 *         return this.peekAndHandle({
 	 *            [patterns.PERIOD]: 'dotdotdot',
 	 *         }, 'dotdot', line, col, 2); // notice the `2` here
 	 *     },
@@ -433,7 +424,13 @@ export default class Lexer {
 	 *
 	 * @returns Result error if fallback is undefined and next char isn't defined in the map
 	 */
-	private peekAndHandle(mapNextChar: Record<string, TokenType | (() => void)>, fallback: TokenType | (() => void) | undefined, line: number, col: number, level = 1) {
+	private peekAndHandle(
+		mapNextChar: Record<string, TokenType | (() => Result<Token>)>,
+		fallback: TokenType | (() => Token) | undefined,
+		line: number,
+		col: number,
+		level = 1,
+	): Result<Token> {
 		const nextChar = this.peek(level);
 		if (typeof nextChar !== 'undefined' && typeof mapNextChar[nextChar] !== 'undefined') {
 			/* since there is a next char, everything in this block uses `level + 1`, since we're at the next char */
@@ -441,44 +438,50 @@ export default class Lexer {
 			const tokenTypeOrCallback = mapNextChar[nextChar];
 
 			if (typeof tokenTypeOrCallback === 'function') {
-				tokenTypeOrCallback();
-
-				return;
+				return tokenTypeOrCallback();
 			}
 
-			this.tokens.push({
+			const token = {
 				type: tokenTypeOrCallback,
 				start: this.cursorPosition,
 				end: this.cursorPosition + level + 1,
-				value: this.code.substring(this.cursorPosition, this.cursorPosition + level + 1), // grab the requisite number of chars from the code
+				value: this.code.substring(this.cursorPosition, this.cursorPosition + level + 1),
 				line,
 				col,
-			});
+			};
+
+			this.tokens.push(token);
 
 			// skip next ${level + 1} characters
 			for (let index = 0; index < level + 1; index++) {
 				this.next();
 			}
 
-			// if this is undefined, there is no valid token for this last char, so ignore
+			return ok(token);
+
+		// if this is undefined, there is no valid token for this last char, so ignore
 		} else if (typeof fallback === 'string') {
-			this.tokens.push({
+			const token = {
 				type: fallback,
 				start: this.cursorPosition,
 				end: this.cursorPosition + level,
-				value: this.code.substring(this.cursorPosition, this.cursorPosition + level), // grab the requisite number of chars from the code
+				value: this.code.substring(this.cursorPosition, this.cursorPosition + level),
 				line,
 				col,
-			});
+			};
+
+			this.tokens.push(token);
 
 			// skip next ${level} characters
 			for (let index = 0; index < level; index++) {
 				this.next();
 			}
 
-			// if fallback is a callback
+			return ok(token);
+
+		// if fallback is a callback
 		} else if (typeof fallback === 'function') {
-			fallback();
+			return ok(fallback());
 
 			// if fallback is undefined and the next character isn't accounted for
 		} else {
@@ -486,7 +489,7 @@ export default class Lexer {
 			return error(new LexerError(
 				'Syntax Error. Unknown syntax: "' + this.code.substring(this.cursorPosition, this.cursorPosition + level) + '"',
 				this.tokens,
-				this.getErrorContext(),
+				this.getErrorContext(level),
 			));
 		}
 	}
@@ -581,7 +584,7 @@ export default class Lexer {
 	 * However, the latter case has the AT symbol which is not normally in paths.
 	 * Thus, in that case, as explicitly grab that char, then continue after it with the regex.
 	 */
-	processPath() {
+	processPath(): Token {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
@@ -594,10 +597,14 @@ export default class Lexer {
 		}
 
 		value += this.gobbleAsLongAs(() => this.matchesRegex(patterns.PATH, this.char));
-		this.tokens.push({ type: 'path', start, end: this.cursorPosition, value, line, col });
+
+		const token: Token = { type: 'path', start, end: this.cursorPosition, value, line, col };
+		this.tokens.push(token);
+
+		return token;
 	}
 
-	processNumbers() {
+	processNumbers(): Token {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
@@ -630,27 +637,35 @@ export default class Lexer {
 					// if the next char doesn't exist, it's a trailing comma, and is not part of the number
 					// or it does exist but isn't a number, the number is finished
 					// This takes care of cases such as '1,a', '1,.', '1,,', etc.
-					this.tokens.push({ type: 'number', start, end: this.cursorPosition, value, line, col });
+					const token: Token = { type: 'number', start, end: this.cursorPosition, value, line, col };
+					this.tokens.push(token);
 
-					return;
+					return token;
 				}
 			}
 
 			value += this.getChar();
 		}
 
-		this.tokens.push({ type: 'number', start, end: this.cursorPosition, value, line, col });
+		const token: Token = { type: 'number', start, end: this.cursorPosition, value, line, col };
+		this.tokens.push(token);
+
+		return token;
 	}
 
-	processSingleLineComment() {
+	processSingleLineComment(): Token {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
 		let value = this.gobbleUntil(() => this.matchesRegex(patterns.NEWLINE, this.char));
-		this.tokens.push({ type: 'comment', start, end: this.cursorPosition, value, line, col });
+
+		const token: Token = { type: 'comment', start, end: this.cursorPosition, value, line, col };
+		this.tokens.push(token);
+
+		return token;
 	}
 
-	getErrorContext (): ErrorContext {
-		return new ErrorContext(this.code, this.line, this.col);
+	getErrorContext (length: number): ErrorContext {
+		return new ErrorContext(this.code, this.line, this.col, length);
 	}
 }

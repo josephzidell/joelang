@@ -13,17 +13,17 @@ void (async (): Promise<void> => {
 
 			const tokensResult = new Lexer(sourceCode).getAllTokens();
 			if (tokensResult.outcome === 'error') {
-				const error = tokensResult.error as LexerError;
+				const lexerError = tokensResult.error as LexerError;
 
-				console.error(`Error: ${error.message}`);
-				if (typeof error.getTokens === 'function') {
-					console.info('Extracted tokens:');
-					console.table(error.getTokens());
-				}
-
-				console.groupCollapsed('Stack Trace:');
-				console.error(error.stack);
+				console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
+				lexerError.getContext().toStringArray(lexerError.message).forEach(str => console.log(str));
 				console.groupEnd();
+
+				const tokens = lexerError.getTokens();
+				if (tokens.length > 0) {
+					console.info('Extracted tokens:');
+					console.table(tokens);
+				}
 
 				process.exit(1);
 			}
