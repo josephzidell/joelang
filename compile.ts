@@ -6,7 +6,7 @@ import ParserError from './parser/error';
 import Parser from './parser/parser';
 import { simplifyTree } from './parser/simplifier';
 import AnalysisError from './sean/error';
-import SemanticAnalysis from './sean/sean';
+import SemanticAnalyzer from './sean/sean';
 
 const args = process.argv.slice(2);
 let input: string;
@@ -67,7 +67,7 @@ void (async (): Promise<void> => {
 	switch (treeResult.outcome) {
 		case 'ok':
 			// NEW: continue to SemanticAnalysis
-			const analyzer = new SemanticAnalysis(treeResult.value, parser);
+			const analyzer = new SemanticAnalyzer(treeResult.value, parser);
 			if (isThisAnInlineAnalysis) {
 				analyzer.thisIsAnInlineAnalysis();
 			}

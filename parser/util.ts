@@ -1,6 +1,6 @@
 import { Get } from "type-fest";
 import { ASTProgram } from "../sean/asts";
-import SemanticAnalysis from "../sean/sean";
+import SemanticAnalyzer from "../sean/sean";
 import { error, Result } from "../shared/result";
 import Parser from "./parser";
 import { SParseTree } from "./simplifier";
@@ -15,7 +15,7 @@ export const analyze = (code: string, isAnInlineAnalysis: boolean): Result<ASTPr
 	const nodeResult = parser.parse();
 	switch (nodeResult.outcome) {
 		case 'ok':
-			const analyzer = new SemanticAnalysis(nodeResult.value, parser);
+			const analyzer = new SemanticAnalyzer(nodeResult.value, parser);
 
 			if (isAnInlineAnalysis) {
 				analyzer.thisIsAnInlineAnalysis();

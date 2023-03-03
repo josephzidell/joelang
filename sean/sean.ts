@@ -38,7 +38,7 @@ import {
 import AnalysisError, { AnalysisErrorCode } from "./error";
 import visitorMap from "./visitorMap";
 
-export default class SemanticAnalysis {
+export default class SemanticAnalyzer {
 	currentNode: Node;
 	private _parser: Parser;
 	public get parser(): Parser {
