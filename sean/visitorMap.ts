@@ -23,7 +23,7 @@ function err <T>(message: string, node: Node, analyzer: SemanticAnalysis): Resul
 
 const visitorMap: Record<NT, visitor> = {
 	[NT.ArgumentsList]: <T>(node: Node, analyzer: SemanticAnalysis): Result<T> => analyzer.visitArgumentList(node) as Result<T>,
-	[NT.ArrayExpression]: <T>(node: Node, analyzer: SemanticAnalysis): Result<T> => err('Please implement visitArrayExpression() method and add it to visitorMap.ts', node, analyzer),
+	[NT.ArrayExpression]: <T>(node: Node, analyzer: SemanticAnalysis): Result<T> => analyzer.visitArrayExpression(node) as Result<T>,
 	[NT.ArrayType]: <T>(node: Node, analyzer: SemanticAnalysis): Result<T> => err('Please implement visitArrayType() method and add it to visitorMap.ts', node, analyzer),
 	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalysis): Result<T> => err('Please implement visitAssignmentOperator() method and add it to visitorMap.ts', node, analyzer),
 	[NT.BinaryExpression]: <T>(node: Node, analyzer: SemanticAnalysis): Result<T> => analyzer.visitBinaryExpression(node) as Result<T>,

@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _, { initial } from "lodash";
 import { builtInTypes } from "../lexer/types";
 import { regexFlags } from "../lexer/util";
 import Parser from "../parser/parser";
@@ -10,6 +10,7 @@ import {
 	AssignableASTs,
 	AST,
 	ASTArgumentsList,
+	ASTArrayExpression,
 	ASTBinaryExpression,
 	ASTBoolLiteral,
 	ASTCallExpression,
@@ -32,7 +33,7 @@ import {
 	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	Expression,
-	Skip
+	Skip,
 } from "./asts";
 import AnalysisError, { AnalysisErrorCode } from "./error";
 import visitorMap from "./visitorMap";
@@ -47,10 +48,17 @@ export default class SemanticAnalysis {
 	private ast!: AST;
 	private astPointer = this.ast;
 
+	/** Inline analyses are more lenient than a file */
+	private isAnInlineAnalysis = false;
+
 	constructor(cst: Node, parser: Parser) {
 		this.cst = cst;
 		this.currentNode = cst;
 		this._parser = parser;
+	}
+
+	thisIsAnInlineAnalysis() {
+		this.isAnInlineAnalysis = true;
 	}
 
 	analyze(): Result<ASTProgram> {
@@ -91,6 +99,51 @@ export default class SemanticAnalysis {
 		return ok(ast);
 	}
 
+	/** An ArrayExpression needs a type, which can be evaluated either via the first item or via the context (VariableDeclaration, Argument Type, etc.) */
+	visitArrayExpression(node: Node): Result<ASTArrayExpression> {
+		const ast = new ASTArrayExpression();
+
+		for (const child of node.children) {
+			if (ExpressionNodeTypes.includes(child?.type)) {
+				const visitResult = this.nodeToAST<Expression>(child);
+				switch (visitResult.outcome) {
+					case 'ok':
+						ast.items.push(visitResult.value);
+
+						// infer the type from the first value, but only on the first iteration.
+						// do it here so we have the inferred type as early as possible,
+						// in case an error occurs later which'd cause an early return
+						if (typeof ast.type === 'undefined') {
+							// now attempt to infer the type from the first value
+							const assignmentResult = this.assignInferredType(visitResult.value, child, (inferredType: ASTType) => {
+								ast.type = inferredType;
+							});
+							if (assignmentResult.outcome === 'error') {
+								return error(assignmentResult.error, this.ast);
+							}
+						}
+
+						break;
+					case 'error':
+						return error(visitResult.error, this.ast);
+				}
+			} else if (child?.type === NT.CommaSeparator) {
+				continue; // skip commas
+			} else {
+				return error(new AnalysisError(
+					AnalysisErrorCode.ExpressionExpected,
+					'Expression Expected',
+					child || node,
+					this.getErrorContext(child || node, child.value?.length || 1),
+				), this.ast);
+			}
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
 	visitBinaryExpression(node: Node): Result<ASTBinaryExpression<Expression, Expression>> {
 		const ast = new ASTBinaryExpression<Expression, Expression>();
 		const nodesChildren = structuredClone(node.children); // clone to avoid mutating the original node
@@ -113,7 +166,7 @@ export default class SemanticAnalysis {
 			if (child?.type && ExpressionNodeTypes.includes(child.type)) {
 				const visitResult = this.nodeToAST<Expression>(child);
 				switch (visitResult.outcome) {
-					case 'ok': ast.lhs = visitResult.value; break;
+					case 'ok': ast.left = visitResult.value; break;
 					case 'error': return visitResult; break;
 				}
 			} else {
@@ -132,7 +185,7 @@ export default class SemanticAnalysis {
 			if (child?.type && ExpressionNodeTypes.includes(child.type)) {
 				const visitResult = this.nodeToAST<Expression>(child);
 				switch (visitResult.outcome) {
-					case 'ok': ast.rhs = visitResult.value; break;
+					case 'ok': ast.right = visitResult.value; break;
 					case 'error': return visitResult; break;
 				}
 			} else {
@@ -384,7 +437,13 @@ export default class SemanticAnalysis {
 	}
 
 	visitProgram(node: Node): Result<ASTProgram> {
-		const validChildren = [NT.ClassDeclaration, NT.FunctionDeclaration, NT.ImportDeclaration, NT.InterfaceDeclaration, NT.SemicolonSeparator, NT.VariableDeclaration];
+		let validChildren = [NT.ClassDeclaration, NT.FunctionDeclaration, NT.ImportDeclaration, NT.InterfaceDeclaration, NT.SemicolonSeparator, NT.VariableDeclaration];
+
+		// if this is an inline analysis, allow all ASTs in the program, to avoid having
+		// to wrap code in a function, class, or variable declaration just to analyze it
+		if (this.isAnInlineAnalysis) {
+			validChildren = Object.values(NT);
+		}
 
 		const ast = new ASTProgram();
 
@@ -573,8 +632,6 @@ export default class SemanticAnalysis {
 		return ok(ast);
 	}
 
-
-
 	visitUnaryExpression(node: UnaryExpressionNode): Result<ASTUnaryExpression<Expression>> {
 		const ast = new ASTUnaryExpression<Expression>();
 		const nodesChildren = structuredClone(node.children); // clone to avoid mutating the original node
@@ -722,41 +779,27 @@ export default class SemanticAnalysis {
 					case 'ok':
 						ast.initialValue = visitResult.value;
 
-						// now attempt to infer the type from the default value
-						const inferredTypeResult = this.inferASTTypeFromASTAssignable(ast.initialValue, child);
-						switch (inferredTypeResult.outcome) {
-							case 'ok':
-								const inferredTypeMaybe = inferredTypeResult.value;
-								switch (inferredTypeMaybe.has) {
-									case true:
-										ast.inferredType = inferredTypeMaybe.value;
+						// now attempt to infer the type from the initial value
 
-										// console.debug({
-										// 	inferredType: ast.inferredType,
-										// 	inferredConstructor: ast.inferredType.constructor,
-										// 	declaredType: ast.declaredType,
-										// 	declaredConstructor: ast.declaredType?.constructor,
-										// 	match: ast.inferredType.constructor !== ast.declaredType?.constructor,
-										// })
-										if (typeof ast.declaredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
-											return error(new AnalysisError(
-												AnalysisErrorCode.TypeMismatch,
-												`cannot assign a "${ast.inferredType}" to a "bool"`,
-												child,
-												this.getErrorContext(child, child.value?.length || 1),
-											));
-										}
-										break;
-									case false:
-										// could not infer a type: ok :)
-										break;
-								}
-								break;
+						// ast.initialValue is guaranteed to be defined at this point
+						this.assignInferredType(ast.initialValue, child, (inferredType: ASTType) => {
+							ast.inferredType = inferredType;
+						});
 
-							// Ruh roh
-							case 'error':
-								return inferredTypeResult;
-								break;
+						// console.debug({
+						// 	inferredType: ast.inferredType,
+						// 	inferredConstructor: ast.inferredType.constructor,
+						// 	declaredType: ast.declaredType,
+						// 	declaredConstructor: ast.declaredType?.constructor,
+						// 	match: ast.inferredType.constructor !== ast.declaredType?.constructor,
+						// })
+						if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
+							return error(new AnalysisError(
+								AnalysisErrorCode.TypeMismatch,
+								`cannot assign a "${ast.inferredType}" to a "bool"`,
+								child,
+								this.getErrorContext(child, child.value?.length || 1),
+							));
 						}
 
 						break;
@@ -779,6 +822,33 @@ export default class SemanticAnalysis {
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
+	}
+
+	/**
+	 * This function attempts to infer a type and if successful, run the assigner callback.
+	 *
+	 * Intentionally does not return an error if unable to infer anything. That is not an error scenario.
+	 *
+	 * Only returns an error if there is a problem in this.inferASTTypeFromASTAssignable()
+	 */
+	assignInferredType(valueAST: AssignableASTs, valueNode: Node, assigner: (inferredType: AST) => void): Result<void> {
+		const inferredTypeResult = this.inferASTTypeFromASTAssignable(valueAST, valueNode);
+		switch (inferredTypeResult.outcome) {
+			case 'ok':
+				const inferredTypeMaybe = inferredTypeResult.value;
+				if (inferredTypeMaybe.has) {
+					assigner(inferredTypeMaybe.value);
+				}
+
+				// could not infer a type: ok :)
+
+				// either way, we're done
+				return ok(undefined);
+
+			// Ruh roh
+			case 'error':
+				return inferredTypeResult;
+		}
 	}
 
 	noop(node: Node): Result<AST> {

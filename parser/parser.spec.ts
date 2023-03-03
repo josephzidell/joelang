@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { types } from '../lexer/types';
 import {
+	ASTArrayExpression,
 	ASTBinaryExpression,
 	ASTBoolLiteral,
 	ASTCallExpression,
@@ -535,12 +536,12 @@ describe('parser.ts', (): void => {
 						identifier: ASTIdentifier._('x'),
 						initialValue: ASTBinaryExpression._({
 							operator: '^e',
-							lhs: ASTUnaryExpression._({
+							left: ASTUnaryExpression._({
 								before: true,
 								operator: '-',
 								operand: ASTNumberLiteral._({format: 'decimal', value: 2300.006}),
 							}),
-							rhs: ASTUnaryExpression._({
+							right: ASTUnaryExpression._({
 								before: true,
 								operator: '-',
 								operand: ASTNumberLiteral._({format: 'int', value: 2000}),
@@ -817,25 +818,47 @@ describe('parser.ts', (): void => {
 			});
 
 			it('member expression', (): void => {
-				expect(parse('const myClass: MyPackage.MyClass = MyClass.create();')).toMatchParseTree([
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'myClass'],
-						[NT.ColonSeparator],
-						[NT.MemberExpression, [
-							[NT.Identifier, 'MyPackage'],
-							[NT.Identifier, 'MyClass'],
-						]],
-						[NT.AssignmentOperator],
-						[NT.CallExpression, [
+				testParseAndAnalyze(
+					'const myClass: MyPackage.MyClass = MyClass.create();',
+					[
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'myClass'],
+							[NT.ColonSeparator],
 							[NT.MemberExpression, [
+								[NT.Identifier, 'MyPackage'],
 								[NT.Identifier, 'MyClass'],
-								[NT.Identifier, 'create'],
 							]],
-							[NT.ArgumentsList, []],
+							[NT.AssignmentOperator],
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'MyClass'],
+									[NT.Identifier, 'create'],
+								]],
+								[NT.ArgumentsList, []],
+							]],
 						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							mutable: false,
+							identifier: ASTIdentifier._('myClass'),
+							declaredType: ASTTypeUserDefined._(
+								ASTMemberExpression._({
+									object: ASTIdentifier._('MyPackage'),
+									property: ASTIdentifier._('MyClass'),
+								}),
+							),
+							initialValue: ASTCallExpression._({
+								callee: ASTMemberExpression._({
+									object: ASTIdentifier._('MyClass'),
+									property: ASTIdentifier._('create'),
+								}),
+								args: [],
+							}),
+						}),
+					],
+				);
 			});
 
 		});
@@ -966,42 +989,84 @@ describe('parser.ts', (): void => {
 		describe('arrays of', (): void => {
 
 			it('bools', (): void => {
-				expect(parse('[false, true, true, false]')).toMatchParseTree([
-					[NT.ArrayExpression, [
-						[NT.BoolLiteral, 'false'],
-						[NT.CommaSeparator],
-						[NT.BoolLiteral, 'true'],
-						[NT.CommaSeparator],
-						[NT.BoolLiteral, 'true'],
-						[NT.CommaSeparator],
-						[NT.BoolLiteral, 'false'],
-					]],
-				]);
+				testParseAndAnalyze(
+					'[false, true, true, false]',
+					[
+						[NT.ArrayExpression, [
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
+						]],
+					],
+					[
+						ASTArrayExpression._({
+							type: ASTTypeBuiltIn._('bool'),
+							items: [
+								ASTBoolLiteral._(false),
+								ASTBoolLiteral._(true),
+								ASTBoolLiteral._(true),
+								ASTBoolLiteral._(false),
+							],
+						})
+					]
+				);
 			});
 
 			it('numbers', () => {
-				expect(parse('[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]')).toMatchParseTree([
-					[NT.ArrayExpression, [
-						[NT.NumberLiteral, '1'],
-						[NT.CommaSeparator],
-						[NT.UnaryExpression, '-', { before: true }, [
-							[NT.NumberLiteral, '2'],
-						]],
-						[NT.CommaSeparator],
-						[NT.NumberLiteral, '3,456'],
-						[NT.CommaSeparator],
-						[NT.BinaryExpression, '^e', [
-							[NT.NumberLiteral, '3'],
+				testParseAndAnalyze(
+					'[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]',
+					[
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
 							[NT.UnaryExpression, '-', { before: true }, [
 								[NT.NumberLiteral, '2'],
 							]],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3,456'],
+							[NT.CommaSeparator],
+							[NT.BinaryExpression, '^e', [
+								[NT.NumberLiteral, '3'],
+								[NT.UnaryExpression, '-', { before: true }, [
+									[NT.NumberLiteral, '2'],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3.14'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '1,2,3'], // weird but legal
 						]],
-						[NT.CommaSeparator],
-						[NT.NumberLiteral, '3.14'],
-						[NT.CommaSeparator],
-						[NT.NumberLiteral, '1,2,3'], // weird but legal
-					]],
-				]);
+					],
+					[
+						ASTArrayExpression._({
+							type: ASTTypeBuiltIn._('number'),
+							items: [
+								ASTNumberLiteral._({ format: 'int', value: 1 }),
+								ASTUnaryExpression._({
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+								}),
+								ASTNumberLiteral._({ format: 'int', value: 3456}),
+								ASTBinaryExpression._({
+									operator: '^e',
+									left: ASTNumberLiteral._({ format: 'int', value: 3 }),
+									right: ASTUnaryExpression._({
+										before: true,
+										operator: '-',
+										operand: ASTNumberLiteral._({ format: 'int', value: 2}),
+									}),
+								}),
+								ASTNumberLiteral._({ format: 'decimal', value: 3.14}),
+								ASTNumberLiteral._({ format: 'int', value: 123}),
+							],
+						}),
+					]
+				);
 			});
 
 			it('paths', (): void => {

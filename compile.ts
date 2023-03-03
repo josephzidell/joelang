@@ -18,6 +18,9 @@ void (async (): Promise<void> => {
 		process.exit(1);
 	}
 
+	// if we're analyzing an inline string, we allow all ASTs in an ASTProgram
+	const isThisAnInlineAnalysis = args[0] === '-i';
+
 	if (args[0] === '-i') {
 		if (args.length < 2) {
 			console.error('No input string provided.');
@@ -64,7 +67,12 @@ void (async (): Promise<void> => {
 	switch (treeResult.outcome) {
 		case 'ok':
 			// NEW: continue to SemanticAnalysis
-			const analysisResult = new SemanticAnalysis(treeResult.value, parser).analyze();
+			const analyzer = new SemanticAnalysis(treeResult.value, parser);
+			if (isThisAnInlineAnalysis) {
+				analyzer.thisIsAnInlineAnalysis();
+			}
+
+			const analysisResult = analyzer.analyze();
 			switch (analysisResult.outcome) {
 				case 'ok':
 					const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });

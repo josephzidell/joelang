@@ -16,19 +16,32 @@ export class ASTArgumentsList implements AST {
 	}
 }
 
-export class ASTArrayExpression implements AST { }
+export class ASTArrayExpression implements AST {
+	/** The type, usually inferred from the initial value, if any, or from context */
+	type?: ASTType;
+
+	items: Expression[] = []; // usually this is empty and thus undefined, but the parser ensures it's an array, so we mimic that here
+
+	// factory function
+	static _({ type, items }: { type?: ASTType; items: Expression[]; }): ASTArrayExpression {
+		const ast = new ASTArrayExpression();
+		ast.type = type;
+		ast.items = items;
+		return ast;
+	}
+}
 
 export class ASTBinaryExpression<L, R> implements AST {
 	operator!: string;
-	lhs!: L;
-	rhs!: R;
+	left!: L;
+	right!: R;
 
 	// factory function
-	static _<L, R>({ operator, lhs, rhs }: { operator: string; lhs: L; rhs: R; }): ASTBinaryExpression<L, R> {
+	static _<L, R>({ operator, left, right }: { operator: string; left: L; right: R; }): ASTBinaryExpression<L, R> {
 		const ast = new ASTBinaryExpression<L, R>();
 		ast.operator = operator;
-		ast.lhs = lhs;
-		ast.rhs = rhs;
+		ast.left = left;
+		ast.right = right;
 		return ast;
 	}
 }

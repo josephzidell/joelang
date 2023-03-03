@@ -10,12 +10,18 @@ import { Node } from './types';
 export const parse = (code: string): Result<Node> => new Parser(code).parse();
 
 /** Shortcut method to `new SemanticAnalysis(cst, parser).analyze()` */
-export const analyze = (code: string): Result<ASTProgram> => {
+export const analyze = (code: string, isAnInlineAnalysis: boolean): Result<ASTProgram> => {
 	const parser = new Parser(code);
 	const nodeResult = parser.parse();
 	switch (nodeResult.outcome) {
 		case 'ok':
-			return new SemanticAnalysis(nodeResult.value, parser).analyze();
+			const analyzer = new SemanticAnalysis(nodeResult.value, parser);
+
+			if (isAnInlineAnalysis) {
+				analyzer.thisIsAnInlineAnalysis();
+			}
+
+			return analyzer.analyze();
 		case 'error':
 			return error(nodeResult.error);
 	}
@@ -26,5 +32,5 @@ export const analyze = (code: string): Result<ASTProgram> => {
 // and the analyzed value of the code to the AST
 export function testParseAndAnalyze (code: string, simplifiedParseTree: SParseTree, ast: Get<ASTProgram, 'expressions'>) {
 	expect(parse(code)).toMatchParseTree(simplifiedParseTree);
-	expect(analyze(code)).toMatchAST(ast);
+	expect(analyze(code, true)).toMatchAST(ast);
 }
