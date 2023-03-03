@@ -1,6 +1,5 @@
-import ErrorContext from '../shared/errorContext';
 import { Node } from '../parser/types';
-import { SParseTree } from '../parser/simplifier';
+import ErrorContext from '../shared/errorContext';
 
 /**
  * All parser error codes.

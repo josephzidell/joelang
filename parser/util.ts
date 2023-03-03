@@ -1,5 +1,6 @@
 import { Get } from "type-fest";
-import SemanticAnalysis, { AST, ASTProgram } from "../sean/sean";
+import { ASTProgram } from "../sean/asts";
+import SemanticAnalysis from "../sean/sean";
 import { error, Result } from "../shared/result";
 import Parser from "./parser";
 import { SParseTree } from "./simplifier";

@@ -1,6 +1,20 @@
 import assert from 'node:assert/strict';
 import { types } from '../lexer/types';
-import { ASTBinaryExpression, ASTBoolLiteral, ASTCallExpression, ASTIdentifier, ASTMemberExpression, ASTNumberLiteral, ASTPath, ASTRegularExpression, ASTStringLiteral, ASTTypeBuiltIn, ASTTypeUserDefined, ASTUnaryExpression, ASTVariableDeclaration } from '../sean/sean';
+import {
+	ASTBinaryExpression,
+	ASTBoolLiteral,
+	ASTCallExpression,
+	ASTIdentifier,
+	ASTMemberExpression,
+	ASTNumberLiteral,
+	ASTPath,
+	ASTRegularExpression,
+	ASTStringLiteral,
+	ASTTypeBuiltIn,
+	ASTTypeUserDefined,
+	ASTUnaryExpression,
+	ASTVariableDeclaration,
+} from "../sean/asts";
 import '../setupJest'; // for the types
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';
