@@ -14,8 +14,8 @@ import {
 	ASTTypeBuiltIn,
 	ASTTypeUserDefined,
 	ASTUnaryExpression,
-	ASTVariableDeclaration,
-} from "../sean/asts";
+	ASTVariableDeclaration
+} from "../semanticAnalysis/asts";
 import '../setupJest'; // for the types
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';

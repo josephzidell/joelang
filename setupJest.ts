@@ -2,7 +2,7 @@ import { Get } from 'type-fest';
 import { Token, TokenType } from "./lexer/types";
 import { simplifyTree, SParseTree } from "./parser/simplifier";
 import { Node } from "./parser/types";
-import { AST, ASTProgram } from "./sean/asts";
+import { AST, ASTProgram } from "./semanticAnalysis/asts";
 import { Result } from "./shared/result";
 
 export interface CustomMatchers<R = unknown> {

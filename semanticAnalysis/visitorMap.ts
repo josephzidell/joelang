@@ -2,7 +2,7 @@ import { Node, NT, UnaryExpressionNode } from "../parser/types";
 import ErrorContext from "../shared/errorContext";
 import { error, Result } from "../shared/result";
 import AnalysisError, { AnalysisErrorCode } from "./error";
-import SemanticAnalyzer from "./sean";
+import SemanticAnalyzer from "./semanticAnalyzer";
 
 type visitor = <T>(node: Node, analyzer: SemanticAnalyzer) => Result<T>;
 

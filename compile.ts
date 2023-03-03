@@ -5,8 +5,8 @@ import LexerError from './lexer/error';
 import ParserError from './parser/error';
 import Parser from './parser/parser';
 import { simplifyTree } from './parser/simplifier';
-import AnalysisError from './sean/error';
-import SemanticAnalyzer from './sean/sean';
+import AnalysisError from './semanticAnalysis/error';
+import SemanticAnalyzer from './semanticAnalysis/semanticAnalyzer';
 
 const args = process.argv.slice(2);
 let input: string;
