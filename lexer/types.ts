@@ -42,6 +42,15 @@ export const tokenTypesUsingSymbols = {
 	'triangle_open': '<|',
 	'triangle_close': '|>',
 };
+
+export const builtInTypes = [
+	'bool',
+	'number',
+	'path',
+	'regex',
+	'string',
+];
+
 const otherTokenTypes = [
 	'bool',
 	'comment',

@@ -81,6 +81,22 @@ export const LiteralTypes: NT[] = [
 	NT.TupleExpression,
 ];
 
+export const ExpressionNodeTypes: NT[] = [
+	...LiteralTypes,
+	NT.BinaryExpression,
+	NT.CallExpression,
+	NT.Identifier,
+	NT.MemberExpression,
+	NT.Parenthesized,
+	NT.UnaryExpression,
+	NT.WhenExpression,
+];
+
+export const AssignableNodeTypes: NT[] = [
+	...ExpressionNodeTypes,
+	NT.FunctionDeclaration,
+];
+
 /** A node's positional information */
 export type Pos = {
 	/** cursor position of the beginning of this node, counting chars from the beginning of the file */

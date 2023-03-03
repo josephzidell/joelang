@@ -5,6 +5,8 @@ import LexerError from './lexer/error';
 import ParserError from './parser/error';
 import Parser from './parser/parser';
 import { simplifyTree } from './parser/simplifier';
+import AnalysisError from './sean/error';
+import SemanticAnalysis from './sean/sean';
 
 const args = process.argv.slice(2);
 let input: string;
@@ -57,9 +59,37 @@ void (async (): Promise<void> => {
 
 	// compile
 	// for now, parse and output AST
-	const treeResult = new Parser(input, debug).parse();
+	const parser = new Parser(input, debug);
+	const treeResult = parser.parse();
 	switch (treeResult.outcome) {
 		case 'ok':
+			// NEW: continue to SemanticAnalysis
+			const analysisResult = new SemanticAnalysis(treeResult.value, parser).analyze();
+			switch (analysisResult.outcome) {
+				case 'ok':
+					const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
+					console.info(output);
+					break;
+				case 'error':
+					const analysisError = analysisResult.error as AnalysisError;
+
+					console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
+					analysisError.getContext().toStringArray(analysisError.message).forEach(str => console.info(str));
+					console.groupEnd();
+
+					console.groupCollapsed('Current Node');
+					console.info(analysisError.getNode());
+					console.groupEnd();
+
+					console.groupCollapsed('Current AST');
+					console.info(analysisResult.data);
+					console.groupEnd();
+
+					process.exit(1);
+					break;
+ 			}
+
+			// output simplified tree
 			const parseTree = simplifyTree([treeResult.value]);
 			const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
@@ -71,7 +101,7 @@ void (async (): Promise<void> => {
 					process.exit(1);
 				}
 			} else {
-				console.log(output);
+				console.info(output);
 			}
 			break;
 		case 'error':

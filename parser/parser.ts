@@ -87,9 +87,8 @@ export default class Parser {
 				break;
 			case 'error':
 				// we have no information about the line or col
-				// since line and col are 1-based, 0 can have special meaning,
-				// perhaps a more fundamental issue with parsing the script
-				return new ErrorContext(this.lexer.code, 0, 0, 0);
+				// since line and col are 1-based, we use 1
+				return new ErrorContext(this.lexer.code, 1, 1, 0);
 		}
 	}
 
@@ -103,6 +102,10 @@ export default class Parser {
 
 	public parse(): Result<Node> {
 		do {
+			// before going on to the next token, update this.prevToken
+			this.prevToken = this.currentToken.outcome === 'ok' ? this.currentToken.value : undefined;
+
+			// get the next token
 			this.currentToken = this.getNextToken();
 			if (this.currentToken.outcome === 'error') {
 				return error(this.currentToken.error);
@@ -120,18 +123,46 @@ export default class Parser {
 			if (token.type === 'paren_open') {
 				const prev = this.prev();
 				switch (prev?.type) {
-					// if previous is an Identifier or Typed, then this is either a CallExpression or FunctionDeclaration
+					// if previous was an Identifier or Typed, then this is either a CallExpression or FunctionDeclaration
 					case NT.Identifier:
 					case NT.Typed:
 						if (this.currentRoot.type === NT.FunctionDeclaration) {
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
-						} else {
+
+						// next case:
+						// the only way this could be a CallExpression is if the previous token was an identifier or close of generic type list
+						// even though we're already checking the previous Node, we still need to check the previous token, since we could be
+						// in the right-hand side of a BinaryExpression where the operator adopts the left-hand side and the "previous Node"
+						// is that left-hand side rather than the operator. And we cannot check whether we're _in_ a BinaryExpression since
+						// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a && (c)` and `a && c()` both
+						// have the same previous Node and the same currentRoot.
+						} else if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
 							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
 							if (result.outcome === 'error') {
 								return result;
 							}
 
 							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
+						} else {
+							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+						}
+						break;
+					case NT.MemberExpression:
+						// the only way this could be a CallExpression is if the previous token was an identifier or close of generic type list
+						// even though we're already checking the previous Node, we still need to check the previous token, since we could be
+						// in the right-hand side of a BinaryExpression where the operator adopts the left-hand side and the "previous Node"
+						// is that left-hand side rather than the operator. And we cannot check whether we're _in_ a BinaryExpression since
+						// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a.b && (c)` and `a.b && c()` both
+						// have the same previous Node and the same currentRoot.
+						if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
+							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
+							if (result.outcome === 'error') {
+								return result;
+							}
+
+							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
+						} else {
+							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
 						}
 						break;
 					case NT.TypeArgumentsList:
@@ -158,14 +189,6 @@ export default class Parser {
 							// we're in a FunctionDeclaration after the GenericTypesList
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 						}
-						break;
-					case NT.MemberExpression:
-						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.CallExpression, token, this.currentRoot, true));
-						if (result.outcome === 'error') {
-							return result;
-						}
-
-						this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
 						break;
 					default:
 						this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));

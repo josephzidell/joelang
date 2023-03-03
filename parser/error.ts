@@ -3,13 +3,13 @@ import { Node } from './types';
 
 /**
  * All parser error codes.
- * 
+ *
  * TODO This list is not yet complete
  */
 export enum ParserErrorCode {
-	MisplacedKeyword,
-	MissingPreviousNode,
-	MissingParentNode,
+	MisplacedKeyword = 'P000',
+	MissingPreviousNode = 'P001',
+	MissingParentNode = 'P002',
 }
 
 /**
@@ -21,7 +21,7 @@ export default class ParserError extends TypeError {
 	private tree;
 	private context;
 
-	constructor (errorCode: number, message: string, tree: Node, context: ErrorContext) {
+	constructor (errorCode: ParserErrorCode, message: string, tree: Node, context: ErrorContext) {
 		super(message);
 
 		this.errorCode = errorCode;
@@ -29,7 +29,7 @@ export default class ParserError extends TypeError {
 		this.context = context;
 	}
 
-	getErrorCode (): number {
+	getErrorCode (): ParserErrorCode {
 		return this.errorCode;
 	}
 

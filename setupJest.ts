@@ -1,10 +1,17 @@
-import { diffString } from 'json-diff';
+import { Get } from 'type-fest';
 import { Token, TokenType } from "./lexer/types";
 import { simplifyTree, SParseTree } from "./parser/simplifier";
 import { Node } from "./parser/types";
+import { AST, ASTProgram } from './sean/sean';
 import { Result } from "./shared/result";
 
 export interface CustomMatchers<R = unknown> {
+	/**
+	 *
+	 * @param expectedAST An array of AST nodes inside the ASTProgram.expressions
+	 */
+	toMatchAST(expectedASTProgramExpressions: AST[]): R;
+
 	/**
 	 *
 	 * @param simplifiedVersion An array of simplified nodes, such as `["Keyword", "let"]`, etc.
@@ -102,7 +109,7 @@ export function matchParseTree (treeResult: Result<Node>, simplifiedVersion: SPa
 
 				return {pass: true, message: () => 'they match'};
 			} catch {
-				let diff = diffString(simplifiedVersion, simplifiedTree);
+				let diff = diffObjects(simplifiedVersion, simplifiedTree);
 
 				return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff: ${diff}`};
 			}
@@ -115,3 +122,136 @@ export function matchParseTree (treeResult: Result<Node>, simplifiedVersion: SPa
 expect.extend({
 	toMatchParseTree: matchParseTree,
 });
+
+////////////////////////////////////////////////////////////
+// Semantic Analyzer Stuff
+////////////////////////////////////////////////////////////
+
+export function matchAST (actualASTResult: Result<ASTProgram>, expectedASTProgramExpressions: Get<ASTProgram, 'expressions'>): CustomMatcherResult {
+	switch (actualASTResult.outcome) {
+		case 'ok':
+			const actualAST = actualASTResult.value.expressions;
+
+			// the lengths should be equal
+			if (actualAST.length !== expectedASTProgramExpressions.length) {
+				return { message: () => `expected ${actualAST.length} AST nodes, ${expectedASTProgramExpressions.length} found in ${actualAST}`, pass: false };
+			}
+
+			try {
+				expect(actualAST).toMatchObject(expectedASTProgramExpressions);
+
+				return {pass: true, message: () => 'they match'};
+			} catch {
+				const diff = diffObjects(expectedASTProgramExpressions, actualAST);
+
+				return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`};
+			}
+			break;
+		case 'error':
+			return {pass: false, message: () => actualASTResult.error.message};
+	}
+};
+
+expect.extend({
+	toMatchAST: matchAST,
+});
+
+////////////////////////////////////////////////////////////
+// Miscellaneous Stuff
+////////////////////////////////////////////////////////////
+
+function diffObjects(expected: any, received: any, path: string = ''): string {
+	const expectedKeys = Object.keys(expected);
+	const receivedKeys = Object.keys(received);
+	const addedKeys = receivedKeys.filter(key => !expectedKeys.includes(key));
+	const removedKeys = expectedKeys.filter(key => !receivedKeys.includes(key));
+	const changedKeys = expectedKeys.filter(key => receivedKeys.includes(key) && expected[key] !== received[key]);
+
+	let output = '';
+
+	addedKeys.forEach(key => {
+		const fullPath = `${path}.${key}`;
+		const value = stringify(received[key]);
+		output += `${colorize(`+ ${fullPath}: ${value}`, Colors.Green)}\n`;
+	});
+
+	removedKeys.forEach(key => {
+		const fullPath = `${path}.${key}`;
+		const value = stringify(expected[key]);
+		output += `${colorize(`- ${fullPath}: ${value}`, Colors.Red)}\n`;
+	});
+
+	changedKeys.forEach(key => {
+		const fullPath = `${path}.${key}`;
+		const expectedValue = expected[key];
+		const receivedValue = received[key];
+		if (Array.isArray(expectedValue) && Array.isArray(receivedValue)) {
+			const arrayDiff = diffArrays(expectedValue, receivedValue, `${fullPath}`);
+			if (arrayDiff !== '') {
+				output += arrayDiff;
+			}
+		} else if (typeof expectedValue === 'object' && typeof receivedValue === 'object') {
+			const objectDiff = diffObjects(expectedValue, receivedValue, `${fullPath}`);
+			if (objectDiff !== '') {
+				output += objectDiff;
+			}
+		} else {
+			const expectedString = stringify(expectedValue);
+			const receivedString = stringify(receivedValue);
+			output += `${colorize(`- ${fullPath}: ${expectedString}`, Colors.Red)}\n`;
+			output += `${colorize(`+ ${fullPath}: ${receivedString}`, Colors.Green)}\n`;
+		}
+	});
+
+	return output;
+}
+
+function diffArrays(expected: any[], received: any[], path: string = ''): string {
+	const addedElements = received.filter(item => !expected.includes(item));
+	const removedElements = expected.filter(item => !received.includes(item));
+	let output = '';
+	addedElements.forEach((item, index) => {
+		const fullPath = `${path}[${expected.length + index}]`;
+		const value = stringify(item);
+		output += `${colorize(`+ ${fullPath}: ${value}`, Colors.Green)}\n`;
+	});
+	removedElements.forEach((item, index) => {
+		const fullPath = `${path}[${received.length + index}]`;
+		const value = stringify(item);
+		output += `${colorize(`- ${fullPath}: ${value}`, Colors.Red)}\n`;
+	});
+	return output;
+}
+
+function stringify(obj: any): string {
+	if (typeof obj === 'string') {
+		return `"${obj}"`;
+	} else if (typeof obj === 'number' || typeof obj === 'boolean' || obj === null || obj === undefined) {
+		return String(obj);
+	} else if (Array.isArray(obj)) {
+		const elements = obj.map(element => stringify(element)).join(', ');
+		return `[${elements}]`;
+	} else if (typeof obj === 'object') {
+		const keys = Object.keys(obj);
+		const properties = keys.map(key => `${key}: ${stringify(obj[key])}`).join(', ');
+		return `{${properties}}`;
+	} else {
+		return obj.toString();
+	}
+}
+
+enum Colors {
+	Red = 31,
+	Green = 32,
+	Yellow = 33,
+	Blue = 34,
+	Magenta = 35,
+	Cyan = 36,
+	White = 37,
+}
+
+function colorize(text: string, colorCode: number): string {
+	const escapeCode = `\u001b[${colorCode}m`;
+	const resetCode = '\u001b[0m';
+	return `${escapeCode}${text}${resetCode}`;
+}
