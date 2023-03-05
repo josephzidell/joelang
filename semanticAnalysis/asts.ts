@@ -5,11 +5,10 @@
 export interface AST { }
 
 export class ASTArgumentsList implements AST {
-	args: Expression[] = []; // usually this is empty and thus undefined, but the parser ensures it's an array, so we mimic that here
-
+	args: AssignableASTs[] = []; // usually this is empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
-	static _(args: Expression[]): ASTArgumentsList {
+	static _(args: AssignableASTs[]): ASTArgumentsList {
 		const ast = new ASTArgumentsList();
 		ast.args = args;
 		return ast;
@@ -19,11 +18,10 @@ export class ASTArgumentsList implements AST {
 export class ASTArrayExpression implements AST {
 	/** The type, usually inferred from the initial value, if any, or from context */
 	type?: ASTType;
-
-	items: Expression[] = []; // usually this is empty and thus undefined, but the parser ensures it's an array, so we mimic that here
+	items: AssignableASTs[] = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
-	static _({ type, items }: { type?: ASTType; items: Expression[]; }): ASTArrayExpression {
+	static _({ type, items }: { type?: ASTType; items: AssignableASTs[]; }): ASTArrayExpression {
 		const ast = new ASTArrayExpression();
 		ast.type = type;
 		ast.items = items;
@@ -46,6 +44,17 @@ export class ASTBinaryExpression<L, R> implements AST {
 	}
 }
 
+export class ASTBlockStatement implements AST {
+	expressions: AST[] = [];
+
+	// factory function
+	static _(expressions: AST[]): ASTBlockStatement {
+		const ast = new ASTBlockStatement();
+		ast.expressions = expressions;
+		return ast;
+	}
+}
+
 export class ASTBoolLiteral implements AST {
 	value!: boolean | ASTUnaryExpression<boolean>;
 
@@ -59,7 +68,7 @@ export class ASTBoolLiteral implements AST {
 
 export class ASTCallExpression implements AST {
 	callee!: ASTIdentifier | ASTMemberExpression;
-	typeArgs!: ASTType[];
+	typeArgs!: ASTTypeArgument[];
 	args!: Expression[];
 
 	// factory function
@@ -76,7 +85,47 @@ export class ASTCallExpression implements AST {
 	}
 }
 
-export class ASTFunctionDeclaration implements AST { }
+export class ASTClassDeclaration implements AST {
+	modifiers?: ASTModifier[];
+	name!: ASTIdentifier;
+	typeParams?: ASTType[];
+	extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>;
+	implements?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>;
+	body?: ASTBlockStatement;
+
+	// factory function
+	static _({ modifiers, name, typeParams, extends: _extends, implements: _implements, body }: { modifiers?: ASTModifier[]; name: ASTIdentifier; typeParams?: ASTType[]; extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>; implements?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>; body?: ASTBlockStatement; }): ASTClassDeclaration {
+		const ast = new ASTClassDeclaration();
+		ast.modifiers = modifiers;
+		ast.name = name;
+		ast.typeParams = typeParams;
+		ast.extends = _extends;
+		ast.implements = _implements;
+		ast.body = body;
+		return ast;
+	}
+}
+
+export class ASTFunctionDeclaration implements AST {
+	modifiers?: ASTModifier[];
+	name?: ASTIdentifier;
+	typeParams?: ASTType[];
+	args?: ASTParameter[];
+	returnTypes?: ASTType[];
+	body?: ASTBlockStatement;
+
+	// factory function
+	static _({ modifiers, name, typeParams, args, returnTypes, body }: { modifiers?: ASTModifier[]; name?: ASTIdentifier; typeParams?: ASTType[]; args?: ASTParameter[]; returnTypes?: ASTType[]; body?: ASTBlockStatement; }): ASTFunctionDeclaration {
+		const ast = new ASTFunctionDeclaration();
+		ast.modifiers = modifiers;
+		ast.name = name;
+		ast.typeParams = typeParams;
+		ast.args = args;
+		ast.returnTypes = returnTypes;
+		ast.body = body;
+		return ast;
+	}
+}
 
 export class ASTIdentifier implements AST {
 	name!: string;
@@ -85,6 +134,25 @@ export class ASTIdentifier implements AST {
 	static _(name: string): ASTIdentifier {
 		const ast = new ASTIdentifier();
 		ast.name = name;
+		return ast;
+	}
+}
+
+export class ASTInterfaceDeclaration implements AST {
+	modifiers?: ASTModifier[];
+	name!: ASTIdentifier;
+	typeParams?: ASTType[];
+	extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>;
+	body?: ASTBlockStatement;
+
+	// factory function
+	static _({ modifiers, name, typeParams, extends: _extends, body }: { modifiers?: ASTModifier[]; name: ASTIdentifier; typeParams?: ASTType[]; extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>; body?: ASTBlockStatement; }): ASTInterfaceDeclaration {
+		const ast = new ASTInterfaceDeclaration();
+		ast.modifiers = modifiers;
+		ast.name = name;
+		ast.typeParams = typeParams;
+		ast.extends = _extends;
+		ast.body = body;
 		return ast;
 	}
 }
@@ -98,6 +166,17 @@ export class ASTMemberExpression implements AST {
 		const ast = new ASTMemberExpression();
 		ast.object = object;
 		ast.property = property;
+		return ast;
+	}
+}
+
+export class ASTModifier implements AST {
+	keyword!: string;
+
+	// factory function
+	static _(keyword: string): ASTModifier {
+		const ast = new ASTModifier();
+		ast.keyword = keyword;
 		return ast;
 	}
 }
@@ -117,6 +196,21 @@ export class ASTNumberLiteral implements AST {
 
 export class ASTObjectExpression implements AST { }
 
+export class ASTParameter implements AST {
+	name!: ASTIdentifier;
+	type?: ASTType;
+	defaultValue?: Expression;
+
+	// factory function
+	static _({ name, type, defaultValue }: { name: ASTIdentifier; type?: ASTType; defaultValue?: Expression; }): ASTParameter {
+		const ast = new ASTParameter();
+		ast.name = name;
+		ast.type = type;
+		ast.defaultValue = defaultValue;
+		return ast;
+	}
+}
+
 export class ASTPath implements AST {
 	absolute!: boolean;
 	path!: string;
@@ -132,9 +226,8 @@ export class ASTPath implements AST {
 	}
 }
 
-export class ASTProgram implements AST {
-	expressions: AST[] = [];
-}
+/** It's just a kind of BlockStatement */
+export class ASTProgram extends ASTBlockStatement {}
 
 export class ASTRegularExpression implements AST {
 	pattern!: string;
@@ -161,6 +254,7 @@ export class ASTStringLiteral implements AST {
 }
 
 export class ASTTupleExpression implements AST { }
+
 /** Begin ASTType */
 export abstract class ASTType implements AST { }
 export class ASTTypeBuiltIn extends ASTType {
@@ -197,17 +291,7 @@ export const ASTTypeBuiltInString = new ASTTypeBuiltIn();
 ASTTypeBuiltInString.type = 'string';
 /** End ASTType */
 
-export class ASTTypeArgumentsList implements AST {
-	typeArgs: Array<ASTIdentifier | ASTMemberExpression | ASTType> = []; // for now, but this will be expanded to include extensions, renames, and other generic types
-
-
-	// factory function
-	static _(typeArgs: Array<ASTIdentifier | ASTMemberExpression | ASTType>): ASTTypeArgumentsList {
-		const ast = new ASTTypeArgumentsList();
-		ast.typeArgs = typeArgs;
-		return ast;
-	}
-}
+export type ASTTypeArgument = ASTIdentifier | ASTMemberExpression | ASTType;
 
 export class ASTUnaryExpression<T> implements AST {
 	before!: boolean;
@@ -237,7 +321,6 @@ export class ASTVariableDeclaration implements AST {
 	inferredType?: ASTType;
 
 	initialValue?: AST; // TODO should specify AssignableNodeTypes;
-
 
 	// factory function
 	static _({ mutable, identifier, declaredType, inferredType, initialValue }: {
@@ -288,3 +371,6 @@ export type Expression =
 
 	/** ASTs that can be assigned to a variable or passed as an argument */
 export type AssignableASTs = Expression | ASTFunctionDeclaration;
+
+export type IdentifierOrMemberExpressionWithTypeArgs = [ASTIdentifier | ASTMemberExpression, ASTTypeArgument[]];
+export type IdentifierWithTypeParams = [ASTIdentifier, ASTType[]];

@@ -25,6 +25,11 @@ export enum AnalysisErrorCode {
 	BoolTypeExpected = 'S015',
 	TypeMismatch = 'S016',
 	ValidPathExpected = 'S017',
+	ExpressionNotExpected = 'S018',
+	ModifierExpected = 'S019',
+	AssignableExpected = 'S020',
+	AssignmentOperatorExpected = 'S021',
+	BodyExpected = 'S022',
 }
 
 /**

@@ -3,8 +3,10 @@ import { types } from '../lexer/types';
 import {
 	ASTArrayExpression,
 	ASTBinaryExpression,
+	ASTBlockStatement,
 	ASTBoolLiteral,
 	ASTCallExpression,
+	ASTClassDeclaration,
 	ASTIdentifier,
 	ASTMemberExpression,
 	ASTNumberLiteral,
@@ -1686,6 +1688,21 @@ describe('parser.ts', (): void => {
 					[NT.BlockStatement, []],
 				]],
 			]);
+			// testParseAndAnalyze(
+			// 	'class Foo {}',
+			// 	[
+			// 		[NT.ClassDeclaration, [
+			// 			[NT.Identifier, 'Foo'],
+			// 			[NT.BlockStatement, []],
+			// 		]],
+			// 	],
+			// 	[
+			// 		ASTClassDeclaration._({
+			// 			name: ASTIdentifier._('Foo'),
+			// 			body: ASTBlockStatement._([]),
+			// 		}),
+			// 	],
+			// );
 
 			expect(parse('class Foo <| T, U |> {}')).toMatchParseTree([
 				[NT.ClassDeclaration, [
