@@ -89,12 +89,12 @@ export class ASTClassDeclaration implements AST {
 	modifiers?: ASTModifier[];
 	name!: ASTIdentifier;
 	typeParams?: ASTType[];
-	extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>;
-	implements?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>;
+	extends?: Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>;
+	implements?: Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>;
 	body?: ASTBlockStatement;
 
 	// factory function
-	static _({ modifiers, name, typeParams, extends: _extends, implements: _implements, body }: { modifiers?: ASTModifier[]; name: ASTIdentifier; typeParams?: ASTType[]; extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>; implements?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>; body?: ASTBlockStatement; }): ASTClassDeclaration {
+	static _({ modifiers, name, typeParams, extends: _extends, implements: _implements, body }: { modifiers?: ASTModifier[]; name: ASTIdentifier; typeParams?: ASTType[]; extends?: Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>; implements?: Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>; body?: ASTBlockStatement; }): ASTClassDeclaration {
 		const ast = new ASTClassDeclaration();
 		ast.modifiers = modifiers;
 		ast.name = name;
@@ -138,15 +138,42 @@ export class ASTIdentifier implements AST {
 	}
 }
 
+// export type ASTIdentifierWithTypeParams1 = [ASTIdentifier, ASTType[]];
+export class ASTIdentifierWithTypeParams implements AST {
+	identifier!: ASTIdentifier;
+	typeParams!: ASTType[];
+
+	// factory function
+	static _({ identifier, typeParams }: { identifier: ASTIdentifier; typeParams: ASTType[]; }): ASTIdentifierWithTypeParams {
+		const ast = new ASTIdentifierWithTypeParams();
+		ast.identifier = identifier;
+		ast.typeParams = typeParams;
+		return ast;
+	}
+}
+
+export class ASTIdentifierOrMemberExpressionWithTypeArgs implements AST {
+	identifierOrMemberExpression!: ASTIdentifier | ASTMemberExpression;
+	typeArgs!: Array<ASTTypeArgument | ASTIdentifierOrMemberExpressionWithTypeArgs>;
+
+	// factory function
+	static _({ identifierOrMemberExpression, typeArgs }: { identifierOrMemberExpression: ASTIdentifier | ASTMemberExpression; typeArgs: Array<ASTTypeArgument | ASTIdentifierOrMemberExpressionWithTypeArgs>; }): ASTIdentifierOrMemberExpressionWithTypeArgs {
+		const ast = new ASTIdentifierOrMemberExpressionWithTypeArgs();
+		ast.identifierOrMemberExpression = identifierOrMemberExpression;
+		ast.typeArgs = typeArgs;
+		return ast;
+	}
+}
+
 export class ASTInterfaceDeclaration implements AST {
 	modifiers?: ASTModifier[];
 	name!: ASTIdentifier;
 	typeParams?: ASTType[];
-	extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>;
+	extends?: Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>;
 	body?: ASTBlockStatement;
 
 	// factory function
-	static _({ modifiers, name, typeParams, extends: _extends, body }: { modifiers?: ASTModifier[]; name: ASTIdentifier; typeParams?: ASTType[]; extends?: Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>; body?: ASTBlockStatement; }): ASTInterfaceDeclaration {
+	static _({ modifiers, name, typeParams, extends: _extends, body }: { modifiers?: ASTModifier[]; name: ASTIdentifier; typeParams?: ASTType[]; extends?: Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>; body?: ASTBlockStatement; }): ASTInterfaceDeclaration {
 		const ast = new ASTInterfaceDeclaration();
 		ast.modifiers = modifiers;
 		ast.name = name;
@@ -371,6 +398,3 @@ export type Expression =
 
 	/** ASTs that can be assigned to a variable or passed as an argument */
 export type AssignableASTs = Expression | ASTFunctionDeclaration;
-
-export type IdentifierOrMemberExpressionWithTypeArgs = [ASTIdentifier | ASTMemberExpression, ASTTypeArgument[]];
-export type IdentifierWithTypeParams = [ASTIdentifier, ASTType[]];

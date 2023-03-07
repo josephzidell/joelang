@@ -123,9 +123,8 @@ export default class Parser {
 			if (token.type === 'paren_open') {
 				const prev = this.prev();
 				switch (prev?.type) {
-					// if previous was an Identifier or Typed, then this is either a CallExpression or FunctionDeclaration
+					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case NT.Identifier:
-					case NT.Typed:
 						if (this.currentRoot.type === NT.FunctionDeclaration) {
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 
@@ -168,7 +167,7 @@ export default class Parser {
 					case NT.TypeArgumentsList:
 						const twoBack = this.prev(2);
 
-						if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.Typed] as NT[]).includes(twoBack?.type)) {
+						if (twoBack?.type && ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type)) {
 							// we're in a CallExpression after the GenericTypesList
 							const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
 							let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
@@ -223,8 +222,11 @@ export default class Parser {
 			} else if (token.type === 'brace_open') {
 				this.endExpressionWhileIn(NT.BinaryExpression);
 				this.endExpressionIfIn(NT.FunctionReturns);
+				this.endExpressionIfIn(NT.ClassExtension);
 				this.endExpressionIfIn(NT.ClassExtensionsList);
+				this.endExpressionIfIn(NT.ClassImplement);
 				this.endExpressionIfIn(NT.ClassImplementsList);
+				this.endExpressionIfIn(NT.InterfaceExtension);
 				this.endExpressionIfIn(NT.InterfaceExtensionsList);
 				this.endExpressionIfIn(NT.UnaryExpression);
 
@@ -337,18 +339,21 @@ export default class Parser {
 				}
 
 				// check if we're in a ParametersList, if so, begin a Parameter
-				if (this.currentRoot.type === NT.ParametersList) {
+				const mapCurrentRootToSubNode: Partial<Record<NT, NT>> = {
+					[NT.ParametersList]: NT.Parameter,
+					[NT.TypeParametersList]: NT.TypeParameter,
+					[NT.ClassExtensionsList]: NT.ClassExtension,
+					[NT.ClassImplementsList]: NT.ClassImplement,
+					[NT.InterfaceExtensionsList]: NT.InterfaceExtension,
+				};
+
+				if (this.currentRoot.type in mapCurrentRootToSubNode) {
+					const subNode = mapCurrentRootToSubNode[this.currentRoot.type] as NT;
 					if (this.debug) {
-						console.debug('Currently there is a ParametersList open; now creating a Parameter Node in it');
+						console.debug(`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
 					}
 
-					this.beginExpressionWith(MakeNode(NT.Parameter, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.TypeParametersList) {
-					if (this.debug) {
-						console.debug('Currently there is a TypeParametersList open; now creating a TypeParameter Node in it');
-					}
-
-					this.beginExpressionWith(MakeNode(NT.TypeParameter, token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
 				}
 
 				if (this.debug) {
@@ -446,20 +451,43 @@ export default class Parser {
 
 				this.addNode(MakeNode(NT.SemicolonSeparator, token, this.currentRoot));
 			} else if (token.type === 'dot') {
-				const prev = this.prev();
+				let prev = this.prev();
+
+				if (prev?.type === NT.TypeArgumentsList) {
+					const twoBack = this.prev(2);
+					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type)) {
+						// we're in a MemberExpression after the GenericTypesList
+						// eg. `foo<bar>.baz`
+						// we need to create a new InstantiationExpression node
+						// capturing the previous two nodes of Identifier and GenericTypesList
+						const instantiationExpressionNode = MakeNode(NT.InstantiationExpression, token, this.currentRoot, true);
+						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, instantiationExpressionNode);
+						if (wasAdopted.outcome === 'error') {
+							return error(wasAdopted.error);
+						}
+
+						wasAdopted = this.adoptNode(this.currentRoot, prev, instantiationExpressionNode);
+						this.beginExpressionWith(instantiationExpressionNode);
+						this.endExpression(); // end the InstantiationExpression
+
+						// once done, this new node then becomes the "previous" for the next if
+						prev = instantiationExpressionNode;
+					}
+				} // do not connect this to the next if since this is independent of the next if
 
 				if (prev?.type === NT.CallExpression ||
 					prev?.type === NT.Identifier ||
 					prev?.type === NT.MemberExpression ||
-					prev?.type === NT.Typed ||
+					prev?.type === NT.Type ||
+					prev?.type === NT.InstantiationExpression ||
 					(prev?.type === NT.Keyword && prev.value === 'this')
 				) {
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
 						return result;
 					}
-
 				}
+
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
@@ -511,6 +539,8 @@ export default class Parser {
 				} else if (this.currentRoot.type === NT.BinaryExpression) {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.Parameter || this.currentRoot.type === NT.TypeParameter) {
+					this.endExpression();
+				} else if (this.currentRoot.type === NT.ClassExtension || this.currentRoot.type === NT.ClassImplement || this.currentRoot.type === NT.InterfaceExtension) {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.Property) {
 					this.endExpression();
@@ -602,29 +632,44 @@ export default class Parser {
 				 */
 
 				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
-					if (this.prev()?.type === NT.Identifier) {
-						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Typed, token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
+				} else {
+					const prev = this.prev();
+					if (this.currentRoot.type === NT.ArgumentsList) {
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.InstantiationExpression, token, this.currentRoot, true));
 						if (result.outcome === 'error') {
 							return result;
 						}
-					}
-
-					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
-				} else {
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Typed, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
 					}
 
 					this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'triangle_close') {
 				this.endExpressionIfIn(NT.TypeArgumentsList);
-				this.endExpressionIfIn(NT.Typed);
+				this.endExpressionIfIn(NT.InstantiationExpression);
 
 				this.endExpressionIfIn(NT.TypeParameter);
 				this.endExpressionIfIn(NT.TypeParametersList);
-				this.endExpressionIfIn(NT.Typed);
+
+				const prev = this.prev();
+				if (prev?.type === NT.TypeArgumentsList) {
+					const twoBack = this.prev(2);
+					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type) && this.currentRoot.parent?.type && !([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(this.currentRoot.parent?.type)) {
+						// we're in a MemberExpression after the GenericTypesList
+						// eg. `foo<bar>.baz`
+						// we need to create a new InstantiationExpression node
+						// capturing the previous two nodes of Identifier and GenericTypesList
+						const instantiationExpressionNode = MakeNode(NT.InstantiationExpression, token, this.currentRoot, true);
+						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, instantiationExpressionNode);
+						if (wasAdopted.outcome === 'error') {
+							return error(wasAdopted.error);
+						}
+
+						wasAdopted = this.adoptNode(this.currentRoot, prev, instantiationExpressionNode);
+						this.beginExpressionWith(instantiationExpressionNode);
+						this.endExpression(); // end the InstantiationExpression
+					}
+				}
 
 				this.endExpressionIfIn(NT.MemberExpression);
 			} else if (token.type === 'less_than') {
@@ -918,6 +963,7 @@ export default class Parser {
 						}
 						break;
 					case 'implements':
+						this.endExpressionIfIn(NT.ClassExtension);
 						this.endExpressionIfIn(NT.ClassExtensionsList);
 
 						this.beginExpressionWith(MakeNode(NT.ClassImplementsList, token, this.currentRoot, true));

@@ -18,6 +18,8 @@ import {
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTIdentifier,
+	ASTIdentifierWithTypeParams,
+	ASTIdentifierOrMemberExpressionWithTypeArgs,
 	ASTMemberExpression,
 	ASTModifier,
 	ASTNumberLiteral,
@@ -37,12 +39,10 @@ import {
 	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	Expression,
-	IdentifierOrMemberExpressionWithTypeArgs,
-	IdentifierWithTypeParams,
-	Skip
+	Skip,
 } from "./asts";
 import AnalysisError, { AnalysisErrorCode } from "./error";
-import visitorMap from "./visitorMap";
+import visitorMap, { visitor } from "./visitorMap";
 
 // reusable handler callback for child nodes if we want to skip them
 const skipThisChild = (child: Node) => ok(undefined);
@@ -99,7 +99,21 @@ export default class SemanticAnalyzer {
 	nodeToAST<T = AST>(node: Node): Result<T> {
 		this.currentNode = node;
 
-		return visitorMap[node.type](node, this);
+		if (node.type in visitorMap) {
+			return (visitorMap[node.type] as visitor)(node, this);
+		}
+
+		return error(new AnalysisError(
+			AnalysisErrorCode.MissingVisitee,
+			`Please implement visit${node.type.at(0)?.toUpperCase}${node.type.substring(1)}() method`,
+			node,
+			new ErrorContext(
+				this.parser.lexer.code,
+				node.pos.line,
+				node.pos.col,
+				node.value?.length || 1,
+			),
+		), this.getAST);
 	}
 
 	// reusable function to handle a node that has a value
@@ -350,135 +364,92 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitClassExtensionsList(node: Node): Result<Array<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs>> {
+	visitClassExtensionsList(node: Node): Result<Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>> {
 		return this.convertNodesChildrenOfSameType(
 			node,
-			[NT.Identifier, NT.MemberExpression, NT.Typed, NT.CommaSeparator],
+			[NT.Identifier, NT.MemberExpression, NT.TypeArgumentsList, NT.CommaSeparator],
 			AnalysisErrorCode.IdentifierExpected,
 			() => 'Identifier Expected',
 			this.handleIdentifierOrMemberExpressionWithPossibleTypeArgs
 		);
 	}
 
-	visitClassImplementsList(node: Node): Result<IdentifierOrMemberExpressionWithTypeArgs[]> {
+	visitClassImplementsList(node: Node): Result<Array<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs>> {
 		return this.convertNodesChildrenOfSameType(
 			node,
-			[NT.Identifier, NT.MemberExpression, NT.Typed],
+			[NT.Identifier, NT.MemberExpression, NT.TypeArgumentsList],
 			AnalysisErrorCode.IdentifierExpected,
 			() => 'Identifier Expected',
 			this.handleIdentifierOrMemberExpressionWithPossibleTypeArgs,
 		);
 	}
 
-	handleIdentifierOrMemberExpressionWithPossibleTypeArgs(node: Node): Result<ASTIdentifier | ASTMemberExpression | IdentifierOrMemberExpressionWithTypeArgs | Skip> {
-		let identifierOrMemberExpression: ASTIdentifier | ASTMemberExpression = ASTIdentifier._('');
-		let typeArgs: ASTTypeArgument[] | undefined = undefined;
-
-		if (node.type === NT.Typed) {
-			const childrenResult = this.handleNodesChildrenOfDifferentTypes(node, [
-				// first child: the name
-				{
-					type: [NT.Identifier, NT.MemberExpression],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
-						switch (visitResult.outcome) {
-							case 'ok': identifierOrMemberExpression = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: 'Identifier Expected',
-				},
-
-				// second child: the type arguments
-				{
-					type: NT.TypeArgumentsList,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.visitTypeArgumentsList(child);
-						switch (visitResult.outcome) {
-							case 'ok': typeArgs = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.TypeExpected,
-					errorMessage: 'Type Expected',
-				},
-			]);
-			switch (childrenResult.outcome) {
-				case 'ok': break;
-				case 'error': return childrenResult; break;
+	handleIdentifierOrMemberExpressionWithPossibleTypeArgs(node: Node): Result<ASTIdentifier | ASTMemberExpression | ASTIdentifierOrMemberExpressionWithTypeArgs | Skip> {
+		if (node.type === NT.Identifier || node.type === NT.MemberExpression) {
+			const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(node);
+			switch (visitResult.outcome) {
+				case 'ok': return ok(visitResult.value); break;
+				case 'error': return visitResult; break;
+			}
+		} else if (node.type === NT.TypeArgumentsList) {
+			const visitResult = this.visitTypeArgumentsList(node);
+			switch (visitResult.outcome) {
+				case 'ok': return ok(visitResult.value); break;
+				case 'error': return visitResult; break;
 			}
 		} else if (node.type === NT.CommaSeparator) {
 			return this.nodeToAST(node);
-		} else { // child.type === NT.Identifier or child.type === NT.MemberExpression
-			// console.info('[handleIdentifierOrMemberExpressionWithPossibleTypeArgs] node.type', node.type)
-			const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(node);
-			switch (visitResult.outcome) {
-				case 'ok':
-					identifierOrMemberExpression = visitResult.value;
-					break;
-				case 'error': return visitResult; break;
-			}
+		} else {
+			return error(new AnalysisError(
+				AnalysisErrorCode.ExpressionNotExpected,
+				`Unexpected expression ${node.type}`,
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			), this.ast);
 		}
-
-		if (typeof typeArgs === 'undefined') {
-			return ok(identifierOrMemberExpression);
-		}
-
-		return ok([identifierOrMemberExpression, typeArgs]);
 	}
 
-	handleIdentifierWithPossibleTypeParams(node: Node): Result<IdentifierWithTypeParams> {
-		let identifier: ASTIdentifier = ASTIdentifier._('');
-		let typeParams: ASTType[] = [];
+	visitIdentifierWithTypeParameters(node: Node): Result<ASTIdentifierWithTypeParams> {
+		const ast = new ASTIdentifierWithTypeParams();
 
-		if (node.type === NT.Typed) {
-			const childrenResult = this.handleNodesChildrenOfDifferentTypes(node, [
-				// first child: the name
-				{
-					type: NT.Identifier,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.visitIdentifier(child);
-						switch (visitResult.outcome) {
-							case 'ok': identifier = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: 'Identifier Expected',
+		const childrenResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the name
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitIdentifier(child);
+					switch (visitResult.outcome) {
+						case 'ok': ast.identifier = visitResult.value; return ok(undefined); break;
+						case 'error': return visitResult; break;
+					}
 				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: 'Identifier Expected',
+			},
 
-				// second child: the type arguments
-				{
-					type: NT.TypeParametersList,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.visitTypeParametersList(child);
-						switch (visitResult.outcome) {
-							case 'ok': typeParams = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.TypeExpected,
-					errorMessage: 'Type Expected',
+			// second child: the type parameters
+			{
+				type: NT.TypeParametersList,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitTypeParametersList(child);
+					switch (visitResult.outcome) {
+						case 'ok': ast.typeParams = visitResult.value; return ok(undefined); break;
+						case 'error': return visitResult; break;
+					}
 				},
-			]);
-			switch (childrenResult.outcome) {
-				case 'ok': break;
-				case 'error': return childrenResult; break;
-			}
-		} else { // child.type === NT.Identifier
-			const visitResult = this.visitIdentifier(node);
-			switch (visitResult.outcome) {
-				case 'ok': identifier = visitResult.value; break;
-				case 'error': return visitResult; break;
-			}
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: 'Type Expected',
+			},
+		]);
+		if (childrenResult.outcome === 'error') {
+			return childrenResult;
 		}
 
-		return ok([identifier, typeParams]);
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	visitClassDeclaration(node: Node): Result<ASTClassDeclaration> {
@@ -501,20 +472,12 @@ export default class SemanticAnalyzer {
 
 			// second child: the name
 			{
-				type: [NT.Identifier, NT.Typed],
+				type: NT.Identifier,
 				required: true,
 				callback: (child) => {
-					const result = this.handleIdentifierWithPossibleTypeParams(child);
+					const result = this.visitIdentifier(child);
 					switch (result.outcome) {
-						case 'ok':
-							ast.name = result.value[0];
-
-							const possibleTypeParams = result.value[1];
-							if (typeof possibleTypeParams !== 'undefined') {
-								ast.typeParams = possibleTypeParams;
-							}
-							return ok(undefined);
-							break;
+						case 'ok': ast.name = result.value; return ok(undefined); break;
 						case 'error': return result; break;
 					}
 				},
@@ -522,7 +485,20 @@ export default class SemanticAnalyzer {
 				errorMessage: 'Identifier Expected',
 			},
 
-			// third child: the extends list
+			// third child: type parameters
+			{
+				type: NT.TypeParametersList,
+				required: false,
+				callback: (child) => {
+					const result = this.visitTypeParametersList(child);
+					switch (result.outcome) {
+						case 'ok': ast.typeParams = result.value; return ok(undefined); break;
+						case 'error': return result; break;
+					}
+				},
+			},
+
+			// fourth child: the extends list
 			{
 				type: NT.ClassExtensionsList,
 				required: false,
@@ -535,7 +511,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// fourth child: the implements list
+			// fifth child: the implements list
 			{
 				type: NT.ClassImplementsList,
 				required: false,
@@ -548,7 +524,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// fifth child: the body
+			// sixth child: the body
 			{
 				type: NT.BlockStatement,
 				required: true,
@@ -888,13 +864,13 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTypeArgumentsList(node: Node): Result<ASTTypeArgument[]> {
-		const validChildren = [NT.Type, NT.Identifier, NT.MemberExpression];
+		const validChildren = [NT.CommaSeparator, NT.Identifier, NT.MemberExpression, NT.Type];
 
 		const typeArgs: ASTTypeArgument[] = [];
 
 		for (const child of node.children) {
 			if (validChildren.includes(child.type)) {
-				const visitResult = this.visitType(child);
+				const visitResult = this.nodeToAST(child);
 				switch (visitResult.outcome) {
 					case 'ok':
 						if (visitResult.value instanceof Skip) {

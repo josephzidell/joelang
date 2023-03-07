@@ -1579,7 +1579,7 @@ describe('parser.ts', (): void => {
 				[NT.CallExpression, [
 					[NT.Identifier, 'a'],
 					[NT.ArgumentsList, [
-						[NT.Typed, [
+						[NT.InstantiationExpression, [
 							[NT.Identifier, 'B'],
 							[NT.TypeArgumentsList, [
 								[NT.Identifier, 'T'],
@@ -1592,12 +1592,12 @@ describe('parser.ts', (): void => {
 
 			expect(parse('a<|T|>(B);')).toMatchParseTree([
 				[NT.CallExpression, [
-					[NT.Typed, [
+					// [NT.Typed, [
 						[NT.Identifier, 'a'],
 						[NT.TypeArgumentsList, [
 							[NT.Identifier, 'T'],
 						]],
-					]],
+					// ]],
 					[NT.ArgumentsList, [
 						[NT.Identifier, 'B'],
 					]],
@@ -1612,19 +1612,17 @@ describe('parser.ts', (): void => {
 					[NT.Identifier, 'foo'],
 					[NT.AssignmentOperator],
 					[NT.CallExpression, [
-						[NT.Typed, [
-							[NT.Identifier, 'Foo'],
-							[NT.TypeArgumentsList, [
-								[NT.ObjectExpression, [
-									[NT.Property, [
-										[NT.Identifier, 'T'],
-										[NT.Identifier, 'T'],
-									]],
-								]],
-								[NT.CommaSeparator],
-								[NT.ArrayType, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeArgumentsList, [
+							[NT.ObjectExpression, [
+								[NT.Property, [
+									[NT.Identifier, 'T'],
 									[NT.Identifier, 'T'],
 								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.ArrayType, [
+								[NT.Identifier, 'T'],
 							]],
 						]],
 						[NT.ArgumentsList, []],
@@ -1643,9 +1641,13 @@ describe('parser.ts', (): void => {
 				[NT.ClassDeclaration, [
 					[NT.Identifier, 'C'],
 					[NT.ClassExtensionsList, [
-						[NT.Identifier, 'A'],
+						[NT.ClassExtension, [
+							[NT.Identifier, 'A'],
+						]],
 						[NT.CommaSeparator],
-						[NT.Identifier, 'B'],
+						[NT.ClassExtension, [
+							[NT.Identifier, 'B'],
+						]],
 					]],
 					[NT.BlockStatement, [
 						[NT.FunctionDeclaration, [
@@ -1657,7 +1659,7 @@ describe('parser.ts', (): void => {
 										[NT.MemberExpression, [
 											[NT.MemberExpression, [
 												[NT.Keyword, 'this'],
-												[NT.Typed, [
+												[NT.InstantiationExpression, [
 													[NT.Identifier, 'parent'],
 													[NT.TypeArgumentsList, [
 														[NT.Identifier, 'A'],
@@ -1706,16 +1708,14 @@ describe('parser.ts', (): void => {
 
 			expect(parse('class Foo <| T, U |> {}')).toMatchParseTree([
 				[NT.ClassDeclaration, [
-					[NT.Typed, [
-						[NT.Identifier, 'Foo'],
-						[NT.TypeParametersList, [
-							[NT.TypeParameter, [
-								[NT.Identifier, 'T'],
-							]],
-							[NT.CommaSeparator],
-							[NT.TypeParameter, [
-								[NT.Identifier, 'U'],
-							]],
+					[NT.Identifier, 'Foo'],
+					[NT.TypeParametersList, [
+						[NT.TypeParameter, [
+							[NT.Identifier, 'T'],
+						]],
+						[NT.CommaSeparator],
+						[NT.TypeParameter, [
+							[NT.Identifier, 'U'],
 						]],
 					]],
 					[NT.BlockStatement, []],
@@ -1761,14 +1761,22 @@ describe('parser.ts', (): void => {
 				[NT.ClassDeclaration, [
 					[NT.Identifier, 'Foo'],
 					[NT.ClassExtensionsList, [
-						[NT.Identifier, 'Bar'],
+						[NT.ClassExtension, [
+							[NT.Identifier, 'Bar'],
+						]],
 						[NT.CommaSeparator],
-						[NT.Identifier, 'Baz'],
+						[NT.ClassExtension, [
+							[NT.Identifier, 'Baz'],
+						]],
 					]],
 					[NT.ClassImplementsList, [
-						[NT.Identifier, 'AbstractFooBar'],
+						[NT.ClassImplement, [
+							[NT.Identifier, 'AbstractFooBar'],
+						]],
 						[NT.CommaSeparator],
-						[NT.Identifier, 'AnotherAbstractClass'],
+						[NT.ClassImplement, [
+							[NT.Identifier, 'AnotherAbstractClass'],
+						]],
 					]],
 					[NT.BlockStatement, []],
 				]],
@@ -1778,32 +1786,34 @@ describe('parser.ts', (): void => {
 		it('class extends multiple and implements multiple with generics', (): void => {
 			expect(parse('class Foo<|T,U|> extends Bar<|T|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}')).toMatchParseTree([
 				[NT.ClassDeclaration, [
-					[NT.Typed, [
-						[NT.Identifier, 'Foo'],
-						[NT.TypeParametersList, [
-							[NT.TypeParameter, [
-								[NT.Identifier, 'T'],
-							]],
-							[NT.CommaSeparator],
-							[NT.TypeParameter, [
-								[NT.Identifier, 'U'],
-							]],
+					[NT.Identifier, 'Foo'],
+					[NT.TypeParametersList, [
+						[NT.TypeParameter, [
+							[NT.Identifier, 'T'],
+						]],
+						[NT.CommaSeparator],
+						[NT.TypeParameter, [
+							[NT.Identifier, 'U'],
 						]],
 					]],
 					[NT.ClassExtensionsList, [
-						[NT.Typed, [
+						[NT.ClassExtension, [
 							[NT.Identifier, 'Bar'],
 							[NT.TypeArgumentsList, [
 								[NT.Identifier, 'T'],
 							]],
 						]],
 						[NT.CommaSeparator],
-						[NT.Identifier, 'Baz'],
+						[NT.ClassExtension, [
+							[NT.Identifier, 'Baz'],
+						]],
 					]],
 					[NT.ClassImplementsList, [
-						[NT.Identifier, 'AbstractFooBar'],
+						[NT.ClassImplement, [
+							[NT.Identifier, 'AbstractFooBar'],
+						]],
 						[NT.CommaSeparator],
-						[NT.Typed, [
+						[NT.ClassImplement, [
 							[NT.Identifier, 'AnotherAbstractClass'],
 							[NT.TypeArgumentsList, [
 								[NT.Identifier, 'U'],
@@ -1831,12 +1841,10 @@ describe('parser.ts', (): void => {
 					[NT.ModifiersList, [
 						[NT.Modifier, 'abstract'],
 					]],
-					[NT.Typed, [
-						[NT.Identifier, 'Foo'],
-						[NT.TypeParametersList, [
-							[NT.TypeParameter, [
-								[NT.Identifier, 'T'],
-							]],
+					[NT.Identifier, 'Foo'],
+					[NT.TypeParametersList, [
+						[NT.TypeParameter, [
+							[NT.Identifier, 'T'],
 						]],
 					]],
 					[NT.BlockStatement, []],
@@ -1871,12 +1879,10 @@ describe('parser.ts', (): void => {
 								[NT.Modifier, 'abstract'],
 								[NT.Modifier, 'static'],
 							]],
-							[NT.Typed, [
-								[NT.Identifier, 'hello'],
-								[NT.TypeParametersList, [
-									[NT.TypeParameter, [
-										[NT.Identifier, 'T'],
-									]],
+							[NT.Identifier, 'hello'],
+							[NT.TypeParametersList, [
+								[NT.TypeParameter, [
+									[NT.Identifier, 'T'],
 								]],
 							]],
 							[NT.ParametersList, [
@@ -1922,7 +1928,9 @@ describe('parser.ts', (): void => {
 				[NT.ClassDeclaration, [
 					[NT.Identifier, 'Bar'],
 					[NT.ClassExtensionsList, [
-						[NT.Identifier, 'Foo'],
+						[NT.ClassExtension, [
+							[NT.Identifier, 'Foo'],
+						]],
 					]],
 					[NT.BlockStatement, []],
 				]],
@@ -2321,12 +2329,10 @@ describe('parser.ts', (): void => {
 		it('generics', (): void => {
 			expect(parse('f foo <|T|> (a: T) -> T {}')).toMatchParseTree([
 				[NT.FunctionDeclaration, [
-					[NT.Typed, [
-						[NT.Identifier, 'foo'],
-						[NT.TypeParametersList, [
-							[NT.TypeParameter, [
-								[NT.Identifier, 'T'],
-							]],
+					[NT.Identifier, 'foo'],
+					[NT.TypeParametersList, [
+						[NT.TypeParameter, [
+							[NT.Identifier, 'T'],
 						]],
 					]],
 					[NT.ParametersList, [
@@ -2385,12 +2391,10 @@ describe('parser.ts', (): void => {
 							[NT.ModifiersList, [
 								[NT.Modifier, 'abstract'],
 							]],
-							[NT.Typed, [
-								[NT.Identifier, 'foo3'],
-								[NT.TypeParametersList, [
-									[NT.TypeParameter, [
-										[NT.Identifier, 'T'],
-									]],
+							[NT.Identifier, 'foo3'],
+							[NT.TypeParametersList, [
+								[NT.TypeParameter, [
+									[NT.Identifier, 'T'],
 								]],
 							]],
 							[NT.FunctionReturns, [
@@ -2885,16 +2889,14 @@ describe('parser.ts', (): void => {
 
 			expect(parse('interface Foo <| T, U |> {}')).toMatchParseTree([
 				[NT.InterfaceDeclaration, [
-					[NT.Typed, [
-						[NT.Identifier, 'Foo'],
-						[NT.TypeParametersList, [
-							[NT.TypeParameter, [
-								[NT.Identifier, 'T'],
-							]],
-							[NT.CommaSeparator],
-							[NT.TypeParameter, [
-								[NT.Identifier, 'U'],
-							]],
+					[NT.Identifier, 'Foo'],
+					[NT.TypeParametersList, [
+						[NT.TypeParameter, [
+							[NT.Identifier, 'T'],
+						]],
+						[NT.CommaSeparator],
+						[NT.TypeParameter, [
+							[NT.Identifier, 'U'],
 						]],
 					]],
 					[NT.BlockStatement, []],
@@ -2911,7 +2913,9 @@ describe('parser.ts', (): void => {
 				[NT.InterfaceDeclaration, [
 					[NT.Identifier, 'Bar'],
 					[NT.InterfaceExtensionsList, [
-						[NT.Identifier, 'Foo'],
+						[NT.InterfaceExtension, [
+							[NT.Identifier, 'Foo'],
+						]],
 					]],
 					[NT.BlockStatement, []],
 				]],
@@ -2923,9 +2927,13 @@ describe('parser.ts', (): void => {
 				[NT.InterfaceDeclaration, [
 					[NT.Identifier, 'Foo'],
 					[NT.InterfaceExtensionsList, [
-						[NT.Identifier, 'Bar'],
+						[NT.InterfaceExtension, [
+							[NT.Identifier, 'Bar'],
+						]],
 						[NT.CommaSeparator],
-						[NT.Identifier, 'Baz'],
+						[NT.InterfaceExtension, [
+							[NT.Identifier, 'Baz'],
+						]],
 					]],
 					[NT.BlockStatement, []],
 				]],
@@ -2935,27 +2943,25 @@ describe('parser.ts', (): void => {
 		it('interface extends multiple with generics', (): void => {
 			expect(parse('interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}')).toMatchParseTree([
 				[NT.InterfaceDeclaration, [
-					[NT.Typed, [
-						[NT.Identifier, 'Foo'],
-						[NT.TypeParametersList, [
-							[NT.TypeParameter, [
-								[NT.Identifier, 'T'],
-							]],
-							[NT.CommaSeparator],
-							[NT.TypeParameter, [
-								[NT.Identifier, 'U'],
-							]],
+					[NT.Identifier, 'Foo'],
+					[NT.TypeParametersList, [
+						[NT.TypeParameter, [
+							[NT.Identifier, 'T'],
+						]],
+						[NT.CommaSeparator],
+						[NT.TypeParameter, [
+							[NT.Identifier, 'U'],
 						]],
 					]],
 					[NT.InterfaceExtensionsList, [
-						[NT.Typed, [
+						[NT.InterfaceExtension, [
 							[NT.Identifier, 'Bar'],
 							[NT.TypeArgumentsList, [
 								[NT.Identifier, 'T'],
 							]],
 						]],
 						[NT.CommaSeparator],
-						[NT.Typed, [
+						[NT.InterfaceExtension, [
 							[NT.Identifier, 'Baz'],
 							[NT.TypeArgumentsList, [
 								[NT.Identifier, 'U'],
@@ -3181,7 +3187,7 @@ describe('parser.ts', (): void => {
 			expect(parse('A<|T, U|>.create(T.create(), U.create(), "foo");')).toMatchParseTree([
 				[NT.CallExpression, [
 					[NT.MemberExpression, [
-						[NT.Typed, [
+						[NT.InstantiationExpression, [
 							[NT.Identifier, 'A'],
 							[NT.TypeArgumentsList, [
 								[NT.Identifier, 'T'],
