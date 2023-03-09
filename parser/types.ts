@@ -100,6 +100,8 @@ export const AssignableNodeTypes: NT[] = [
 	NT.FunctionDeclaration,
 ];
 
+export const validChildrenInTypeArgumentList = [NT.CommaSeparator, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
+
 /** A node's positional information */
 export type Pos = {
 	/** cursor position of the beginning of this node, counting chars from the beginning of the file */

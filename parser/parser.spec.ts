@@ -7,14 +7,16 @@ import {
 	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTClassDeclaration,
+	ASTFunctionDeclaration,
 	ASTIdentifier,
 	ASTMemberExpression,
+	ASTModifier,
 	ASTNumberLiteral,
 	ASTPath,
 	ASTRegularExpression,
 	ASTStringLiteral,
-	ASTTypeBuiltIn,
-	ASTTypeUserDefined,
+	ASTTypeInstantiationExpression,
+	ASTTypePrimitive,
 	ASTUnaryExpression,
 	ASTVariableDeclaration
 } from "../semanticAnalysis/asts";
@@ -460,10 +462,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: true,
 						identifier: ASTIdentifier._('x'),
 						initialValue: ASTBoolLiteral._(false),
-						inferredType: ASTTypeBuiltIn._('bool'),
+						inferredType: ASTTypePrimitive._('bool'),
 					}),
 				]
 			)
@@ -479,10 +482,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: true,
 						identifier: ASTIdentifier._('x?'),
 						initialValue: ASTBoolLiteral._(false),
-						inferredType: ASTTypeBuiltIn._('bool'),
+						inferredType: ASTTypePrimitive._('bool'),
 					}),
 				]
 			);
@@ -501,10 +505,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: true,
 						identifier: ASTIdentifier._('x'),
 						initialValue: ASTNumberLiteral._({format: 'int', value: 1}),
-						inferredType: ASTTypeBuiltIn._('number'),
+						inferredType: ASTTypePrimitive._('number'),
 					}),
 				]
 			);
@@ -534,6 +539,7 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('x'),
 						initialValue: ASTBinaryExpression._({
@@ -549,13 +555,14 @@ describe('parser.ts', (): void => {
 								operand: ASTNumberLiteral._({format: 'int', value: 2000}),
 							}),
 						}),
-						inferredType: ASTTypeBuiltIn._('number'),
+						inferredType: ASTTypePrimitive._('number'),
 					}),
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('y'),
 						initialValue: ASTNumberLiteral._({format: 'int', value: 5}),
-						inferredType: ASTTypeBuiltIn._('number'),
+						inferredType: ASTTypePrimitive._('number'),
 					}),
 				]
 			);
@@ -573,10 +580,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: true,
 						identifier: ASTIdentifier._('x'),
 						initialValue: ASTStringLiteral._('foo'),
-						inferredType: ASTTypeBuiltIn._('string'),
+						inferredType: ASTTypePrimitive._('string'),
 					}),
 				]
 			);
@@ -596,9 +604,10 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: true,
 						identifier: ASTIdentifier._('x'),
-						declaredType: ASTTypeBuiltIn._('string'),
+						declaredType: ASTTypePrimitive._('string'),
 					}),
 				],
 			);
@@ -615,9 +624,10 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: true,
 						identifier: ASTIdentifier._('x?'),
-						declaredType: ASTTypeBuiltIn._('bool'),
+						declaredType: ASTTypePrimitive._('bool'),
 					}),
 				],
 			);
@@ -637,11 +647,12 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('x'),
-						declaredType: ASTTypeBuiltIn._('string'),
+						declaredType: ASTTypePrimitive._('string'),
 						initialValue: ASTStringLiteral._('foo'),
-						inferredType: ASTTypeBuiltIn._('string'),
+						inferredType: ASTTypePrimitive._('string'),
 					}),
 				],
 			);
@@ -660,10 +671,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('x'),
 						initialValue: ASTRegularExpression._({pattern: '/[a-z]/', flags: []}),
-						inferredType: ASTTypeBuiltIn._('regex'),
+						inferredType: ASTTypePrimitive._('regex'),
 					}),
 				],
 			);
@@ -682,11 +694,12 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('x'),
-						declaredType: ASTTypeBuiltIn._('regex'),
+						declaredType: ASTTypePrimitive._('regex'),
 						initialValue: ASTRegularExpression._({pattern: '/[0-9]*/', flags: ['g']}),
-						inferredType: ASTTypeBuiltIn._('regex'),
+						inferredType: ASTTypePrimitive._('regex'),
 					}),
 				],
 			);
@@ -705,10 +718,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('dir'),
 						initialValue: ASTPath._({absolute: true, path: '@/path/to/dir/', isDir: true}),
-						inferredType: ASTTypeBuiltIn._('path'),
+						inferredType: ASTTypePrimitive._('path'),
 					}),
 				],
 			);
@@ -725,10 +739,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('dir'),
 						initialValue: ASTPath._({absolute: false, path: './myDir/', isDir: true}),
-						inferredType: ASTTypeBuiltIn._('path'),
+						inferredType: ASTTypePrimitive._('path'),
 					}),
 				],
 			);
@@ -747,11 +762,12 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('file'),
-						declaredType: ASTTypeBuiltIn._('path'),
+						declaredType: ASTTypePrimitive._('path'),
 						initialValue: ASTPath._({absolute: true, path: '@/path/to/file.joe', isDir: false}),
-						inferredType: ASTTypeBuiltIn._('path'),
+						inferredType: ASTTypePrimitive._('path'),
 					}),
 				],
 			);
@@ -770,6 +786,7 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTVariableDeclaration._({
+						modifiers: [],
 						mutable: false,
 						identifier: ASTIdentifier._('dir'),
 						initialValue: ASTIdentifier._('foo'),
@@ -777,7 +794,6 @@ describe('parser.ts', (): void => {
 				],
 			);
 		})
-
 
 		describe('custom type', (): void => {
 
@@ -802,11 +818,10 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTVariableDeclaration._({
+							modifiers: [],
 							mutable: false,
 							identifier: ASTIdentifier._('myClass'),
-							declaredType: ASTTypeUserDefined._(
-								ASTIdentifier._('MyClass'),
-							),
+							declaredType: ASTIdentifier._('MyClass'),
 							initialValue: ASTCallExpression._({
 								callee: ASTMemberExpression._({
 									object: ASTIdentifier._('MyClass'),
@@ -843,14 +858,13 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTVariableDeclaration._({
+							modifiers: [],
 							mutable: false,
 							identifier: ASTIdentifier._('myClass'),
-							declaredType: ASTTypeUserDefined._(
-								ASTMemberExpression._({
-									object: ASTIdentifier._('MyPackage'),
-									property: ASTIdentifier._('MyClass'),
-								}),
-							),
+							declaredType: ASTMemberExpression._({
+								object: ASTIdentifier._('MyPackage'),
+								property: ASTIdentifier._('MyClass'),
+							}),
 							initialValue: ASTCallExpression._({
 								callee: ASTMemberExpression._({
 									object: ASTIdentifier._('MyClass'),
@@ -1006,7 +1020,7 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypeBuiltIn._('bool'),
+							type: ASTTypePrimitive._('bool'),
 							items: [
 								ASTBoolLiteral._(false),
 								ASTBoolLiteral._(true),
@@ -1045,7 +1059,7 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypeBuiltIn._('number'),
+							type: ASTTypePrimitive._('number'),
 							items: [
 								ASTNumberLiteral._({ format: 'int', value: 1 }),
 								ASTUnaryExpression._({
@@ -1682,174 +1696,337 @@ describe('parser.ts', (): void => {
 
 	});
 
-	describe('ClassDeclaration and InterfaceDeclaration', (): void => {
+	describe('ClassDeclaration', (): void => {
 		it('empty class', (): void => {
-			expect(parse('class Foo {}')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.BlockStatement, []],
-				]],
-			]);
-			// testParseAndAnalyze(
-			// 	'class Foo {}',
-			// 	[
-			// 		[NT.ClassDeclaration, [
-			// 			[NT.Identifier, 'Foo'],
-			// 			[NT.BlockStatement, []],
-			// 		]],
-			// 	],
-			// 	[
-			// 		ASTClassDeclaration._({
-			// 			name: ASTIdentifier._('Foo'),
-			// 			body: ASTBlockStatement._([]),
-			// 		}),
-			// 	],
-			// );
-
-			expect(parse('class Foo <| T, U |> {}')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.TypeParametersList, [
-						[NT.TypeParameter, [
-							[NT.Identifier, 'T'],
-						]],
-						[NT.CommaSeparator],
-						[NT.TypeParameter, [
-							[NT.Identifier, 'U'],
-						]],
+			testParseAndAnalyze(
+				'class Foo {}',
+				[
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'class Foo <| T, U.V, bool |> {}',
+				[
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
+							]],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'U'],
+									[NT.Identifier, 'V'],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.Type, 'bool'],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+							ASTMemberExpression._({
+								object: ASTIdentifier._('U'),
+								property: ASTIdentifier._('V'),
+							}),
+							ASTTypePrimitive._('bool'),
+						],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('class with comment', (): void => {
-			expect(parse('class Foo {\n# foo\n}\n# bar\n')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.BlockStatement, [
-						[NT.Comment, '# foo'],
+			testParseAndAnalyze(
+				'class Foo {\n# foo\n}\n# bar\n',
+				[
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, [
+							[NT.Comment, '# foo'],
+						]],
 					]],
-				]],
-				[NT.Comment, '# bar'],
-			]);
+					[NT.Comment, '# bar'],
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('class with properties and methods', (): void => {
-			expect(parse('class Foo {\nconst foo = "bar";\nf bar {}}\n# bar\n')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.BlockStatement, [
-						[NT.VariableDeclaration, 'const', [
-							[NT.Identifier, 'foo'],
-							[NT.AssignmentOperator],
-							[NT.StringLiteral, 'bar'],
-						]],
-						[NT.SemicolonSeparator],
-						[NT.FunctionDeclaration, [
-							[NT.Identifier, 'bar'],
-							[NT.BlockStatement, []],
+			testParseAndAnalyze(
+				'class Foo {\nconst foo = "bar";\nf bar {}}\n# bar\n',
+				[
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, [
+							[NT.VariableDeclaration, 'const', [
+								[NT.Identifier, 'foo'],
+								[NT.AssignmentOperator],
+								[NT.StringLiteral, 'bar'],
+							]],
+							[NT.SemicolonSeparator],
+							[NT.FunctionDeclaration, [
+								[NT.Identifier, 'bar'],
+								[NT.BlockStatement, []],
+							]],
 						]],
 					]],
-				]],
-				[NT.Comment, '# bar'],
-			]);
+					[NT.Comment, '# bar'],
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([
+							ASTVariableDeclaration._({
+								modifiers: [],
+								mutable: false,
+								identifier: ASTIdentifier._('foo'),
+								initialValue: ASTStringLiteral._('bar'),
+								inferredType: ASTTypePrimitive._('string'),
+							}),
+							ASTFunctionDeclaration._({
+								modifiers: [],
+								name: ASTIdentifier._('bar'),
+								typeParams: [],
+								params: [],
+								returnTypes: [],
+								body: ASTBlockStatement._([]),
+							}),
+						]),
+					}),
+				],
+			);
 		});
 
 		it('class extends multiple and implements multiple', (): void => {
-			expect(parse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.ClassExtensionsList, [
-						[NT.ClassExtension, [
-							[NT.Identifier, 'Bar'],
+			testParseAndAnalyze(
+				'class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}',
+				[
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.ClassExtensionsList, [
+							[NT.ClassExtension, [
+								[NT.Identifier, 'Bar'],
+							]],
+							[NT.CommaSeparator],
+							[NT.ClassExtension, [
+								[NT.Identifier, 'Baz'],
+							]],
 						]],
-						[NT.CommaSeparator],
-						[NT.ClassExtension, [
-							[NT.Identifier, 'Baz'],
+						[NT.ClassImplementsList, [
+							[NT.ClassImplement, [
+								[NT.Identifier, 'AbstractFooBar'],
+							]],
+							[NT.CommaSeparator],
+							[NT.ClassImplement, [
+								[NT.Identifier, 'AnotherAbstractClass'],
+							]],
 						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.ClassImplementsList, [
-						[NT.ClassImplement, [
-							[NT.Identifier, 'AbstractFooBar'],
-						]],
-						[NT.CommaSeparator],
-						[NT.ClassImplement, [
-							[NT.Identifier, 'AnotherAbstractClass'],
-						]],
-					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [
+							ASTIdentifier._('Bar'),
+							ASTIdentifier._('Baz'),
+						],
+						implements: [
+							ASTIdentifier._('AbstractFooBar'),
+							ASTIdentifier._('AnotherAbstractClass'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('class extends multiple and implements multiple with generics', (): void => {
-			expect(parse('class Foo<|T,U|> extends Bar<|T|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.TypeParametersList, [
-						[NT.TypeParameter, [
-							[NT.Identifier, 'T'],
-						]],
-						[NT.CommaSeparator],
-						[NT.TypeParameter, [
-							[NT.Identifier, 'U'],
-						]],
-					]],
-					[NT.ClassExtensionsList, [
-						[NT.ClassExtension, [
-							[NT.Identifier, 'Bar'],
-							[NT.TypeArgumentsList, [
+			testParseAndAnalyze(
+				'class Foo<|T,U|> extends Bar<|T<|RE|>, path|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}',
+				[
+					[NT.ClassDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
 								[NT.Identifier, 'T'],
 							]],
-						]],
-						[NT.CommaSeparator],
-						[NT.ClassExtension, [
-							[NT.Identifier, 'Baz'],
-						]],
-					]],
-					[NT.ClassImplementsList, [
-						[NT.ClassImplement, [
-							[NT.Identifier, 'AbstractFooBar'],
-						]],
-						[NT.CommaSeparator],
-						[NT.ClassImplement, [
-							[NT.Identifier, 'AnotherAbstractClass'],
-							[NT.TypeArgumentsList, [
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
 								[NT.Identifier, 'U'],
 							]],
 						]],
+						[NT.ClassExtensionsList, [
+							[NT.ClassExtension, [
+								[NT.Identifier, 'Bar'],
+								[NT.TypeArgumentsList, [
+									[NT.InstantiationExpression, [
+										[NT.Identifier, 'T'],
+										[NT.TypeArgumentsList, [
+											[NT.Identifier, 'RE'],
+										]],
+									]],
+									[NT.CommaSeparator],
+									[NT.Type, 'path'],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.ClassExtension, [
+								[NT.Identifier, 'Baz'],
+							]],
+						]],
+						[NT.ClassImplementsList, [
+							[NT.ClassImplement, [
+								[NT.Identifier, 'AbstractFooBar'],
+							]],
+							[NT.CommaSeparator],
+							[NT.ClassImplement, [
+								[NT.Identifier, 'AnotherAbstractClass'],
+								[NT.TypeArgumentsList, [
+									[NT.Identifier, 'U'],
+								]],
+							]],
+						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+							ASTIdentifier._('U'),
+						],
+						extends: [
+							ASTTypeInstantiationExpression._({
+								base: ASTIdentifier._('Bar'),
+								typeArgs: [
+									ASTTypeInstantiationExpression._({
+										base: ASTIdentifier._('T'),
+										typeArgs: [
+											ASTIdentifier._('RE'),
+										],
+									}),
+									ASTTypePrimitive._('path'),
+								],
+							}),
+							ASTIdentifier._('Baz'),
+						],
+						implements: [
+							ASTIdentifier._('AbstractFooBar'),
+							ASTTypeInstantiationExpression._({
+								base: ASTIdentifier._('AnotherAbstractClass'),
+								typeArgs: [
+									ASTIdentifier._('U'),
+								],
+							}),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('abstract class', (): void => {
-			expect(parse('abstract class Foo {}')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.ModifiersList, [
-						[NT.Modifier, 'abstract'],
-					]],
-					[NT.Identifier, 'Foo'],
-					[NT.BlockStatement, []],
-				]],
-			]);
-
-			expect(parse('abstract class Foo<|T|> {}')).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.ModifiersList, [
-						[NT.Modifier, 'abstract'],
-					]],
-					[NT.Identifier, 'Foo'],
-					[NT.TypeParametersList, [
-						[NT.TypeParameter, [
-							[NT.Identifier, 'T'],
+			testParseAndAnalyze(
+				'abstract class Foo {}',
+				[
+					[NT.ClassDeclaration, [
+						[NT.ModifiersList, [
+							[NT.Modifier, 'abstract'],
 						]],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [
+							ASTModifier._('abstract'),
+						],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'abstract class Foo<|T|> {}',
+				[
+					[NT.ClassDeclaration, [
+						[NT.ModifiersList, [
+							[NT.Modifier, 'abstract'],
+						]],
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [
+							ASTModifier._('abstract'),
+						],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+						],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 
 			expect(parse(`
 			abstract class Foo {

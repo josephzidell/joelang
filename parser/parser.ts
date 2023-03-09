@@ -50,6 +50,14 @@ export default class Parser {
 		NT.Property,
 	];
 
+	mapParentNodeToChild: Partial<Record<NT, NT>> = {
+		[NT.ParametersList]: NT.Parameter,
+		[NT.TypeParametersList]: NT.TypeParameter,
+		[NT.ClassExtensionsList]: NT.ClassExtension,
+		[NT.ClassImplementsList]: NT.ClassImplement,
+		[NT.InterfaceExtensionsList]: NT.InterfaceExtension,
+	};
+
 	lexer: Lexer;
 
 	constructor(code: string, debug = false) {
@@ -338,17 +346,9 @@ export default class Parser {
 					console.debug(`Handling identifier "${token.value}"`);
 				}
 
-				// check if we're in a ParametersList, if so, begin a Parameter
-				const mapCurrentRootToSubNode: Partial<Record<NT, NT>> = {
-					[NT.ParametersList]: NT.Parameter,
-					[NT.TypeParametersList]: NT.TypeParameter,
-					[NT.ClassExtensionsList]: NT.ClassExtension,
-					[NT.ClassImplementsList]: NT.ClassImplement,
-					[NT.InterfaceExtensionsList]: NT.InterfaceExtension,
-				};
-
-				if (this.currentRoot.type in mapCurrentRootToSubNode) {
-					const subNode = mapCurrentRootToSubNode[this.currentRoot.type] as NT;
+				// check if we're in one of the known Parent node types, if so, begin a child
+				if (this.currentRoot.type in this.mapParentNodeToChild) {
+					const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
 					if (this.debug) {
 						console.debug(`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
 					}
@@ -570,6 +570,16 @@ export default class Parser {
 					}
 				}
 			} else if (token.type === 'type') {
+				// check if we're in one of the known Parent node types, if so, begin a child
+				if (this.currentRoot.type in this.mapParentNodeToChild) {
+					const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
+					if (this.debug) {
+						console.debug(`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
+					}
+
+					this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
+				}
+
 				this.addNode(MakeNode(NT.Type, token, this.currentRoot));
 			} else if (token.type === 'bang') {
 				this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
@@ -654,7 +664,12 @@ export default class Parser {
 				const prev = this.prev();
 				if (prev?.type === NT.TypeArgumentsList) {
 					const twoBack = this.prev(2);
-					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type) && this.currentRoot.parent?.type && !([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(this.currentRoot.parent?.type)) {
+
+					if (twoBack?.type
+						&& ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type)
+						&& !([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(this.currentRoot.type)
+						&& this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
+					) {
 						// we're in a MemberExpression after the GenericTypesList
 						// eg. `foo<bar>.baz`
 						// we need to create a new InstantiationExpression node

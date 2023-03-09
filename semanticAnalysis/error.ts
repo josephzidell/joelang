@@ -30,6 +30,7 @@ export enum AnalysisErrorCode {
 	AssignableExpected = 'S020',
 	AssignmentOperatorExpected = 'S021',
 	BodyExpected = 'S022',
+	ParameterExpected = 'S023',
 }
 
 /**

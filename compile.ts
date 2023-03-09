@@ -75,23 +75,29 @@ void (async (): Promise<void> => {
 			const analysisResult = analyzer.analyze();
 			switch (analysisResult.outcome) {
 				case 'ok':
-					const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
-					console.info(output);
+					{
+						const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
+						console.info(output);
+					}
 					break;
 				case 'error':
-					const analysisError = analysisResult.error as AnalysisError;
+					{
+						const analysisError = analysisResult.error as AnalysisError;
 
-					console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
-					analysisError.getContext().toStringArray(analysisError.message).forEach(str => console.info(str));
-					console.groupEnd();
+						console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
+						analysisError.getContext().toStringArray(analysisError.message).forEach(str => console.info(str));
+						console.groupEnd();
 
-					console.groupCollapsed('Current Node');
-					console.info(analysisError.getNode());
-					console.groupEnd();
+						console.groupCollapsed('Current Node');
+						console.info(analysisError.getNode());
+						console.groupEnd();
 
-					console.groupCollapsed('Current AST');
-					console.info(analysisResult.data);
-					console.groupEnd();
+						console.groupCollapsed('CST');
+						const parseTree = simplifyTree([treeResult.value]);
+						const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
+						console.info(output);
+						console.groupEnd();
+					}
 
 					process.exit(1);
 					break;
