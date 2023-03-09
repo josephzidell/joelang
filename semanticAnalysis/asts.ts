@@ -164,20 +164,20 @@ export class ASTIdentifier implements AST {
 	}
 }
 
-export class ASTInterfaceDeclaration implements AST {
-	modifiers?: ASTModifier[];
+export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
-	typeParams?: ASTType[];
-	extends?: ASTTypeExceptPrimitive[];
-	body?: ASTBlockStatement;
+	typeParams: ASTType[] = [];
+	extends: ASTTypeExceptPrimitive[] = [];
+	body!: ASTBlockStatement;
 
 	// factory function
 	static _({ modifiers, name, typeParams, extends: _extends, body }: {
-		modifiers?: ASTModifier[];
+		modifiers: ASTModifier[];
 		name: ASTIdentifier;
-		typeParams?: ASTType[];
-		extends?: ASTTypeExceptPrimitive[];
-		body?: ASTBlockStatement;
+		typeParams: ASTType[];
+		extends: ASTTypeExceptPrimitive[];
+		body: ASTBlockStatement;
 	}): ASTInterfaceDeclaration {
 		const ast = new ASTInterfaceDeclaration();
 		ast.modifiers = modifiers;

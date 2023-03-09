@@ -9,6 +9,7 @@ import {
 	ASTClassDeclaration,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
+	ASTInterfaceDeclaration,
 	ASTMemberExpression,
 	ASTModifier,
 	ASTNumberLiteral,
@@ -3057,97 +3058,188 @@ describe('parser.ts', (): void => {
 	describe('InterfaceDeclaration', (): void => {
 
 		it('empty interface', (): void => {
-			expect(parse('interface Foo {}')).toMatchParseTree([
-				[NT.InterfaceDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.BlockStatement, []],
-				]],
-			]);
-
-			expect(parse('interface Foo <| T, U |> {}')).toMatchParseTree([
-				[NT.InterfaceDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.TypeParametersList, [
-						[NT.TypeParameter, [
-							[NT.Identifier, 'T'],
-						]],
-						[NT.CommaSeparator],
-						[NT.TypeParameter, [
-							[NT.Identifier, 'U'],
-						]],
+			testParseAndAnalyze(
+				'interface Foo {}',
+				[
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
-		});
+				],
+				[
+					ASTInterfaceDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 
-		it('interface extends other', (): void => {
-			expect(parse('interface Foo {} interface Bar extends Foo {}')).toMatchParseTree([
-				[NT.InterfaceDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.BlockStatement, []],
-				]],
-				[NT.InterfaceDeclaration, [
-					[NT.Identifier, 'Bar'],
-					[NT.InterfaceExtensionsList, [
-						[NT.InterfaceExtension, [
-							[NT.Identifier, 'Foo'],
-						]],
-					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
-		});
-
-		it('interface extends multiple', (): void => {
-			expect(parse('interface Foo extends Bar, Baz {}')).toMatchParseTree([
-				[NT.InterfaceDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.InterfaceExtensionsList, [
-						[NT.InterfaceExtension, [
-							[NT.Identifier, 'Bar'],
-						]],
-						[NT.CommaSeparator],
-						[NT.InterfaceExtension, [
-							[NT.Identifier, 'Baz'],
-						]],
-					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
-		});
-
-		it('interface extends multiple with generics', (): void => {
-			expect(parse('interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}')).toMatchParseTree([
-				[NT.InterfaceDeclaration, [
-					[NT.Identifier, 'Foo'],
-					[NT.TypeParametersList, [
-						[NT.TypeParameter, [
-							[NT.Identifier, 'T'],
-						]],
-						[NT.CommaSeparator],
-						[NT.TypeParameter, [
-							[NT.Identifier, 'U'],
-						]],
-					]],
-					[NT.InterfaceExtensionsList, [
-						[NT.InterfaceExtension, [
-							[NT.Identifier, 'Bar'],
-							[NT.TypeArgumentsList, [
+			testParseAndAnalyze(
+				'interface Foo <| T, U |> {}',
+				[
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
 								[NT.Identifier, 'T'],
 							]],
-						]],
-						[NT.CommaSeparator],
-						[NT.InterfaceExtension, [
-							[NT.Identifier, 'Baz'],
-							[NT.TypeArgumentsList, [
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
 								[NT.Identifier, 'U'],
 							]],
 						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTInterfaceDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+							ASTIdentifier._('U'),
+						],
+						extends: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('interface extends other', (): void => {
+			testParseAndAnalyze(
+				'interface Foo {} interface Bar extends Foo {}',
+				[
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
+					]],
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Bar'],
+						[NT.InterfaceExtensionsList, [
+							[NT.InterfaceExtension, [
+								[NT.Identifier, 'Foo'],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTInterfaceDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						body: ASTBlockStatement._([]),
+					}),
+					ASTInterfaceDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Bar'),
+						typeParams: [],
+						extends: [
+							ASTIdentifier._('Foo'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('interface extends multiple', (): void => {
+			testParseAndAnalyze(
+				'interface Foo extends Bar, Baz {}',
+				[
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.InterfaceExtensionsList, [
+							[NT.InterfaceExtension, [
+								[NT.Identifier, 'Bar'],
+							]],
+							[NT.CommaSeparator],
+							[NT.InterfaceExtension, [
+								[NT.Identifier, 'Baz'],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTInterfaceDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [
+							ASTIdentifier._('Bar'),
+							ASTIdentifier._('Baz'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('interface extends multiple with generics', (): void => {
+			testParseAndAnalyze(
+				'interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}',
+				[
+					[NT.InterfaceDeclaration, [
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
+							]],
+							[NT.CommaSeparator],
+							[NT.TypeParameter, [
+								[NT.Identifier, 'U'],
+							]],
+						]],
+						[NT.InterfaceExtensionsList, [
+							[NT.InterfaceExtension, [
+								[NT.Identifier, 'Bar'],
+								[NT.TypeArgumentsList, [
+									[NT.Identifier, 'T'],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.InterfaceExtension, [
+								[NT.Identifier, 'Baz'],
+								[NT.TypeArgumentsList, [
+									[NT.Identifier, 'U'],
+								]],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTInterfaceDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+							ASTIdentifier._('U'),
+						],
+						extends: [
+							ASTTypeInstantiationExpression._({
+								base: ASTIdentifier._('Bar'),
+								typeArgs: [
+									ASTIdentifier._('T'),
+								],
+							}),
+							ASTTypeInstantiationExpression._({
+								base: ASTIdentifier._('Baz'),
+								typeArgs: [
+									ASTIdentifier._('U'),
+								],
+							}),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 	})

@@ -19,6 +19,7 @@ import {
 	ASTClassDeclaration,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
+	ASTInterfaceDeclaration,
 	ASTMemberExpression,
 	ASTModifier,
 	ASTNumberLiteral,
@@ -682,6 +683,61 @@ export default class SemanticAnalyzer {
 			AnalysisErrorCode.IdentifierExpected,
 			(node: Node) => `We were expecting an Identifier, but found a "${node.type}"`,
 		);
+	}
+
+	visitInterfaceDeclaration(node: Node): Result<ASTInterfaceDeclaration> {
+		const ast = new ASTInterfaceDeclaration();
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the modifiers
+			this.getChildHandlerForModifiers(ast),
+
+			// second child: the name
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const result = this.visitIdentifier(child);
+					switch (result.outcome) {
+						case 'ok': ast.name = result.value; return ok(undefined); break;
+						case 'error': return result; break;
+					}
+				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+			},
+
+			// third child: type parameters
+			this.getChildHandlerForTypeParams(ast),
+
+			// fourth child: the extends list
+			{
+				type: NT.InterfaceExtensionsList,
+				required: false,
+				callback: (child) => {
+					const visitResult = this.visitInterfaceExtensionsList(child);
+					switch (visitResult.outcome) {
+						case 'ok': ast.extends = visitResult.value; return ok(undefined); break;
+						case 'error': return visitResult; break;
+					}
+				},
+			},
+
+			// fifth child: the body
+			this.getChildHandlerForRequiredBody(ast),
+		]);
+		switch (handlingResult.outcome) {
+			case 'ok': break;
+			case 'error': return handlingResult; break;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	visitInterfaceExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
+		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.InterfaceExtension);
 	}
 
 	visitMemberExpression(node: Node): Result<ASTMemberExpression> {
