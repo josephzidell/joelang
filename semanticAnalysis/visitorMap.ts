@@ -30,6 +30,7 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 	[NT.Parameter]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitParameter(node) as Result<T>,
 	[NT.Parenthesized]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitParenthesized(node) as Result<T>,
 	[NT.Path]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitPath(node) as Result<T>,
+	[NT.PrintStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitPrintStatement(node) as Result<T>,
 	[NT.Program]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitProgram(node) as Result<T>,
 	[NT.RegularExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitRegularExpression(node) as Result<T>,
 	[NT.ReturnStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitReturnStatement(node) as Result<T>,

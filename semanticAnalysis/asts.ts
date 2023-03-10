@@ -305,6 +305,17 @@ export class ASTPath implements AST {
 	}
 }
 
+export class ASTPrintStatement implements AST {
+	expressions: Expression[] = [];
+
+	// factory function
+	static _(expressions: Expression[]): ASTPrintStatement {
+		const ast = new ASTPrintStatement();
+		ast.expressions = expressions;
+		return ast;
+	}
+}
+
 /** It's just a kind of BlockStatement */
 export class ASTProgram extends ASTBlockStatement {}
 

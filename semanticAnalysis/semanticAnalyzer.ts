@@ -26,6 +26,7 @@ import {
 	ASTNumberLiteral,
 	ASTParameter,
 	ASTPath,
+	ASTPrintStatement,
 	ASTProgram,
 	ASTRegularExpression,
 	ASTReturnStatement,
@@ -1562,6 +1563,26 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(new AnalysisError(AnalysisErrorCode.ValidPathExpected, 'Valid Path Expected', node, this.getErrorContext(node, 1)), this.ast);
+	}
+
+	visitPrintStatement(node: Node): Result<ASTPrintStatement> {
+		const ast = new ASTPrintStatement();
+
+		// first, get the expression to print
+		const expressionsResult = this.convertNodesChildrenOfSameType<Expression>(
+			node,
+			ExpressionNodeTypes,
+			AnalysisErrorCode.ExpressionExpected,
+			() => 'Expression Expected',
+		);
+		switch (expressionsResult.outcome) {
+			case 'ok': ast.expressions = expressionsResult.value; break;
+			case 'error': return expressionsResult; break;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	visitProgram(node: Node): Result<ASTProgram> {
