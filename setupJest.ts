@@ -111,7 +111,7 @@ export function matchParseTree (treeResult: Result<Node>, simplifiedVersion: SPa
 			} catch {
 				let diff = diffObjects(simplifiedVersion, simplifiedTree);
 
-				return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff: ${diff}`};
+				return {pass: false, message: () => `the parse trees do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`};
 			}
 			break;
 		case 'error':
@@ -144,7 +144,7 @@ export function matchAST (actualASTResult: Result<ASTProgram>, expectedASTProgra
 			} catch {
 				const diff = diffObjects(expectedASTProgramExpressions, actualAST);
 
-				return {pass: false, message: () => `they do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`};
+				return {pass: false, message: () => `the ASTs do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`};
 			}
 			break;
 		case 'error':

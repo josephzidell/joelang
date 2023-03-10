@@ -3,7 +3,7 @@ import { Simplify } from "type-fest";
 import { builtInTypes } from "../lexer/types";
 import { regexFlags } from "../lexer/util";
 import Parser from "../parser/parser";
-import { AssignableNodeTypes, ExpressionNodeTypes, Node, NT, UnaryExpressionNode, validChildrenInTypeArgumentList } from "../parser/types";
+import { AssignableNodeTypes, ExpressionNodeTypes, Node, NT, AssignableTypes, UnaryExpressionNode, validChildrenInTypeArgumentList } from "../parser/types";
 import ErrorContext from "../shared/errorContext";
 import { has, hasNot } from "../shared/maybe";
 import { error, ok, Result, ResultAndAMaybe } from "../shared/result";
@@ -18,6 +18,7 @@ import {
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTFunctionDeclaration,
+	ASTFunctionType,
 	ASTIdentifier,
 	ASTInterfaceDeclaration,
 	ASTMemberExpression,
@@ -667,6 +668,49 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
+	visitFunctionType(node: Node): Result<ASTFunctionType> {
+		const ast = new ASTFunctionType();
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the modifiers
+			this.getChildHandlerForTypeParams(ast),
+
+			// second child: the parameters
+			{
+				type: NT.ParametersList,
+				required: false,
+				callback: (child) => {
+					const visitResult = this.visitParametersList(child);
+					switch (visitResult.outcome) {
+						case 'ok': ast.params = visitResult.value; return ok(undefined); break;
+						case 'error': return visitResult; break;
+					}
+				},
+			},
+
+			// third child: the return types
+			{
+				type: NT.FunctionReturns,
+				required: false,
+				callback: (child) => {
+					const visitResult = this.visitFunctionReturns(child);
+					switch (visitResult.outcome) {
+						case 'ok': ast.returnTypes = visitResult.value; return ok(undefined); break;
+						case 'error': return visitResult; break;
+					}
+				},
+			},
+		]);
+		switch (handlingResult.outcome) {
+			case 'ok': break;
+			case 'error': return handlingResult; break;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
 	/**
 	 * @param node Possibly undefined node to visit. While most visitees have a definite node, this one does not
 	 * @returns
@@ -894,7 +938,7 @@ export default class SemanticAnalyzer {
 
 				// third child: type an (required if there was a colon separator)
 				{
-					type: [NT.Identifier, NT.MemberExpression, NT.Type],
+					type: AssignableTypes,
 					required: (child, childIndex, allChildren) => {
 						return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
 					},
@@ -1252,6 +1296,24 @@ export default class SemanticAnalyzer {
 		}
 
 		switch (node.type) {
+			// check if it's a FunctionType
+			case NT.FunctionType:
+				{
+					const visitResult = this.visitFunctionType(node);
+					switch (visitResult.outcome) {
+						case 'ok':
+							const ast = visitResult.value;
+
+							this.astPointer = this.ast = ast;
+
+							return ok(ast);
+							break;
+						case 'error':
+							return visitResult;
+					}
+				}
+				break;
+
 			// check if it's a built-in type
 			case NT.Type:
 				if (node.value && builtInTypes.includes(node.value)) {
@@ -1342,9 +1404,9 @@ export default class SemanticAnalyzer {
 	visitFunctionReturns(node: Node): Result<ASTType[]> {
 		let returns: ASTType[] = [];
 
-		const conversionResult = this.convertNodesChildrenOfSameType<ASTType>(
+		const conversionResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
 			node,
-			[NT.CommaSeparator, NT.Identifier, NT.MemberExpression, NT.Type],
+			[...AssignableTypes, NT.CommaSeparator],
 			AnalysisErrorCode.TypeExpected,
 			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
 		);
@@ -1631,7 +1693,7 @@ export default class SemanticAnalyzer {
 
 			// next grammatical requirement: type annotation (requied if there was a colon separator)
 			{
-				type: [NT.Identifier, NT.MemberExpression, NT.Type],
+				type: AssignableTypes,
 				required: (child, childIndex, allChildren) => {
 					return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
 				},

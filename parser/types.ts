@@ -21,6 +21,7 @@ export enum NT {
 	ForStatement = 'ForStatement',
 	FunctionDeclaration = 'FunctionDeclaration',
 	FunctionReturns = 'FunctionReturns',
+	FunctionType = 'FunctionType',
 	Identifier = 'Identifier',
 	IfStatement = 'IfStatement',
 	ImportDeclaration = 'ImportDeclaration',
@@ -95,10 +96,14 @@ export const ExpressionNodeTypes: NT[] = [
 	NT.WhenExpression,
 ];
 
+/** These are Node Types that are physically assignable to some variable or param. */
 export const AssignableNodeTypes: NT[] = [
 	...ExpressionNodeTypes,
 	NT.FunctionDeclaration,
 ];
+
+/** These are the Types corresponding to AssignableNodeTypes */
+export const AssignableTypes: NT[] = [NT.FunctionType, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
 
 export const validChildrenInTypeArgumentList = [NT.CommaSeparator, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
 

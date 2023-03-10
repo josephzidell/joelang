@@ -8,6 +8,7 @@ import {
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTFunctionDeclaration,
+	ASTFunctionType,
 	ASTIdentifier,
 	ASTInterfaceDeclaration,
 	ASTMemberExpression,
@@ -2334,7 +2335,7 @@ describe('parser.ts', (): void => {
 
 		it('params but no return types', (): void => {
 			testParseAndAnalyze(
-				'f foo (a: number) {}',
+				'f foo (a: number, callback: f (a: number) -> string, bool) {}',
 				[
 					[NT.FunctionDeclaration, [
 						[NT.Identifier, 'foo'],
@@ -2343,6 +2344,25 @@ describe('parser.ts', (): void => {
 								[NT.Identifier, 'a'],
 								[NT.ColonSeparator],
 								[NT.Type, 'number'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Parameter, [
+								[NT.Identifier, 'callback'],
+								[NT.ColonSeparator],
+								[NT.FunctionType, [
+									[NT.ParametersList, [
+										[NT.Parameter, [
+											[NT.Identifier, 'a'],
+											[NT.ColonSeparator],
+											[NT.Type, 'number'],
+										]],
+									]],
+									[NT.FunctionReturns, [
+										[NT.Type, 'string'],
+										[NT.CommaSeparator],
+										[NT.Type, 'bool'],
+									]],
+								]],
 							]],
 						]],
 						[NT.BlockStatement, []],
@@ -2359,6 +2379,26 @@ describe('parser.ts', (): void => {
 								isRest: false,
 								name: ASTIdentifier._('a'),
 								declaredType: ASTTypePrimitive._('number'),
+							}),
+							ASTParameter._({
+								modifiers: [],
+								isRest: false,
+								name: ASTIdentifier._('callback'),
+								declaredType: ASTFunctionType._({
+									typeParams: [],
+									params: [
+										ASTParameter._({
+											modifiers: [],
+											isRest: false,
+											name: ASTIdentifier._('a'),
+											declaredType: ASTTypePrimitive._('number'),
+										}),
+									],
+									returnTypes: [
+										ASTTypePrimitive._('string'),
+										ASTTypePrimitive._('bool'),
+									],
+								}),
 							}),
 						],
 						returnTypes: [],
@@ -2417,6 +2457,95 @@ describe('parser.ts', (): void => {
 						returnTypes: [
 							ASTTypePrimitive._('regex'),
 							ASTTypePrimitive._('bool'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('params and return types using functions', (): void => {
+			// expect(parse('f foo (a: f <|T|>(hi: string) -> string, number, T, Result<|Maybe<|T|>|>) -> f <|T|>(hi: string) -> string, number, T, Result<|Maybe<|T|>|> {}')).toMatchParseTree([
+			testParseAndAnalyze(
+				'f foo <|T|>(a: f -> T) -> f -> Result<|Maybe<|T|>|> {}',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.TypeParametersList, [
+							[NT.TypeParameter, [
+								[NT.Identifier, 'T'],
+							]],
+						]],
+						[NT.ParametersList, [
+							[NT.Parameter, [
+								[NT.Identifier, 'a'],
+								[NT.ColonSeparator],
+								[NT.FunctionType, [
+									[NT.FunctionReturns, [
+										[NT.Identifier, 'T'],
+									]],
+								]],
+							]],
+						]],
+						[NT.FunctionReturns, [
+							[NT.FunctionType, [
+								[NT.FunctionReturns, [
+									[NT.InstantiationExpression, [
+										[NT.Identifier, 'Result'],
+										[NT.TypeArgumentsList, [
+											[NT.InstantiationExpression, [
+												[NT.Identifier, 'Maybe'],
+												[NT.TypeArgumentsList, [
+													[NT.Identifier, 'T'],
+												]],
+											]],
+										]],
+									]],
+								]]
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+						],
+						params: [
+							ASTParameter._({
+								modifiers: [],
+								isRest: false,
+								name: ASTIdentifier._('a'),
+								declaredType: ASTFunctionType._({
+									typeParams: [],
+									params: [],
+									returnTypes: [
+										ASTIdentifier._('T'),
+									],
+								}),
+							}),
+						],
+						returnTypes: [
+							ASTFunctionType._({
+								typeParams: [],
+								params: [],
+								returnTypes: [
+									ASTTypeInstantiationExpression._({
+										base: ASTIdentifier._('Result'),
+										typeArgs: [
+											ASTTypeInstantiationExpression._({
+												base: ASTIdentifier._('Maybe'),
+												typeArgs: [
+													ASTIdentifier._('T'),
+												],
+											}),
+										],
+									}),
+								],
+							}),
 						],
 						body: ASTBlockStatement._([]),
 					}),

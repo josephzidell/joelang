@@ -19,6 +19,7 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 	[NT.Comment]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.noop(node) as Result<T>,
 	[NT.FunctionDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitFunctionDeclaration(node) as Result<T>,
 	[NT.FunctionReturns]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitFunctionReturns(node) as Result<T>,
+	[NT.FunctionType]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitFunctionType(node) as Result<T>,
 	[NT.Identifier]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitIdentifier(node) as Result<T>,
 	[NT.InstantiationExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitTypeInstantiationExpression(node) as Result<T>,
 	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitInterfaceDeclaration(node) as Result<T>,

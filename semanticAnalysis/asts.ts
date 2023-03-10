@@ -153,6 +153,25 @@ export class ASTFunctionDeclaration implements AST, ASTThatHasModifiers, ASTThat
 	}
 }
 
+export class ASTFunctionType implements AST, ASTThatHasTypeParams {
+	typeParams: ASTType[] = [];
+	params: ASTParameter[] = [];
+	returnTypes: ASTType[] = [];
+
+	// factory function
+	static _({ typeParams, params, returnTypes }: {
+		typeParams: ASTType[];
+		params: ASTParameter[];
+		returnTypes: ASTType[];
+	}): ASTFunctionType {
+		const ast = new ASTFunctionType();
+		ast.typeParams = typeParams;
+		ast.params = params;
+		ast.returnTypes = returnTypes;
+		return ast;
+	}
+}
+
 export class ASTIdentifier implements AST {
 	name!: string;
 
@@ -363,7 +382,7 @@ ASTTypePrimitiveRegex.type = 'regex';
 export const ASTTypePrimitiveString = new ASTTypePrimitive();
 ASTTypePrimitiveString.type = 'string';
 
-export type ASTTypeExceptPrimitive = ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
+export type ASTTypeExceptPrimitive = ASTFunctionType | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
 export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
 /** End ASTType */
 

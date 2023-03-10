@@ -133,7 +133,7 @@ export default class Parser {
 				switch (prev?.type) {
 					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case NT.Identifier:
-						if (this.currentRoot.type === NT.FunctionDeclaration) {
+						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 
 						// next case:
@@ -192,13 +192,19 @@ export default class Parser {
 
 						break;
 					case NT.TypeParametersList:
-						if (this.currentRoot.type === NT.FunctionDeclaration) {
+						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
 							// we're in a FunctionDeclaration after the GenericTypesList
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 						}
 						break;
 					default:
-						this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
+							// we're in an anonymous FunctionDeclaration after the `f` keyword
+							// and there is no previous node
+							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
+						} else {
+							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+						}
 						break;
 				}
 			} else if (token.type === 'paren_close') {
@@ -209,7 +215,7 @@ export default class Parser {
 
 				// check if we're in a BinaryExpression, if so, it's finished
 				// eg `while (foo != true) {}`
-				this.endExpressionWhileIn(NT.BinaryExpression);
+				this.endExpressionWhileIn([NT.BinaryExpression]);
 
 				// check if currentRoot is a UnaryExpression, if so, it's also finished
 				// eg `!foo()`
@@ -221,6 +227,17 @@ export default class Parser {
 				// check if we're in a CallExpression, if so, it's also finished
 				this.endExpressionIfIn(NT.CallExpression);
 
+				// check if we're in a FunctionReturns, if so, it's finished
+				// eg `f foo (bar: number, callback: f -> bool)`
+				this.endExpressionIfIn(NT.FunctionReturns);
+
+				// check if we're in a FunctionType, if so, it's finished
+				// eg `let foo: f (bar: string) = f (bar) {}`
+				this.endExpressionIfIn(NT.FunctionType);
+
+				// check if we're in a Parameter, if so, it's also finished
+				this.endExpressionIfIn(NT.Parameter);
+
 				// check if we're in a ParametersList, if so, it's also finished
 				this.endExpressionIfIn(NT.ParametersList);
 
@@ -228,8 +245,8 @@ export default class Parser {
 				// eg `(x * -2)`
 				this.endExpressionIfIn(NT.UnaryExpression);
 			} else if (token.type === 'brace_open') {
-				this.endExpressionWhileIn(NT.BinaryExpression);
-				this.endExpressionIfIn(NT.FunctionReturns);
+				this.endExpressionWhileIn([NT.BinaryExpression]);
+				this.endExpressionWhileIn([NT.FunctionType, NT.FunctionReturns]);
 				this.endExpressionIfIn(NT.ClassExtension);
 				this.endExpressionIfIn(NT.ClassExtensionsList);
 				this.endExpressionIfIn(NT.ClassImplement);
@@ -284,6 +301,7 @@ export default class Parser {
 
 				this.endExpressionIfIn(NT.Loop);
 				this.endExpressionIfIn(NT.FunctionDeclaration);
+				this.endExpressionIfIn(NT.FunctionType);
 				this.endExpressionIfIn(NT.ClassDeclaration);
 				this.endExpressionIfIn(NT.InterfaceDeclaration);
 				this.endExpressionIfIn(NT.ObjectExpression);
@@ -320,6 +338,7 @@ export default class Parser {
 				this.endExpressionIfIn(NT.TernaryExpression);
 
 				this.endExpression(); // ArrayExpression, ArrayType or MemberList
+				this.endExpressionWhileIn([NT.InstantiationExpression]);
 				this.endExpressionIfIn(NT.MemberExpression);
 			} else if (token.type === 'bool') {
 				this.addNode(MakeNode(NT.BoolLiteral, token, this.currentRoot));
@@ -587,7 +606,7 @@ export default class Parser {
 				if (this.currentRoot.type === NT.WhenCaseTests) {
 					this.endExpression();
 					this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.FunctionDeclaration) {
+				} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
 					this.beginExpressionWith(MakeNode(NT.FunctionReturns, token, this.currentRoot, true));
 				} else {
 					this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
@@ -641,7 +660,7 @@ export default class Parser {
 				 * class B implements A<|T|> {}
 				 */
 
-				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
+				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.FunctionType, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
 					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 				} else {
 					const prev = this.prev();
@@ -936,7 +955,12 @@ export default class Parser {
 								console.debug('There is no ModifiersList open; now beginning a FunctionDeclaration');
 							}
 
-							fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)));
+							// if we're after a ColonSeparator, then this is a FunctionType
+							if (this.prev()?.type === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
+								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionType, token, this.currentRoot, true)));
+							} else {
+								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)));
+							}
 						}
 
 						switch (fNode.outcome) {
@@ -1361,8 +1385,8 @@ export default class Parser {
 	 * check if currentRoot is of the desired type, if so, it's finished
 	 * rinse and repeat
 	 */
-	private endExpressionWhileIn(type: NT) {
-		while (this.currentRoot.type === type) {
+	private endExpressionWhileIn(types: NT[]) {
+		while (types.includes(this.currentRoot.type)) {
 			this.endExpression();
 		}
 	}
