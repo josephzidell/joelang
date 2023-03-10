@@ -189,6 +189,528 @@ export default class SemanticAnalyzer {
 		return ok(children);
 	}
 
+	handleClassOrInterfaceExtensionsOrImplementsList(node: Node, nodeType: NT): Result<ASTTypeExceptPrimitive[]> {
+		const validChildren = [nodeType, NT.CommaSeparator];
+		const extensions: ASTTypeExceptPrimitive[] = [];
+
+		for (const child of node.children) {
+			if (validChildren.includes(child.type)) {
+				const visitResult = this.nodeToAST<ASTTypeExceptPrimitive>(child);
+				switch (visitResult.outcome) {
+					case 'ok':
+						if (visitResult.value instanceof Skip) {
+							continue;
+						}
+
+						extensions.push(visitResult.value);
+						break;
+					case 'error': return visitResult; break;
+				}
+			} else {
+				return error(new AnalysisError(
+					AnalysisErrorCode.ExtraNodesFound,
+					`A ${child.type} is not allowed directly in a ${node.type}`,
+					child,
+					this.getErrorContext(child, child.value?.length || 1),
+				), this.ast);
+			}
+		}
+
+		return ok(extensions);
+	}
+
+	private getChildHandlerForModifiers(ast: ASTThatHasModifiers): childNodeHandler {
+		return {
+			type: NT.ModifiersList,
+			required: false,
+			callback: (child) => {
+				const visitResult = this.visitModifiersList(child);
+				switch (visitResult.outcome) {
+					case 'ok': ast.modifiers = visitResult.value; return ok(undefined); break;
+					case 'error': return visitResult; break;
+				}
+			},
+		};
+	}
+
+	private getChildHandlerForRequiredBody(ast: ASTThatHasRequiredBody): childNodeHandler {
+		return {
+			type: NT.BlockStatement,
+			required: true,
+			callback: (child) => {
+				const visitResult = this.visitBlockStatement(child);
+				switch (visitResult.outcome) {
+					case 'ok': ast.body = visitResult.value; return ok(undefined); break;
+					case 'error': return visitResult; break;
+				}
+			},
+			errorCode: AnalysisErrorCode.BodyExpected,
+			errorMessage: (child: Node | undefined) => 'Class Body Expected',
+		};
+	}
+
+	private getChildHandlerForTypeParams(ast: ASTThatHasTypeParams): childNodeHandler {
+		return {
+			type: NT.TypeParametersList,
+			required: false,
+			callback: (child) => {
+				const result = this.visitTypeParametersList(child);
+				switch (result.outcome) {
+					case 'ok': ast.typeParams = result.value; return ok(undefined); break;
+					case 'error': return result; break;
+				}
+			},
+		};
+	}
+
+	// reusable function to handle a node that has children of different types
+	// each child can be either required, optional, or dependent on whether a previous child of certain type was present
+	// each child will have a callback that will be called if the child is present
+	// if the child is not present, and it is required, we will return an error
+	handleNodesChildrenOfDifferentTypes(
+		node: Node,
+		childrenHandlers: Array<childNodeHandler>,
+	): Result<undefined> {
+		const children = [...node.children]; // make a copy to avoid mutating the original node
+
+		if (this.debug) {
+			// debug that we're beginning this function
+			console.debug('begin handleNodesChildrenOfDifferentTypes...', );
+
+			// debug the children
+			console.groupCollapsed('children.length', children.length);
+			console.debug({ children });
+			console.groupEnd();
+
+			// debug children handlers
+			console.groupCollapsed('childrenHandlers.length', childrenHandlers.length);
+			console.debug({ childrenHandlers });
+			console.groupEnd();
+		}
+
+		// get the first child
+		let child = children.shift();
+		if (this.debug) {
+			console.groupCollapsed('handling child of type', child?.type);
+			console.debug({ child });
+			console.groupEnd();
+		}
+
+		// loop through the children handlers
+		for (const [index, childHandler] of childrenHandlers.entries()) {
+			// debug the handler number
+			if (this.debug) {
+				console.groupCollapsed('checking child handler', index, 'against child of type', child?.type);
+				console.debug({ childHandler });
+				console.groupEnd();
+			}
+
+			// concretize the required function if it is a function
+			const definitelyRequired = typeof childHandler.required === 'boolean' && childHandler.required;
+			// when running a callback, provide *the unmodified children array*
+			const required = definitelyRequired || (typeof childHandler.required === 'function' && childHandler.required(child, index, node.children));
+			if (this.debug) {
+				console.debug('handler required', required);
+			}
+
+			// if the child is required and it is not present, return an error
+			if (required && !child) {
+				return error(new AnalysisError(
+					childHandler.errorCode,
+					childHandler.errorMessage(child),
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				), this.ast);
+			}
+
+			// if the child is present
+			if (child) {
+				// is the type acceptable?
+				const isTheTypeAcceptable = typeof childHandler.type === 'undefined'
+					|| (typeof childHandler.type === 'string' && child.type === childHandler.type)
+					|| (Array.isArray(childHandler.type) && childHandler.type.includes(child.type));
+
+				// debug the isTheTypeAcceptable value
+				if (this.debug) {
+					console.groupCollapsed('isTheTypeAcceptable', isTheTypeAcceptable);
+					if (!isTheTypeAcceptable) {
+						console.debug('found child.type', child.type);
+						console.debug('wanted childHandler.type', childHandler.type);
+					}
+					console.groupEnd();
+				}
+
+				// if it's required, AND there is a type, check that the child type is the expected type
+				if (!isTheTypeAcceptable) {
+					if (required) {
+						// debug the situation
+						if (this.debug) {
+							console.debug("we're expecting a child of type", childHandler.type, 'but we found a child of type', child.type);
+							console.debug('and this child is required, so we will return an error');
+						}
+
+						return error(new AnalysisError(childHandler.errorCode, childHandler.errorMessage(child), child, this.getErrorContext(child, child.value?.length || 1)), this.ast);
+					} else {
+						// debug the situation
+						if (this.debug) {
+							console.debug("we're expecting a child of type", childHandler.type, 'but we found a child of type', child.type);
+							console.debug('since this handler is not required, we will skip it');
+						}
+						continue;
+					}
+				}
+
+				// call the callback
+				const callbackResult = childHandler.callback(child);
+
+				// debug the callback result
+				if (this.debug) {
+					console.debug('callbackResult', callbackResult);
+				}
+
+				if (callbackResult.outcome === 'error') {
+					return callbackResult;
+				}
+			}
+
+			// lastly, we can get the next child, if there is one
+			child = children.shift();
+
+			// debug the next child
+			if (this.debug) {
+				if (child) {
+					console.groupCollapsed('child', child?.type);
+					console.debug({ child });
+					console.groupEnd();
+				} else {
+					console.debug('no more children');
+				}
+			}
+		}
+
+		// there should be no more children
+		if (typeof child !== 'undefined') {
+			return error(new AnalysisError(
+				AnalysisErrorCode.ExpressionNotExpected,
+				`We did not expect to find an expression of type "${child.type}" here`,
+				child,
+				this.getErrorContext(child, child.value?.length ?? 1),
+			), this.ast);
+		}
+
+		if (this.debug) {
+			console.debug('end handleNodesChildrenOfDifferentTypes', );
+		}
+
+		return ok(undefined);
+	}
+
+	visitVariableDeclaration(node: Node): Result<ASTVariableDeclaration> {
+		// there is significant overlap with the visitParameter() function
+
+		const ast = new ASTVariableDeclaration();
+		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
+
+		// first grammatical requirement: mutability keyword (from the value)
+		if (node.value && ['const', 'let'].includes(node.value)) {
+			ast.mutable = node.value === 'let';
+		} else {
+			return error(new AnalysisError(
+				AnalysisErrorCode.KeywordExpected,
+				'Expecting keyword "const" or "let"',
+				node,
+				this.getErrorContext(node, 1),
+			), this.ast);
+		}
+
+		// handle the child nodes of different types
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the modifiers
+			this.getChildHandlerForModifiers(ast),
+
+			// next grammatical requirement: identifier (required)
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitIdentifier(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.identifier = visitResult.value;
+
+							// if the identifer ends with a '?', that _is_ declaring the type as bool
+							if (ast.identifier.name.at(-1) === '?') {
+								ast.declaredType = ASTTypePrimitiveBool;
+							}
+
+							return ok(undefined);
+							break;
+						case 'error': return visitResult; break;
+					}
+				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+			},
+
+			// next grammatical requirement: type annotation (optional)
+			{
+				type: NT.ColonSeparator,
+				required: false,
+
+				// do nothing, we just want to skip over the colon separator
+				callback: skipThisChild,
+			},
+
+			// next grammatical requirement: type annotation (requied if there was a colon separator)
+			{
+				type: AssignableTypes,
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
+				},
+				callback: (child) => {
+					const visitResult = this.visitType(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							if (visitResult.value instanceof Skip) {
+								return error(new AnalysisError(
+									AnalysisErrorCode.TypeExpected,
+									`We were expecting a Type, but found a "${child?.type}"`,
+									child,
+									this.getErrorContext(child, child.value?.length ?? 1),
+								), this.ast);
+							}
+
+							ast.declaredType = visitResult.value;
+							break;
+						case 'error': return visitResult; break;
+					}
+
+					return ok(undefined);
+				},
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting a Type, but found "${child?.type}"`,
+			},
+
+			// next could be an initial value assignment, or nothing
+			{
+				type: NT.AssignmentOperator,
+				required: false,
+
+				// do nothing, we just want to skip over the assignment operator
+				callback: skipThisChild,
+			},
+
+			// next child must be an expression if there was an assignment operator
+			// or nothing if there was no assignment operator
+			{
+				type: AssignableNodeTypes,
+
+				// if the previous child was an assignment operator, then this child is required
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.AssignmentOperator;
+				},
+
+				callback: (child) => {
+					const visitResult = this.nodeToAST<AssignableASTs>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.initialValue = visitResult.value;
+
+							// now attempt to infer the type from the initial value
+
+							// ast.initialValue is guaranteed to be defined at this point
+							this.assignInferredType(ast.initialValue, child, (inferredType: ASTType) => {
+								ast.inferredType = inferredType;
+							});
+
+							// console.debug({
+							// 	inferredType: ast.inferredType,
+							// 	inferredConstructor: ast.inferredType.constructor,
+							// 	declaredType: ast.declaredType,
+							// 	declaredConstructor: ast.declaredType?.constructor,
+							// 	match: ast.inferredType.constructor !== ast.declaredType?.constructor,
+							// })
+							if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
+								return error(new AnalysisError(
+									AnalysisErrorCode.TypeMismatch,
+									`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
+									child,
+									this.getErrorContext(child, child.value?.length || 1),
+								));
+							}
+							break;
+						case 'error': return visitResult; break;
+					}
+
+					return ok(undefined);
+				},
+				errorCode: AnalysisErrorCode.AssignableExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
+			},
+		]);
+		switch (handlingResult.outcome) {
+			case 'ok': break;
+			case 'error': return handlingResult; break;
+		}
+
+		// now perform some additional checks
+
+		// if the identifier ends with a '?', check that either the declared type is bool
+		// or that the inferred type is bool
+		if (ast.identifier.name.at(-1) === '?') {
+			if (typeof ast.declaredType !== 'undefined' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
+				return error(new AnalysisError(
+					AnalysisErrorCode.BoolTypeExpected,
+					`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				), this.ast);
+			} else if (typeof ast.inferredType !== 'undefined' && !_.isEqual(ast.inferredType, ASTTypePrimitiveBool)) {
+				return error(new AnalysisError(
+					AnalysisErrorCode.BoolTypeExpected,
+					`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				), this.ast);
+			}
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	/**
+	 * This function attempts to infer a type and if successful, run the assigner callback.
+	 *
+	 * Intentionally does not return an error if unable to infer anything. That is not an error scenario.
+	 *
+	 * Only returns an error if there is a problem in this.inferASTTypeFromASTAssignable()
+	 *
+	 * @see {@link inferASTTypeFromASTAssignable()}
+	 */
+	assignInferredType(valueAST: AssignableASTs, valueNode: Node, assigner: (inferredType: ASTType) => void): Result<void> {
+		const inferredTypeResult = this.inferASTTypeFromASTAssignable(valueAST, valueNode);
+		switch (inferredTypeResult.outcome) {
+			case 'ok':
+				const inferredTypeMaybe = inferredTypeResult.value;
+				if (inferredTypeMaybe.has) {
+					assigner(inferredTypeMaybe.value);
+				}
+
+				// could not infer a type: ok :)
+
+				// either way, we're done
+				return ok(undefined);
+
+			// Ruh roh
+			case 'error':
+				return inferredTypeResult;
+		}
+	}
+
+	noop(node: Node): Result<AST> {
+		const ast = new Skip();
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	/**
+	 * Main and preferred way to get an error context, this requires a node
+	 *
+	 * In many cases, even if we're unsure whether a child node exists, this
+	 * method should still be used, and pass in `child || node`, so we have
+	 * at least closely-relevant positional information.
+	 */
+	getErrorContext(node: Node, length: number): ErrorContext {
+		return new ErrorContext(
+			this.parser.lexer.code,
+			node.pos.line,
+			node.pos.col,
+			length,
+		);
+	}
+
+	/**
+	 * If there is no way to guarantee a node is defined, use this backup method to get an error context
+	 *
+	 * This should only be used if there is absolutely no way to get a valid node,
+	 * and we can't even be sure the parent node is valid.
+	 *
+	 * If the node is undefined, we have no positional information.
+	 */
+	getErrorContextUnsafe(node: Node | undefined, length: number): ErrorContext {
+		return new ErrorContext(
+			this.parser.lexer.code,
+			node?.pos.line || 1,
+			node?.pos.col || 1,
+			length,
+		);
+	}
+
+	/** Attempts to infer an ASTType from an ASTAssignable. This is very forgiving, and only returns an error in extremely unlikely cases */
+	private inferASTTypeFromASTAssignable(expr: AST, node: Node): ResultAndAMaybe<ASTType> {
+		switch (expr.constructor) {
+			case ASTBoolLiteral: return ok(has(ASTTypePrimitiveBool)); break;
+			case ASTNumberLiteral: return ok(has(ASTTypePrimitiveNumber)); break;
+			case ASTPath: return ok(has(ASTTypePrimitivePath)); break;
+			case ASTRegularExpression: return ok(has(ASTTypePrimitiveRegex)); break;
+			case ASTStringLiteral: return ok(has(ASTTypePrimitiveString)); break;
+			case ASTUnaryExpression:
+				{
+					const operator = (expr as ASTUnaryExpression<Expression>).operator;
+					switch (operator) {
+						case '!':
+							return ok(has(ASTTypePrimitiveBool));
+							break;
+
+						case '-':
+						case '++':
+						case '--':
+							return ok(has(ASTTypePrimitiveNumber));
+							break;
+						default:
+							return error(new AnalysisError(AnalysisErrorCode.UnknownOperator, `Cannot infer type from unary operator "${operator}"`, node, this.getErrorContext(node, 1)));
+					}
+				}
+				break;
+			case ASTBinaryExpression:
+				{
+					const operator = (expr as ASTBinaryExpression<Expression, Expression>).operator;
+					switch (operator) {
+						case '==':
+						case '!=':
+						case '>':
+						case '>=':
+						case '<':
+						case '<=':
+						case '&&':
+						case '||':
+							return ok(has(ASTTypePrimitiveBool));
+							break;
+						case '+':
+						case '-':
+						case '*':
+						case '/':
+						case '%':
+						case '^e':
+							return ok(has(ASTTypePrimitiveNumber));
+							break;
+						default:
+							return error(new AnalysisError(AnalysisErrorCode.UnknownOperator, `Cannot infer type from binary operator "${operator}"`, node, this.getErrorContext(node, 1)));
+					}
+				}
+				break;
+			default:
+				// TODO more work needed here. Discover inferred type of MemberExpression, CallExpression
+				return ok(hasNot());
+		}
+	}
+
+	/** Visitees */
+
 	visitArgumentList(node: Node): Result<ASTArgumentsList> {
 		const ast = new ASTArgumentsList();
 
@@ -386,108 +908,6 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitClassExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.ClassExtension);
-	}
-
-	visitClassImplementsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.ClassImplement);
-	}
-
-	handleClassOrInterfaceExtensionsOrImplementsList(node: Node, nodeType: NT): Result<ASTTypeExceptPrimitive[]> {
-		const validChildren = [nodeType, NT.CommaSeparator];
-		const extensions: ASTTypeExceptPrimitive[] = [];
-
-		for (const child of node.children) {
-			if (validChildren.includes(child.type)) {
-				const visitResult = this.nodeToAST<ASTTypeExceptPrimitive>(child);
-				switch (visitResult.outcome) {
-					case 'ok':
-						if (visitResult.value instanceof Skip) {
-							continue;
-						}
-
-						extensions.push(visitResult.value);
-						break;
-					case 'error': return visitResult; break;
-				}
-			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.ExtraNodesFound,
-					`A ${child.type} is not allowed directly in a ${node.type}`,
-					child,
-					this.getErrorContext(child, child.value?.length || 1),
-				), this.ast);
-			}
-		}
-
-		return ok(extensions);
-	}
-
-	visitClassOrInterfaceExtendsOrImplements(node: Node): Result<ASTType> {
-		let identifierOrMemberExpression: ASTIdentifier | ASTMemberExpression | undefined;
-		let typeArgs: ASTType[] | undefined;
-
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the identifier
-			{
-				type: [NT.Identifier, NT.MemberExpression],
-				required: true,
-				callback: (child) => {
-					const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
-					switch (visitResult.outcome) {
-						case 'ok': identifierOrMemberExpression = visitResult.value; break;
-						case 'error': return visitResult; break;
-					}
-
-					return ok(undefined);
-				},
-				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
-			},
-
-			// second child: the type arguments
-			{
-				type: NT.TypeArgumentsList,
-				required: false,
-				callback: (child) => {
-					const visitResult = this.visitTypeArgumentsList(child);
-					switch (visitResult.outcome) {
-						case 'ok': typeArgs = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
-					}
-				},
-			},
-		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
-		}
-
-		if (typeof identifierOrMemberExpression === 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.IdentifierExpected,
-				'We were expecting a Type, but found nothing',
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
-		}
-
-		if (typeof typeArgs !== 'undefined') {
-			const ast = ASTTypeInstantiationExpression._({base: identifierOrMemberExpression, typeArgs});
-
-			this.astPointer = this.ast = ast;
-
-			return ok(ast);
-		}
-
-		const ast = identifierOrMemberExpression;
-
-		this.astPointer = this.ast = ast;
-
-		return ok(ast);
-	}
-
 	visitClassDeclaration(node: Node): Result<ASTClassDeclaration> {
 		const ast = new ASTClassDeclaration();
 
@@ -552,48 +972,76 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	private getChildHandlerForModifiers(ast: ASTThatHasModifiers): childNodeHandler {
-		return {
-			type: NT.ModifiersList,
-			required: false,
-			callback: (child) => {
-				const visitResult = this.visitModifiersList(child);
-				switch (visitResult.outcome) {
-					case 'ok': ast.modifiers = visitResult.value; return ok(undefined); break;
-					case 'error': return visitResult; break;
-				}
-			},
-		};
+	visitClassExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
+		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.ClassExtension);
 	}
 
-	private getChildHandlerForRequiredBody(ast: ASTThatHasRequiredBody): childNodeHandler {
-		return {
-			type: NT.BlockStatement,
-			required: true,
-			callback: (child) => {
-				const visitResult = this.visitBlockStatement(child);
-				switch (visitResult.outcome) {
-					case 'ok': ast.body = visitResult.value; return ok(undefined); break;
-					case 'error': return visitResult; break;
-				}
-			},
-			errorCode: AnalysisErrorCode.BodyExpected,
-			errorMessage: (child: Node | undefined) => 'Class Body Expected',
-		};
+	visitClassImplementsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
+		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.ClassImplement);
 	}
 
-	private getChildHandlerForTypeParams(ast: ASTThatHasTypeParams): childNodeHandler {
-		return {
-			type: NT.TypeParametersList,
-			required: false,
-			callback: (child) => {
-				const result = this.visitTypeParametersList(child);
-				switch (result.outcome) {
-					case 'ok': ast.typeParams = result.value; return ok(undefined); break;
-					case 'error': return result; break;
-				}
+	visitClassOrInterfaceExtendsOrImplements(node: Node): Result<ASTType> {
+		let identifierOrMemberExpression: ASTIdentifier | ASTMemberExpression | undefined;
+		let typeArgs: ASTType[] | undefined;
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the identifier
+			{
+				type: [NT.Identifier, NT.MemberExpression],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
+					switch (visitResult.outcome) {
+						case 'ok': identifierOrMemberExpression = visitResult.value; break;
+						case 'error': return visitResult; break;
+					}
+
+					return ok(undefined);
+				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
 			},
-		};
+
+			// second child: the type arguments
+			{
+				type: NT.TypeArgumentsList,
+				required: false,
+				callback: (child) => {
+					const visitResult = this.visitTypeArgumentsList(child);
+					switch (visitResult.outcome) {
+						case 'ok': typeArgs = visitResult.value; return ok(undefined); break;
+						case 'error': return visitResult; break;
+					}
+				},
+			},
+		]);
+		switch (handlingResult.outcome) {
+			case 'ok': break;
+			case 'error': return handlingResult; break;
+		}
+
+		if (typeof identifierOrMemberExpression === 'undefined') {
+			return error(new AnalysisError(
+				AnalysisErrorCode.IdentifierExpected,
+				'We were expecting a Type, but found nothing',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			), this.ast);
+		}
+
+		if (typeof typeArgs !== 'undefined') {
+			const ast = ASTTypeInstantiationExpression._({base: identifierOrMemberExpression, typeArgs});
+
+			this.astPointer = this.ast = ast;
+
+			return ok(ast);
+		}
+
+		const ast = identifierOrMemberExpression;
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	visitFunctionDeclaration(node: Node): Result<ASTFunctionDeclaration> {
@@ -666,6 +1114,23 @@ export default class SemanticAnalyzer {
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
+	}
+
+	visitFunctionReturns(node: Node): Result<ASTType[]> {
+		let returns: ASTType[] = [];
+
+		const conversionResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
+			node,
+			[...AssignableTypes, NT.CommaSeparator],
+			AnalysisErrorCode.TypeExpected,
+			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
+		);
+		switch (conversionResult.outcome) {
+			case 'ok': returns = conversionResult.value; break;
+			case 'error': return conversionResult; break;
+		}
+
+		return ok(returns);
 	}
 
 	visitFunctionType(node: Node): Result<ASTFunctionType> {
@@ -1207,72 +1672,6 @@ export default class SemanticAnalyzer {
 		return error(new AnalysisError(AnalysisErrorCode.BoolLiteralExpected, 'Bool Expected', node, this.getErrorContext(node, 1)), this.ast);
 	}
 
-	visitTypeInstantiationExpression(node: Node): Result<ASTTypeInstantiationExpression> {
-		const ast = new ASTTypeInstantiationExpression();
-		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
-
-		// first grammatical requirement: the type
-		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// the base type
-			{
-				type: [NT.Identifier, NT.MemberExpression],
-				required: true,
-				callback: (child: Node) => {
-					const typeResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
-					switch (typeResult.outcome) {
-						case 'ok':
-							if (typeResult.value instanceof Skip) {
-								return error(new AnalysisError(
-									AnalysisErrorCode.TypeExpected,
-									`We were expecting to find a Type, but instead found a ${child.type}`,
-									child,
-									this.getErrorContext(child, child.value?.length || 1),
-								), this.ast);
-							}
-
-							ast.base = typeResult.value;
-							return ok(undefined);
-							break;
-						case 'error': return typeResult; break;
-					}
-				},
-				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
-			},
-
-			// the type arguments
-			{
-				type: NT.TypeArgumentsList,
-				required: true,
-				callback: (child: Node) => {
-					const conversionResult = this.convertNodesChildrenOfSameType<ASTType>(
-						child,
-						validChildrenInTypeArgumentList,
-						AnalysisErrorCode.ExtraNodesFound,
-						(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
-					);
-					switch (conversionResult.outcome) {
-						case 'ok':
-							ast.typeArgs = conversionResult.value;
-							return ok(undefined);
-							break;
-						case 'error': return conversionResult; break;
-					}
-				},
-				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
-			},
-		]);
-		switch (handleResult.outcome) {
-			case 'ok': break;
-			case 'error': return handleResult; break;
-		}
-
-		this.astPointer = this.ast = ast;
-
-		return ok(ast);
-	}
-
 	/**
 	 * Visits a type node.
 	 *
@@ -1401,21 +1800,70 @@ export default class SemanticAnalyzer {
 		return ok(typeArgs);
 	}
 
-	visitFunctionReturns(node: Node): Result<ASTType[]> {
-		let returns: ASTType[] = [];
+	visitTypeInstantiationExpression(node: Node): Result<ASTTypeInstantiationExpression> {
+		const ast = new ASTTypeInstantiationExpression();
+		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
-		const conversionResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
-			node,
-			[...AssignableTypes, NT.CommaSeparator],
-			AnalysisErrorCode.TypeExpected,
-			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
-		);
-		switch (conversionResult.outcome) {
-			case 'ok': returns = conversionResult.value; break;
-			case 'error': return conversionResult; break;
+		// first grammatical requirement: the type
+		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// the base type
+			{
+				type: [NT.Identifier, NT.MemberExpression],
+				required: true,
+				callback: (child: Node) => {
+					const typeResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
+					switch (typeResult.outcome) {
+						case 'ok':
+							if (typeResult.value instanceof Skip) {
+								return error(new AnalysisError(
+									AnalysisErrorCode.TypeExpected,
+									`We were expecting to find a Type, but instead found a ${child.type}`,
+									child,
+									this.getErrorContext(child, child.value?.length || 1),
+								), this.ast);
+							}
+
+							ast.base = typeResult.value;
+							return ok(undefined);
+							break;
+						case 'error': return typeResult; break;
+					}
+				},
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
+			},
+
+			// the type arguments
+			{
+				type: NT.TypeArgumentsList,
+				required: true,
+				callback: (child: Node) => {
+					const conversionResult = this.convertNodesChildrenOfSameType<ASTType>(
+						child,
+						validChildrenInTypeArgumentList,
+						AnalysisErrorCode.ExtraNodesFound,
+						(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
+					);
+					switch (conversionResult.outcome) {
+						case 'ok':
+							ast.typeArgs = conversionResult.value;
+							return ok(undefined);
+							break;
+						case 'error': return conversionResult; break;
+					}
+				},
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
+			},
+		]);
+		switch (handleResult.outcome) {
+			case 'ok': break;
+			case 'error': return handleResult; break;
 		}
 
-		return ok(returns);
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	visitTypeParameter(node: Node): Result<ASTType | Skip> {
@@ -1491,451 +1939,5 @@ export default class SemanticAnalyzer {
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
-	}
-
-	// reusable function to handle a node that has children of different types
-	// each child can be either required, optional, or dependent on whether a previous child of certain type was present
-	// each child will have a callback that will be called if the child is present
-	// if the child is not present, and it is required, we will return an error
-	handleNodesChildrenOfDifferentTypes(
-		node: Node,
-		childrenHandlers: Array<childNodeHandler>,
-	): Result<undefined> {
-		const children = [...node.children]; // make a copy to avoid mutating the original node
-
-		if (this.debug) {
-			// debug that we're beginning this function
-			console.debug('begin handleNodesChildrenOfDifferentTypes...', );
-
-			// debug the children
-			console.groupCollapsed('children.length', children.length);
-			console.debug({ children });
-			console.groupEnd();
-
-			// debug children handlers
-			console.groupCollapsed('childrenHandlers.length', childrenHandlers.length);
-			console.debug({ childrenHandlers });
-			console.groupEnd();
-		}
-
-		// get the first child
-		let child = children.shift();
-		if (this.debug) {
-			console.groupCollapsed('handling child of type', child?.type);
-			console.debug({ child });
-			console.groupEnd();
-		}
-
-		// loop through the children handlers
-		for (const [index, childHandler] of childrenHandlers.entries()) {
-			// debug the handler number
-			if (this.debug) {
-				console.groupCollapsed('checking child handler', index, 'against child of type', child?.type);
-				console.debug({ childHandler });
-				console.groupEnd();
-			}
-
-			// concretize the required function if it is a function
-			const definitelyRequired = typeof childHandler.required === 'boolean' && childHandler.required;
-			// when running a callback, provide *the unmodified children array*
-			const required = definitelyRequired || (typeof childHandler.required === 'function' && childHandler.required(child, index, node.children));
-			if (this.debug) {
-				console.debug('handler required', required);
-			}
-
-			// if the child is required and it is not present, return an error
-			if (required && !child) {
-				return error(new AnalysisError(
-					childHandler.errorCode,
-					childHandler.errorMessage(child),
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
-			}
-
-			// if the child is present
-			if (child) {
-				// is the type acceptable?
-				const isTheTypeAcceptable = typeof childHandler.type === 'undefined'
-					|| (typeof childHandler.type === 'string' && child.type === childHandler.type)
-					|| (Array.isArray(childHandler.type) && childHandler.type.includes(child.type));
-
-				// debug the isTheTypeAcceptable value
-				if (this.debug) {
-					console.groupCollapsed('isTheTypeAcceptable', isTheTypeAcceptable);
-					if (!isTheTypeAcceptable) {
-						console.debug('found child.type', child.type);
-						console.debug('wanted childHandler.type', childHandler.type);
-					}
-					console.groupEnd();
-				}
-
-				// if it's required, AND there is a type, check that the child type is the expected type
-				if (!isTheTypeAcceptable) {
-					if (required) {
-						// debug the situation
-						if (this.debug) {
-							console.debug("we're expecting a child of type", childHandler.type, 'but we found a child of type', child.type);
-							console.debug('and this child is required, so we will return an error');
-						}
-
-						return error(new AnalysisError(childHandler.errorCode, childHandler.errorMessage(child), child, this.getErrorContext(child, child.value?.length || 1)), this.ast);
-					} else {
-						// debug the situation
-						if (this.debug) {
-							console.debug("we're expecting a child of type", childHandler.type, 'but we found a child of type', child.type);
-							console.debug('since this handler is not required, we will skip it');
-						}
-						continue;
-					}
-				}
-
-				// call the callback
-				const callbackResult = childHandler.callback(child);
-
-				// debug the callback result
-				if (this.debug) {
-					console.debug('callbackResult', callbackResult);
-				}
-
-				if (callbackResult.outcome === 'error') {
-					return callbackResult;
-				}
-			}
-
-			// lastly, we can get the next child, if there is one
-			child = children.shift();
-
-			// debug the next child
-			if (this.debug) {
-				if (child) {
-					console.groupCollapsed('child', child?.type);
-					console.debug({ child });
-					console.groupEnd();
-				} else {
-					console.debug('no more children');
-				}
-			}
-		}
-
-		// there should be no more children
-		if (typeof child !== 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.ExpressionNotExpected,
-				`We did not expect to find an expression of type "${child.type}" here`,
-				child,
-				this.getErrorContext(child, child.value?.length ?? 1),
-			), this.ast);
-		}
-
-		if (this.debug) {
-			console.debug('end handleNodesChildrenOfDifferentTypes', );
-		}
-
-		return ok(undefined);
-	}
-
-	visitVariableDeclaration(node: Node): Result<ASTVariableDeclaration> {
-		// there is significant overlap with the visitParameter() function
-
-		const ast = new ASTVariableDeclaration();
-		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
-
-		// first grammatical requirement: mutability keyword (from the value)
-		if (node.value && ['const', 'let'].includes(node.value)) {
-			ast.mutable = node.value === 'let';
-		} else {
-			return error(new AnalysisError(
-				AnalysisErrorCode.KeywordExpected,
-				'Expecting keyword "const" or "let"',
-				node,
-				this.getErrorContext(node, 1),
-			), this.ast);
-		}
-
-		// handle the child nodes of different types
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the modifiers
-			this.getChildHandlerForModifiers(ast),
-
-			// next grammatical requirement: identifier (required)
-			{
-				type: NT.Identifier,
-				required: true,
-				callback: (child) => {
-					const visitResult = this.visitIdentifier(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.identifier = visitResult.value;
-
-							// if the identifer ends with a '?', that _is_ declaring the type as bool
-							if (ast.identifier.name.at(-1) === '?') {
-								ast.declaredType = ASTTypePrimitiveBool;
-							}
-
-							return ok(undefined);
-							break;
-						case 'error': return visitResult; break;
-					}
-				},
-				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
-			},
-
-			// next grammatical requirement: type annotation (optional)
-			{
-				type: NT.ColonSeparator,
-				required: false,
-
-				// do nothing, we just want to skip over the colon separator
-				callback: skipThisChild,
-			},
-
-			// next grammatical requirement: type annotation (requied if there was a colon separator)
-			{
-				type: AssignableTypes,
-				required: (child, childIndex, allChildren) => {
-					return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
-				},
-				callback: (child) => {
-					const visitResult = this.visitType(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							if (visitResult.value instanceof Skip) {
-								return error(new AnalysisError(
-									AnalysisErrorCode.TypeExpected,
-									`We were expecting a Type, but found a "${child?.type}"`,
-									child,
-									this.getErrorContext(child, child.value?.length ?? 1),
-								), this.ast);
-							}
-
-							ast.declaredType = visitResult.value;
-							break;
-						case 'error': return visitResult; break;
-					}
-
-					return ok(undefined);
-				},
-				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting a Type, but found "${child?.type}"`,
-			},
-
-			// next could be an initial value assignment, or nothing
-			{
-				type: NT.AssignmentOperator,
-				required: false,
-
-				// do nothing, we just want to skip over the assignment operator
-				callback: skipThisChild,
-			},
-
-			// next child must be an expression if there was an assignment operator
-			// or nothing if there was no assignment operator
-			{
-				type: AssignableNodeTypes,
-
-				// if the previous child was an assignment operator, then this child is required
-				required: (child, childIndex, allChildren) => {
-					return allChildren[childIndex - 1]?.type === NT.AssignmentOperator;
-				},
-
-				callback: (child) => {
-					const visitResult = this.nodeToAST<AssignableASTs>(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.initialValue = visitResult.value;
-
-							// now attempt to infer the type from the initial value
-
-							// ast.initialValue is guaranteed to be defined at this point
-							this.assignInferredType(ast.initialValue, child, (inferredType: ASTType) => {
-								ast.inferredType = inferredType;
-							});
-
-							// console.debug({
-							// 	inferredType: ast.inferredType,
-							// 	inferredConstructor: ast.inferredType.constructor,
-							// 	declaredType: ast.declaredType,
-							// 	declaredConstructor: ast.declaredType?.constructor,
-							// 	match: ast.inferredType.constructor !== ast.declaredType?.constructor,
-							// })
-							if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
-								return error(new AnalysisError(
-									AnalysisErrorCode.TypeMismatch,
-									`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
-									child,
-									this.getErrorContext(child, child.value?.length || 1),
-								));
-							}
-							break;
-						case 'error': return visitResult; break;
-					}
-
-					return ok(undefined);
-				},
-				errorCode: AnalysisErrorCode.AssignableExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
-			},
-		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
-		}
-
-		// now perform some additional checks
-
-		// if the identifier ends with a '?', check that either the declared type is bool
-		// or that the inferred type is bool
-		if (ast.identifier.name.at(-1) === '?') {
-			if (typeof ast.declaredType !== 'undefined' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BoolTypeExpected,
-					`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
-			} else if (typeof ast.inferredType !== 'undefined' && !_.isEqual(ast.inferredType, ASTTypePrimitiveBool)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BoolTypeExpected,
-					`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
-			}
-		}
-
-		this.astPointer = this.ast = ast;
-
-		return ok(ast);
-	}
-
-	/**
-	 * This function attempts to infer a type and if successful, run the assigner callback.
-	 *
-	 * Intentionally does not return an error if unable to infer anything. That is not an error scenario.
-	 *
-	 * Only returns an error if there is a problem in this.inferASTTypeFromASTAssignable()
-	 *
-	 * @see {@link inferASTTypeFromASTAssignable()}
-	 */
-	assignInferredType(valueAST: AssignableASTs, valueNode: Node, assigner: (inferredType: ASTType) => void): Result<void> {
-		const inferredTypeResult = this.inferASTTypeFromASTAssignable(valueAST, valueNode);
-		switch (inferredTypeResult.outcome) {
-			case 'ok':
-				const inferredTypeMaybe = inferredTypeResult.value;
-				if (inferredTypeMaybe.has) {
-					assigner(inferredTypeMaybe.value);
-				}
-
-				// could not infer a type: ok :)
-
-				// either way, we're done
-				return ok(undefined);
-
-			// Ruh roh
-			case 'error':
-				return inferredTypeResult;
-		}
-	}
-
-	noop(node: Node): Result<AST> {
-		const ast = new Skip();
-
-		this.astPointer = this.ast = ast;
-
-		return ok(ast);
-	}
-
-	/**
-	 * Main and preferred way to get an error context, this requires a node
-	 *
-	 * In many cases, even if we're unsure whether a child node exists, this
-	 * method should still be used, and pass in `child || node`, so we have
-	 * at least closely-relevant positional information.
-	 */
-	getErrorContext(node: Node, length: number): ErrorContext {
-		return new ErrorContext(
-			this.parser.lexer.code,
-			node.pos.line,
-			node.pos.col,
-			length,
-		);
-	}
-
-	/**
-	 * If there is no way to guarantee a node is defined, use this backup method to get an error context
-	 *
-	 * This should only be used if there is absolutely no way to get a valid node,
-	 * and we can't even be sure the parent node is valid.
-	 *
-	 * If the node is undefined, we have no positional information.
-	 */
-	getErrorContextUnsafe(node: Node | undefined, length: number): ErrorContext {
-		return new ErrorContext(
-			this.parser.lexer.code,
-			node?.pos.line || 1,
-			node?.pos.col || 1,
-			length,
-		);
-	}
-
-	/** Attempts to infer an ASTType from an ASTAssignable. This is very forgiving, and only returns an error in extremely unlikely cases */
-	private inferASTTypeFromASTAssignable(expr: AST, node: Node): ResultAndAMaybe<ASTType> {
-		switch (expr.constructor) {
-			case ASTBoolLiteral: return ok(has(ASTTypePrimitiveBool)); break;
-			case ASTNumberLiteral: return ok(has(ASTTypePrimitiveNumber)); break;
-			case ASTPath: return ok(has(ASTTypePrimitivePath)); break;
-			case ASTRegularExpression: return ok(has(ASTTypePrimitiveRegex)); break;
-			case ASTStringLiteral: return ok(has(ASTTypePrimitiveString)); break;
-			case ASTUnaryExpression:
-				{
-					const operator = (expr as ASTUnaryExpression<Expression>).operator;
-					switch (operator) {
-						case '!':
-							return ok(has(ASTTypePrimitiveBool));
-							break;
-
-						case '-':
-						case '++':
-						case '--':
-							return ok(has(ASTTypePrimitiveNumber));
-							break;
-						default:
-							return error(new AnalysisError(AnalysisErrorCode.UnknownOperator, `Cannot infer type from unary operator "${operator}"`, node, this.getErrorContext(node, 1)));
-					}
-				}
-				break;
-			case ASTBinaryExpression:
-				{
-					const operator = (expr as ASTBinaryExpression<Expression, Expression>).operator;
-					switch (operator) {
-						case '==':
-						case '!=':
-						case '>':
-						case '>=':
-						case '<':
-						case '<=':
-						case '&&':
-						case '||':
-							return ok(has(ASTTypePrimitiveBool));
-							break;
-						case '+':
-						case '-':
-						case '*':
-						case '/':
-						case '%':
-						case '^e':
-							return ok(has(ASTTypePrimitiveNumber));
-							break;
-						default:
-							return error(new AnalysisError(AnalysisErrorCode.UnknownOperator, `Cannot infer type from binary operator "${operator}"`, node, this.getErrorContext(node, 1)));
-					}
-				}
-				break;
-			default:
-				// TODO more work needed here. Discover inferred type of MemberExpression, CallExpression
-				return ok(hasNot());
-		}
 	}
 }
