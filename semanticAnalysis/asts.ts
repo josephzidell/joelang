@@ -127,11 +127,11 @@ export class ASTClassDeclaration implements AST, ASTThatHasModifiers, ASTThatHas
 
 export class ASTFunctionDeclaration implements AST, ASTThatHasModifiers, ASTThatHasTypeParams {
 	modifiers: ASTModifier[] = [];
-	name!: ASTIdentifier | undefined;
+	name: ASTIdentifier | undefined = undefined;
 	typeParams: ASTType[] = [];
 	params: ASTParameter[] = [];
 	returnTypes: ASTType[] = [];
-	body!: ASTBlockStatement | undefined;
+	body: ASTBlockStatement | undefined = undefined;
 
 	// factory function
 	static _({ modifiers, name, typeParams, params, returnTypes, body }: {
@@ -229,16 +229,44 @@ export class ASTNumberLiteral implements AST {
 export class ASTObjectExpression implements AST { }
 
 export class ASTParameter implements AST {
+	modifiers: ASTModifier[] = [];
+	isRest = false;
 	name!: ASTIdentifier;
-	type?: ASTType;
-	defaultValue?: Expression;
+
+	/** The type declared by the source code, if any */
+	declaredType?: ASTType;
+
+	/** The type inferred from the initial value, if any */
+	inferredType?: ASTType;
+
+	defaultValue?: AssignableASTs;
 
 	// factory function
-	static _({ name, type, defaultValue }: { name: ASTIdentifier; type?: ASTType; defaultValue?: Expression; }): ASTParameter {
+	static _({ modifiers, isRest, name, declaredType, inferredType, defaultValue }: {
+		modifiers: ASTModifier[];
+		isRest: boolean;
+		name: ASTIdentifier;
+		declaredType?: ASTType;
+		inferredType?: ASTType;
+		defaultValue?: AssignableASTs;
+	}): ASTParameter {
 		const ast = new ASTParameter();
+		ast.modifiers = modifiers;
+		ast.isRest = isRest;
 		ast.name = name;
-		ast.type = type;
-		ast.defaultValue = defaultValue;
+
+		if (declaredType) { // only set if it's not undefined
+			ast.declaredType = declaredType;
+		}
+
+		if (inferredType) { // only set if it's not undefined
+			ast.inferredType = inferredType;
+		}
+
+		if (defaultValue) { // only set if it's not undefined
+			ast.defaultValue = defaultValue;
+		}
+
 		return ast;
 	}
 }
@@ -270,6 +298,17 @@ export class ASTRegularExpression implements AST {
 		const ast = new ASTRegularExpression();
 		ast.pattern = pattern;
 		ast.flags = flags;
+		return ast;
+	}
+}
+
+export class ASTReturnStatement implements AST {
+	expressions: AssignableASTs[] = [];
+
+	// factory function
+	static _(expressions: AssignableASTs[]): ASTReturnStatement {
+		const ast = new ASTReturnStatement();
+		ast.expressions = expressions;
 		return ast;
 	}
 }
@@ -356,7 +395,7 @@ export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
 	/** The type inferred from the initial value, if any */
 	inferredType?: ASTType;
 
-	initialValue?: AST; // TODO should specify AssignableNodeTypes;
+	initialValue?: AssignableASTs;
 
 	// factory function
 	static _({ modifiers, mutable, identifier, declaredType, inferredType, initialValue }: {
@@ -365,7 +404,7 @@ export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
 		identifier: ASTIdentifier;
 		declaredType?: ASTType;
 		inferredType?: ASTType;
-		initialValue?: AST;
+		initialValue?: AssignableASTs;
 	}): ASTVariableDeclaration {
 		const ast = new ASTVariableDeclaration();
 		ast.modifiers = modifiers;

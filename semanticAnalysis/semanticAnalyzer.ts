@@ -27,6 +27,7 @@ import {
 	ASTPath,
 	ASTProgram,
 	ASTRegularExpression,
+	ASTReturnStatement,
 	ASTStringLiteral,
 	ASTThatHasModifiers,
 	ASTThatHasRequiredBody,
@@ -190,7 +191,12 @@ export default class SemanticAnalyzer {
 	visitArgumentList(node: Node): Result<ASTArgumentsList> {
 		const ast = new ASTArgumentsList();
 
-		const argsResult = this.convertNodesChildrenOfSameType<AssignableASTs>(node, [...AssignableNodeTypes, NT.CommaSeparator], AnalysisErrorCode.AssignableExpected, (child) => `Assignable Expected: ${child.type}`);
+		const argsResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
+			node,
+			[...AssignableNodeTypes, NT.CommaSeparator],
+			AnalysisErrorCode.AssignableExpected,
+			(child) => `Assignable Expected: ${child.type}`,
+		);
 		switch (argsResult.outcome) {
 			case 'ok': ast.args = argsResult.value; break;
 			case 'error': return argsResult; break;
@@ -839,10 +845,170 @@ export default class SemanticAnalyzer {
 		);
 	}
 
+	visitParameter(node: Node): Result<ASTParameter> {
+		// this is significant overlap with the visitVariableDeclaration() function
+
+		const ast = new ASTParameter();
+
+		const handleResult = this.handleNodesChildrenOfDifferentTypes(
+			node,
+			[
+				// TODO add support for modifiers
+				// first child: modifiers
+				// this.getChildHandlerForModifiers(ast),
+
+				// first child: isRest
+				{
+					type: NT.RestElement,
+					required: false,
+					callback: (child) => {
+						ast.isRest = true; // if this node is present, then it is a rest parameter
+
+						return ok(undefined);
+					}
+				},
+
+				// second child: name
+				{
+					type: NT.Identifier,
+					required: true,
+					callback: (child) => {
+						const visitResult = this.visitIdentifier(child);
+						switch (visitResult.outcome) {
+							case 'ok': ast.name = visitResult.value; return ok(undefined); break;
+							case 'error': return visitResult; break;
+						}
+					},
+					errorCode: AnalysisErrorCode.IdentifierExpected,
+					errorMessage: (node: Node | undefined) => `We were expecting an identifier, but found a "${node?.type}"`,
+				},
+
+				// third child: a colon
+				{
+					type: NT.ColonSeparator,
+					required: false,
+
+					// do nothing, just skip it
+					callback: skipThisChild,
+				},
+
+				// third child: type an (required if there was a colon separator)
+				{
+					type: [NT.Identifier, NT.MemberExpression, NT.Type],
+					required: (child, childIndex, allChildren) => {
+						return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
+					},
+					callback: (child) => {
+						const visitResult = this.visitType(child);
+						switch (visitResult.outcome) {
+							case 'ok':
+								if (visitResult.value instanceof Skip) {
+									return error(new AnalysisError(
+										AnalysisErrorCode.TypeExpected,
+										`We were expecting a Type, but found a "${child?.type}"`,
+										child,
+										this.getErrorContext(child, child.value?.length ?? 1),
+									), this.ast);
+								}
+
+								ast.declaredType = visitResult.value;
+								break;
+							case 'error': return visitResult; break;
+						}
+
+						return ok(undefined);
+					},
+					errorCode: AnalysisErrorCode.TypeExpected,
+					errorMessage: (child: Node | undefined) => `We were expecting a Type, but found "${child?.type}"`,
+				},
+
+				// next could be an initial value assignment, or nothing
+				{
+					type: NT.AssignmentOperator,
+					required: false,
+
+					// do nothing, we just want to skip over the assignment operator
+					callback: skipThisChild,
+				},
+
+				// fourth child: default value
+				{
+					type: AssignableNodeTypes,
+
+					// if the previous child was an assignment operator, then this child is required
+					required: (child, childIndex, allChildren) => {
+						return allChildren[childIndex - 1]?.type === NT.AssignmentOperator;
+					},
+
+					callback: (child) => {
+						const visitResult = this.nodeToAST<AssignableASTs>(child);
+						switch (visitResult.outcome) {
+							case 'ok':
+								ast.defaultValue = visitResult.value;
+
+								// now attempt to infer the type from the default value
+
+								// ast.defaultValue is guaranteed to be defined at this point
+								this.assignInferredType(ast.defaultValue, child, (inferredType: ASTType) => {
+									ast.inferredType = inferredType;
+								});
+
+								if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
+									return error(new AnalysisError(
+										AnalysisErrorCode.TypeMismatch,
+										`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
+										child,
+										this.getErrorContext(child, child.value?.length || 1),
+									));
+								}
+
+								break;
+							case 'error': return visitResult; break;
+						}
+
+						return ok(undefined);
+					},
+					errorCode: AnalysisErrorCode.AssignableExpected,
+					errorMessage: (child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
+				},
+			],
+		);
+		switch (handleResult.outcome) {
+			case 'ok': break;
+			case 'error': return handleResult; break;
+		}
+
+		// now perform some additional checks
+
+		// if the identifier ends with a '?', check that either the declared type is bool
+		// or that the inferred type is bool
+		if (ast.name.name.at(-1) === '?') {
+			if (typeof ast.declaredType !== 'undefined' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
+				return error(new AnalysisError(
+					AnalysisErrorCode.BoolTypeExpected,
+					`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				), this.ast);
+			} else if (typeof ast.inferredType !== 'undefined' && !_.isEqual(ast.inferredType, ASTTypePrimitiveBool)) {
+				return error(new AnalysisError(
+					AnalysisErrorCode.BoolTypeExpected,
+					`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				), this.ast);
+			}
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
 	visitParametersList(node: Node): Result<ASTParameter[]> {
 		return this.convertNodesChildrenOfSameType(
 			node,
-			[NT.Parameter],
+			[NT.Parameter, NT.CommaSeparator],
 			AnalysisErrorCode.ParameterExpected,
 			() => 'Parameter Expected',
 		);
@@ -962,6 +1128,25 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(new AnalysisError(AnalysisErrorCode.ExpressionExpected, 'Regular Expression expected', node, this.getErrorContext(node, 1)));
+	}
+
+	visitReturnStatement(node: Node): Result<ASTReturnStatement> {
+		const ast = new ASTReturnStatement();
+
+		const conversionResult = this.convertNodesChildrenOfSameType<Expression>(
+			node,
+			[...AssignableNodeTypes, NT.CommaSeparator],
+			AnalysisErrorCode.AssignableExpected,
+			(child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
+		);
+		switch (conversionResult.outcome) {
+			case 'ok': ast.expressions = conversionResult.value; break;
+			case 'error': return conversionResult;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	visitStringLiteral(node: Node): Result<ASTStringLiteral> {
@@ -1159,7 +1344,7 @@ export default class SemanticAnalyzer {
 
 		const conversionResult = this.convertNodesChildrenOfSameType<ASTType>(
 			node,
-			[NT.CommaSeparator, NT.Type],
+			[NT.CommaSeparator, NT.Identifier, NT.MemberExpression, NT.Type],
 			AnalysisErrorCode.TypeExpected,
 			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
 		);
@@ -1375,7 +1560,7 @@ export default class SemanticAnalyzer {
 		if (typeof child !== 'undefined') {
 			return error(new AnalysisError(
 				AnalysisErrorCode.ExpressionNotExpected,
-				'Expression Not Expected',
+				`We did not expect to find an expression of type "${child.type}" here`,
 				child,
 				this.getErrorContext(child, child.value?.length ?? 1),
 			), this.ast);
@@ -1389,6 +1574,8 @@ export default class SemanticAnalyzer {
 	}
 
 	visitVariableDeclaration(node: Node): Result<ASTVariableDeclaration> {
+		// there is significant overlap with the visitParameter() function
+
 		const ast = new ASTVariableDeclaration();
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
@@ -1514,7 +1701,7 @@ export default class SemanticAnalyzer {
 							if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
 								return error(new AnalysisError(
 									AnalysisErrorCode.TypeMismatch,
-									`cannot assign a "${ast.inferredType}" to a "bool"`,
+									`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
 									child,
 									this.getErrorContext(child, child.value?.length || 1),
 								));

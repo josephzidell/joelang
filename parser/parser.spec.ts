@@ -13,8 +13,10 @@ import {
 	ASTMemberExpression,
 	ASTModifier,
 	ASTNumberLiteral,
+	ASTParameter,
 	ASTPath,
 	ASTRegularExpression,
+	ASTReturnStatement,
 	ASTStringLiteral,
 	ASTTypeInstantiationExpression,
 	ASTTypePrimitive,
@@ -2184,115 +2186,242 @@ describe('parser.ts', (): void => {
 
 	describe('FunctionDeclaration', (): void => {
 		it('no params or return types', (): void => {
-			expect(parse('f foo {}')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.BlockStatement, []],
-				]],
-			]);
+			testParseAndAnalyze(
+				'f foo {}',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('no params with single return type', (): void => {
-			expect(parse('f foo -> bool {} 5;')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.FunctionReturns, [
-						[NT.Type, 'bool'],
+			testParseAndAnalyze(
+				'f foo -> bool {} 5;',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.FunctionReturns, [
+							[NT.Type, 'bool'],
+						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-				[NT.NumberLiteral, '5'],
-				[NT.SemicolonSeparator],
-			]);
+					[NT.NumberLiteral, '5'],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [
+							ASTTypePrimitive._('bool'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+					ASTNumberLiteral._({ format: 'int', value: 5 }),
+				],
+			);
 		});
 
 		it('no params with multiple return types', (): void => {
-			expect(parse(`f foo -> bool, string {
-				return true, 'hey';
-			}`)).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.FunctionReturns, [
-						[NT.Type, 'bool'],
-						[NT.CommaSeparator],
-						[NT.Type, 'string'],
-					]],
-					[NT.BlockStatement, [
-						[NT.ReturnStatement, [
-							[NT.BoolLiteral, 'true'],
+			testParseAndAnalyze(
+				`f foo -> bool, string {
+					return true, 'hey';
+				}`,
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.FunctionReturns, [
+							[NT.Type, 'bool'],
 							[NT.CommaSeparator],
-							[NT.StringLiteral, 'hey'],
+							[NT.Type, 'string'],
 						]],
-						[NT.SemicolonSeparator],
+						[NT.BlockStatement, [
+							[NT.ReturnStatement, [
+								[NT.BoolLiteral, 'true'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'hey'],
+							]],
+							[NT.SemicolonSeparator],
+						]],
 					]],
-				]],
-			]);
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [
+							ASTTypePrimitive._('bool'),
+							ASTTypePrimitive._('string'),
+						],
+						body: ASTBlockStatement._([
+							ASTReturnStatement._([
+								ASTBoolLiteral._(true),
+								ASTStringLiteral._('hey'),
+							]),
+						]),
+					}),
+				],
+			);
 		});
 
 		it('param parens but no return types', (): void => {
-			expect(parse('f foo () {}')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.ParametersList, []],
-					[NT.BlockStatement, []],
-				]],
-			]);
+			testParseAndAnalyze(
+				'f foo () {}',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.ParametersList, []],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('param parens with return types', (): void => {
-			expect(parse('f foo () -> bool {}')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.ParametersList, []],
-					[NT.FunctionReturns, [
-						[NT.Type, 'bool'],
+			testParseAndAnalyze(
+				'f foo () -> bool {}',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.ParametersList, []],
+						[NT.FunctionReturns, [
+							[NT.Type, 'bool'],
+						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [
+							ASTTypePrimitive._('bool'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('params but no return types', (): void => {
-			expect(parse('f foo (a: number) {}')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.ParametersList, [
-						[NT.Parameter, [
-							[NT.Identifier, 'a'],
-							[NT.ColonSeparator],
-							[NT.Type, 'number'],
+			testParseAndAnalyze(
+				'f foo (a: number) {}',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.ParametersList, [
+							[NT.Parameter, [
+								[NT.Identifier, 'a'],
+								[NT.ColonSeparator],
+								[NT.Type, 'number'],
+							]],
 						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [
+							ASTParameter._({
+								modifiers: [],
+								isRest: false,
+								name: ASTIdentifier._('a'),
+								declaredType: ASTTypePrimitive._('number'),
+							}),
+						],
+						returnTypes: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('params and return types', (): void => {
-			expect(parse('f foo (a: number, r: regex) -> regex, bool {}')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.ParametersList, [
-						[NT.Parameter, [
-							[NT.Identifier, 'a'],
-							[NT.ColonSeparator],
-							[NT.Type, 'number'],
+			testParseAndAnalyze(
+				'f foo (a: number, r: regex) -> regex, bool {}',
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.ParametersList, [
+							[NT.Parameter, [
+								[NT.Identifier, 'a'],
+								[NT.ColonSeparator],
+								[NT.Type, 'number'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Parameter, [
+								[NT.Identifier, 'r'],
+								[NT.ColonSeparator],
+								[NT.Type, 'regex'],
+							]],
 						]],
-						[NT.CommaSeparator],
-						[NT.Parameter, [
-							[NT.Identifier, 'r'],
-							[NT.ColonSeparator],
+						[NT.FunctionReturns, [
 							[NT.Type, 'regex'],
+							[NT.CommaSeparator],
+							[NT.Type, 'bool'],
 						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.FunctionReturns, [
-						[NT.Type, 'regex'],
-						[NT.CommaSeparator],
-						[NT.Type, 'bool'],
-					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [
+							ASTParameter._({
+								modifiers: [],
+								isRest: false,
+								name: ASTIdentifier._('a'),
+								declaredType: ASTTypePrimitive._('number'),
+							}),
+							ASTParameter._({
+								modifiers: [],
+								isRest: false,
+								name: ASTIdentifier._('r'),
+								declaredType: ASTTypePrimitive._('regex'),
+							}),
+						],
+						returnTypes: [
+							ASTTypePrimitive._('regex'),
+							ASTTypePrimitive._('bool'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
 		it('params and return types using tuples', (): void => {
@@ -2505,123 +2634,11 @@ describe('parser.ts', (): void => {
 		});
 
 		it('generics', (): void => {
-			expect(parse('f foo <|T|> (a: T) -> T {}')).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'foo'],
-					[NT.TypeParametersList, [
-						[NT.TypeParameter, [
-							[NT.Identifier, 'T'],
-						]],
-					]],
-					[NT.ParametersList, [
-						[NT.Parameter, [
-							[NT.Identifier, 'a'],
-							[NT.ColonSeparator],
-							[NT.Identifier, 'T'],
-						]],
-					]],
-					[NT.FunctionReturns, [
-						[NT.Identifier, 'T'],
-					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
-		});
-
-		it('abstract functions', () => {
-			expect(parse(`abstract class A {
-				abstract f foo1;
-				abstract f foo2 (arg: number);
-				abstract f foo3<| T |> -> bool;
-				abstract f foo4 (arg: number) -> bool;
-			}`)).toMatchParseTree([
-				[NT.ClassDeclaration, [
-					[NT.ModifiersList, [
-						[NT.Modifier, 'abstract'],
-					]],
-					[NT.Identifier, 'A'],
-					[NT.BlockStatement, [
-						// foo1
-						[NT.FunctionDeclaration, [
-							[NT.ModifiersList, [
-								[NT.Modifier, 'abstract'],
-							]],
-							[NT.Identifier, 'foo1'],
-						]],
-						[NT.SemicolonSeparator],
-						// foo2
-						[NT.FunctionDeclaration, [
-							[NT.ModifiersList, [
-								[NT.Modifier, 'abstract'],
-							]],
-							[NT.Identifier, 'foo2'],
-							[NT.ParametersList, [
-								[NT.Parameter, [
-									[NT.Identifier, 'arg'],
-									[NT.ColonSeparator],
-									[NT.Type, 'number'],
-								]],
-							]],
-						]],
-						[NT.SemicolonSeparator],
-						// foo3
-						[NT.FunctionDeclaration, [
-							[NT.ModifiersList, [
-								[NT.Modifier, 'abstract'],
-							]],
-							[NT.Identifier, 'foo3'],
-							[NT.TypeParametersList, [
-								[NT.TypeParameter, [
-									[NT.Identifier, 'T'],
-								]],
-							]],
-							[NT.FunctionReturns, [
-								[NT.Type, 'bool'],
-							]],
-						]],
-						[NT.SemicolonSeparator],
-						// foo4
-						[NT.FunctionDeclaration, [
-							[NT.ModifiersList, [
-								[NT.Modifier, 'abstract'],
-							]],
-							[NT.Identifier, 'foo4'],
-							[NT.ParametersList, [
-								[NT.Parameter, [
-									[NT.Identifier, 'arg'],
-									[NT.ColonSeparator],
-									[NT.Type, 'number'],
-								]],
-							]],
-							[NT.FunctionReturns, [
-								[NT.Type, 'bool'],
-							]],
-						]],
-						[NT.SemicolonSeparator],
-					]],
-				]],
-			]);
-		});
-
-		it('anonymous simple', () => {
-			expect(parse('const foo = f {};')).toMatchParseTree([
-				[NT.VariableDeclaration, 'const', [
-					[NT.Identifier, 'foo'],
-					[NT.AssignmentOperator],
+			testParseAndAnalyze(
+				'f foo <|T|> (a: T) -> T {}',
+				[
 					[NT.FunctionDeclaration, [
-						[NT.BlockStatement, []],
-					]],
-				]],
-				[NT.SemicolonSeparator],
-			]);
-		});
-
-		it('anonymous complex', () => {
-			expect(parse('const foo = f <|T|>(a: T) -> T {\ndo();\n};')).toMatchParseTree([
-				[NT.VariableDeclaration, 'const', [
-					[NT.Identifier, 'foo'],
-					[NT.AssignmentOperator],
-					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
 						[NT.TypeParametersList, [
 							[NT.TypeParameter, [
 								[NT.Identifier, 'T'],
@@ -2637,50 +2654,353 @@ describe('parser.ts', (): void => {
 						[NT.FunctionReturns, [
 							[NT.Identifier, 'T'],
 						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [
+							ASTIdentifier._('T'),
+						],
+						params: [
+							ASTParameter._({
+								modifiers: [],
+								isRest: false,
+								name: ASTIdentifier._('a'),
+								declaredType: ASTIdentifier._('T'),
+							}),
+						],
+						returnTypes: [
+							ASTIdentifier._('T'),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('abstract functions', () => {
+			testParseAndAnalyze(
+				`abstract class A {
+					abstract f foo1;
+					abstract f foo2 (arg: number);
+					abstract f foo3<| T |> -> bool;
+					abstract f foo4 (arg: number) -> bool;
+				}`,
+				[
+					[NT.ClassDeclaration, [
+						[NT.ModifiersList, [
+							[NT.Modifier, 'abstract'],
+						]],
+						[NT.Identifier, 'A'],
 						[NT.BlockStatement, [
-							[NT.CallExpression, [
-								[NT.Identifier, 'do'],
-								[NT.ArgumentsList, []],
+							// foo1
+							[NT.FunctionDeclaration, [
+								[NT.ModifiersList, [
+									[NT.Modifier, 'abstract'],
+								]],
+								[NT.Identifier, 'foo1'],
+							]],
+							[NT.SemicolonSeparator],
+							// foo2
+							[NT.FunctionDeclaration, [
+								[NT.ModifiersList, [
+									[NT.Modifier, 'abstract'],
+								]],
+								[NT.Identifier, 'foo2'],
+								[NT.ParametersList, [
+									[NT.Parameter, [
+										[NT.Identifier, 'arg'],
+										[NT.ColonSeparator],
+										[NT.Type, 'number'],
+									]],
+								]],
+							]],
+							[NT.SemicolonSeparator],
+							// foo3
+							[NT.FunctionDeclaration, [
+								[NT.ModifiersList, [
+									[NT.Modifier, 'abstract'],
+								]],
+								[NT.Identifier, 'foo3'],
+								[NT.TypeParametersList, [
+									[NT.TypeParameter, [
+										[NT.Identifier, 'T'],
+									]],
+								]],
+								[NT.FunctionReturns, [
+									[NT.Type, 'bool'],
+								]],
+							]],
+							[NT.SemicolonSeparator],
+							// foo4
+							[NT.FunctionDeclaration, [
+								[NT.ModifiersList, [
+									[NT.Modifier, 'abstract'],
+								]],
+								[NT.Identifier, 'foo4'],
+								[NT.ParametersList, [
+									[NT.Parameter, [
+										[NT.Identifier, 'arg'],
+										[NT.ColonSeparator],
+										[NT.Type, 'number'],
+									]],
+								]],
+								[NT.FunctionReturns, [
+									[NT.Type, 'bool'],
+								]],
 							]],
 							[NT.SemicolonSeparator],
 						]],
 					]],
-				]],
-				[NT.SemicolonSeparator],
-			]);
+				],
+				[
+					ASTClassDeclaration._({
+						modifiers: [
+							ASTModifier._('abstract'),
+						],
+						name: ASTIdentifier._('A'),
+						typeParams: [],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([
+							ASTFunctionDeclaration._({
+								modifiers: [
+									ASTModifier._('abstract'),
+								],
+								name: ASTIdentifier._('foo1'),
+								typeParams: [],
+								params: [],
+								returnTypes: [],
+								body: undefined,
+							}),
+							ASTFunctionDeclaration._({
+								modifiers: [
+									ASTModifier._('abstract'),
+								],
+								name: ASTIdentifier._('foo2'),
+								typeParams: [],
+								params: [
+									ASTParameter._({
+										modifiers: [],
+										name: ASTIdentifier._('arg'),
+										isRest: false,
+										declaredType: ASTTypePrimitive._('number'),
+									}),
+								],
+								returnTypes: [],
+								body: undefined,
+							}),
+							ASTFunctionDeclaration._({
+								modifiers: [
+									ASTModifier._('abstract'),
+								],
+								name: ASTIdentifier._('foo3'),
+								typeParams: [
+									ASTIdentifier._('T'),
+								],
+								params: [],
+								returnTypes: [
+									ASTTypePrimitive._('bool'),
+								],
+								body: undefined,
+							}),
+							ASTFunctionDeclaration._({
+								modifiers: [
+									ASTModifier._('abstract'),
+								],
+								name: ASTIdentifier._('foo4'),
+								typeParams: [],
+								params: [
+									ASTParameter._({
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('arg'),
+										declaredType: ASTTypePrimitive._('number'),
+									}),
+								],
+								returnTypes: [
+									ASTTypePrimitive._('bool'),
+								],
+								body: undefined,
+							}),
+						]),
+					}),
+				],
+			);
+		});
+
+		it('anonymous simple', () => {
+			testParseAndAnalyze(
+				'const foo = f {};',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.FunctionDeclaration, [
+							[NT.BlockStatement, []],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('foo'),
+						initialValue: ASTFunctionDeclaration._({
+							modifiers: [],
+							name: undefined,
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._([]),
+						}),
+					}),
+				],
+			);
+		});
+
+		it('anonymous complex', () => {
+			testParseAndAnalyze(
+				'const foo = f <|T|>(a: T) -> T {\ndo();\n};',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.FunctionDeclaration, [
+							[NT.TypeParametersList, [
+								[NT.TypeParameter, [
+									[NT.Identifier, 'T'],
+								]],
+							]],
+							[NT.ParametersList, [
+								[NT.Parameter, [
+									[NT.Identifier, 'a'],
+									[NT.ColonSeparator],
+									[NT.Identifier, 'T'],
+								]],
+							]],
+							[NT.FunctionReturns, [
+								[NT.Identifier, 'T'],
+							]],
+							[NT.BlockStatement, [
+								[NT.CallExpression, [
+									[NT.Identifier, 'do'],
+									[NT.ArgumentsList, []],
+								]],
+								[NT.SemicolonSeparator],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('foo'),
+						initialValue: ASTFunctionDeclaration._({
+							modifiers: [],
+							name: undefined,
+							typeParams: [
+								ASTIdentifier._('T'),
+							],
+							params: [
+								ASTParameter._({
+									modifiers: [],
+									isRest: false,
+									name: ASTIdentifier._('a'),
+									declaredType: ASTIdentifier._('T'),
+								}),
+							],
+							returnTypes: [
+								ASTIdentifier._('T'),
+							],
+							body: ASTBlockStatement._([
+								ASTCallExpression._({
+									callee: ASTIdentifier._('do'),
+									args: [],
+								}),
+							]),
+						}),
+					}),
+				],
+			);
 		});
 
 		it('anonymous abstract', () => {
-			expect(parse('abstract const foo = f;')).toMatchParseTree([
-				[NT.VariableDeclaration, 'const', [
-					[NT.ModifiersList, [
-						[NT.Modifier, 'abstract'],
+			testParseAndAnalyze(
+				'abstract const foo = f;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.ModifiersList, [
+							[NT.Modifier, 'abstract'],
+						]],
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.FunctionDeclaration],
 					]],
-					[NT.Identifier, 'foo'],
-					[NT.AssignmentOperator],
-					[NT.FunctionDeclaration],
-				]],
-				[NT.SemicolonSeparator],
-			]);
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [
+							ASTModifier._('abstract'),
+						],
+						mutable: false,
+						identifier: ASTIdentifier._('foo'),
+						initialValue: ASTFunctionDeclaration._({
+							modifiers: [],
+							name: undefined,
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: undefined,
+						}),
+					}),
+				],
+			);
 		});
 
 		it('ending with a question mark', () => {
-			expect(parse(`f danger? -> bool {
-				return true;
-			}`)).toMatchParseTree([
-				[NT.FunctionDeclaration, [
-					[NT.Identifier, 'danger?'],
-					[NT.FunctionReturns, [
-						[NT.Type, 'bool'],
-					]],
-					[NT.BlockStatement, [
-						[NT.ReturnStatement, [
-							[NT.BoolLiteral, 'true'],
+			testParseAndAnalyze(
+				`f danger? -> bool {
+					return true;
+				}`,
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'danger?'],
+						[NT.FunctionReturns, [
+							[NT.Type, 'bool'],
 						]],
-						[NT.SemicolonSeparator],
+						[NT.BlockStatement, [
+							[NT.ReturnStatement, [
+								[NT.BoolLiteral, 'true'],
+							]],
+							[NT.SemicolonSeparator],
+						]],
 					]],
-				]],
-			]);
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('danger?'),
+						typeParams: [],
+						params: [],
+						returnTypes: [
+							ASTTypePrimitive._('bool'),
+						],
+						body: ASTBlockStatement._([
+							ASTReturnStatement._([
+								ASTBoolLiteral._(true),
+							]),
+						]),
+					}),
+				],
+			);
 		});
 
 		describe('special function names', () => {
@@ -2698,17 +3018,39 @@ describe('parser.ts', (): void => {
 
 				// in a class
 				it('<=> as function name inside of a class should be an innocent Identifier', (): void => {
-					expect(parse(`class A{f <=> {}}`)).toMatchParseTree([
-						[NT.ClassDeclaration, [
-							[NT.Identifier, 'A'],
-							[NT.BlockStatement, [
-								[NT.FunctionDeclaration, [
-									[NT.Identifier, '<=>'],
-									[NT.BlockStatement, []],
+					testParseAndAnalyze(
+						'class A{f <=> {}}',
+						[
+							[NT.ClassDeclaration, [
+								[NT.Identifier, 'A'],
+								[NT.BlockStatement, [
+									[NT.FunctionDeclaration, [
+										[NT.Identifier, '<=>'],
+										[NT.BlockStatement, []],
+									]],
 								]],
 							]],
-						]],
-					]);
+						],
+						[
+							ASTClassDeclaration._({
+								modifiers: [],
+								name: ASTIdentifier._('A'),
+								typeParams: [],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([
+									ASTFunctionDeclaration._({
+										modifiers: [],
+										name: ASTIdentifier._('<=>'),
+										typeParams: [],
+										params: [],
+										returnTypes: [],
+										body: ASTBlockStatement._([]),
+									}),
+								]),
+							}),
+						],
+					);
 				});
 
 			});
