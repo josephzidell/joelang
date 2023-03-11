@@ -124,10 +124,10 @@ export const types = [
 	'bool',
 	'number',
 	'path',
+	'range',
 	'regex',
 	'string',
 ] as const;
-type Type = typeof types[number];
 
 // special Values
 const specialValues = ['true', 'false'] as const;

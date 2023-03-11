@@ -60,6 +60,7 @@ import {
 	ASTTypePrimitivePath,
 	ASTTypePrimitiveRegex,
 	ASTTypePrimitiveString,
+	ASTTypeRange,
 	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	ASTWhenCase,
@@ -527,6 +528,7 @@ export default class SemanticAnalyzer {
 				const expression = (expr as ASTPostfixIfStatement).expression;
 				return this.inferASTTypeFromASTAssignable(expression, node);
 				break;
+			case ASTRangeExpression: return ok(has(ASTTypeRange)); break;
 			case ASTRegularExpression: return ok(has(ASTTypePrimitiveRegex)); break;
 			case ASTStringLiteral: return ok(has(ASTTypePrimitiveString)); break;
 			case ASTUnaryExpression:
@@ -1873,14 +1875,24 @@ export default class SemanticAnalyzer {
 				}
 				break;
 
-			// check if it's a primitive type
+			// check if it's a type
 			case NT.Type:
+				// check if it's a primitive type
 				if (node.value && primitiveTypes.includes(node.value as PrimitiveType)) {
 					const ast = ASTTypePrimitive._(node.value as PrimitiveType);
 
 					this.astPointer = this.ast = ast;
 
 					return ok(ast);
+
+				// check if it's a range
+				} else if (node.value && node.value === 'range') {
+					const ast = ASTTypeRange._();
+
+					this.astPointer = this.ast = ast;
+
+					return ok(ast);
+
 				} else {
 					return errorResult;
 				}

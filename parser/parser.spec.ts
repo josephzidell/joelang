@@ -29,6 +29,7 @@ import {
 	ASTThisKeyword,
 	ASTTypeInstantiationExpression,
 	ASTTypePrimitive,
+	ASTTypeRange,
 	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	ASTWhenCase,
@@ -4334,6 +4335,104 @@ describe('parser.ts', (): void => {
 			});
 
 		});
+
+		describe('ranges', () => {
+
+			it('should recognize a range type in a variable declaration', () => {
+				testParseAndAnalyze(
+					'let x: range;',
+					[
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'x'],
+							[NT.ColonSeparator],
+							[NT.Type, 'range'],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('x'),
+							declaredType: ASTTypeRange._(),
+						}),
+					],
+				);
+			});
+
+			it('should infer a range type for a variable declaration with an initial value', () => {
+				testParseAndAnalyze(
+					'let x = 1 .. 2;',
+					[
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'x'],
+							[NT.AssignmentOperator],
+							[NT.RangeExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.NumberLiteral, '2'],
+							]],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('x'),
+							initialValue: ASTRangeExpression._({
+								lower: ASTNumberLiteral._({format: 'int', value: 1}),
+								upper: ASTNumberLiteral._({format: 'int', value: 2}),
+							}),
+							inferredType: ASTTypeRange._(),
+						}),
+					],
+				);
+			});
+
+			it('should recognize a range type in a function parameter and return type', () => {
+				testParseAndAnalyze(
+					'f foo (x: range) -> range {}',
+					[
+						[NT.FunctionDeclaration, [
+							[NT.Identifier, 'foo'],
+							[NT.ParametersList, [
+								[NT.Parameter, [
+									[NT.Identifier, 'x'],
+									[NT.ColonSeparator],
+									[NT.Type, 'range'],
+								]],
+							]],
+							[NT.FunctionReturns, [
+								[NT.Type, 'range'],
+							]],
+							[NT.BlockStatement, []],
+						]],
+
+					],
+					[
+						ASTFunctionDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('foo'),
+							typeParams: [],
+							params: [
+								ASTParameter._({
+									modifiers: [],
+									isRest: false,
+									name: ASTIdentifier._('x'),
+									declaredType: ASTTypeRange._(),
+								}),
+							],
+							returnTypes: [
+								ASTTypeRange._(),
+							],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
+			});
+
+		});
+
 	});
 
 	describe('VariableDeclaration', (): void => {

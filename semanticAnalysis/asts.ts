@@ -496,16 +496,6 @@ export class ASTThisKeyword implements AST {
 export class ASTTupleExpression implements AST { }
 
 /** Begin ASTType */
-export class ASTTypePrimitive {
-	type!: PrimitiveType;
-
-	// factory function
-	static _(type: PrimitiveType): ASTTypePrimitive {
-		const ast = new ASTTypePrimitive();
-		ast.type = type;
-		return ast;
-	}
-}
 export class ASTTypeInstantiationExpression {
 	base!: ASTIdentifier | ASTMemberExpression;
 	typeArgs: ASTType[] = [];
@@ -521,6 +511,17 @@ export class ASTTypeInstantiationExpression {
 		return ast;
 	}
 }
+
+export class ASTTypePrimitive {
+	type!: PrimitiveType;
+
+	// factory function
+	static _(type: PrimitiveType): ASTTypePrimitive {
+		const ast = new ASTTypePrimitive();
+		ast.type = type;
+		return ast;
+	}
+}
 export const ASTTypePrimitiveBool = new ASTTypePrimitive();
 ASTTypePrimitiveBool.type = 'bool';
 export const ASTTypePrimitiveNumber = new ASTTypePrimitive();
@@ -532,7 +533,14 @@ ASTTypePrimitiveRegex.type = 'regex';
 export const ASTTypePrimitiveString = new ASTTypePrimitive();
 ASTTypePrimitiveString.type = 'string';
 
-export type ASTTypeExceptPrimitive = ASTFunctionSignature | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
+export class ASTTypeRange implements AST {
+	// factory function
+	static _(): ASTTypeRange {
+		return new ASTTypeRange();
+	}
+}
+
+export type ASTTypeExceptPrimitive = ASTFunctionSignature | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression | ASTTypeRange;
 export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
 /** End ASTType */
 
