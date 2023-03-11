@@ -2,13 +2,12 @@
 export enum NT {
 	ArgumentsList = 'ArgumentsList',
 	ArrayExpression = 'ArrayExpression',
-	ArrayType = 'ArrayType',
+	ArrayOf = 'ArrayOf',
 	AssignmentExpression = 'AssignmentExpression',
 	AssignmentOperator = 'AssignmentOperator',
 	BinaryExpression = 'BinaryExpression',
 	BlockStatement = 'BlockStatement',
 	BoolLiteral = 'BoolLiteral',
-	BreakStatement = 'BreakStatement',
 	CallExpression = 'CallExpression',
 	ClassDeclaration = 'ClassDeclaration',
 	ClassExtension = 'ClassExtension',
@@ -18,11 +17,12 @@ export enum NT {
 	ColonSeparator = 'ColonSeparator',
 	CommaSeparator = 'CommaSeparator',
 	Comment = 'Comment',
+	DoneStatement = 'DoneStatement',
 	ElseStatement = 'ElseStatement',
 	ForStatement = 'ForStatement',
 	FunctionDeclaration = 'FunctionDeclaration',
+	FunctionSignature = 'FunctionSignature',
 	FunctionReturns = 'FunctionReturns',
-	FunctionType = 'FunctionType',
 	Identifier = 'Identifier',
 	IfStatement = 'IfStatement',
 	ImportDeclaration = 'ImportDeclaration',
@@ -39,7 +39,7 @@ export enum NT {
 	ModifiersList = 'ModifiersList', // for Class, Function, Interface, or Variable
 	NumberLiteral = 'NumberLiteral',
 	ObjectExpression = 'ObjectExpression',
-	ObjectType = 'ObjectType',
+	ObjectShape = 'ObjectShape',
 	Parameter = 'Parameter',
 	ParametersList = 'ParametersList',
 	Parenthesized = 'Parenthesized',
@@ -62,7 +62,7 @@ export enum NT {
 	TernaryThen = 'TernaryThen',
 	ThisKeyword = 'ThisKeyword',
 	TupleExpression = 'TupleExpression',
-	TupleType = 'TupleType',
+	TupleShape = 'TupleShape',
 	Type = 'Type',
 	TypeArgumentsList = 'TypeArgumentsList',
 	TypeParameter = 'TypeParameter',
@@ -108,7 +108,7 @@ export const AssignableNodeTypes: NT[] = [
 ];
 
 /** These are the Types corresponding to AssignableNodeTypes */
-export const AssignableTypes: NT[] = [NT.FunctionType, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
+export const AssignableTypes: NT[] = [NT.FunctionSignature, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
 
 export const validChildrenInTypeArgumentList = [NT.CommaSeparator, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
 

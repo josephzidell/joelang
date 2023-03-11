@@ -28,7 +28,7 @@ import {
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTFunctionDeclaration,
-	ASTFunctionType,
+	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTIfStatement,
 	ASTInterfaceDeclaration,
@@ -1079,8 +1079,8 @@ export default class SemanticAnalyzer {
 		return ok(returns);
 	}
 
-	visitFunctionType(node: Node): Result<ASTFunctionType> {
-		const ast = new ASTFunctionType();
+	visitFunctionSignature(node: Node): Result<ASTFunctionSignature> {
+		const ast = new ASTFunctionSignature();
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the modifiers
@@ -1855,10 +1855,10 @@ export default class SemanticAnalyzer {
 		}
 
 		switch (node.type) {
-			// check if it's a FunctionType
-			case NT.FunctionType:
+			// check if it's a FunctionSignature
+			case NT.FunctionSignature:
 				{
-					const visitResult = this.visitFunctionType(node);
+					const visitResult = this.visitFunctionSignature(node);
 					switch (visitResult.outcome) {
 						case 'ok':
 							const ast = visitResult.value;

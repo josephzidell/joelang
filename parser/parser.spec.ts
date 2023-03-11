@@ -10,7 +10,7 @@ import {
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTFunctionDeclaration,
-	ASTFunctionType,
+	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTIfStatement,
 	ASTInterfaceDeclaration,
@@ -484,7 +484,7 @@ describe('parser.ts', (): void => {
 								]],
 							]],
 							[NT.CommaSeparator],
-							[NT.ArrayType, [
+							[NT.ArrayOf, [
 								[NT.Identifier, 'T'],
 							]],
 						]],
@@ -1356,7 +1356,7 @@ describe('parser.ts', (): void => {
 							[NT.Parameter, [
 								[NT.Identifier, 'callback'],
 								[NT.ColonSeparator],
-								[NT.FunctionType, [
+								[NT.FunctionSignature, [
 									[NT.ParametersList, [
 										[NT.Parameter, [
 											[NT.Identifier, 'a'],
@@ -1391,7 +1391,7 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('callback'),
-								declaredType: ASTFunctionType._({
+								declaredType: ASTFunctionSignature._({
 									typeParams: [],
 									params: [
 										ASTParameter._({
@@ -1487,7 +1487,7 @@ describe('parser.ts', (): void => {
 							[NT.Parameter, [
 								[NT.Identifier, 'a'],
 								[NT.ColonSeparator],
-								[NT.FunctionType, [
+								[NT.FunctionSignature, [
 									[NT.FunctionReturns, [
 										[NT.Identifier, 'T'],
 									]],
@@ -1495,7 +1495,7 @@ describe('parser.ts', (): void => {
 							]],
 						]],
 						[NT.FunctionReturns, [
-							[NT.FunctionType, [
+							[NT.FunctionSignature, [
 								[NT.FunctionReturns, [
 									[NT.InstantiationExpression, [
 										[NT.Identifier, 'Result'],
@@ -1526,7 +1526,7 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('a'),
-								declaredType: ASTFunctionType._({
+								declaredType: ASTFunctionSignature._({
 									typeParams: [],
 									params: [],
 									returnTypes: [
@@ -1536,7 +1536,7 @@ describe('parser.ts', (): void => {
 							}),
 						],
 						returnTypes: [
-							ASTFunctionType._({
+							ASTFunctionSignature._({
 								typeParams: [],
 								params: [],
 								returnTypes: [
@@ -1570,13 +1570,13 @@ describe('parser.ts', (): void => {
 						[NT.Parameter, [
 							[NT.Identifier, 'a'],
 							[NT.ColonSeparator],
-							[NT.TupleType, [
+							[NT.TupleShape, [
 								[NT.Type, 'bool'],
 							]],
 						]],
 					]],
 					[NT.FunctionReturns, [
-						[NT.TupleType, [
+						[NT.TupleShape, [
 							[NT.Type, 'number'],
 						]],
 					]],
@@ -1595,9 +1595,9 @@ describe('parser.ts', (): void => {
 						[NT.Parameter, [
 							[NT.Identifier, 'a'],
 							[NT.ColonSeparator],
-							[NT.ArrayType, [
-								[NT.TupleType, [
-									[NT.ArrayType, [
+							[NT.ArrayOf, [
+								[NT.TupleShape, [
+									[NT.ArrayOf, [
 										[NT.Type, 'bool'],
 									]],
 								]],
@@ -1605,7 +1605,7 @@ describe('parser.ts', (): void => {
 						]],
 					]],
 					[NT.FunctionReturns, [
-						[NT.TupleType, [
+						[NT.TupleShape, [
 							[NT.Type, 'number'],
 						]],
 					]],
@@ -1624,7 +1624,7 @@ describe('parser.ts', (): void => {
 						[NT.Parameter, [
 							[NT.Identifier, 'a'],
 							[NT.ColonSeparator],
-							[NT.ArrayType, [
+							[NT.ArrayOf, [
 								[NT.Type, 'number'],
 							]],
 							[NT.AssignmentOperator],
@@ -1636,8 +1636,8 @@ describe('parser.ts', (): void => {
 						[NT.Parameter, [
 							[NT.Identifier, 'b'],
 							[NT.ColonSeparator],
-							[NT.ArrayType, [
-								[NT.ArrayType, [
+							[NT.ArrayOf, [
+								[NT.ArrayOf, [
 									[NT.Type, 'string'],
 								]],
 							]],
@@ -1647,7 +1647,7 @@ describe('parser.ts', (): void => {
 							[NT.RestElement, '...'],
 							[NT.Identifier, 'c'],
 							[NT.ColonSeparator],
-							[NT.ArrayType, [
+							[NT.ArrayOf, [
 								[NT.Identifier, 'Foo'],
 							]],
 						]],
@@ -1655,9 +1655,9 @@ describe('parser.ts', (): void => {
 					[NT.FunctionReturns, [
 						[NT.Type, 'regex'],
 						[NT.CommaSeparator],
-						[NT.ArrayType, [
-							[NT.ArrayType, [
-								[NT.ArrayType, [
+						[NT.ArrayOf, [
+							[NT.ArrayOf, [
+								[NT.ArrayOf, [
 									[NT.Type, 'path'],
 								]],
 							]],
@@ -3056,13 +3056,13 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('with function call in body and break in a condition', () => {
+		it('with function call in body and done in a condition', () => {
 			expect(parse(
 				`loop {
 					const response = http.server.listen(3,000);
 
 					if response.status.code > 300 {
-						break;
+						done;
 					}
 				}`)).toMatchParseTree(
 				[
@@ -3097,7 +3097,7 @@ describe('parser.ts', (): void => {
 								[NT.NumberLiteral, '300'],
 							]],
 							[NT.BlockStatement, [
-								[NT.BreakStatement],
+								[NT.DoneStatement],
 								[NT.SemicolonSeparator],
 							]],
 						]],
@@ -4263,13 +4263,13 @@ describe('parser.ts', (): void => {
 			]);
 		});
 
-		it('with break', () => {
+		it('with done', () => {
 			expect(parse(
-				'repeat {\nbreak;\n}')).toMatchParseTree(
+				'repeat {\ndone;\n}')).toMatchParseTree(
 				[
 					[NT.RepeatStatement, [
 					[NT.BlockStatement, [
-						[NT.BreakStatement],
+						[NT.DoneStatement],
 						[NT.SemicolonSeparator],
 					]],
 				]],
@@ -4292,7 +4292,7 @@ describe('parser.ts', (): void => {
 				expect(parse(
 					`${type}[]`)).toMatchParseTree(
 					[
-						[NT.ArrayType, [
+						[NT.ArrayOf, [
 						[NT.Type, type],
 					]],
 				]);
@@ -4302,8 +4302,8 @@ describe('parser.ts', (): void => {
 				expect(parse(
 					`${type}[][]`)).toMatchParseTree(
 					[
-						[NT.ArrayType, [
-						[NT.ArrayType, [
+						[NT.ArrayOf, [
+						[NT.ArrayOf, [
 							[NT.Type, type],
 						]],
 					]],
@@ -4317,7 +4317,7 @@ describe('parser.ts', (): void => {
 				expect(parse(
 					'Foo[]')).toMatchParseTree(
 					[
-						[NT.ArrayType, [
+						[NT.ArrayOf, [
 						[NT.Identifier, 'Foo'],
 					]],
 				]);
@@ -4325,8 +4325,8 @@ describe('parser.ts', (): void => {
 				expect(parse(
 					'Foo[][]')).toMatchParseTree(
 					[
-						[NT.ArrayType, [
-						[NT.ArrayType, [
+						[NT.ArrayOf, [
+						[NT.ArrayOf, [
 							[NT.Identifier, 'Foo'],
 						]],
 					]],
@@ -5027,8 +5027,8 @@ describe('parser.ts', (): void => {
 						[NT.VariableDeclaration, 'const', [
 						[NT.Identifier, 'foo'],
 						[NT.ColonSeparator],
-						[NT.ArrayType, [
-							[NT.TupleType, [
+						[NT.ArrayOf, [
+							[NT.TupleShape, [
 								[NT.Type, 'string'],
 								[NT.CommaSeparator],
 								[NT.Type, 'number'],
@@ -5066,8 +5066,8 @@ describe('parser.ts', (): void => {
 						[NT.VariableDeclaration, 'const', [
 						[NT.Identifier, 'foo'],
 						[NT.ColonSeparator],
-						[NT.ArrayType, [
-							[NT.ObjectType, [
+						[NT.ArrayOf, [
+							[NT.ObjectShape, [
 								[NT.Property, [
 									[NT.Identifier, 'a'],
 									[NT.Type, 'number'],
@@ -5135,7 +5135,7 @@ describe('parser.ts', (): void => {
 						[NT.VariableDeclaration, 'let', [
 						[NT.Identifier, 'myArray'],
 						[NT.ColonSeparator],
-						[NT.ArrayType, [
+						[NT.ArrayOf, [
 							[NT.Type, 'bool'],
 						]],
 						[NT.AssignmentOperator],

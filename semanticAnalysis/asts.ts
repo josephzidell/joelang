@@ -189,7 +189,7 @@ export class ASTFunctionDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHas
 	}
 }
 
-export class ASTFunctionType implements AST, ASTThatHasTypeParams {
+export class ASTFunctionSignature implements AST, ASTThatHasTypeParams {
 	typeParams: ASTType[] = [];
 	params: ASTParameter[] = [];
 	returnTypes: ASTType[] = [];
@@ -199,8 +199,8 @@ export class ASTFunctionType implements AST, ASTThatHasTypeParams {
 		typeParams: ASTType[];
 		params: ASTParameter[];
 		returnTypes: ASTType[];
-	}): ASTFunctionType {
-		const ast = new ASTFunctionType();
+	}): ASTFunctionSignature {
+		const ast = new ASTFunctionSignature();
 		ast.typeParams = typeParams;
 		ast.params = params;
 		ast.returnTypes = returnTypes;
@@ -532,7 +532,7 @@ ASTTypePrimitiveRegex.type = 'regex';
 export const ASTTypePrimitiveString = new ASTTypePrimitive();
 ASTTypePrimitiveString.type = 'string';
 
-export type ASTTypeExceptPrimitive = ASTFunctionType | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
+export type ASTTypeExceptPrimitive = ASTFunctionSignature | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
 export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
 /** End ASTType */
 

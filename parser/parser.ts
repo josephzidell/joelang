@@ -135,7 +135,7 @@ export default class Parser {
 				switch (prev?.type) {
 					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case NT.Identifier:
-						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
+						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 
 						// next case:
@@ -194,13 +194,13 @@ export default class Parser {
 
 						break;
 					case NT.TypeParametersList:
-						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
+						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
 							// we're in a FunctionDeclaration after the GenericTypesList
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 						}
 						break;
 					default:
-						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
+						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
 							// we're in an anonymous FunctionDeclaration after the `f` keyword
 							// and there is no previous node
 							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
@@ -233,9 +233,9 @@ export default class Parser {
 				// eg `f foo (bar: number, callback: f -> bool)`
 				this.endExpressionIfIn(NT.FunctionReturns);
 
-				// check if we're in a FunctionType, if so, it's finished
+				// check if we're in a FunctionSignature, if so, it's finished
 				// eg `let foo: f (bar: string) = f (bar) {}`
-				this.endExpressionIfIn(NT.FunctionType);
+				this.endExpressionIfIn(NT.FunctionSignature);
 
 				// check if we're in a Parameter, if so, it's also finished
 				this.endExpressionIfIn(NT.Parameter);
@@ -248,7 +248,7 @@ export default class Parser {
 				this.endExpressionIfIn(NT.UnaryExpression);
 			} else if (token.type === 'brace_open') {
 				this.endExpressionWhileIn([NT.BinaryExpression]);
-				this.endExpressionWhileIn([NT.FunctionType, NT.FunctionReturns]);
+				this.endExpressionWhileIn([NT.FunctionSignature, NT.FunctionReturns]);
 				this.endExpressionIfIn(NT.ClassExtension);
 				this.endExpressionIfIn(NT.ClassExtensionsList);
 				this.endExpressionIfIn(NT.ClassImplement);
@@ -269,7 +269,7 @@ export default class Parser {
 					NT.ArgumentsList,
 					NT.TypeArgumentsList,
 				];
-				const nodeTypesThatParentAnObjectType: NT[] = [
+				const nodeTypesThatParentAnObjectShape: NT[] = [
 					NT.VariableDeclaration,
 					NT.ArgumentsList,
 				];
@@ -285,12 +285,12 @@ export default class Parser {
 					}
 
 					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
-				} else if (nodeTypesThatParentAnObjectType.includes(this.currentRoot.type)) {
+				} else if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
 					if (this.debug) {
-						console.debug('Beginning an ObjectType');
+						console.debug('Beginning an ObjectShape');
 					}
 
-					this.beginExpressionWith(MakeNode(NT.ObjectType, token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode(NT.ObjectShape, token, this.currentRoot, true));
 				} else {
 					if (this.debug) {
 						console.debug('Beginning a BlockStatement');
@@ -303,11 +303,11 @@ export default class Parser {
 
 				this.endExpressionIfIn(NT.Loop);
 				this.endExpressionIfIn(NT.FunctionDeclaration);
-				this.endExpressionIfIn(NT.FunctionType);
+				this.endExpressionIfIn(NT.FunctionSignature);
 				this.endExpressionIfIn(NT.ClassDeclaration);
 				this.endExpressionIfIn(NT.InterfaceDeclaration);
 				this.endExpressionIfIn(NT.ObjectExpression);
-				this.endExpressionIfIn(NT.ObjectType);
+				this.endExpressionIfIn(NT.ObjectShape);
 				this.endExpressionIfIn(NT.WhileStatement);
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
@@ -315,9 +315,9 @@ export default class Parser {
 
 				if (typeof prevType === 'undefined') {
 					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
-				} else if (isNextABracketClose && (([NT.ArrayType, NT.Identifier, NT.ObjectType, NT.TupleType, NT.Type] as NT[]).includes(prevType))) { // TODO or member chain
+				} else if (isNextABracketClose && (([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType))) { // TODO or member chain
 					// we have an array type
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayType, token, this.currentRoot, true));
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayOf, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
 						return result;
 					}
@@ -340,7 +340,7 @@ export default class Parser {
 				this.endExpressionIfIn(NT.TernaryElse);
 				this.endExpressionIfIn(NT.TernaryExpression);
 
-				this.endExpression(); // ArrayExpression, ArrayType or MemberList
+				this.endExpression(); // ArrayExpression, ArrayOf or MemberList
 				this.endExpressionWhileIn([NT.InstantiationExpression]);
 				this.endExpressionIfIn(NT.MemberExpression);
 			} else if (token.type === 'bool') {
@@ -531,7 +531,7 @@ export default class Parser {
 					this.endExpression(); // end the TernaryThen
 					this.beginExpressionWith(MakeNode(NT.TernaryElse, token, this.currentRoot, true));
 
-				} else if ([NT.ObjectExpression, NT.ObjectType].includes(this.currentRoot.type) && this.prev()?.type === NT.Identifier) {
+				} else if ([NT.ObjectExpression, NT.ObjectShape].includes(this.currentRoot.type) && this.prev()?.type === NT.Identifier) {
 					// POJOs notation
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
@@ -615,7 +615,7 @@ export default class Parser {
 				if (this.currentRoot.type === NT.WhenCaseValues) {
 					this.endExpression();
 					this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
+				} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
 					this.beginExpressionWith(MakeNode(NT.FunctionReturns, token, this.currentRoot, true));
 				} else {
 					this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
@@ -669,7 +669,7 @@ export default class Parser {
 				 * class B implements A<|T|> {}
 				 */
 
-				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.FunctionType, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
+				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.FunctionSignature, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
 					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 				} else {
 					const prev = this.prev();
@@ -750,7 +750,7 @@ export default class Parser {
 				];
 
 				if (this.currentRoot.type === NT.FunctionReturns) {
-					this.beginExpressionWith(MakeNode(NT.TupleType, token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 
 				} else if (typeof prevType === 'undefined') {
 					// tuple
@@ -780,7 +780,7 @@ export default class Parser {
 					}
 
 				} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
-					this.beginExpressionWith(MakeNode(NT.TupleType, token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 
 				} else {
 					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
@@ -801,8 +801,8 @@ export default class Parser {
 
 				// then, then other stuff
 
-				if (this.currentRoot.type === NT.TupleExpression || this.currentRoot.type === NT.TupleType) {
-					this.endExpression(); // end the TupleExpression or TupleType
+				if (this.currentRoot.type === NT.TupleExpression || this.currentRoot.type === NT.TupleShape) {
+					this.endExpression(); // end the TupleExpression or TupleShape
 
 				} else if (prevType === NT.NumberLiteral) {
 					// if prev is a number, this is a comparison
@@ -923,8 +923,8 @@ export default class Parser {
 							case 'error': return error(variableNode.error); break;
 						}
 						break;
-					case 'break':
-						this.addNode(MakeNode(NT.BreakStatement, token, this.currentRoot, true));
+					case 'done':
+						this.addNode(MakeNode(NT.DoneStatement, token, this.currentRoot, true));
 						break;
 					case 'else':
 						// no need to do anything with this.
@@ -968,9 +968,9 @@ export default class Parser {
 								console.debug('There is no ModifiersList open; now beginning a FunctionDeclaration');
 							}
 
-							// if we're after a ColonSeparator, then this is a FunctionType
+							// if we're after a ColonSeparator, then this is a FunctionSignature
 							if (this.prev()?.type === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
-								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionType, token, this.currentRoot, true)));
+								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionSignature, token, this.currentRoot, true)));
 							} else {
 								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)));
 							}

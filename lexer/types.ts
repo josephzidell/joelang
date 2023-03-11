@@ -91,9 +91,9 @@ export type Token = {
 // reserved keywords
 export const keywords = [
 	'abstract',
-	'break',
 	'class',
 	'const',
+	'done', // aka break
 	'else',
 	'extends',
 	'f',
@@ -107,6 +107,7 @@ export const keywords = [
 	'is',
 	'let',
 	'loop',
+	'next', // aka continue
 	'print',
 	'private',
 	'public',
