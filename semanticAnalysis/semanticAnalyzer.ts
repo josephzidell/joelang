@@ -185,6 +185,11 @@ export default class SemanticAnalyzer {
 		const children: Array<Exclude<R, Skip>> = [];
 
 		for (const child of parentNode.children) {
+			// ignore comments
+			if (child.type === NT.Comment) {
+				continue;
+			}
+
 			if (validChildren.includes(child.type)) {
 				let result: Result<R>;
 				// if (typeof converters !== 'undefined' && child.type in converters) {
@@ -1669,7 +1674,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitRangeExpression(node: Node): Result<ASTRangeExpression> {
-		const validChildren = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.NumberLiteral];
+		const validChildren = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.NumberLiteral, NT.UnaryExpression];
 
 		const ast = new ASTRangeExpression();
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
@@ -2100,7 +2105,6 @@ export default class SemanticAnalyzer {
 		// there is significant overlap with the visitParameter() function
 
 		const ast = new ASTVariableDeclaration();
-		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first grammatical requirement: mutability keyword (from the value)
 		if (node.value && ['const', 'let'].includes(node.value)) {

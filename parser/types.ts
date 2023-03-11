@@ -95,6 +95,7 @@ export const ExpressionNodeTypes: NT[] = [
 	NT.Identifier,
 	NT.MemberExpression,
 	NT.Parenthesized,
+	NT.RangeExpression,
 	NT.UnaryExpression,
 	NT.WhenExpression,
 ];

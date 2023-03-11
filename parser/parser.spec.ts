@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { types } from '../lexer/types';
 import {
+	AST,
 	ASTArrayExpression,
 	ASTAssignmentExpression,
 	ASTBinaryExpression,
@@ -37,75 +38,151 @@ import '../setupJest'; // for the types
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';
 
-const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: NT) => {
+const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 	// 2 numbers
 	it(`${operator} with 2 number literals`, (): void => {
-		expect(parse(`1 ${operator} 2,000;`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.NumberLiteral, '1'],
-				[NT.NumberLiteral, '2,000'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-
-		expect(parse(`-1,000 ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.UnaryExpression, '-', { before: true }, [
-					[NT.NumberLiteral, '1,000'],
-				]],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-
-		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.NumberLiteral, '1'],
-				[NT.UnaryExpression, '-', { before: true }, [
-					[NT.NumberLiteral, '2'],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-
-		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.UnaryExpression, '-', { before: true }, [
+		testParseAndAnalyze(
+			`1 ${operator} 2,000;`,
+			[
+				[NT.BinaryExpression, operator, [
 					[NT.NumberLiteral, '1'],
+					[NT.NumberLiteral, '2,000'],
 				]],
-				[NT.UnaryExpression, '-', { before: true }, [
+				[NT.SemicolonSeparator],
+			],
+			[
+				ASTBinaryExpression._({
+					operator,
+					left: ASTNumberLiteral._({format: 'int', value: 1}),
+					right: ASTNumberLiteral._({format: 'int', value: 2000}),
+				}),
+			],
+		);
+
+		testParseAndAnalyze(
+			`-1,000 ${operator} 2;`,
+			[
+				[NT.BinaryExpression, operator, [
+					[NT.UnaryExpression, '-', { before: true }, [
+						[NT.NumberLiteral, '1,000'],
+					]],
 					[NT.NumberLiteral, '2'],
 				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
+				[NT.SemicolonSeparator],
+			],
+			[
+				ASTBinaryExpression._({
+					operator,
+					left: ASTUnaryExpression._({
+						before: true,
+						operator: '-',
+						operand: ASTNumberLiteral._({format: 'int', value: 1000}),
+					}),
+					right: ASTNumberLiteral._({format: 'int', value: 2}),
+				}),
+			],
+		);
+
+		testParseAndAnalyze(
+			`1 ${operator} -2;`,
+			[
+				[NT.BinaryExpression, operator, [
+					[NT.NumberLiteral, '1'],
+					[NT.UnaryExpression, '-', { before: true }, [
+						[NT.NumberLiteral, '2'],
+					]],
+				]],
+				[NT.SemicolonSeparator],
+			],
+			[
+				ASTBinaryExpression._({
+					operator,
+					left: ASTNumberLiteral._({format: 'int', value: 1}),
+					right: ASTUnaryExpression._({
+						before: true,
+						operator: '-',
+						operand: ASTNumberLiteral._({format: 'int', value: 2}),
+					}),
+				}),
+			],
+		);
+
+		testParseAndAnalyze(
+			`-1 ${operator} -2;`,
+			[
+				[NT.BinaryExpression, operator, [
+					[NT.UnaryExpression, '-', { before: true }, [
+						[NT.NumberLiteral, '1'],
+					]],
+					[NT.UnaryExpression, '-', { before: true }, [
+						[NT.NumberLiteral, '2'],
+					]],
+				]],
+				[NT.SemicolonSeparator],
+			],
+			[
+				ASTBinaryExpression._({
+					operator,
+					left: ASTUnaryExpression._({
+						before: true,
+						operator: '-',
+						operand: ASTNumberLiteral._({format: 'int', value: 1}),
+					}),
+					right: ASTUnaryExpression._({
+						before: true,
+						operator: '-',
+						operand: ASTNumberLiteral._({format: 'int', value: 2}),
+					}),
+				}),
+			],
+		);
 	});
 
 	// identifier and number
 	it(`${operator} with identifier and number literal`, (): void => {
-		expect(parse(`foo ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.Identifier, 'foo'],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
+		testParseAndAnalyze(
+			`foo ${operator} 2;`,
+			[
+				[NT.BinaryExpression, operator, [
+					[NT.Identifier, 'foo'],
+					[NT.NumberLiteral, '2'],
+				]],
+				[NT.SemicolonSeparator],
+			],
+			[
+				ASTBinaryExpression._({
+					operator,
+					left: ASTIdentifier._('foo'),
+					right: ASTNumberLiteral._({format: 'int', value: 2}),
+				}),
+			],
+		);
 	});
 
 	it(`${operator} with number literal and identifier`, (): void => {
-		expect(parse(`1 ${operator} foo;`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.NumberLiteral, '1'],
-				[NT.Identifier, 'foo'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
+		testParseAndAnalyze(
+			`1 ${operator} foo;`,
+			[
+				[NT.BinaryExpression, operator, [
+					[NT.NumberLiteral, '1'],
+					[NT.Identifier, 'foo'],
+				]],
+				[NT.SemicolonSeparator],
+			],
+			[
+				ASTBinaryExpression._({
+					operator,
+					left: ASTNumberLiteral._({format: 'int', value: 1}),
+					right: ASTIdentifier._('foo'),
+				}),
+			],
+		);
 	});
 
 	// element access and number
 	it(`${operator} with element access and number literal`, (): void => {
 		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.MemberExpression, [
 					[NT.Identifier, 'foo'],
 					[NT.MembersList, [
@@ -118,7 +195,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 		]);
 
 		expect(parse(`foo.a ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.MemberExpression, [
 					[NT.Identifier, 'foo'],
 					[NT.Identifier, 'a'],
@@ -129,7 +206,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 		]);
 
 		expect(parse(`foo['a'].b ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.MemberExpression, [
 					[NT.MemberExpression, [
 						[NT.Identifier, 'foo'],
@@ -145,7 +222,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 		]);
 
 		expect(parse(`this.foo['a', 'b'].b ${operator} this.foo['a', 'c'].b;`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.MemberExpression, [
 					[NT.MemberExpression, [
 						[NT.MemberExpression, [
@@ -179,7 +256,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 		]);
 
 		expect(parse(`2 ${operator} this.foo['a']['c'].d;`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.NumberLiteral, '2'],
 				[NT.MemberExpression, [
 					[NT.MemberExpression, [
@@ -205,7 +282,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 
 	it(`${operator} with number literal and element access`, (): void => {
 		expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.NumberLiteral, '1'],
 				[NT.MemberExpression, [
 					[NT.Identifier, 'foo'],
@@ -222,7 +299,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 	// method call and number
 	it(`${operator} with method call and number literal`, (): void => {
 		expect(parse(`foo('a') ${operator} 2;`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.CallExpression, [
 					[NT.Identifier, 'foo'],
 					[NT.ArgumentsList, [
@@ -237,7 +314,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 
 	it(`${operator} with number literal and method call`, (): void => {
 		expect(parse(`1 ${operator} foo('a');`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.NumberLiteral, '1'],
 				[NT.CallExpression, [
 					[NT.Identifier, 'foo'],
@@ -253,7 +330,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 	// element access and method call
 	it(`${operator} with element access and method call`, (): void => {
 		expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchParseTree([
-			[nodeType, operator, [
+			[NT.BinaryExpression, operator, [
 				[NT.MemberExpression, [
 					[NT.Identifier, 'foo'],
 					[NT.MembersList, [
@@ -273,176 +350,7 @@ const doubleExpressionScenariosCheckingOperator = (operator: string, nodeType: N
 
 	it(`${operator} with method call and element access`, (): void => {
 		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
-			[nodeType, operator, [
-				[NT.CallExpression, [
-					[NT.Identifier, 'foo'],
-					[NT.ArgumentsList, [
-						[NT.StringLiteral, 'a'],
-					]],
-				]],
-				[NT.MemberExpression, [
-					[NT.Identifier, 'bar'],
-					[NT.MembersList, [
-						[NT.StringLiteral, 'b'],
-					]],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-};
-
-const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType: NT) => {
-	// 2 numbers
-	it(`${operator} with 2 number literals`, (): void => {
-		expect(parse(`1 ${operator} 2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.NumberLiteral, '1'],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-
-		expect(parse(`-1 ${operator} 2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.UnaryExpression, '-', { before: true }, [
-					[NT.NumberLiteral, '1'],
-				]],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-
-		expect(parse(`1 ${operator} -2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.NumberLiteral, '1'],
-				[NT.UnaryExpression, '-', { before: true }, [
-					[NT.NumberLiteral, '2'],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-
-		expect(parse(`-1 ${operator} -2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.UnaryExpression, '-', { before: true }, [
-					[NT.NumberLiteral, '1'],
-				]],
-				[NT.UnaryExpression, '-', { before: true }, [
-					[NT.NumberLiteral, '2'],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-
-	// identifier and number
-	it(`${operator} with identifier and number literal`, (): void => {
-		expect(parse(`foo ${operator} 2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.Identifier, 'foo'],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-
-	it(`${operator} with number literal and identifier`, (): void => {
-		expect(parse(`1 ${operator} foo;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.NumberLiteral, '1'],
-				[NT.Identifier, 'foo'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-
-	// element access and number
-	it(`${operator} with element access and number literal`, (): void => {
-		expect(parse(`foo['a'] ${operator} 2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.MemberExpression, [
-					[NT.Identifier, 'foo'],
-					[NT.MembersList, [
-						[NT.StringLiteral, 'a'],
-					]],
-				]],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-
-	it(`${operator} with number literal and element access`, (): void => {
-		expect(parse(`1 ${operator} foo['a'];'a'`)).toMatchParseTree([
-			[nodeType, [
-				[NT.NumberLiteral, '1'],
-				[NT.MemberExpression, [
-					[NT.Identifier, 'foo'],
-					[NT.MembersList, [
-						[NT.StringLiteral, 'a'],
-					]],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-			[NT.StringLiteral, 'a'],
-		]);
-	});
-
-	// method call and number
-	it(`${operator} with method call and number literal`, (): void => {
-		expect(parse(`foo('a') ${operator} 2;`)).toMatchParseTree([
-			[nodeType, [
-				[NT.CallExpression, [
-					[NT.Identifier, 'foo'],
-					[NT.ArgumentsList, [
-						[NT.StringLiteral, 'a'],
-					]],
-				]],
-				[NT.NumberLiteral, '2'],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-
-	it(`${operator} with number literal and method call`, (): void => {
-		expect(parse(`1 ${operator} foo('a');`)).toMatchParseTree([
-			[nodeType, [
-				[NT.NumberLiteral, '1'],
-				[NT.CallExpression, [
-					[NT.Identifier, 'foo'],
-					[NT.ArgumentsList, [
-						[NT.StringLiteral, 'a'],
-					]],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-
-	// element access and method call
-	it(`${operator} with element access and method call`, (): void => {
-		expect(parse(`foo['a'] ${operator} bar('b');`)).toMatchParseTree([
-			[nodeType, [
-				[NT.MemberExpression, [
-					[NT.Identifier, 'foo'],
-					[NT.MembersList, [
-						[NT.StringLiteral, 'a'],
-					]],
-				]],
-				[NT.CallExpression, [
-					[NT.Identifier, 'bar'],
-					[NT.ArgumentsList, [
-						[NT.StringLiteral, 'b'],
-					]],
-				]],
-			]],
-			[NT.SemicolonSeparator],
-		]);
-	});
-	it(`${operator} with method call and element access`, (): void => {
-		expect(parse(`foo('a') ${operator} bar['b'];`)).toMatchParseTree([
-			[nodeType, [
+			[NT.BinaryExpression, operator, [
 				[NT.CallExpression, [
 					[NT.Identifier, 'foo'],
 					[NT.ArgumentsList, [
@@ -462,1197 +370,6 @@ const doubleExpressionScenariosNotCheckingOperator = (operator: string, nodeType
 };
 
 describe('parser.ts', (): void => {
-	describe('VariableDeclaration', (): void => {
-		it('a let assignment with a bool literal', (): void => {
-			testParseAndAnalyze(
-				'let x = false',
-				[
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'x'],
-						[NT.AssignmentOperator],
-						[NT.BoolLiteral, 'false'],
-					]],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifier: ASTIdentifier._('x'),
-						initialValue: ASTBoolLiteral._(false),
-						inferredType: ASTTypePrimitive._('bool'),
-					}),
-				]
-			)
-
-			testParseAndAnalyze(
-				'let x? = false',
-				[
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'x?'],
-						[NT.AssignmentOperator],
-						[NT.BoolLiteral, 'false'],
-					]],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifier: ASTIdentifier._('x?'),
-						initialValue: ASTBoolLiteral._(false),
-						inferredType: ASTTypePrimitive._('bool'),
-					}),
-				]
-			);
-
-		});
-
-		it('a let assignment with a number literal', (): void => {
-			testParseAndAnalyze(
-				'let x = 1',
-				[
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'x'],
-						[NT.AssignmentOperator],
-						[NT.NumberLiteral, '1'],
-					]],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifier: ASTIdentifier._('x'),
-						initialValue: ASTNumberLiteral._({format: 'int', value: 1}),
-						inferredType: ASTTypePrimitive._('number'),
-					}),
-				]
-			);
-
-			testParseAndAnalyze(
-				'const x = -2,300.006^e-2,000; const y = 5;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'x'],
-						[NT.AssignmentOperator],
-						[NT.BinaryExpression, '^e', [
-							[NT.UnaryExpression, '-', { before: true }, [
-								[NT.NumberLiteral, '2,300.006'],
-							]],
-							[NT.UnaryExpression, '-', { before: true }, [
-								[NT.NumberLiteral, '2,000'],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'y'],
-						[NT.AssignmentOperator],
-						[NT.NumberLiteral, '5'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('x'),
-						initialValue: ASTBinaryExpression._({
-							operator: '^e',
-							left: ASTUnaryExpression._({
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._({format: 'decimal', value: 2300.006}),
-							}),
-							right: ASTUnaryExpression._({
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._({format: 'int', value: 2000}),
-							}),
-						}),
-						inferredType: ASTTypePrimitive._('number'),
-					}),
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('y'),
-						initialValue: ASTNumberLiteral._({format: 'int', value: 5}),
-						inferredType: ASTTypePrimitive._('number'),
-					}),
-				]
-			);
-		});
-
-		it('a let assignment with a string literal', (): void => {
-			testParseAndAnalyze(
-				'let x = "foo"',
-				[
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'x'],
-						[NT.AssignmentOperator],
-						[NT.StringLiteral, 'foo'],
-					]],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifier: ASTIdentifier._('x'),
-						initialValue: ASTStringLiteral._('foo'),
-						inferredType: ASTTypePrimitive._('string'),
-					}),
-				]
-			);
-		});
-
-		it('a let with a specified type', (): void => {
-
-			testParseAndAnalyze(
-				'let x: string;',
-				[
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'x'],
-						[NT.ColonSeparator],
-						[NT.Type, 'string'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifier: ASTIdentifier._('x'),
-						declaredType: ASTTypePrimitive._('string'),
-					}),
-				],
-			);
-
-			testParseAndAnalyze(
-				'let x?: bool;',
-				[
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'x?'],
-						[NT.ColonSeparator],
-						[NT.Type, 'bool'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifier: ASTIdentifier._('x?'),
-						declaredType: ASTTypePrimitive._('bool'),
-					}),
-				],
-			);
-		});
-
-		it('a const assignment with a specified type', (): void => {
-			testParseAndAnalyze(
-				'const x: string = "foo"',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'x'],
-						[NT.ColonSeparator],
-						[NT.Type, 'string'],
-						[NT.AssignmentOperator],
-						[NT.StringLiteral, 'foo'],
-					]],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('x'),
-						declaredType: ASTTypePrimitive._('string'),
-						initialValue: ASTStringLiteral._('foo'),
-						inferredType: ASTTypePrimitive._('string'),
-					}),
-				],
-			);
-		});
-
-		it('regex', (): void => {
-			testParseAndAnalyze(
-				'const x = /[a-z]/;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'x'],
-						[NT.AssignmentOperator],
-						[NT.RegularExpression, '/[a-z]/'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('x'),
-						initialValue: ASTRegularExpression._({pattern: '/[a-z]/', flags: []}),
-						inferredType: ASTTypePrimitive._('regex'),
-					}),
-				],
-			);
-
-			testParseAndAnalyze(
-				'const x: regex = /[0-9]*/g;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'x'],
-						[NT.ColonSeparator],
-						[NT.Type, 'regex'],
-						[NT.AssignmentOperator],
-						[NT.RegularExpression, '/[0-9]*/g'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('x'),
-						declaredType: ASTTypePrimitive._('regex'),
-						initialValue: ASTRegularExpression._({pattern: '/[0-9]*/', flags: ['g']}),
-						inferredType: ASTTypePrimitive._('regex'),
-					}),
-				],
-			);
-		});
-
-		it('path', (): void => {
-			testParseAndAnalyze(
-				'const dir = @/path/to/dir/;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'dir'],
-						[NT.AssignmentOperator],
-						[NT.Path, '@/path/to/dir/'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('dir'),
-						initialValue: ASTPath._({absolute: true, path: '@/path/to/dir/', isDir: true}),
-						inferredType: ASTTypePrimitive._('path'),
-					}),
-				],
-			);
-
-			testParseAndAnalyze(
-				'const dir = ./myDir/;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'dir'],
-						[NT.AssignmentOperator],
-						[NT.Path, './myDir/'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('dir'),
-						initialValue: ASTPath._({absolute: false, path: './myDir/', isDir: true}),
-						inferredType: ASTTypePrimitive._('path'),
-					}),
-				],
-			);
-
-			testParseAndAnalyze(
-				'const file: path = @/path/to/file.joe;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'file'],
-						[NT.ColonSeparator],
-						[NT.Type, 'path'],
-						[NT.AssignmentOperator],
-						[NT.Path, '@/path/to/file.joe'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('file'),
-						declaredType: ASTTypePrimitive._('path'),
-						initialValue: ASTPath._({absolute: true, path: '@/path/to/file.joe', isDir: false}),
-						inferredType: ASTTypePrimitive._('path'),
-					}),
-				],
-			);
-		});
-
-		it('assign to another variable', () => {
-			testParseAndAnalyze(
-				'const dir = foo;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'dir'],
-						[NT.AssignmentOperator],
-						[NT.Identifier, 'foo'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('dir'),
-						initialValue: ASTIdentifier._('foo'),
-					}),
-				],
-			);
-		})
-
-		describe('custom type', (): void => {
-
-			it('one word', (): void => {
-				testParseAndAnalyze(
-					'const myClass: MyClass = MyClass.create();',
-					[
-						[NT.VariableDeclaration, 'const', [
-							[NT.Identifier, 'myClass'],
-							[NT.ColonSeparator],
-							[NT.Identifier, 'MyClass'],
-							[NT.AssignmentOperator],
-							[NT.CallExpression, [
-								[NT.MemberExpression, [
-									[NT.Identifier, 'MyClass'],
-									[NT.Identifier, 'create'],
-								]],
-								[NT.ArgumentsList, []],
-							]],
-						]],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifier: ASTIdentifier._('myClass'),
-							declaredType: ASTIdentifier._('MyClass'),
-							initialValue: ASTCallExpression._({
-								callee: ASTMemberExpression._({
-									object: ASTIdentifier._('MyClass'),
-									property: ASTIdentifier._('create'),
-								}),
-								args: [],
-							}),
-						}),
-					],
-				);
-			});
-
-			it('member expression', (): void => {
-				testParseAndAnalyze(
-					'const myClass: MyPackage.MyClass = MyClass.create();',
-					[
-						[NT.VariableDeclaration, 'const', [
-							[NT.Identifier, 'myClass'],
-							[NT.ColonSeparator],
-							[NT.MemberExpression, [
-								[NT.Identifier, 'MyPackage'],
-								[NT.Identifier, 'MyClass'],
-							]],
-							[NT.AssignmentOperator],
-							[NT.CallExpression, [
-								[NT.MemberExpression, [
-									[NT.Identifier, 'MyClass'],
-									[NT.Identifier, 'create'],
-								]],
-								[NT.ArgumentsList, []],
-							]],
-						]],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifier: ASTIdentifier._('myClass'),
-							declaredType: ASTMemberExpression._({
-								object: ASTIdentifier._('MyPackage'),
-								property: ASTIdentifier._('MyClass'),
-							}),
-							initialValue: ASTCallExpression._({
-								callee: ASTMemberExpression._({
-									object: ASTIdentifier._('MyClass'),
-									property: ASTIdentifier._('create'),
-								}),
-								args: [],
-							}),
-						}),
-					],
-				);
-			});
-
-		});
-
-		describe('tuples', () => {
-
-			it('tuple', () => {
-				expect(parse(
-					'const foo = <1, "pizza", 3.14>;')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.TupleExpression, [
-							[NT.NumberLiteral, '1'],
-							[NT.CommaSeparator],
-							[NT.StringLiteral, 'pizza'],
-							[NT.CommaSeparator],
-							[NT.NumberLiteral, '3.14'],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('empty tuple', () => {
-				expect(parse(
-					'const foo = <>;')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.TupleExpression, []],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('nested tuples', () => {
-				expect(parse(
-					`const foo = <
-						<1, 'pizza', 3.14>,
-						true,
-						@/some/file.joe,
-						1..3,
-						<1, 2, 'fizz', 4, 'buzz'>
-					>;`)).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.TupleExpression, [
-							[NT.TupleExpression, [
-								[NT.NumberLiteral, '1'],
-								[NT.CommaSeparator],
-								[NT.StringLiteral, 'pizza'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3.14'],
-							]],
-							[NT.CommaSeparator],
-							[NT.BoolLiteral, 'true'],
-							[NT.CommaSeparator],
-							[NT.Path, '@/some/file.joe'],
-							[NT.CommaSeparator],
-							[NT.RangeExpression, [
-								[NT.NumberLiteral, '1'],
-								[NT.NumberLiteral, '3'],
-							]],
-							[NT.CommaSeparator],
-							[NT.TupleExpression, [
-								[NT.NumberLiteral, '1'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '2'],
-								[NT.CommaSeparator],
-								[NT.StringLiteral, 'fizz'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '4'],
-								[NT.CommaSeparator],
-								[NT.StringLiteral, 'buzz'],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('with ternary in item', () => {
-				expect(parse(
-					`<
-						1,
-						someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
-						true
-					>`)).toMatchParseTree(
-					[
-						[NT.TupleExpression, [
-						[NT.NumberLiteral, '1'],
-						[NT.CommaSeparator],
-						[NT.TernaryExpression, [
-							[NT.TernaryCondition, [
-								[NT.Identifier, 'someCondition'],
-							]],
-							[NT.TernaryThen, [
-								[NT.StringLiteral, 'burnt-orange'],
-							]],
-							[NT.TernaryElse, [
-								[NT.StringLiteral, ''],
-							]],
-						]],
-						[NT.CommaSeparator],
-						[NT.Comment, '// will always be defined, so the shape is correct'],
-						[NT.BoolLiteral, 'true'],
-					]],
-				]);
-			});
-
-			it('tuple in object', () => {
-				expect(parse(
-					'const foo = {tpl: <1>};')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, [
-							[NT.Property, [
-								[NT.Identifier, 'tpl'],
-								[NT.TupleExpression, [
-									[NT.NumberLiteral, '1'],
-								]],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			})
-
-		});
-
-		describe('arrays of', (): void => {
-
-			it('bools', (): void => {
-				testParseAndAnalyze(
-					'[false, true, true, false]',
-					[
-						[NT.ArrayExpression, [
-							[NT.BoolLiteral, 'false'],
-							[NT.CommaSeparator],
-							[NT.BoolLiteral, 'true'],
-							[NT.CommaSeparator],
-							[NT.BoolLiteral, 'true'],
-							[NT.CommaSeparator],
-							[NT.BoolLiteral, 'false'],
-						]],
-					],
-					[
-						ASTArrayExpression._({
-							type: ASTTypePrimitive._('bool'),
-							items: [
-								ASTBoolLiteral._(false),
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(false),
-							],
-						})
-					]
-				);
-			});
-
-			it('numbers', () => {
-				testParseAndAnalyze(
-					'[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]',
-					[
-						[NT.ArrayExpression, [
-							[NT.NumberLiteral, '1'],
-							[NT.CommaSeparator],
-							[NT.UnaryExpression, '-', { before: true }, [
-								[NT.NumberLiteral, '2'],
-							]],
-							[NT.CommaSeparator],
-							[NT.NumberLiteral, '3,456'],
-							[NT.CommaSeparator],
-							[NT.BinaryExpression, '^e', [
-								[NT.NumberLiteral, '3'],
-								[NT.UnaryExpression, '-', { before: true }, [
-									[NT.NumberLiteral, '2'],
-								]],
-							]],
-							[NT.CommaSeparator],
-							[NT.NumberLiteral, '3.14'],
-							[NT.CommaSeparator],
-							[NT.NumberLiteral, '1,2,3'], // weird but legal
-						]],
-					],
-					[
-						ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
-							items: [
-								ASTNumberLiteral._({ format: 'int', value: 1 }),
-								ASTUnaryExpression._({
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
-								}),
-								ASTNumberLiteral._({ format: 'int', value: 3456}),
-								ASTBinaryExpression._({
-									operator: '^e',
-									left: ASTNumberLiteral._({ format: 'int', value: 3 }),
-									right: ASTUnaryExpression._({
-										before: true,
-										operator: '-',
-										operand: ASTNumberLiteral._({ format: 'int', value: 2}),
-									}),
-								}),
-								ASTNumberLiteral._({ format: 'decimal', value: 3.14}),
-								ASTNumberLiteral._({ format: 'int', value: 123}),
-							],
-						}),
-					]
-				);
-			});
-
-			it('paths', (): void => {
-				expect(parse(
-					'[@/file.joe, @/another/file.joe]')).toMatchParseTree(
-					[
-						[NT.ArrayExpression, [
-						[NT.Path, '@/file.joe'],
-						[NT.CommaSeparator],
-						[NT.Path, '@/another/file.joe'],
-					]],
-				]);
-			});
-
-			it('regexes', (): void => {
-				expect(parse(
-					'[/[a-z]/i, /[0-9]/g, /\d/]')).toMatchParseTree(
-					[
-						[NT.ArrayExpression, [
-						[NT.RegularExpression, '/[a-z]/i'],
-						[NT.CommaSeparator],
-						[NT.RegularExpression, '/[0-9]/g'],
-						[NT.CommaSeparator],
-						[NT.RegularExpression, '/\d/'],
-					]],
-				]);
-			});
-
-			it('strings', (): void => {
-				expect(parse(
-					'[\'foo\', "bar"]')).toMatchParseTree(
-					[
-						[NT.ArrayExpression, [
-						[NT.StringLiteral, 'foo'],
-						[NT.CommaSeparator],
-						[NT.StringLiteral, 'bar'],
-					]],
-				]);
-			});
-
-			it('tuples', () => {
-				expect(parse(
-					"const foo: <string, number, bool>[] = [<'foo', 3.14, false>, <'bar', 900, true>];")).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.ColonSeparator],
-						[NT.ArrayType, [
-							[NT.TupleType, [
-								[NT.Type, 'string'],
-								[NT.CommaSeparator],
-								[NT.Type, 'number'],
-								[NT.CommaSeparator],
-								[NT.Type, 'bool'],
-							]],
-						]],
-						[NT.AssignmentOperator],
-						[NT.ArrayExpression, [
-							[NT.TupleExpression, [
-								[NT.StringLiteral, 'foo'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3.14'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'false'],
-							]],
-							[NT.CommaSeparator],
-							[NT.TupleExpression, [
-								[NT.StringLiteral, 'bar'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '900'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'true'],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('pojos', () => {
-				expect(parse(
-					"const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];")).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.ColonSeparator],
-						[NT.ArrayType, [
-							[NT.ObjectType, [
-								[NT.Property, [
-									[NT.Identifier, 'a'],
-									[NT.Type, 'number'],
-								]],
-								[NT.CommaSeparator],
-								[NT.Property, [
-									[NT.Identifier, 'b'],
-									[NT.Type, 'string'],
-								]],
-							]],
-						]],
-						[NT.AssignmentOperator],
-						[NT.ArrayExpression, [
-							[NT.ObjectExpression, [
-								[NT.Property, [
-									[NT.Identifier, 'a'],
-									[NT.NumberLiteral, '4'],
-								]],
-								[NT.CommaSeparator],
-								[NT.Property, [
-									[NT.Identifier, 'b'],
-									[NT.StringLiteral, 'c'],
-								]],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('assignments', () => {
-				testParseAndAnalyze(
-					'const numbers = [1, 2];',
-					[
-						[NT.VariableDeclaration, 'const', [
-							[NT.Identifier, 'numbers'],
-							[NT.AssignmentOperator],
-							[NT.ArrayExpression, [
-								[NT.NumberLiteral, '1'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '2'],
-							]],
-						]],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifier: ASTIdentifier._('numbers'),
-							initialValue: ASTArrayExpression._({
-								type: ASTTypePrimitive._('number'),
-								items: [
-									ASTNumberLiteral._({ format: 'int', value: 1}),
-									ASTNumberLiteral._({ format: 'int', value: 2}),
-								],
-							}),
-						}),
-					],
-				);
-
-				expect(parse(
-					'let myArray: bool[] = [];')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'myArray'],
-						[NT.ColonSeparator],
-						[NT.ArrayType, [
-							[NT.Type, 'bool'],
-						]],
-						[NT.AssignmentOperator],
-						[NT.ArrayExpression, []],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-		});
-
-		describe('ternary', () => {
-
-			it('should work in a variable declaration', () => {
-				expect(parse(
-					'const foo = bar ? 1 : 2;')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.TernaryExpression, [
-							[NT.TernaryCondition, [
-								[NT.Identifier, 'bar'],
-							]],
-							[NT.TernaryThen, [
-								[NT.NumberLiteral, '1'],
-							]],
-							[NT.TernaryElse, [
-								[NT.NumberLiteral, '2'],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('should work when nested', () => {
-				expect(parse(
-					'const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.TernaryExpression, [
-							[NT.TernaryCondition, [
-								[NT.Identifier, 'bar'],
-							]],
-							[NT.TernaryThen, [
-								[NT.Parenthesized, [
-									[NT.TernaryExpression, [
-										[NT.TernaryCondition, [
-											[NT.Identifier, 'baz'],
-										]],
-										[NT.TernaryThen, [
-											[NT.NumberLiteral, '3'],
-										]],
-										[NT.TernaryElse, [
-											[NT.NumberLiteral, '4'],
-										]],
-									]],
-								]],
-							]],
-							[NT.TernaryElse, [
-								[NT.NumberLiteral, '2'],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('should work in an array', () => {
-				expect(parse(
-					'[foo ? 1 : 2, 3]')).toMatchParseTree(
-					[
-						[NT.ArrayExpression, [
-						[NT.TernaryExpression, [
-							[NT.TernaryCondition, [
-								[NT.Identifier, 'foo'],
-							]],
-							[NT.TernaryThen, [
-								[NT.NumberLiteral, '1'],
-							]],
-							[NT.TernaryElse, [
-								[NT.NumberLiteral, '2'],
-							]],
-						]],
-						[NT.CommaSeparator],
-						[NT.NumberLiteral, '3'],
-					]],
-				]);
-			});
-
-			it('should work in a return', () => {
-				expect(parse(
-					'f foo -> bool, number {return bar ? true : false, 3;}')).toMatchParseTree(
-					[
-						[NT.FunctionDeclaration, [
-						[NT.Identifier, 'foo'],
-						[NT.FunctionReturns, [
-							[NT.Type, 'bool'],
-							[NT.CommaSeparator],
-							[NT.Type, 'number'],
-						]],
-						[NT.BlockStatement, [
-							[NT.ReturnStatement, [
-								[NT.TernaryExpression, [
-									[NT.TernaryCondition, [
-										[NT.Identifier, 'bar'],
-									]],
-									[NT.TernaryThen, [
-										[NT.BoolLiteral, 'true'],
-									]],
-									[NT.TernaryElse, [
-										[NT.BoolLiteral, 'false'],
-									]],
-								]],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3'],
-							]],
-							[NT.SemicolonSeparator],
-						]]
-					]],
-				]);
-			});
-
-		});
-
-		describe('pojos', () => {
-
-			it('pojo', () => {
-				expect(parse(
-					'const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, [
-							[NT.Property, [
-								[NT.Identifier, 'a'],
-								[NT.NumberLiteral, '1'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'b'],
-								[NT.StringLiteral, 'pizza'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'c'],
-								[NT.NumberLiteral, '3.14'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'd'],
-								[NT.ArrayExpression, [
-									[NT.NumberLiteral, '10'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '11'],
-								]],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('empty pojo', () => {
-				expect(parse(
-					'const foo = {};')).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, []],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('nested pojos', () => {
-				expect(parse(
-					`const foo = {
-						obj: {a: 1, b: 'pizza', pi: {two_digits: 3.14}},
-						bol: true,
-						pth: @/some/file.joe,
-						range: {range: 1..3},
-						tpl: <1, 2, 'fizz', 4, 'buzz'>
-					};`)).toMatchParseTree(
-					[
-						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, [
-							[NT.Property, [
-								[NT.Identifier, 'obj'],
-								[NT.ObjectExpression, [
-									[NT.Property, [
-										[NT.Identifier, 'a'],
-										[NT.NumberLiteral, '1'],
-									]],
-									[NT.CommaSeparator],
-									[NT.Property, [
-										[NT.Identifier, 'b'],
-										[NT.StringLiteral, 'pizza'],
-									]],
-									[NT.CommaSeparator],
-									[NT.Property, [
-										[NT.Identifier, 'pi'],
-										[NT.ObjectExpression, [
-											[NT.Property, [
-												[NT.Identifier, 'two_digits'],
-												[NT.NumberLiteral, '3.14'],
-											]],
-										]],
-									]],
-								]],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'bol'],
-								[NT.BoolLiteral, 'true'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'pth'],
-								[NT.Path, '@/some/file.joe'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'range'],
-								[NT.ObjectExpression, [
-									[NT.Property, [
-										[NT.Identifier, 'range'],
-										[NT.RangeExpression, [
-											[NT.NumberLiteral, '1'],
-											[NT.NumberLiteral, '3'],
-										]],
-									]],
-								]],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'tpl'],
-								[NT.TupleExpression, [
-									[NT.NumberLiteral, '1'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '2'],
-									[NT.CommaSeparator],
-									[NT.StringLiteral, 'fizz'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '4'],
-									[NT.CommaSeparator],
-									[NT.StringLiteral, 'buzz'],
-								]],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
-			});
-
-			it('with ternary in item', () => {
-				expect(parse(
-					`{
-						a: 1,
-						b: someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
-						c: true
-					}`)).toMatchParseTree(
-					[
-						[NT.ObjectExpression, [
-						[NT.Property, [
-							[NT.Identifier, 'a'],
-							[NT.NumberLiteral, '1'],
-						]],
-						[NT.CommaSeparator],
-						[NT.Property, [
-							[NT.Identifier, 'b'],
-							[NT.TernaryExpression, [
-								[NT.TernaryCondition, [
-									[NT.Identifier, 'someCondition'],
-								]],
-								[NT.TernaryThen, [
-									[NT.StringLiteral, 'burnt-orange'],
-								]],
-								[NT.TernaryElse, [
-									[NT.StringLiteral, ''],
-								]],
-							]],
-						]],
-						[NT.CommaSeparator],
-						[NT.Comment, '// will always be defined, so the shape is correct'],
-						[NT.Property, [
-							[NT.Identifier, 'c'],
-							[NT.BoolLiteral, 'true'],
-						]],
-					]],
-				]);
-			});
-
-			it('with array in item', () => {
-				expect(parse(
-					`{
-						a: [1]
-					}`)).toMatchParseTree(
-					[
-						[NT.ObjectExpression, [
-						[NT.Property, [
-							[NT.Identifier, 'a'],
-							[NT.ArrayExpression, [
-								[NT.NumberLiteral, '1'],
-							]],
-						]],
-					]],
-				]);
-			});
-
-			it('with MemberExpression in item', () => {
-				expect(parse(
-					`{
-						a: [foo[1]]
-					}`)).toMatchParseTree(
-					[
-						[NT.ObjectExpression, [
-						[NT.Property, [
-							[NT.Identifier, 'a'],
-							[NT.ArrayExpression, [
-								[NT.MemberExpression, [
-									[NT.Identifier, 'foo'],
-									[NT.MembersList, [
-										[NT.NumberLiteral, '1'],
-									]],
-								]],
-							]],
-						]],
-					]],
-				]);
-			});
-
-		});
-
-		it('should assign this', () => {
-			testParseAndAnalyze(
-				'const foo = this;',
-				[
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ThisKeyword],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifier: ASTIdentifier._('foo'),
-						initialValue: ASTThisKeyword._(),
-					}),
-				],
-			);
-		});
-
-		it('should assign to a property on this instance', () => {
-			testParseAndAnalyze(
-				'this.foo = 1;',
-				[
-					[NT.AssignmentExpression, [
-						[NT.MemberExpression, [
-							[NT.ThisKeyword],
-							[NT.Identifier, 'foo'],
-						]],
-						[NT.AssignmentOperator],
-						[NT.NumberLiteral, '1'],
-					]],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTAssignmentExpression._({
-						left: ASTMemberExpression._({
-							object: ASTThisKeyword._(),
-							property: ASTIdentifier._('foo'),
-						}),
-						right: ASTNumberLiteral._({format: 'int', value: 1}),
-					}),
-				],
-			);
-		});
-
-	});
-
 	describe('CallExpression', () => {
 
 		it('works with several nested layers', () => {
@@ -1892,6 +609,89 @@ describe('parser.ts', (): void => {
 					}),
 				],
 			);
+		});
+
+		describe('works with create', () => {
+
+			it('simple', () => {
+				expect(parse(
+					'A.create();')).toMatchParseTree(
+					[
+						[NT.CallExpression, [
+						[NT.MemberExpression, [
+							[NT.Identifier, 'A'],
+							[NT.Identifier, 'create'],
+						]],
+						[NT.ArgumentsList, []],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('with GenericTypes and Arguments', () => {
+				expect(parse(
+					'A<|T, U|>.create(T.create(), U.create(), "foo");')).toMatchParseTree(
+					[
+						[NT.CallExpression, [
+						[NT.MemberExpression, [
+							[NT.InstantiationExpression, [
+								[NT.Identifier, 'A'],
+								[NT.TypeArgumentsList, [
+									[NT.Identifier, 'T'],
+									[NT.CommaSeparator],
+									[NT.Identifier, 'U'],
+								]],
+							]],
+							[NT.Identifier, 'create'],
+						]],
+						[NT.ArgumentsList, [
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'T'],
+									[NT.Identifier, 'create'],
+								]],
+								[NT.ArgumentsList, []],
+							]],
+							[NT.CommaSeparator],
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'U'],
+									[NT.Identifier, 'create'],
+								]],
+								[NT.ArgumentsList, []],
+							]],
+							[NT.CommaSeparator],
+							[NT.StringLiteral, 'foo'],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('with several nested layers', () => {
+				expect(parse(
+					'A.B.C.D.create();')).toMatchParseTree(
+					[
+						[NT.CallExpression, [
+						[NT.MemberExpression, [
+							[NT.MemberExpression, [
+								[NT.MemberExpression, [
+									[NT.MemberExpression, [
+										[NT.Identifier, 'A'],
+										[NT.Identifier, 'B'],
+									]],
+									[NT.Identifier, 'C'],
+								]],
+								[NT.Identifier, 'D'],
+							]],
+							[NT.Identifier, 'create'],
+						]],
+						[NT.ArgumentsList, []],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
 		});
 
 	});
@@ -4401,89 +3201,6 @@ describe('parser.ts', (): void => {
 
 	});
 
-	describe('CallExpression with create', () => {
-
-		it('simple', () => {
-			expect(parse(
-				'A.create();')).toMatchParseTree(
-				[
-					[NT.CallExpression, [
-					[NT.MemberExpression, [
-						[NT.Identifier, 'A'],
-						[NT.Identifier, 'create'],
-					]],
-					[NT.ArgumentsList, []],
-				]],
-				[NT.SemicolonSeparator],
-			]);
-		});
-
-		it('with GenericTypes and Arguments', () => {
-			expect(parse(
-				'A<|T, U|>.create(T.create(), U.create(), "foo");')).toMatchParseTree(
-				[
-					[NT.CallExpression, [
-					[NT.MemberExpression, [
-						[NT.InstantiationExpression, [
-							[NT.Identifier, 'A'],
-							[NT.TypeArgumentsList, [
-								[NT.Identifier, 'T'],
-								[NT.CommaSeparator],
-								[NT.Identifier, 'U'],
-							]],
-						]],
-						[NT.Identifier, 'create'],
-					]],
-					[NT.ArgumentsList, [
-						[NT.CallExpression, [
-							[NT.MemberExpression, [
-								[NT.Identifier, 'T'],
-								[NT.Identifier, 'create'],
-							]],
-							[NT.ArgumentsList, []],
-						]],
-						[NT.CommaSeparator],
-						[NT.CallExpression, [
-							[NT.MemberExpression, [
-								[NT.Identifier, 'U'],
-								[NT.Identifier, 'create'],
-							]],
-							[NT.ArgumentsList, []],
-						]],
-						[NT.CommaSeparator],
-						[NT.StringLiteral, 'foo'],
-					]],
-				]],
-				[NT.SemicolonSeparator],
-			]);
-		});
-
-		it('with several nested layers', () => {
-			expect(parse(
-				'A.B.C.D.create();')).toMatchParseTree(
-				[
-					[NT.CallExpression, [
-					[NT.MemberExpression, [
-						[NT.MemberExpression, [
-							[NT.MemberExpression, [
-								[NT.MemberExpression, [
-									[NT.Identifier, 'A'],
-									[NT.Identifier, 'B'],
-								]],
-								[NT.Identifier, 'C'],
-							]],
-							[NT.Identifier, 'D'],
-						]],
-						[NT.Identifier, 'create'],
-					]],
-					[NT.ArgumentsList, []],
-				]],
-				[NT.SemicolonSeparator],
-			]);
-		});
-
-	});
-
 	describe('Operators', (): void => {
 		describe('UnaryExpression', (): void => {
 
@@ -4732,31 +3449,31 @@ describe('parser.ts', (): void => {
 
 			describe('with numbers', (): void => {
 				describe('compare', (): void => {
-					doubleExpressionScenariosCheckingOperator('<=>', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('<=>');
 				});
 
 				describe('equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('==', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('==');
 				});
 
 				describe('not equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('!=', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('!=');
 				});
 
 				describe('less than', (): void => {
-					doubleExpressionScenariosCheckingOperator('<', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('<');
 				});
 
 				describe('less than or equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('<=', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('<=');
 				});
 
 				describe('greater than', (): void => {
-					doubleExpressionScenariosCheckingOperator('>', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('>');
 				});
 
 				describe('greater than or equals', (): void => {
-					doubleExpressionScenariosCheckingOperator('>=', NT.BinaryExpression);
+					binaryExpressionScenariosCheckingOperator('>=');
 				});
 			});
 
@@ -5058,9 +3775,13 @@ describe('parser.ts', (): void => {
 				);
 			});
 
-			it('with MemberExpression conditional', () => {
+			it('with MemberExpression conditional and comment', () => {
 				testParseAndAnalyze(
-					'[9 if this.isDone?, 10, 11];',
+					`[
+						9 if this.isDone?, // comment
+						10,
+						11,
+					];`,
 					[
 						[NT.ArrayExpression, [
 							[NT.PostfixIfStatement, [
@@ -5071,9 +3792,11 @@ describe('parser.ts', (): void => {
 								]],
 							]],
 							[NT.CommaSeparator],
+							[NT.Comment, '// comment'], // will be removed in the AST
 							[NT.NumberLiteral, '10'],
 							[NT.CommaSeparator],
 							[NT.NumberLiteral, '11'],
+							[NT.CommaSeparator],
 						]],
 						[NT.SemicolonSeparator],
 					],
@@ -5289,6 +4012,245 @@ describe('parser.ts', (): void => {
 
 	})
 
+	describe('RangeExpression', (): void => {
+		// 2 numbers
+		it(`.. with 2 number literals`, (): void => {
+			testParseAndAnalyze(
+				`1 .. 2;`,
+				[
+					[NT.RangeExpression, [
+						[NT.NumberLiteral, '1'],
+						[NT.NumberLiteral, '2'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTRangeExpression._({
+						lower: ASTNumberLiteral._({format: 'int', value: 1}),
+						upper: ASTNumberLiteral._({format: 'int', value: 2}),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				`-1 .. 2;`,
+				[
+					[NT.RangeExpression, [
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '1'],
+						]],
+						[NT.NumberLiteral, '2'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTRangeExpression._({
+						lower: ASTUnaryExpression._({
+							before: true,
+							operator: '-',
+							operand: ASTNumberLiteral._({format: 'int', value: 1}),
+						}),
+						upper: ASTNumberLiteral._({format: 'int', value: 2}),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				`1 .. -2;`,
+				[
+					[NT.RangeExpression, [
+						[NT.NumberLiteral, '1'],
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '2'],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTRangeExpression._({
+						lower: ASTNumberLiteral._({format: 'int', value: 1}),
+						upper: ASTUnaryExpression._({
+							before: true,
+							operator: '-',
+							operand: ASTNumberLiteral._({format: 'int', value: 2}),
+						}),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				`-1 .. -2;`,
+				[
+					[NT.RangeExpression, [
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '1'],
+						]],
+						[NT.UnaryExpression, '-', { before: true }, [
+							[NT.NumberLiteral, '2'],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTRangeExpression._({
+						lower: ASTUnaryExpression._({
+							before: true,
+							operator: '-',
+							operand: ASTNumberLiteral._({format: 'int', value: 1}),
+						}),
+						upper: ASTUnaryExpression._({
+							before: true,
+							operator: '-',
+							operand: ASTNumberLiteral._({format: 'int', value: 2}),
+						}),
+					}),
+				],
+			);
+		});
+
+		// identifier and number
+		it(`.. with identifier and number literal`, (): void => {
+			testParseAndAnalyze(
+				`foo .. 2;`,
+				[
+					[NT.RangeExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.NumberLiteral, '2'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTRangeExpression._({
+						lower: ASTIdentifier._('foo'),
+						upper: ASTNumberLiteral._({format: 'int', value: 2}),
+					}),
+				],
+			);
+		});
+
+		it(`.. with number literal and identifier`, (): void => {
+			testParseAndAnalyze(
+				`1 .. foo;`,
+				[
+					[NT.RangeExpression, [
+						[NT.NumberLiteral, '1'],
+						[NT.Identifier, 'foo'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTRangeExpression._({
+						lower: ASTNumberLiteral._({format: 'int', value: 1}),
+						upper: ASTIdentifier._('foo'),
+					}),
+				],
+			);
+		});
+
+		// element access and number
+		it(`.. with element access and number literal`, (): void => {
+			expect(parse(`foo['a'] .. 2;`)).toMatchParseTree([
+				[NT.RangeExpression, [
+					[NT.MemberExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'a'],
+						]],
+					]],
+					[NT.NumberLiteral, '2'],
+				]],
+				[NT.SemicolonSeparator],
+			]);
+		});
+
+		it(`.. with number literal and element access`, (): void => {
+			expect(parse(`1 .. foo['a'];'a'`)).toMatchParseTree([
+				[NT.RangeExpression, [
+					[NT.NumberLiteral, '1'],
+					[NT.MemberExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'a'],
+						]],
+					]],
+				]],
+				[NT.SemicolonSeparator],
+				[NT.StringLiteral, 'a'],
+			]);
+		});
+
+		// method call and number
+		it(`.. with method call and number literal`, (): void => {
+			expect(parse(`foo('a') .. 2;`)).toMatchParseTree([
+				[NT.RangeExpression, [
+					[NT.CallExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.ArgumentsList, [
+							[NT.StringLiteral, 'a'],
+						]],
+					]],
+					[NT.NumberLiteral, '2'],
+				]],
+				[NT.SemicolonSeparator],
+			]);
+		});
+
+		it(`.. with number literal and method call`, (): void => {
+			expect(parse(`1 .. foo('a');`)).toMatchParseTree([
+				[NT.RangeExpression, [
+					[NT.NumberLiteral, '1'],
+					[NT.CallExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.ArgumentsList, [
+							[NT.StringLiteral, 'a'],
+						]],
+					]],
+				]],
+				[NT.SemicolonSeparator],
+			]);
+		});
+
+		// element access and method call
+		it(`.. with element access and method call`, (): void => {
+			expect(parse(`foo['a'] .. bar('b');`)).toMatchParseTree([
+				[NT.RangeExpression, [
+					[NT.MemberExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'a'],
+						]],
+					]],
+					[NT.CallExpression, [
+						[NT.Identifier, 'bar'],
+						[NT.ArgumentsList, [
+							[NT.StringLiteral, 'b'],
+						]],
+					]],
+				]],
+				[NT.SemicolonSeparator],
+			]);
+		});
+		it(`.. with method call and element access`, (): void => {
+			expect(parse(`foo('a') .. bar['b'];`)).toMatchParseTree([
+				[NT.RangeExpression, [
+					[NT.CallExpression, [
+						[NT.Identifier, 'foo'],
+						[NT.ArgumentsList, [
+							[NT.StringLiteral, 'a'],
+						]],
+					]],
+					[NT.MemberExpression, [
+						[NT.Identifier, 'bar'],
+						[NT.MembersList, [
+							[NT.StringLiteral, 'b'],
+						]],
+					]],
+				]],
+				[NT.SemicolonSeparator],
+			]);
+		});
+	});
+
 	describe('RepeatStatement', (): void => {
 
 		it('simple repeat statement', () => {
@@ -5371,11 +4333,1226 @@ describe('parser.ts', (): void => {
 				]);
 			});
 
-			describe('ranges', (): void => {
-				doubleExpressionScenariosNotCheckingOperator('..', NT.RangeExpression);
+		});
+	});
+
+	describe('VariableDeclaration', (): void => {
+		it('a let assignment with a bool literal', (): void => {
+			testParseAndAnalyze(
+				'let x = false',
+				[
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'x'],
+						[NT.AssignmentOperator],
+						[NT.BoolLiteral, 'false'],
+					]],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifier: ASTIdentifier._('x'),
+						initialValue: ASTBoolLiteral._(false),
+						inferredType: ASTTypePrimitive._('bool'),
+					}),
+				]
+			)
+
+			testParseAndAnalyze(
+				'let x? = false',
+				[
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'x?'],
+						[NT.AssignmentOperator],
+						[NT.BoolLiteral, 'false'],
+					]],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifier: ASTIdentifier._('x?'),
+						initialValue: ASTBoolLiteral._(false),
+						inferredType: ASTTypePrimitive._('bool'),
+					}),
+				]
+			);
+
+		});
+
+		it('a let assignment with a number literal', (): void => {
+			testParseAndAnalyze(
+				'let x = 1',
+				[
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'x'],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '1'],
+					]],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifier: ASTIdentifier._('x'),
+						initialValue: ASTNumberLiteral._({format: 'int', value: 1}),
+						inferredType: ASTTypePrimitive._('number'),
+					}),
+				]
+			);
+
+			testParseAndAnalyze(
+				'const x = -2,300.006^e-2,000; const y = 5;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'x'],
+						[NT.AssignmentOperator],
+						[NT.BinaryExpression, '^e', [
+							[NT.UnaryExpression, '-', { before: true }, [
+								[NT.NumberLiteral, '2,300.006'],
+							]],
+							[NT.UnaryExpression, '-', { before: true }, [
+								[NT.NumberLiteral, '2,000'],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'y'],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '5'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('x'),
+						initialValue: ASTBinaryExpression._({
+							operator: '^e',
+							left: ASTUnaryExpression._({
+								before: true,
+								operator: '-',
+								operand: ASTNumberLiteral._({format: 'decimal', value: 2300.006}),
+							}),
+							right: ASTUnaryExpression._({
+								before: true,
+								operator: '-',
+								operand: ASTNumberLiteral._({format: 'int', value: 2000}),
+							}),
+						}),
+						inferredType: ASTTypePrimitive._('number'),
+					}),
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('y'),
+						initialValue: ASTNumberLiteral._({format: 'int', value: 5}),
+						inferredType: ASTTypePrimitive._('number'),
+					}),
+				]
+			);
+		});
+
+		it('a let assignment with a string literal', (): void => {
+			testParseAndAnalyze(
+				'let x = "foo"',
+				[
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'x'],
+						[NT.AssignmentOperator],
+						[NT.StringLiteral, 'foo'],
+					]],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifier: ASTIdentifier._('x'),
+						initialValue: ASTStringLiteral._('foo'),
+						inferredType: ASTTypePrimitive._('string'),
+					}),
+				]
+			);
+		});
+
+		it('a let with a specified type', (): void => {
+
+			testParseAndAnalyze(
+				'let x: string;',
+				[
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'x'],
+						[NT.ColonSeparator],
+						[NT.Type, 'string'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifier: ASTIdentifier._('x'),
+						declaredType: ASTTypePrimitive._('string'),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'let x?: bool;',
+				[
+					[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'x?'],
+						[NT.ColonSeparator],
+						[NT.Type, 'bool'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifier: ASTIdentifier._('x?'),
+						declaredType: ASTTypePrimitive._('bool'),
+					}),
+				],
+			);
+		});
+
+		it('a const assignment with a specified type', (): void => {
+			testParseAndAnalyze(
+				'const x: string = "foo"',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'x'],
+						[NT.ColonSeparator],
+						[NT.Type, 'string'],
+						[NT.AssignmentOperator],
+						[NT.StringLiteral, 'foo'],
+					]],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('x'),
+						declaredType: ASTTypePrimitive._('string'),
+						initialValue: ASTStringLiteral._('foo'),
+						inferredType: ASTTypePrimitive._('string'),
+					}),
+				],
+			);
+		});
+
+		it('regex', (): void => {
+			testParseAndAnalyze(
+				'const x = /[a-z]/;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'x'],
+						[NT.AssignmentOperator],
+						[NT.RegularExpression, '/[a-z]/'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('x'),
+						initialValue: ASTRegularExpression._({pattern: '/[a-z]/', flags: []}),
+						inferredType: ASTTypePrimitive._('regex'),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'const x: regex = /[0-9]*/g;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'x'],
+						[NT.ColonSeparator],
+						[NT.Type, 'regex'],
+						[NT.AssignmentOperator],
+						[NT.RegularExpression, '/[0-9]*/g'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('x'),
+						declaredType: ASTTypePrimitive._('regex'),
+						initialValue: ASTRegularExpression._({pattern: '/[0-9]*/', flags: ['g']}),
+						inferredType: ASTTypePrimitive._('regex'),
+					}),
+				],
+			);
+		});
+
+		it('path', (): void => {
+			testParseAndAnalyze(
+				'const dir = @/path/to/dir/;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'dir'],
+						[NT.AssignmentOperator],
+						[NT.Path, '@/path/to/dir/'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('dir'),
+						initialValue: ASTPath._({absolute: true, path: '@/path/to/dir/', isDir: true}),
+						inferredType: ASTTypePrimitive._('path'),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'const dir = ./myDir/;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'dir'],
+						[NT.AssignmentOperator],
+						[NT.Path, './myDir/'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('dir'),
+						initialValue: ASTPath._({absolute: false, path: './myDir/', isDir: true}),
+						inferredType: ASTTypePrimitive._('path'),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'const file: path = @/path/to/file.joe;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'file'],
+						[NT.ColonSeparator],
+						[NT.Type, 'path'],
+						[NT.AssignmentOperator],
+						[NT.Path, '@/path/to/file.joe'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('file'),
+						declaredType: ASTTypePrimitive._('path'),
+						initialValue: ASTPath._({absolute: true, path: '@/path/to/file.joe', isDir: false}),
+						inferredType: ASTTypePrimitive._('path'),
+					}),
+				],
+			);
+		});
+
+		it('assign to another variable', () => {
+			testParseAndAnalyze(
+				'const dir = foo;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'dir'],
+						[NT.AssignmentOperator],
+						[NT.Identifier, 'foo'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('dir'),
+						initialValue: ASTIdentifier._('foo'),
+					}),
+				],
+			);
+		})
+
+		describe('custom type', (): void => {
+
+			it('one word', (): void => {
+				testParseAndAnalyze(
+					'const myClass: MyClass = MyClass.create();',
+					[
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'myClass'],
+							[NT.ColonSeparator],
+							[NT.Identifier, 'MyClass'],
+							[NT.AssignmentOperator],
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'MyClass'],
+									[NT.Identifier, 'create'],
+								]],
+								[NT.ArgumentsList, []],
+							]],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('myClass'),
+							declaredType: ASTIdentifier._('MyClass'),
+							initialValue: ASTCallExpression._({
+								callee: ASTMemberExpression._({
+									object: ASTIdentifier._('MyClass'),
+									property: ASTIdentifier._('create'),
+								}),
+								args: [],
+							}),
+						}),
+					],
+				);
+			});
+
+			it('member expression', (): void => {
+				testParseAndAnalyze(
+					'const myClass: MyPackage.MyClass = MyClass.create();',
+					[
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'myClass'],
+							[NT.ColonSeparator],
+							[NT.MemberExpression, [
+								[NT.Identifier, 'MyPackage'],
+								[NT.Identifier, 'MyClass'],
+							]],
+							[NT.AssignmentOperator],
+							[NT.CallExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'MyClass'],
+									[NT.Identifier, 'create'],
+								]],
+								[NT.ArgumentsList, []],
+							]],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('myClass'),
+							declaredType: ASTMemberExpression._({
+								object: ASTIdentifier._('MyPackage'),
+								property: ASTIdentifier._('MyClass'),
+							}),
+							initialValue: ASTCallExpression._({
+								callee: ASTMemberExpression._({
+									object: ASTIdentifier._('MyClass'),
+									property: ASTIdentifier._('create'),
+								}),
+								args: [],
+							}),
+						}),
+					],
+				);
 			});
 
 		});
+
+		describe('tuples', () => {
+
+			it('tuple', () => {
+				expect(parse(
+					'const foo = <1, "pizza", 3.14>;')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TupleExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.StringLiteral, 'pizza'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3.14'],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('empty tuple', () => {
+				expect(parse(
+					'const foo = <>;')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TupleExpression, []],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('nested tuples', () => {
+				expect(parse(
+					`const foo = <
+						<1, 'pizza', 3.14>,
+						true,
+						@/some/file.joe,
+						1..3,
+						<1, 2, 'fizz', 4, 'buzz'>
+					>;`)).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TupleExpression, [
+							[NT.TupleExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'pizza'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3.14'],
+							]],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.Path, '@/some/file.joe'],
+							[NT.CommaSeparator],
+							[NT.RangeExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.NumberLiteral, '3'],
+							]],
+							[NT.CommaSeparator],
+							[NT.TupleExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '2'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'fizz'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '4'],
+								[NT.CommaSeparator],
+								[NT.StringLiteral, 'buzz'],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('with ternary in item', () => {
+				expect(parse(
+					`<
+						1,
+						someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
+						true
+					>`)).toMatchParseTree(
+					[
+						[NT.TupleExpression, [
+						[NT.NumberLiteral, '1'],
+						[NT.CommaSeparator],
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'someCondition'],
+							]],
+							[NT.TernaryThen, [
+								[NT.StringLiteral, 'burnt-orange'],
+							]],
+							[NT.TernaryElse, [
+								[NT.StringLiteral, ''],
+							]],
+						]],
+						[NT.CommaSeparator],
+						[NT.Comment, '// will always be defined, so the shape is correct'],
+						[NT.BoolLiteral, 'true'],
+					]],
+				]);
+			});
+
+			it('tuple in object', () => {
+				expect(parse(
+					'const foo = {tpl: <1>};')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'tpl'],
+								[NT.TupleExpression, [
+									[NT.NumberLiteral, '1'],
+								]],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			})
+
+		});
+
+		describe('arrays of', (): void => {
+
+			it('bools', (): void => {
+				testParseAndAnalyze(
+					'[false, true, true, false]',
+					[
+						[NT.ArrayExpression, [
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
+						]],
+					],
+					[
+						ASTArrayExpression._({
+							type: ASTTypePrimitive._('bool'),
+							items: [
+								ASTBoolLiteral._(false),
+								ASTBoolLiteral._(true),
+								ASTBoolLiteral._(true),
+								ASTBoolLiteral._(false),
+							],
+						})
+					]
+				);
+			});
+
+			it('numbers', () => {
+				testParseAndAnalyze(
+					'[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]',
+					[
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.UnaryExpression, '-', { before: true }, [
+								[NT.NumberLiteral, '2'],
+							]],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3,456'],
+							[NT.CommaSeparator],
+							[NT.BinaryExpression, '^e', [
+								[NT.NumberLiteral, '3'],
+								[NT.UnaryExpression, '-', { before: true }, [
+									[NT.NumberLiteral, '2'],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3.14'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '1,2,3'], // weird but legal
+						]],
+					],
+					[
+						ASTArrayExpression._({
+							type: ASTTypePrimitive._('number'),
+							items: [
+								ASTNumberLiteral._({ format: 'int', value: 1 }),
+								ASTUnaryExpression._({
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+								}),
+								ASTNumberLiteral._({ format: 'int', value: 3456}),
+								ASTBinaryExpression._({
+									operator: '^e',
+									left: ASTNumberLiteral._({ format: 'int', value: 3 }),
+									right: ASTUnaryExpression._({
+										before: true,
+										operator: '-',
+										operand: ASTNumberLiteral._({ format: 'int', value: 2}),
+									}),
+								}),
+								ASTNumberLiteral._({ format: 'decimal', value: 3.14}),
+								ASTNumberLiteral._({ format: 'int', value: 123}),
+							],
+						}),
+					]
+				);
+			});
+
+			it('paths', (): void => {
+				expect(parse(
+					'[@/file.joe, @/another/file.joe]')).toMatchParseTree(
+					[
+						[NT.ArrayExpression, [
+						[NT.Path, '@/file.joe'],
+						[NT.CommaSeparator],
+						[NT.Path, '@/another/file.joe'],
+					]],
+				]);
+			});
+
+			it('regexes', (): void => {
+				expect(parse(
+					'[/[a-z]/i, /[0-9]/g, /\d/]')).toMatchParseTree(
+					[
+						[NT.ArrayExpression, [
+						[NT.RegularExpression, '/[a-z]/i'],
+						[NT.CommaSeparator],
+						[NT.RegularExpression, '/[0-9]/g'],
+						[NT.CommaSeparator],
+						[NT.RegularExpression, '/\d/'],
+					]],
+				]);
+			});
+
+			it('strings', (): void => {
+				expect(parse(
+					'[\'foo\', "bar"]')).toMatchParseTree(
+					[
+						[NT.ArrayExpression, [
+						[NT.StringLiteral, 'foo'],
+						[NT.CommaSeparator],
+						[NT.StringLiteral, 'bar'],
+					]],
+				]);
+			});
+
+			it('tuples', () => {
+				expect(parse(
+					"const foo: <string, number, bool>[] = [<'foo', 3.14, false>, <'bar', 900, true>];")).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.ColonSeparator],
+						[NT.ArrayType, [
+							[NT.TupleType, [
+								[NT.Type, 'string'],
+								[NT.CommaSeparator],
+								[NT.Type, 'number'],
+								[NT.CommaSeparator],
+								[NT.Type, 'bool'],
+							]],
+						]],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, [
+							[NT.TupleExpression, [
+								[NT.StringLiteral, 'foo'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3.14'],
+								[NT.CommaSeparator],
+								[NT.BoolLiteral, 'false'],
+							]],
+							[NT.CommaSeparator],
+							[NT.TupleExpression, [
+								[NT.StringLiteral, 'bar'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '900'],
+								[NT.CommaSeparator],
+								[NT.BoolLiteral, 'true'],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('pojos', () => {
+				expect(parse(
+					"const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];")).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.ColonSeparator],
+						[NT.ArrayType, [
+							[NT.ObjectType, [
+								[NT.Property, [
+									[NT.Identifier, 'a'],
+									[NT.Type, 'number'],
+								]],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'b'],
+									[NT.Type, 'string'],
+								]],
+							]],
+						]],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, [
+							[NT.ObjectExpression, [
+								[NT.Property, [
+									[NT.Identifier, 'a'],
+									[NT.NumberLiteral, '4'],
+								]],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'b'],
+									[NT.StringLiteral, 'c'],
+								]],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('assignments', () => {
+				testParseAndAnalyze(
+					'const numbers = [1, 2];',
+					[
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'numbers'],
+							[NT.AssignmentOperator],
+							[NT.ArrayExpression, [
+								[NT.NumberLiteral, '1'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '2'],
+							]],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('numbers'),
+							initialValue: ASTArrayExpression._({
+								type: ASTTypePrimitive._('number'),
+								items: [
+									ASTNumberLiteral._({ format: 'int', value: 1}),
+									ASTNumberLiteral._({ format: 'int', value: 2}),
+								],
+							}),
+						}),
+					],
+				);
+
+				expect(parse(
+					'let myArray: bool[] = [];')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'let', [
+						[NT.Identifier, 'myArray'],
+						[NT.ColonSeparator],
+						[NT.ArrayType, [
+							[NT.Type, 'bool'],
+						]],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, []],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+		});
+
+		describe('ternary', () => {
+
+			it('should work in a variable declaration', () => {
+				expect(parse(
+					'const foo = bar ? 1 : 2;')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'bar'],
+							]],
+							[NT.TernaryThen, [
+								[NT.NumberLiteral, '1'],
+							]],
+							[NT.TernaryElse, [
+								[NT.NumberLiteral, '2'],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('should work when nested', () => {
+				expect(parse(
+					'const foo = bar ? (baz ? 3 : 4) : 2;')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'bar'],
+							]],
+							[NT.TernaryThen, [
+								[NT.Parenthesized, [
+									[NT.TernaryExpression, [
+										[NT.TernaryCondition, [
+											[NT.Identifier, 'baz'],
+										]],
+										[NT.TernaryThen, [
+											[NT.NumberLiteral, '3'],
+										]],
+										[NT.TernaryElse, [
+											[NT.NumberLiteral, '4'],
+										]],
+									]],
+								]],
+							]],
+							[NT.TernaryElse, [
+								[NT.NumberLiteral, '2'],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('should work in an array', () => {
+				expect(parse(
+					'[foo ? 1 : 2, 3]')).toMatchParseTree(
+					[
+						[NT.ArrayExpression, [
+						[NT.TernaryExpression, [
+							[NT.TernaryCondition, [
+								[NT.Identifier, 'foo'],
+							]],
+							[NT.TernaryThen, [
+								[NT.NumberLiteral, '1'],
+							]],
+							[NT.TernaryElse, [
+								[NT.NumberLiteral, '2'],
+							]],
+						]],
+						[NT.CommaSeparator],
+						[NT.NumberLiteral, '3'],
+					]],
+				]);
+			});
+
+			it('should work in a return', () => {
+				expect(parse(
+					'f foo -> bool, number {return bar ? true : false, 3;}')).toMatchParseTree(
+					[
+						[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.FunctionReturns, [
+							[NT.Type, 'bool'],
+							[NT.CommaSeparator],
+							[NT.Type, 'number'],
+						]],
+						[NT.BlockStatement, [
+							[NT.ReturnStatement, [
+								[NT.TernaryExpression, [
+									[NT.TernaryCondition, [
+										[NT.Identifier, 'bar'],
+									]],
+									[NT.TernaryThen, [
+										[NT.BoolLiteral, 'true'],
+									]],
+									[NT.TernaryElse, [
+										[NT.BoolLiteral, 'false'],
+									]],
+								]],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3'],
+							]],
+							[NT.SemicolonSeparator],
+						]]
+					]],
+				]);
+			});
+
+		});
+
+		describe('pojos', () => {
+
+			it('pojo', () => {
+				expect(parse(
+					'const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'a'],
+								[NT.NumberLiteral, '1'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'b'],
+								[NT.StringLiteral, 'pizza'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'c'],
+								[NT.NumberLiteral, '3.14'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'd'],
+								[NT.ArrayExpression, [
+									[NT.NumberLiteral, '10'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '11'],
+								]],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('empty pojo', () => {
+				expect(parse(
+					'const foo = {};')).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, []],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('nested pojos', () => {
+				expect(parse(
+					`const foo = {
+						obj: {a: 1, b: 'pizza', pi: {two_digits: 3.14}},
+						bol: true,
+						pth: @/some/file.joe,
+						range: {range: 1..3},
+						tpl: <1, 2, 'fizz', 4, 'buzz'>
+					};`)).toMatchParseTree(
+					[
+						[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'obj'],
+								[NT.ObjectExpression, [
+									[NT.Property, [
+										[NT.Identifier, 'a'],
+										[NT.NumberLiteral, '1'],
+									]],
+									[NT.CommaSeparator],
+									[NT.Property, [
+										[NT.Identifier, 'b'],
+										[NT.StringLiteral, 'pizza'],
+									]],
+									[NT.CommaSeparator],
+									[NT.Property, [
+										[NT.Identifier, 'pi'],
+										[NT.ObjectExpression, [
+											[NT.Property, [
+												[NT.Identifier, 'two_digits'],
+												[NT.NumberLiteral, '3.14'],
+											]],
+										]],
+									]],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'bol'],
+								[NT.BoolLiteral, 'true'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'pth'],
+								[NT.Path, '@/some/file.joe'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'range'],
+								[NT.ObjectExpression, [
+									[NT.Property, [
+										[NT.Identifier, 'range'],
+										[NT.RangeExpression, [
+											[NT.NumberLiteral, '1'],
+											[NT.NumberLiteral, '3'],
+										]],
+									]],
+								]],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'tpl'],
+								[NT.TupleExpression, [
+									[NT.NumberLiteral, '1'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '2'],
+									[NT.CommaSeparator],
+									[NT.StringLiteral, 'fizz'],
+									[NT.CommaSeparator],
+									[NT.NumberLiteral, '4'],
+									[NT.CommaSeparator],
+									[NT.StringLiteral, 'buzz'],
+								]],
+							]],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('with ternary in item', () => {
+				expect(parse(
+					`{
+						a: 1,
+						b: someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
+						c: true
+					}`)).toMatchParseTree(
+					[
+						[NT.ObjectExpression, [
+						[NT.Property, [
+							[NT.Identifier, 'a'],
+							[NT.NumberLiteral, '1'],
+						]],
+						[NT.CommaSeparator],
+						[NT.Property, [
+							[NT.Identifier, 'b'],
+							[NT.TernaryExpression, [
+								[NT.TernaryCondition, [
+									[NT.Identifier, 'someCondition'],
+								]],
+								[NT.TernaryThen, [
+									[NT.StringLiteral, 'burnt-orange'],
+								]],
+								[NT.TernaryElse, [
+									[NT.StringLiteral, ''],
+								]],
+							]],
+						]],
+						[NT.CommaSeparator],
+						[NT.Comment, '// will always be defined, so the shape is correct'],
+						[NT.Property, [
+							[NT.Identifier, 'c'],
+							[NT.BoolLiteral, 'true'],
+						]],
+					]],
+				]);
+			});
+
+			it('with array in item', () => {
+				expect(parse(
+					`{
+						a: [1]
+					}`)).toMatchParseTree(
+					[
+						[NT.ObjectExpression, [
+						[NT.Property, [
+							[NT.Identifier, 'a'],
+							[NT.ArrayExpression, [
+								[NT.NumberLiteral, '1'],
+							]],
+						]],
+					]],
+				]);
+			});
+
+			it('with MemberExpression in item', () => {
+				expect(parse(
+					`{
+						a: [foo[1]]
+					}`)).toMatchParseTree(
+					[
+						[NT.ObjectExpression, [
+						[NT.Property, [
+							[NT.Identifier, 'a'],
+							[NT.ArrayExpression, [
+								[NT.MemberExpression, [
+									[NT.Identifier, 'foo'],
+									[NT.MembersList, [
+										[NT.NumberLiteral, '1'],
+									]],
+								]],
+							]],
+						]],
+					]],
+				]);
+			});
+
+		});
+
+		it('should assign this', () => {
+			testParseAndAnalyze(
+				'const foo = this;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ThisKeyword],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('foo'),
+						initialValue: ASTThisKeyword._(),
+					}),
+				],
+			);
+		});
+
+		it('should assign to a property on this instance', () => {
+			testParseAndAnalyze(
+				'this.foo = 1;',
+				[
+					[NT.AssignmentExpression, [
+						[NT.MemberExpression, [
+							[NT.ThisKeyword],
+							[NT.Identifier, 'foo'],
+						]],
+						[NT.AssignmentOperator],
+						[NT.NumberLiteral, '1'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTAssignmentExpression._({
+						left: ASTMemberExpression._({
+							object: ASTThisKeyword._(),
+							property: ASTIdentifier._('foo'),
+						}),
+						right: ASTNumberLiteral._({format: 'int', value: 1}),
+					}),
+				],
+			);
+		});
+
+		it('should assign a range', () => {
+			testParseAndAnalyze(
+				'const foo = 1..3;',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.RangeExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.NumberLiteral, '3'],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('foo'),
+						initialValue: ASTRangeExpression._({
+							lower: ASTNumberLiteral._({format: 'int', value: 1}),
+							upper: ASTNumberLiteral._({format: 'int', value: 3}),
+						}),
+					}),
+				],
+			);
+		});
+
 	});
 
 	describe('WhenExpression', (): void => {

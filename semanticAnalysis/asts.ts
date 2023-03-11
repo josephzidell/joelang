@@ -644,6 +644,7 @@ export type Expression =
 	ASTNumberLiteral |
 	ASTObjectExpression |
 	ASTPath |
+	ASTRangeExpression |
 	ASTRegularExpression |
 	ASTStringLiteral |
 	ASTTupleExpression |
@@ -653,6 +654,6 @@ export type Expression =
 	/** ASTs that can be assigned to a variable or passed as an argument */
 export type AssignableASTs = Expression | ASTFunctionDeclaration;
 
-export type RangeBound = ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTNumberLiteral; // TODO add array access
+export type RangeBound = ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTNumberLiteral | ASTUnaryExpression<ASTNumberLiteral>; // TODO add array access
 
 export type ASTWhenCaseValue = ASTBoolLiteral | ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTNumberLiteral | ASTPath | ASTRangeExpression | ASTRegularExpression | ASTRestElement | ASTStringLiteral;
