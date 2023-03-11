@@ -13,6 +13,7 @@ import {
 	ASTIdentifier,
 	ASTIfStatement,
 	ASTInterfaceDeclaration,
+	ASTJoeDoc,
 	ASTMemberExpression,
 	ASTModifier,
 	ASTNumberLiteral,
@@ -4041,117 +4042,203 @@ describe('parser.ts', (): void => {
 
 		describe('for a class', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/** foo */
-					class Foo {}`)).toMatchParseTree(
+					class Foo {}`,
 					[
 						[NT.ClassDeclaration, [
-						[NT.JoeDoc, '/** foo */'],
-						[NT.Identifier, 'Foo'],
-						[NT.BlockStatement, []],
-					]],
-				]);
+							[NT.JoeDoc, '/** foo */'],
+							[NT.Identifier, 'Foo'],
+							[NT.BlockStatement, []],
+						]],
+					],
+					[
+						ASTClassDeclaration._({
+							joeDoc: ASTJoeDoc._('/** foo */'),
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/* foo */
-					class Foo {}`)).toMatchParseTree(
+					class Foo {}`,
 					[
 						[NT.Comment, '/* foo */'],
-					[NT.ClassDeclaration, [
-						[NT.Identifier, 'Foo'],
-						[NT.BlockStatement, []],
-					]],
-				]);
+						[NT.ClassDeclaration, [
+							[NT.Identifier, 'Foo'],
+							[NT.BlockStatement, []],
+						]],
+					],
+					[
+						ASTClassDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
 			});
 		});
 
 		describe('for a function', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/** foo */
-					f foo {}`)).toMatchParseTree(
+					f foo {}`,
 					[
 						[NT.FunctionDeclaration, [
-						[NT.JoeDoc, '/** foo */'],
-						[NT.Identifier, 'foo'],
-						[NT.BlockStatement, []],
-					]],
-				]);
+							[NT.JoeDoc, '/** foo */'],
+							[NT.Identifier, 'foo'],
+							[NT.BlockStatement, []],
+						]],
+					],
+					[
+						ASTFunctionDeclaration._({
+							joeDoc: ASTJoeDoc._('/** foo */'),
+							modifiers: [],
+							name: ASTIdentifier._('foo'),
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/* foo */
-					f foo {}`)).toMatchParseTree(
+					f foo {}`,
 					[
 						[NT.Comment, '/* foo */'],
-					[NT.FunctionDeclaration, [
-						[NT.Identifier, 'foo'],
-						[NT.BlockStatement, []],
-					]],
-				]);
+						[NT.FunctionDeclaration, [
+							[NT.Identifier, 'foo'],
+							[NT.BlockStatement, []],
+						]],
+					],
+					[
+						ASTFunctionDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('foo'),
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
 			});
 		});
 
 		describe('for an interface', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/** foo */
-					interface Foo {}`)).toMatchParseTree(
+					interface Foo {}`,
 					[
 						[NT.InterfaceDeclaration, [
-						[NT.JoeDoc, '/** foo */'],
-						[NT.Identifier, 'Foo'],
-						[NT.BlockStatement, []],
-					]],
-				]);
+							[NT.JoeDoc, '/** foo */'],
+							[NT.Identifier, 'Foo'],
+							[NT.BlockStatement, []],
+						]],
+					],
+					[
+						ASTInterfaceDeclaration._({
+							joeDoc: ASTJoeDoc._('/** foo */'),
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [],
+							extends: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/* foo */
-					interface Foo {}`)).toMatchParseTree(
+					interface Foo {}`,
 					[
 						[NT.Comment, '/* foo */'],
-					[NT.InterfaceDeclaration, [
-						[NT.Identifier, 'Foo'],
-						[NT.BlockStatement, []],
-					]],
-				]);
+						[NT.InterfaceDeclaration, [
+							[NT.Identifier, 'Foo'],
+							[NT.BlockStatement, []],
+						]],
+					],
+					[
+						ASTInterfaceDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [],
+							extends: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
 			});
 		});
 
 		describe('for a variable', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/** foo */
-					const foo = 1;`)).toMatchParseTree(
+					const foo = 1;`,
 					[
 						[NT.VariableDeclaration, 'const', [
-						[NT.JoeDoc, '/** foo */'],
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.NumberLiteral, '1'],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+							[NT.JoeDoc, '/** foo */'],
+							[NT.Identifier, 'foo'],
+							[NT.AssignmentOperator],
+							[NT.NumberLiteral, '1'],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							joeDoc: ASTJoeDoc._('/** foo */'),
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							initialValue: ASTNumberLiteral._({format: 'int', value: 1}),
+						}),
+					],
+				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`/* foo */
-					const foo = 1;`)).toMatchParseTree(
+					const foo = 1;`,
 					[
 						[NT.Comment, '/* foo */'],
-					[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.NumberLiteral, '1'],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+						[NT.VariableDeclaration, 'const', [
+							[NT.Identifier, 'foo'],
+							[NT.AssignmentOperator],
+							[NT.NumberLiteral, '1'],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							initialValue: ASTNumberLiteral._({format: 'int', value: 1}),
+						}),
+					],
+				);
 			});
 		});
 

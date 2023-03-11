@@ -4,6 +4,10 @@
 
 import { PrimitiveType } from "../lexer/types";
 
+export interface ASTThatHasJoeDoc {
+	joeDoc: ASTJoeDoc | undefined;
+}
+
 export interface ASTThatHasModifiers {
 	modifiers: ASTModifier[];
 }
@@ -115,7 +119,8 @@ export class ASTCallExpression implements AST {
 	}
 }
 
-export class ASTClassDeclaration implements AST, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+export class ASTClassDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
 	typeParams: ASTType[] = [];
@@ -124,7 +129,8 @@ export class ASTClassDeclaration implements AST, ASTThatHasModifiers, ASTThatHas
 	body!: ASTBlockStatement;
 
 	// factory function
-	static _({ modifiers, name, typeParams, extends: _extends, implements: _implements, body }: {
+	static _({ joeDoc, modifiers, name, typeParams, extends: _extends, implements: _implements, body }: {
+		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
 		typeParams: ASTType[];
@@ -133,6 +139,11 @@ export class ASTClassDeclaration implements AST, ASTThatHasModifiers, ASTThatHas
 		body: ASTBlockStatement;
 	}): ASTClassDeclaration {
 		const ast = new ASTClassDeclaration();
+
+		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+			ast.joeDoc = joeDoc;
+		}
+
 		ast.modifiers = modifiers;
 		ast.name = name;
 		ast.typeParams = typeParams;
@@ -143,7 +154,8 @@ export class ASTClassDeclaration implements AST, ASTThatHasModifiers, ASTThatHas
 	}
 }
 
-export class ASTFunctionDeclaration implements AST, ASTThatHasModifiers, ASTThatHasTypeParams {
+export class ASTFunctionDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasTypeParams {
+	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name: ASTIdentifier | undefined = undefined;
 	typeParams: ASTType[] = [];
@@ -152,7 +164,8 @@ export class ASTFunctionDeclaration implements AST, ASTThatHasModifiers, ASTThat
 	body: ASTBlockStatement | undefined = undefined;
 
 	// factory function
-	static _({ modifiers, name, typeParams, params, returnTypes, body }: {
+	static _({ joeDoc, modifiers, name, typeParams, params, returnTypes, body }: {
+		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier | undefined;
 		typeParams: ASTType[];
@@ -161,6 +174,11 @@ export class ASTFunctionDeclaration implements AST, ASTThatHasModifiers, ASTThat
 		body: ASTBlockStatement | undefined;
 	}): ASTFunctionDeclaration {
 		const ast = new ASTFunctionDeclaration();
+
+		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+			ast.joeDoc = joeDoc;
+		}
+
 		ast.modifiers = modifiers;
 		ast.name = name;
 		ast.typeParams = typeParams;
@@ -224,7 +242,8 @@ export class ASTIfStatement implements AST {
 	}
 }
 
-export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+export class ASTInterfaceDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
 	typeParams: ASTType[] = [];
@@ -232,7 +251,8 @@ export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTTha
 	body!: ASTBlockStatement;
 
 	// factory function
-	static _({ modifiers, name, typeParams, extends: _extends, body }: {
+	static _({ joeDoc, modifiers, name, typeParams, extends: _extends, body }: {
+		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
 		typeParams: ASTType[];
@@ -240,6 +260,11 @@ export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTTha
 		body: ASTBlockStatement;
 	}): ASTInterfaceDeclaration {
 		const ast = new ASTInterfaceDeclaration();
+
+		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+			ast.joeDoc = joeDoc;
+		}
+
 		ast.modifiers = modifiers;
 		ast.name = name;
 		ast.typeParams = typeParams;
@@ -249,10 +274,14 @@ export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTTha
 	}
 }
 
-export class ASTThisKeyword implements AST {
+export class ASTJoeDoc implements AST {
+	content?: string = undefined; // TODO parse into parts
+
 	// factory function
-	static _(): ASTThisKeyword {
-		return new ASTThisKeyword();
+	static _(content?: string): ASTJoeDoc {
+		const ast = new ASTJoeDoc();
+		ast.content = content;
+		return ast;
 	}
 }
 
@@ -384,7 +413,20 @@ export class ASTPrintStatement implements AST {
 }
 
 /** It's just a kind of BlockStatement */
-export class ASTProgram extends ASTBlockStatement {}
+export class ASTProgram implements AST {
+	declarations: AST[] = [];
+
+	// factory function
+	static _({ declarations }: {
+		declarations: AST[];
+	}): ASTProgram {
+		const ast = new ASTProgram();
+
+		ast.declarations = declarations;
+
+		return ast;
+	}
+}
 
 export class ASTRangeExpression implements AST {
 	lower!: RangeBound;
@@ -441,6 +483,13 @@ export class ASTStringLiteral implements AST {
 		const ast = new ASTStringLiteral();
 		ast.value = value;
 		return ast;
+	}
+}
+
+export class ASTThisKeyword implements AST {
+	// factory function
+	static _(): ASTThisKeyword {
+		return new ASTThisKeyword();
 	}
 }
 
@@ -502,7 +551,8 @@ export class ASTUnaryExpression<T> implements AST {
 	}
 }
 
-export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
+export class ASTVariableDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers {
+	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	mutable!: boolean;
 	identifier!: ASTIdentifier;
@@ -516,7 +566,8 @@ export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
 	initialValue?: AssignableASTs;
 
 	// factory function
-	static _({ modifiers, mutable, identifier, declaredType, inferredType, initialValue }: {
+	static _({ joeDoc, modifiers, mutable, identifier, declaredType, inferredType, initialValue }: {
+		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		mutable: boolean;
 		identifier: ASTIdentifier;
@@ -525,6 +576,11 @@ export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
 		initialValue?: AssignableASTs;
 	}): ASTVariableDeclaration {
 		const ast = new ASTVariableDeclaration();
+
+		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+			ast.joeDoc = joeDoc;
+		}
+
 		ast.modifiers = modifiers;
 		ast.mutable = mutable;
 		ast.identifier = identifier;

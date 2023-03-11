@@ -30,7 +30,7 @@ export const analyze = (code: string, isAnInlineAnalysis: boolean): Result<ASTPr
 // function that takes code, a simplified parse tree, and an AST
 // and compares the parsed value of the code to the simplified parse tree
 // and the analyzed value of the code to the AST
-export function testParseAndAnalyze (code: string, simplifiedParseTree: SParseTree, ast: Get<ASTProgram, 'expressions'>) {
+export function testParseAndAnalyze (code: string, simplifiedParseTree: SParseTree, ast: Get<ASTProgram, 'declarations'>) {
 	expect(parse(code)).toMatchParseTree(simplifiedParseTree);
 	expect(analyze(code, true)).toMatchAST(ast);
 }

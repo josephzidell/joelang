@@ -127,22 +127,22 @@ expect.extend({
 // Semantic Analyzer Stuff
 ////////////////////////////////////////////////////////////
 
-export function matchAST (actualASTResult: Result<ASTProgram>, expectedASTProgramExpressions: Get<ASTProgram, 'expressions'>): CustomMatcherResult {
+export function matchAST (actualASTResult: Result<ASTProgram>, expectedASTProgramDeclarations: Get<ASTProgram, 'declarations'>): CustomMatcherResult {
 	switch (actualASTResult.outcome) {
 		case 'ok':
-			const actualAST = actualASTResult.value.expressions;
+			const actualAST = actualASTResult.value.declarations;
 
 			// the lengths should be equal
-			if (actualAST.length !== expectedASTProgramExpressions.length) {
-				return { message: () => `expected ${actualAST.length} AST nodes, ${expectedASTProgramExpressions.length} found in ${actualAST}`, pass: false };
+			if (actualAST.length !== expectedASTProgramDeclarations.length) {
+				return { message: () => `expected ${actualAST.length} AST nodes, ${expectedASTProgramDeclarations.length} found in ${actualAST}`, pass: false };
 			}
 
 			try {
-				expect(actualAST).toMatchObject(expectedASTProgramExpressions);
+				expect(actualAST).toMatchObject(expectedASTProgramDeclarations);
 
 				return {pass: true, message: () => 'they match'};
 			} catch {
-				const diff = diffObjects(expectedASTProgramExpressions, actualAST);
+				const diff = diffObjects(expectedASTProgramDeclarations, actualAST);
 
 				return {pass: false, message: () => `the ASTs do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`};
 			}

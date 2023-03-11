@@ -14,7 +14,7 @@ import {
 	validChildrenInWhenCaseValues
 } from "../parser/types";
 import ErrorContext from "../shared/errorContext";
-import { has, hasNot } from "../shared/maybe";
+import { has, hasNot, Maybe } from "../shared/maybe";
 import { error, ok, Result, ResultAndAMaybe } from "../shared/result";
 import {
 	AssignableASTs,
@@ -32,6 +32,7 @@ import {
 	ASTIdentifier,
 	ASTIfStatement,
 	ASTInterfaceDeclaration,
+	ASTJoeDoc,
 	ASTMemberExpression,
 	ASTModifier,
 	ASTNumberLiteral,
@@ -45,6 +46,7 @@ import {
 	ASTRestElement,
 	ASTReturnStatement,
 	ASTStringLiteral,
+	ASTThatHasJoeDoc,
 	ASTThatHasModifiers,
 	ASTThatHasRequiredBody,
 	ASTThatHasTypeParams,
@@ -61,8 +63,8 @@ import {
 	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	ASTWhenCase,
-	ASTWhenExpression,
 	ASTWhenCaseValue,
+	ASTWhenExpression,
 	Expression,
 	RangeBound,
 	Skip
@@ -237,6 +239,21 @@ export default class SemanticAnalyzer {
 		}
 
 		return ok(extensions);
+	}
+
+	private getChildHandlerForJoeDoc(ast: ASTThatHasJoeDoc): childNodeHandler {
+		return {
+			type: NT.JoeDoc,
+			required: false,
+			callback: (child) => {
+				const maybeJoeDoc = this.visitJoeDoc(child);
+				if (maybeJoeDoc.has) {
+					ast.joeDoc = maybeJoeDoc.value;
+				}
+
+				return ok(undefined);
+			},
+		};
 	}
 
 	private getChildHandlerForModifiers(ast: ASTThatHasModifiers): childNodeHandler {
@@ -826,10 +843,13 @@ export default class SemanticAnalyzer {
 		const ast = new ASTClassDeclaration();
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the modifiers
+			// the joeDoc
+			this.getChildHandlerForJoeDoc(ast),
+
+			// the modifiers
 			this.getChildHandlerForModifiers(ast),
 
-			// second child: the name
+			// the name
 			{
 				type: NT.Identifier,
 				required: true,
@@ -844,10 +864,10 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
-			// third child: type parameters
+			// type parameters
 			this.getChildHandlerForTypeParams(ast),
 
-			// fourth child: the extends list
+			// the extends list
 			{
 				type: NT.ClassExtensionsList,
 				required: false,
@@ -860,7 +880,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// fifth child: the implements list
+			// the implements list
 			{
 				type: NT.ClassImplementsList,
 				required: false,
@@ -873,7 +893,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// sixth child: the body
+			// the body
 			this.getChildHandlerForRequiredBody(ast),
 		]);
 		switch (handlingResult.outcome) {
@@ -966,10 +986,13 @@ export default class SemanticAnalyzer {
 		const ast = new ASTFunctionDeclaration();
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the modifiers
+			// the joeDoc
+			this.getChildHandlerForJoeDoc(ast),
+
+			// the modifiers
 			this.getChildHandlerForModifiers(ast),
 
-			// second child: the name
+			// the identifier
 			{
 				type: NT.Identifier,
 				required: false,
@@ -982,10 +1005,10 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// third child: type parameters
+			// the type parameters
 			this.getChildHandlerForTypeParams(ast),
 
-			// fourth child: the parameters
+			// the parameters
 			{
 				type: NT.ParametersList,
 				required: false,
@@ -998,7 +1021,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// fifth child: the return types
+			// the return types
 			{
 				type: NT.FunctionReturns,
 				required: false,
@@ -1011,7 +1034,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// sixth child: the body
+			// the body
 			{
 				type: NT.BlockStatement,
 				required: false,
@@ -1179,10 +1202,13 @@ export default class SemanticAnalyzer {
 		const ast = new ASTInterfaceDeclaration();
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the modifiers
+			// the joeDoc
+			this.getChildHandlerForJoeDoc(ast),
+
+			// the modifiers
 			this.getChildHandlerForModifiers(ast),
 
-			// second child: the name
+			// the name
 			{
 				type: NT.Identifier,
 				required: true,
@@ -1197,10 +1223,10 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
-			// third child: type parameters
+			// the type parameters
 			this.getChildHandlerForTypeParams(ast),
 
-			// fourth child: the extends list
+			// the extends list
 			{
 				type: NT.InterfaceExtensionsList,
 				required: false,
@@ -1213,7 +1239,7 @@ export default class SemanticAnalyzer {
 				},
 			},
 
-			// fifth child: the body
+			// the body
 			this.getChildHandlerForRequiredBody(ast),
 		]);
 		switch (handlingResult.outcome) {
@@ -1228,6 +1254,14 @@ export default class SemanticAnalyzer {
 
 	visitInterfaceExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
 		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.InterfaceExtension);
+	}
+
+	visitJoeDoc(node: Node): Maybe<ASTJoeDoc> {
+		if (node.type === NT.JoeDoc && node.value) {
+			return has(ASTJoeDoc._(node.value));
+		}
+
+		return hasNot();
 	}
 
 	visitMemberExpression(node: Node): Result<ASTMemberExpression> {
@@ -1256,7 +1290,7 @@ export default class SemanticAnalyzer {
 			}
 		}
 
-		// next grammatical requirement: child (required)
+		// child (required)
 		{
 			const child = nodesChildren.shift();
 			if (!child?.type || !([NT.Identifier, NT.InstantiationExpression] as NT[]).includes(child.type)) {
@@ -1614,16 +1648,19 @@ export default class SemanticAnalyzer {
 
 		const ast = new ASTProgram();
 
-		// next, get the expressions from the children
-		const expressionsResult = this.convertNodesChildrenOfSameType<AST>(
+		// the imports
+		// skip for now
+
+		// the declarations
+		const declarationsResult = this.convertNodesChildrenOfSameType<AST>(
 			node,
 			validChildren,
 			AnalysisErrorCode.ExtraNodesFound,
 			(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
 		);
-		switch (expressionsResult.outcome) {
-			case 'ok': ast.expressions = expressionsResult.value; break;
-			case 'error': return expressionsResult;
+		switch (declarationsResult.outcome) {
+			case 'ok': ast.declarations = declarationsResult.value; break;
+			case 'error': return declarationsResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2079,10 +2116,13 @@ export default class SemanticAnalyzer {
 
 		// handle the child nodes of different types
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the modifiers
+			// the joeDoc
+			this.getChildHandlerForJoeDoc(ast),
+
+			// the modifiers
 			this.getChildHandlerForModifiers(ast),
 
-			// next grammatical requirement: identifier (required)
+			// the identifier (required)
 			{
 				type: NT.Identifier,
 				required: true,
@@ -2106,7 +2146,7 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
-			// next grammatical requirement: type annotation (optional)
+			// the colon (optional)
 			{
 				type: NT.ColonSeparator,
 				required: false,
@@ -2115,7 +2155,7 @@ export default class SemanticAnalyzer {
 				callback: skipThisChild,
 			},
 
-			// next grammatical requirement: type annotation (requied if there was a colon separator)
+			// the type annotation (requied if there was a colon separator)
 			{
 				type: AssignableTypes,
 				required: (child, childIndex, allChildren) => {
