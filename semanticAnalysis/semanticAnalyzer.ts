@@ -1604,7 +1604,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitProgram(node: Node): Result<ASTProgram> {
-		let validChildren = [NT.ClassDeclaration, NT.FunctionDeclaration, NT.ImportDeclaration, NT.InterfaceDeclaration, NT.SemicolonSeparator, NT.VariableDeclaration];
+		let validChildren = [NT.ClassDeclaration, NT.Comment, NT.FunctionDeclaration, NT.ImportDeclaration, NT.InterfaceDeclaration, NT.SemicolonSeparator, NT.VariableDeclaration];
 
 		// if this is an inline analysis, allow all ASTs in the program, to avoid having
 		// to wrap code in a function, class, or variable declaration just to analyze it

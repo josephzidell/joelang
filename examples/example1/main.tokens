@@ -490,106 +490,138 @@
 	{
 		"type": "comment",
 		"start": 401,
-		"end": 441,
-		"value": "/** method with no args and no return */",
+		"end": 427,
+		"value": "/** method with no args */",
 		"line": 17,
 		"col": 2
 	},
 	{
 		"type": "keyword",
-		"start": 443,
-		"end": 444,
+		"start": 429,
+		"end": 430,
 		"value": "f",
 		"line": 18,
 		"col": 2
 	},
 	{
 		"type": "identifier",
-		"start": 445,
-		"end": 448,
+		"start": 431,
+		"end": 434,
 		"value": "foo",
 		"line": 18,
 		"col": 4
 	},
 	{
 		"type": "right_arrow",
-		"start": 449,
-		"end": 451,
+		"start": 435,
+		"end": 437,
 		"value": "->",
 		"line": 18,
 		"col": 8
 	},
 	{
 		"type": "type",
-		"start": 452,
-		"end": 458,
+		"start": 438,
+		"end": 444,
 		"value": "number",
 		"line": 18,
 		"col": 11
 	},
 	{
 		"type": "brace_open",
-		"start": 459,
-		"end": 460,
+		"start": 445,
+		"end": 446,
 		"value": "{",
 		"line": 18,
 		"col": 18
 	},
 	{
 		"type": "keyword",
-		"start": 463,
-		"end": 468,
+		"start": 449,
+		"end": 454,
 		"value": "const",
 		"line": 19,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 469,
-		"end": 473,
+		"start": 455,
+		"end": 459,
 		"value": "size",
 		"line": 19,
 		"col": 9
 	},
 	{
 		"type": "assign",
-		"start": 474,
-		"end": 475,
+		"start": 460,
+		"end": 461,
 		"value": "=",
 		"line": 19,
 		"col": 14
 	},
 	{
 		"type": "keyword",
-		"start": 476,
-		"end": 480,
+		"start": 462,
+		"end": 466,
 		"value": "when",
 		"line": 19,
 		"col": 16
 	},
 	{
 		"type": "identifier",
-		"start": 481,
-		"end": 491,
+		"start": 467,
+		"end": 477,
 		"value": "someNumber",
 		"line": 19,
 		"col": 21
 	},
 	{
 		"type": "brace_open",
-		"start": 492,
-		"end": 493,
+		"start": 478,
+		"end": 479,
 		"value": "{",
 		"line": 19,
 		"col": 32
 	},
 	{
 		"type": "number",
-		"start": 497,
-		"end": 498,
+		"start": 483,
+		"end": 484,
 		"value": "1",
 		"line": 20,
 		"col": 4
+	},
+	{
+		"type": "comma",
+		"start": 484,
+		"end": 485,
+		"value": ",",
+		"line": 20,
+		"col": 5
+	},
+	{
+		"type": "number",
+		"start": 486,
+		"end": 487,
+		"value": "2",
+		"line": 20,
+		"col": 7
+	},
+	{
+		"type": "right_arrow",
+		"start": 488,
+		"end": 490,
+		"value": "->",
+		"line": 20,
+		"col": 9
+	},
+	{
+		"type": "string",
+		"start": 491,
+		"end": 498,
+		"value": "small",
+		"line": 20,
+		"col": 12
 	},
 	{
 		"type": "comma",
@@ -597,927 +629,927 @@
 		"end": 499,
 		"value": ",",
 		"line": 20,
-		"col": 5
-	},
-	{
-		"type": "number",
-		"start": 500,
-		"end": 501,
-		"value": "2",
-		"line": 20,
-		"col": 7
-	},
-	{
-		"type": "right_arrow",
-		"start": 502,
-		"end": 504,
-		"value": "->",
-		"line": 20,
-		"col": 9
-	},
-	{
-		"type": "string",
-		"start": 505,
-		"end": 512,
-		"value": "small",
-		"line": 20,
-		"col": 12
-	},
-	{
-		"type": "comma",
-		"start": 512,
-		"end": 513,
-		"value": ",",
-		"line": 20,
 		"col": 19
 	},
 	{
 		"type": "number",
-		"start": 517,
-		"end": 518,
+		"start": 503,
+		"end": 504,
 		"value": "3",
 		"line": 21,
 		"col": 4
 	},
 	{
 		"type": "dotdot",
-		"start": 518,
-		"end": 520,
+		"start": 504,
+		"end": 506,
 		"value": "..",
 		"line": 21,
 		"col": 5
 	},
 	{
 		"type": "number",
-		"start": 520,
-		"end": 522,
+		"start": 506,
+		"end": 508,
 		"value": "10",
 		"line": 21,
 		"col": 7
 	},
 	{
 		"type": "right_arrow",
-		"start": 523,
-		"end": 525,
+		"start": 509,
+		"end": 511,
 		"value": "->",
 		"line": 21,
 		"col": 10
 	},
 	{
 		"type": "string",
-		"start": 526,
-		"end": 534,
+		"start": 512,
+		"end": 520,
 		"value": "medium",
 		"line": 21,
 		"col": 13
 	},
 	{
 		"type": "comma",
-		"start": 534,
-		"end": 535,
+		"start": 520,
+		"end": 521,
 		"value": ",",
 		"line": 21,
 		"col": 21
 	},
 	{
 		"type": "number",
-		"start": 539,
-		"end": 541,
+		"start": 525,
+		"end": 527,
 		"value": "11",
 		"line": 22,
 		"col": 4
 	},
 	{
 		"type": "right_arrow",
-		"start": 542,
-		"end": 544,
+		"start": 528,
+		"end": 530,
 		"value": "->",
 		"line": 22,
 		"col": 7
 	},
 	{
 		"type": "string",
-		"start": 545,
-		"end": 552,
+		"start": 531,
+		"end": 538,
 		"value": "large",
 		"line": 22,
 		"col": 10
 	},
 	{
 		"type": "comma",
-		"start": 552,
-		"end": 553,
+		"start": 538,
+		"end": 539,
 		"value": ",",
 		"line": 22,
 		"col": 17
 	},
 	{
 		"type": "dotdotdot",
-		"start": 557,
-		"end": 560,
+		"start": 543,
+		"end": 546,
 		"value": "...",
 		"line": 23,
 		"col": 4
 	},
 	{
 		"type": "right_arrow",
-		"start": 561,
-		"end": 563,
+		"start": 547,
+		"end": 549,
 		"value": "->",
 		"line": 23,
 		"col": 8
 	},
 	{
 		"type": "string",
-		"start": 564,
-		"end": 580,
+		"start": 550,
+		"end": 566,
 		"value": "off the charts",
 		"line": 23,
 		"col": 11
 	},
 	{
 		"type": "comma",
-		"start": 580,
-		"end": 581,
+		"start": 566,
+		"end": 567,
 		"value": ",",
 		"line": 23,
 		"col": 27
 	},
 	{
 		"type": "brace_close",
-		"start": 584,
-		"end": 585,
+		"start": 570,
+		"end": 571,
 		"value": "}",
 		"line": 24,
 		"col": 3
 	},
 	{
 		"type": "semicolon",
-		"start": 585,
-		"end": 586,
+		"start": 571,
+		"end": 572,
 		"value": ";",
 		"line": 24,
 		"col": 4
 	},
 	{
 		"type": "keyword",
-		"start": 590,
-		"end": 593,
+		"start": 576,
+		"end": 579,
 		"value": "let",
 		"line": 26,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 594,
-		"end": 601,
+		"start": 580,
+		"end": 587,
 		"value": "myArray",
 		"line": 26,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 602,
-		"end": 603,
+		"start": 588,
+		"end": 589,
 		"value": "=",
 		"line": 26,
 		"col": 15
 	},
 	{
 		"type": "bracket_open",
-		"start": 604,
-		"end": 605,
+		"start": 590,
+		"end": 591,
 		"value": "[",
 		"line": 26,
 		"col": 17
 	},
 	{
 		"type": "number",
-		"start": 609,
-		"end": 610,
+		"start": 595,
+		"end": 596,
 		"value": "1",
 		"line": 27,
 		"col": 4
 	},
 	{
 		"type": "comma",
-		"start": 610,
-		"end": 611,
+		"start": 596,
+		"end": 597,
 		"value": ",",
 		"line": 27,
 		"col": 5
 	},
 	{
 		"type": "number",
-		"start": 615,
-		"end": 617,
+		"start": 601,
+		"end": 603,
 		"value": "10",
 		"line": 28,
 		"col": 4
 	},
 	{
 		"type": "keyword",
-		"start": 618,
-		"end": 620,
+		"start": 604,
+		"end": 606,
 		"value": "if",
 		"line": 28,
 		"col": 7
 	},
 	{
-		"type": "keyword",
-		"start": 621,
-		"end": 625,
+		"type": "this",
+		"start": 607,
+		"end": 611,
 		"value": "this",
 		"line": 28,
 		"col": 10
 	},
 	{
 		"type": "dot",
-		"start": 625,
-		"end": 626,
+		"start": 611,
+		"end": 612,
 		"value": ".",
 		"line": 28,
 		"col": 14
 	},
 	{
 		"type": "identifier",
-		"start": 626,
-		"end": 633,
+		"start": 612,
+		"end": 619,
 		"value": "isDone?",
 		"line": 28,
 		"col": 15
 	},
 	{
 		"type": "comma",
-		"start": 633,
-		"end": 634,
+		"start": 619,
+		"end": 620,
 		"value": ",",
 		"line": 28,
 		"col": 22
 	},
 	{
 		"type": "comment",
-		"start": 635,
-		"end": 676,
+		"start": 621,
+		"end": 662,
 		"value": "// if false, element will not be in array",
 		"line": 28,
 		"col": 24
 	},
 	{
 		"type": "number",
-		"start": 680,
-		"end": 681,
+		"start": 666,
+		"end": 667,
 		"value": "3",
 		"line": 29,
 		"col": 4
 	},
 	{
 		"type": "bracket_close",
-		"start": 684,
-		"end": 685,
+		"start": 670,
+		"end": 671,
 		"value": "]",
 		"line": 30,
 		"col": 3
 	},
 	{
 		"type": "semicolon",
-		"start": 685,
-		"end": 686,
+		"start": 671,
+		"end": 672,
 		"value": ";",
 		"line": 30,
 		"col": 4
 	},
 	{
 		"type": "keyword",
-		"start": 690,
-		"end": 693,
+		"start": 676,
+		"end": 679,
 		"value": "let",
 		"line": 32,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 694,
-		"end": 699,
+		"start": 680,
+		"end": 685,
 		"value": "count",
 		"line": 32,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 700,
-		"end": 701,
+		"start": 686,
+		"end": 687,
 		"value": "=",
 		"line": 32,
 		"col": 13
 	},
 	{
 		"type": "number",
-		"start": 702,
-		"end": 703,
+		"start": 688,
+		"end": 689,
 		"value": "1",
 		"line": 32,
 		"col": 15
 	},
 	{
 		"type": "dotdot",
-		"start": 703,
-		"end": 705,
+		"start": 689,
+		"end": 691,
 		"value": "..",
 		"line": 32,
 		"col": 16
 	},
 	{
 		"type": "identifier",
-		"start": 705,
-		"end": 712,
+		"start": 691,
+		"end": 698,
 		"value": "myArray",
 		"line": 32,
 		"col": 18
 	},
 	{
 		"type": "bracket_open",
-		"start": 712,
-		"end": 713,
+		"start": 698,
+		"end": 699,
 		"value": "[",
 		"line": 32,
 		"col": 25
 	},
 	{
 		"type": "number",
-		"start": 713,
-		"end": 714,
+		"start": 699,
+		"end": 700,
 		"value": "2",
 		"line": 32,
 		"col": 26
 	},
 	{
 		"type": "bracket_close",
-		"start": 714,
-		"end": 715,
+		"start": 700,
+		"end": 701,
 		"value": "]",
 		"line": 32,
 		"col": 27
 	},
 	{
 		"type": "semicolon",
-		"start": 715,
-		"end": 716,
+		"start": 701,
+		"end": 702,
 		"value": ";",
 		"line": 32,
 		"col": 28
 	},
 	{
 		"type": "comment",
-		"start": 717,
-		"end": 739,
+		"start": 703,
+		"end": 725,
 		"value": "// new array [1, 2, 3]",
 		"line": 32,
 		"col": 30
 	},
 	{
 		"type": "keyword",
-		"start": 742,
-		"end": 745,
+		"start": 728,
+		"end": 731,
 		"value": "let",
 		"line": 33,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 746,
-		"end": 755,
+		"start": 732,
+		"end": 741,
 		"value": "countDown",
 		"line": 33,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 756,
-		"end": 757,
+		"start": 742,
+		"end": 743,
 		"value": "=",
 		"line": 33,
 		"col": 17
 	},
 	{
 		"type": "identifier",
-		"start": 758,
-		"end": 765,
+		"start": 744,
+		"end": 751,
 		"value": "myArray",
 		"line": 33,
 		"col": 19
 	},
 	{
 		"type": "bracket_open",
-		"start": 765,
-		"end": 766,
+		"start": 751,
+		"end": 752,
 		"value": "[",
 		"line": 33,
 		"col": 26
 	},
 	{
 		"type": "number",
-		"start": 766,
-		"end": 767,
+		"start": 752,
+		"end": 753,
 		"value": "1",
 		"line": 33,
 		"col": 27
 	},
 	{
 		"type": "bracket_close",
-		"start": 767,
-		"end": 768,
+		"start": 753,
+		"end": 754,
 		"value": "]",
 		"line": 33,
 		"col": 28
 	},
 	{
 		"type": "dotdot",
-		"start": 768,
-		"end": 770,
+		"start": 754,
+		"end": 756,
 		"value": "..",
 		"line": 33,
 		"col": 29
 	},
 	{
 		"type": "number",
-		"start": 770,
-		"end": 771,
+		"start": 756,
+		"end": 757,
 		"value": "0",
 		"line": 33,
 		"col": 31
 	},
 	{
 		"type": "semicolon",
-		"start": 771,
-		"end": 772,
+		"start": 757,
+		"end": 758,
 		"value": ";",
 		"line": 33,
 		"col": 32
 	},
 	{
 		"type": "comment",
-		"start": 773,
-		"end": 820,
+		"start": 759,
+		"end": 806,
 		"value": "// new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]",
 		"line": 33,
 		"col": 34
 	},
 	{
 		"type": "keyword",
-		"start": 823,
-		"end": 826,
+		"start": 809,
+		"end": 812,
 		"value": "let",
 		"line": 34,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 827,
-		"end": 843,
+		"start": 813,
+		"end": 829,
 		"value": "partitionedArray",
 		"line": 34,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 844,
-		"end": 845,
+		"start": 830,
+		"end": 831,
 		"value": "=",
 		"line": 34,
 		"col": 24
 	},
 	{
 		"type": "bracket_open",
-		"start": 846,
-		"end": 847,
+		"start": 832,
+		"end": 833,
 		"value": "[",
 		"line": 34,
 		"col": 26
 	},
 	{
 		"type": "identifier",
-		"start": 851,
-		"end": 860,
+		"start": 837,
+		"end": 846,
 		"value": "countDown",
 		"line": 35,
 		"col": 4
 	},
 	{
 		"type": "bracket_open",
-		"start": 860,
-		"end": 861,
+		"start": 846,
+		"end": 847,
 		"value": "[",
 		"line": 35,
 		"col": 13
 	},
 	{
 		"type": "colon",
-		"start": 861,
-		"end": 862,
+		"start": 847,
+		"end": 848,
 		"value": ":",
 		"line": 35,
 		"col": 14
 	},
 	{
 		"type": "number",
-		"start": 862,
-		"end": 863,
+		"start": 848,
+		"end": 849,
 		"value": "1",
 		"line": 35,
 		"col": 15
 	},
 	{
 		"type": "bracket_close",
-		"start": 863,
-		"end": 864,
+		"start": 849,
+		"end": 850,
 		"value": "]",
 		"line": 35,
 		"col": 16
 	},
 	{
 		"type": "comma",
-		"start": 864,
-		"end": 865,
+		"start": 850,
+		"end": 851,
 		"value": ",",
 		"line": 35,
 		"col": 17
 	},
 	{
 		"type": "identifier",
-		"start": 869,
-		"end": 878,
+		"start": 855,
+		"end": 864,
 		"value": "countDown",
 		"line": 36,
 		"col": 4
 	},
 	{
 		"type": "bracket_open",
-		"start": 878,
-		"end": 879,
+		"start": 864,
+		"end": 865,
 		"value": "[",
 		"line": 36,
 		"col": 13
 	},
 	{
 		"type": "number",
-		"start": 879,
-		"end": 880,
+		"start": 865,
+		"end": 866,
 		"value": "2",
 		"line": 36,
 		"col": 14
 	},
 	{
 		"type": "colon",
-		"start": 880,
-		"end": 881,
+		"start": 866,
+		"end": 867,
 		"value": ":",
 		"line": 36,
 		"col": 15
 	},
 	{
 		"type": "number",
-		"start": 881,
-		"end": 882,
+		"start": 867,
+		"end": 868,
 		"value": "6",
 		"line": 36,
 		"col": 16
 	},
 	{
 		"type": "bracket_close",
-		"start": 882,
-		"end": 883,
+		"start": 868,
+		"end": 869,
 		"value": "]",
 		"line": 36,
 		"col": 17
 	},
 	{
 		"type": "comma",
-		"start": 883,
-		"end": 884,
+		"start": 869,
+		"end": 870,
 		"value": ",",
 		"line": 36,
 		"col": 18
 	},
 	{
 		"type": "identifier",
-		"start": 888,
-		"end": 897,
+		"start": 874,
+		"end": 883,
 		"value": "countDown",
 		"line": 37,
 		"col": 4
 	},
 	{
 		"type": "bracket_open",
-		"start": 897,
-		"end": 898,
+		"start": 883,
+		"end": 884,
 		"value": "[",
 		"line": 37,
 		"col": 13
 	},
 	{
 		"type": "number",
-		"start": 898,
-		"end": 899,
+		"start": 884,
+		"end": 885,
 		"value": "7",
 		"line": 37,
 		"col": 14
 	},
 	{
 		"type": "colon",
-		"start": 899,
-		"end": 900,
+		"start": 885,
+		"end": 886,
 		"value": ":",
 		"line": 37,
 		"col": 15
 	},
 	{
 		"type": "bracket_close",
-		"start": 900,
-		"end": 901,
+		"start": 886,
+		"end": 887,
 		"value": "]",
 		"line": 37,
 		"col": 16
 	},
 	{
 		"type": "comma",
-		"start": 901,
-		"end": 902,
+		"start": 887,
+		"end": 888,
 		"value": ",",
 		"line": 37,
 		"col": 17
 	},
 	{
 		"type": "bracket_close",
-		"start": 905,
-		"end": 906,
+		"start": 891,
+		"end": 892,
 		"value": "]",
 		"line": 38,
 		"col": 3
 	},
 	{
 		"type": "semicolon",
-		"start": 906,
-		"end": 907,
+		"start": 892,
+		"end": 893,
 		"value": ";",
 		"line": 38,
 		"col": 4
 	},
 	{
 		"type": "comment",
-		"start": 908,
-		"end": 969,
+		"start": 894,
+		"end": 955,
 		"value": "// new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]",
 		"line": 38,
 		"col": 6
 	},
 	{
 		"type": "keyword",
-		"start": 972,
-		"end": 975,
+		"start": 958,
+		"end": 961,
 		"value": "let",
 		"line": 39,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 976,
-		"end": 994,
+		"start": 962,
+		"end": 980,
 		"value": "selectedArrayItems",
 		"line": 39,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 995,
-		"end": 996,
+		"start": 981,
+		"end": 982,
 		"value": "=",
 		"line": 39,
 		"col": 26
 	},
 	{
 		"type": "identifier",
-		"start": 997,
-		"end": 1006,
+		"start": 983,
+		"end": 992,
 		"value": "countDown",
 		"line": 39,
 		"col": 28
 	},
 	{
 		"type": "bracket_open",
-		"start": 1006,
-		"end": 1007,
+		"start": 992,
+		"end": 993,
 		"value": "[",
 		"line": 39,
 		"col": 37
 	},
 	{
 		"type": "number",
-		"start": 1007,
-		"end": 1008,
+		"start": 993,
+		"end": 994,
 		"value": "1",
 		"line": 39,
 		"col": 38
 	},
 	{
 		"type": "comma",
-		"start": 1008,
-		"end": 1009,
+		"start": 994,
+		"end": 995,
 		"value": ",",
 		"line": 39,
 		"col": 39
 	},
 	{
 		"type": "number",
-		"start": 1010,
-		"end": 1011,
+		"start": 996,
+		"end": 997,
 		"value": "4",
 		"line": 39,
 		"col": 41
 	},
 	{
 		"type": "comma",
-		"start": 1011,
-		"end": 1012,
+		"start": 997,
+		"end": 998,
 		"value": ",",
 		"line": 39,
 		"col": 42
 	},
 	{
 		"type": "number",
-		"start": 1013,
-		"end": 1014,
+		"start": 999,
+		"end": 1000,
 		"value": "9",
 		"line": 39,
 		"col": 44
 	},
 	{
 		"type": "bracket_close",
-		"start": 1014,
-		"end": 1015,
+		"start": 1000,
+		"end": 1001,
 		"value": "]",
 		"line": 39,
 		"col": 45
 	},
 	{
 		"type": "semicolon",
-		"start": 1015,
-		"end": 1016,
+		"start": 1001,
+		"end": 1002,
 		"value": ";",
 		"line": 39,
 		"col": 46
 	},
 	{
 		"type": "comment",
-		"start": 1017,
-		"end": 1039,
+		"start": 1003,
+		"end": 1025,
 		"value": "// new array [9, 6, 1]",
 		"line": 39,
 		"col": 48
 	},
 	{
 		"type": "keyword",
-		"start": 1043,
-		"end": 1046,
+		"start": 1029,
+		"end": 1032,
 		"value": "let",
 		"line": 41,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 1047,
-		"end": 1055,
+		"start": 1033,
+		"end": 1041,
 		"value": "myObject",
 		"line": 41,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 1056,
-		"end": 1057,
+		"start": 1042,
+		"end": 1043,
 		"value": "=",
 		"line": 41,
 		"col": 16
 	},
 	{
 		"type": "brace_open",
-		"start": 1058,
-		"end": 1059,
+		"start": 1044,
+		"end": 1045,
 		"value": "{",
 		"line": 41,
 		"col": 18
 	},
 	{
 		"type": "identifier",
-		"start": 1063,
-		"end": 1064,
+		"start": 1049,
+		"end": 1050,
 		"value": "a",
 		"line": 42,
 		"col": 4
 	},
 	{
 		"type": "colon",
-		"start": 1064,
-		"end": 1065,
+		"start": 1050,
+		"end": 1051,
 		"value": ":",
 		"line": 42,
 		"col": 5
 	},
 	{
 		"type": "number",
-		"start": 1066,
-		"end": 1067,
+		"start": 1052,
+		"end": 1053,
 		"value": "1",
 		"line": 42,
 		"col": 7
 	},
 	{
 		"type": "comma",
-		"start": 1067,
-		"end": 1068,
+		"start": 1053,
+		"end": 1054,
 		"value": ",",
 		"line": 42,
 		"col": 8
 	},
 	{
 		"type": "identifier",
-		"start": 1072,
-		"end": 1073,
+		"start": 1058,
+		"end": 1059,
 		"value": "b",
 		"line": 43,
 		"col": 4
 	},
 	{
 		"type": "colon",
-		"start": 1073,
-		"end": 1074,
+		"start": 1059,
+		"end": 1060,
 		"value": ":",
 		"line": 43,
 		"col": 5
 	},
 	{
 		"type": "string",
-		"start": 1075,
-		"end": 1081,
+		"start": 1061,
+		"end": 1067,
 		"value": "coat",
 		"line": 43,
 		"col": 7
 	},
 	{
 		"type": "keyword",
-		"start": 1082,
-		"end": 1084,
+		"start": 1068,
+		"end": 1070,
 		"value": "if",
 		"line": 43,
 		"col": 14
 	},
 	{
-		"type": "keyword",
-		"start": 1085,
-		"end": 1089,
+		"type": "this",
+		"start": 1071,
+		"end": 1075,
 		"value": "this",
 		"line": 43,
 		"col": 17
 	},
 	{
 		"type": "dot",
-		"start": 1089,
-		"end": 1090,
+		"start": 1075,
+		"end": 1076,
 		"value": ".",
 		"line": 43,
 		"col": 21
 	},
 	{
 		"type": "identifier",
-		"start": 1090,
-		"end": 1097,
+		"start": 1076,
+		"end": 1083,
 		"value": "isDone?",
 		"line": 43,
 		"col": 22
 	},
 	{
 		"type": "comma",
-		"start": 1097,
-		"end": 1098,
+		"start": 1083,
+		"end": 1084,
 		"value": ",",
 		"line": 43,
 		"col": 29
 	},
 	{
 		"type": "comment",
-		"start": 1099,
-		"end": 1142,
+		"start": 1085,
+		"end": 1128,
 		"value": "// if false, property will not be in object",
 		"line": 43,
 		"col": 31
 	},
 	{
 		"type": "identifier",
-		"start": 1146,
-		"end": 1147,
+		"start": 1132,
+		"end": 1133,
 		"value": "c",
 		"line": 44,
 		"col": 4
+	},
+	{
+		"type": "colon",
+		"start": 1133,
+		"end": 1134,
+		"value": ":",
+		"line": 44,
+		"col": 5
+	},
+	{
+		"type": "identifier",
+		"start": 1135,
+		"end": 1139,
+		"value": "cond",
+		"line": 44,
+		"col": 7
+	},
+	{
+		"type": "question",
+		"start": 1140,
+		"end": 1141,
+		"value": "?",
+		"line": 44,
+		"col": 12
+	},
+	{
+		"type": "bool",
+		"start": 1142,
+		"end": 1146,
+		"value": "true",
+		"line": 44,
+		"col": 14
 	},
 	{
 		"type": "colon",
@@ -1525,830 +1557,814 @@
 		"end": 1148,
 		"value": ":",
 		"line": 44,
-		"col": 5
-	},
-	{
-		"type": "identifier",
-		"start": 1149,
-		"end": 1153,
-		"value": "cond",
-		"line": 44,
-		"col": 7
-	},
-	{
-		"type": "question",
-		"start": 1154,
-		"end": 1155,
-		"value": "?",
-		"line": 44,
-		"col": 12
-	},
-	{
-		"type": "bool",
-		"start": 1156,
-		"end": 1160,
-		"value": "true",
-		"line": 44,
-		"col": 14
-	},
-	{
-		"type": "colon",
-		"start": 1161,
-		"end": 1162,
-		"value": ":",
-		"line": 44,
 		"col": 19
 	},
 	{
 		"type": "bool",
-		"start": 1163,
-		"end": 1168,
+		"start": 1149,
+		"end": 1154,
 		"value": "false",
 		"line": 44,
 		"col": 21
 	},
 	{
 		"type": "comma",
-		"start": 1168,
-		"end": 1169,
+		"start": 1154,
+		"end": 1155,
 		"value": ",",
 		"line": 44,
 		"col": 26
 	},
 	{
 		"type": "comment",
-		"start": 1170,
-		"end": 1235,
+		"start": 1156,
+		"end": 1221,
 		"value": "// regular ternary - property will always be there, value differs",
 		"line": 44,
 		"col": 28
 	},
 	{
 		"type": "brace_close",
-		"start": 1238,
-		"end": 1239,
+		"start": 1224,
+		"end": 1225,
 		"value": "}",
 		"line": 45,
 		"col": 3
 	},
 	{
 		"type": "semicolon",
-		"start": 1239,
-		"end": 1240,
+		"start": 1225,
+		"end": 1226,
 		"value": ";",
 		"line": 45,
 		"col": 4
 	},
 	{
 		"type": "keyword",
-		"start": 1244,
-		"end": 1249,
+		"start": 1230,
+		"end": 1235,
 		"value": "const",
 		"line": 47,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 1250,
-		"end": 1257,
+		"start": 1236,
+		"end": 1243,
 		"value": "myTuple",
 		"line": 47,
 		"col": 9
 	},
 	{
 		"type": "assign",
-		"start": 1258,
-		"end": 1259,
+		"start": 1244,
+		"end": 1245,
 		"value": "=",
 		"line": 47,
 		"col": 17
 	},
 	{
 		"type": "less_than",
-		"start": 1260,
-		"end": 1261,
+		"start": 1246,
+		"end": 1247,
 		"value": "<",
 		"line": 47,
 		"col": 19
 	},
 	{
 		"type": "number",
-		"start": 1261,
-		"end": 1262,
+		"start": 1247,
+		"end": 1248,
 		"value": "1",
 		"line": 47,
 		"col": 20
 	},
 	{
 		"type": "comma",
-		"start": 1262,
-		"end": 1263,
+		"start": 1248,
+		"end": 1249,
 		"value": ",",
 		"line": 47,
 		"col": 21
 	},
 	{
 		"type": "bool",
-		"start": 1264,
-		"end": 1268,
+		"start": 1250,
+		"end": 1254,
 		"value": "true",
 		"line": 47,
 		"col": 23
 	},
 	{
 		"type": "comma",
-		"start": 1268,
-		"end": 1269,
+		"start": 1254,
+		"end": 1255,
 		"value": ",",
 		"line": 47,
 		"col": 27
 	},
 	{
 		"type": "string",
-		"start": 1270,
-		"end": 1278,
+		"start": 1256,
+		"end": 1264,
 		"value": "string",
 		"line": 47,
 		"col": 29
 	},
 	{
 		"type": "comma",
-		"start": 1278,
-		"end": 1279,
+		"start": 1264,
+		"end": 1265,
 		"value": ",",
 		"line": 47,
 		"col": 37
 	},
 	{
 		"type": "path",
-		"start": 1280,
-		"end": 1285,
+		"start": 1266,
+		"end": 1271,
 		"value": "@/foo",
 		"line": 47,
 		"col": 39
 	},
 	{
 		"type": "greater_than",
-		"start": 1285,
-		"end": 1286,
+		"start": 1271,
+		"end": 1272,
 		"value": ">",
 		"line": 47,
 		"col": 44
 	},
 	{
 		"type": "semicolon",
-		"start": 1286,
-		"end": 1287,
+		"start": 1272,
+		"end": 1273,
 		"value": ";",
 		"line": 47,
 		"col": 45
 	},
 	{
 		"type": "keyword",
-		"start": 1291,
-		"end": 1294,
+		"start": 1277,
+		"end": 1280,
 		"value": "let",
 		"line": 49,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 1295,
-		"end": 1305,
+		"start": 1281,
+		"end": 1291,
 		"value": "partialObj",
 		"line": 49,
 		"col": 7
 	},
 	{
 		"type": "assign",
-		"start": 1306,
-		"end": 1307,
+		"start": 1292,
+		"end": 1293,
 		"value": "=",
 		"line": 49,
 		"col": 18
 	},
 	{
 		"type": "identifier",
-		"start": 1308,
-		"end": 1316,
+		"start": 1294,
+		"end": 1302,
 		"value": "myObject",
 		"line": 49,
 		"col": 20
 	},
 	{
 		"type": "bracket_open",
-		"start": 1316,
-		"end": 1317,
+		"start": 1302,
+		"end": 1303,
 		"value": "[",
 		"line": 49,
 		"col": 28
 	},
 	{
 		"type": "identifier",
-		"start": 1317,
-		"end": 1318,
+		"start": 1303,
+		"end": 1304,
 		"value": "a",
 		"line": 49,
 		"col": 29
 	},
 	{
 		"type": "comma",
-		"start": 1318,
-		"end": 1319,
+		"start": 1304,
+		"end": 1305,
 		"value": ",",
 		"line": 49,
 		"col": 30
 	},
 	{
 		"type": "identifier",
-		"start": 1320,
-		"end": 1321,
+		"start": 1306,
+		"end": 1307,
 		"value": "d",
 		"line": 49,
 		"col": 32
 	},
 	{
 		"type": "bracket_close",
-		"start": 1321,
-		"end": 1322,
+		"start": 1307,
+		"end": 1308,
 		"value": "]",
 		"line": 49,
 		"col": 33
 	},
 	{
 		"type": "semicolon",
-		"start": 1322,
-		"end": 1323,
+		"start": 1308,
+		"end": 1309,
 		"value": ";",
 		"line": 49,
 		"col": 34
 	},
 	{
 		"type": "comment",
-		"start": 1324,
-		"end": 1354,
+		"start": 1310,
+		"end": 1340,
 		"value": "// new object {a: 1, d: 'foo'}",
 		"line": 49,
 		"col": 36
 	},
 	{
 		"type": "keyword",
-		"start": 1358,
-		"end": 1363,
-		"value": "const",
+		"start": 1344,
+		"end": 1347,
+		"value": "let",
 		"line": 51,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 1364,
-		"end": 1388,
+		"start": 1348,
+		"end": 1372,
 		"value": "initializeAndAssignLater",
 		"line": 51,
-		"col": 9
+		"col": 7
 	},
 	{
 		"type": "colon",
-		"start": 1388,
-		"end": 1389,
+		"start": 1372,
+		"end": 1373,
 		"value": ":",
+		"line": 51,
+		"col": 31
+	},
+	{
+		"type": "type",
+		"start": 1374,
+		"end": 1380,
+		"value": "number",
 		"line": 51,
 		"col": 33
 	},
 	{
-		"type": "type",
-		"start": 1390,
-		"end": 1396,
-		"value": "number",
+		"type": "semicolon",
+		"start": 1380,
+		"end": 1381,
+		"value": ";",
 		"line": 51,
-		"col": 35
+		"col": 39
+	},
+	{
+		"type": "identifier",
+		"start": 1384,
+		"end": 1408,
+		"value": "initializeAndAssignLater",
+		"line": 52,
+		"col": 3
 	},
 	{
 		"type": "assign",
-		"start": 1397,
-		"end": 1398,
+		"start": 1409,
+		"end": 1410,
 		"value": "=",
-		"line": 51,
-		"col": 42
+		"line": 52,
+		"col": 28
 	},
 	{
 		"type": "number",
-		"start": 1399,
-		"end": 1400,
+		"start": 1411,
+		"end": 1412,
 		"value": "5",
-		"line": 51,
-		"col": 44
+		"line": 52,
+		"col": 30
 	},
 	{
 		"type": "semicolon",
-		"start": 1400,
-		"end": 1401,
+		"start": 1412,
+		"end": 1413,
 		"value": ";",
-		"line": 51,
-		"col": 45
+		"line": 52,
+		"col": 31
 	},
 	{
 		"type": "keyword",
-		"start": 1405,
-		"end": 1411,
+		"start": 1417,
+		"end": 1423,
 		"value": "return",
-		"line": 53,
+		"line": 54,
 		"col": 3
 	},
 	{
 		"type": "identifier",
-		"start": 1412,
-		"end": 1436,
+		"start": 1424,
+		"end": 1448,
 		"value": "initializeAndAssignLater",
-		"line": 53,
+		"line": 54,
 		"col": 10
 	},
 	{
 		"type": "semicolon",
-		"start": 1436,
-		"end": 1437,
+		"start": 1448,
+		"end": 1449,
 		"value": ";",
-		"line": 53,
+		"line": 54,
 		"col": 34
 	},
 	{
 		"type": "brace_close",
-		"start": 1439,
-		"end": 1440,
+		"start": 1451,
+		"end": 1452,
 		"value": "}",
-		"line": 54,
+		"line": 55,
 		"col": 2
 	},
 	{
 		"type": "comment",
-		"start": 1443,
-		"end": 1459,
+		"start": 1455,
+		"end": 1471,
 		"value": "/** with args */",
-		"line": 56,
+		"line": 57,
 		"col": 2
 	},
 	{
 		"type": "keyword",
-		"start": 1461,
-		"end": 1462,
+		"start": 1473,
+		"end": 1474,
 		"value": "f",
-		"line": 57,
+		"line": 58,
 		"col": 2
 	},
 	{
 		"type": "identifier",
-		"start": 1463,
-		"end": 1477,
+		"start": 1475,
+		"end": 1489,
 		"value": "methodWithArgs",
-		"line": 57,
+		"line": 58,
 		"col": 4
 	},
 	{
 		"type": "paren_open",
-		"start": 1478,
-		"end": 1479,
+		"start": 1490,
+		"end": 1491,
 		"value": "(",
-		"line": 57,
+		"line": 58,
 		"col": 19
-	},
-	{
-		"type": "identifier",
-		"start": 1479,
-		"end": 1483,
-		"value": "arg1",
-		"line": 57,
-		"col": 20
-	},
-	{
-		"type": "colon",
-		"start": 1483,
-		"end": 1484,
-		"value": ":",
-		"line": 57,
-		"col": 24
-	},
-	{
-		"type": "type",
-		"start": 1485,
-		"end": 1489,
-		"value": "bool",
-		"line": 57,
-		"col": 26
-	},
-	{
-		"type": "comma",
-		"start": 1489,
-		"end": 1490,
-		"value": ",",
-		"line": 57,
-		"col": 30
 	},
 	{
 		"type": "identifier",
 		"start": 1491,
 		"end": 1495,
-		"value": "arg2",
-		"line": 57,
-		"col": 32
+		"value": "arg1",
+		"line": 58,
+		"col": 20
 	},
 	{
 		"type": "colon",
 		"start": 1495,
 		"end": 1496,
 		"value": ":",
-		"line": 57,
+		"line": 58,
+		"col": 24
+	},
+	{
+		"type": "type",
+		"start": 1497,
+		"end": 1501,
+		"value": "bool",
+		"line": 58,
+		"col": 26
+	},
+	{
+		"type": "comma",
+		"start": 1501,
+		"end": 1502,
+		"value": ",",
+		"line": 58,
+		"col": 30
+	},
+	{
+		"type": "identifier",
+		"start": 1503,
+		"end": 1507,
+		"value": "arg2",
+		"line": 58,
+		"col": 32
+	},
+	{
+		"type": "colon",
+		"start": 1507,
+		"end": 1508,
+		"value": ":",
+		"line": 58,
 		"col": 36
 	},
 	{
 		"type": "identifier",
-		"start": 1497,
-		"end": 1502,
+		"start": 1509,
+		"end": 1514,
 		"value": "Tuple",
-		"line": 57,
+		"line": 58,
 		"col": 38
 	},
 	{
 		"type": "comma",
-		"start": 1502,
-		"end": 1503,
+		"start": 1514,
+		"end": 1515,
 		"value": ",",
-		"line": 57,
+		"line": 58,
 		"col": 43
 	},
 	{
 		"type": "identifier",
-		"start": 1504,
-		"end": 1508,
+		"start": 1516,
+		"end": 1520,
 		"value": "arg3",
-		"line": 57,
+		"line": 58,
 		"col": 45
 	},
 	{
 		"type": "assign",
-		"start": 1509,
-		"end": 1510,
+		"start": 1521,
+		"end": 1522,
 		"value": "=",
-		"line": 57,
+		"line": 58,
 		"col": 50
 	},
 	{
 		"type": "bool",
-		"start": 1511,
-		"end": 1515,
+		"start": 1523,
+		"end": 1527,
 		"value": "true",
-		"line": 57,
+		"line": 58,
 		"col": 52
 	},
 	{
 		"type": "comma",
-		"start": 1515,
-		"end": 1516,
+		"start": 1527,
+		"end": 1528,
 		"value": ",",
-		"line": 57,
+		"line": 58,
 		"col": 56
 	},
 	{
 		"type": "dotdotdot",
-		"start": 1517,
-		"end": 1520,
+		"start": 1529,
+		"end": 1532,
 		"value": "...",
-		"line": 57,
+		"line": 58,
 		"col": 58
 	},
 	{
 		"type": "identifier",
-		"start": 1520,
-		"end": 1530,
+		"start": 1532,
+		"end": 1542,
 		"value": "otherStuff",
-		"line": 57,
+		"line": 58,
 		"col": 61
 	},
 	{
 		"type": "colon",
-		"start": 1530,
-		"end": 1531,
+		"start": 1542,
+		"end": 1543,
 		"value": ":",
-		"line": 57,
+		"line": 58,
 		"col": 71
 	},
 	{
 		"type": "identifier",
-		"start": 1532,
-		"end": 1537,
+		"start": 1544,
+		"end": 1549,
 		"value": "Thing",
-		"line": 57,
+		"line": 58,
 		"col": 73
 	},
 	{
 		"type": "bracket_open",
-		"start": 1537,
-		"end": 1538,
+		"start": 1549,
+		"end": 1550,
 		"value": "[",
-		"line": 57,
+		"line": 58,
 		"col": 78
 	},
 	{
 		"type": "bracket_close",
-		"start": 1538,
-		"end": 1539,
+		"start": 1550,
+		"end": 1551,
 		"value": "]",
-		"line": 57,
+		"line": 58,
 		"col": 79
 	},
 	{
 		"type": "paren_close",
-		"start": 1539,
-		"end": 1540,
+		"start": 1551,
+		"end": 1552,
 		"value": ")",
-		"line": 57,
+		"line": 58,
 		"col": 80
 	},
 	{
 		"type": "brace_open",
-		"start": 1541,
-		"end": 1542,
+		"start": 1553,
+		"end": 1554,
 		"value": "{",
-		"line": 57,
+		"line": 58,
 		"col": 82
 	},
 	{
 		"type": "comment",
-		"start": 1543,
-		"end": 1552,
+		"start": 1555,
+		"end": 1564,
 		"value": "/* ... */",
-		"line": 57,
+		"line": 58,
 		"col": 84
 	},
 	{
 		"type": "brace_close",
-		"start": 1553,
-		"end": 1554,
+		"start": 1565,
+		"end": 1566,
 		"value": "}",
-		"line": 57,
+		"line": 58,
 		"col": 94
 	},
 	{
 		"type": "comment",
-		"start": 1557,
-		"end": 1583,
+		"start": 1569,
+		"end": 1595,
 		"value": "/** with one return val */",
-		"line": 59,
+		"line": 60,
 		"col": 2
 	},
 	{
 		"type": "keyword",
-		"start": 1585,
-		"end": 1586,
+		"start": 1597,
+		"end": 1598,
 		"value": "f",
-		"line": 60,
+		"line": 61,
 		"col": 2
 	},
 	{
 		"type": "identifier",
-		"start": 1587,
-		"end": 1609,
+		"start": 1599,
+		"end": 1621,
 		"value": "methodThatReturnsBool?",
-		"line": 60,
+		"line": 61,
 		"col": 4
 	},
 	{
 		"type": "right_arrow",
-		"start": 1610,
-		"end": 1612,
+		"start": 1622,
+		"end": 1624,
 		"value": "->",
-		"line": 60,
+		"line": 61,
 		"col": 27
 	},
 	{
 		"type": "type",
-		"start": 1613,
-		"end": 1617,
+		"start": 1625,
+		"end": 1629,
 		"value": "bool",
-		"line": 60,
+		"line": 61,
 		"col": 30
 	},
 	{
 		"type": "brace_open",
-		"start": 1618,
-		"end": 1619,
+		"start": 1630,
+		"end": 1631,
 		"value": "{",
-		"line": 60,
+		"line": 61,
 		"col": 35
 	},
 	{
 		"type": "keyword",
-		"start": 1622,
-		"end": 1628,
+		"start": 1634,
+		"end": 1640,
 		"value": "return",
-		"line": 61,
+		"line": 62,
 		"col": 3
 	},
 	{
 		"type": "bool",
-		"start": 1629,
-		"end": 1633,
+		"start": 1641,
+		"end": 1645,
 		"value": "true",
-		"line": 61,
+		"line": 62,
 		"col": 10
 	},
 	{
 		"type": "semicolon",
-		"start": 1633,
-		"end": 1634,
+		"start": 1645,
+		"end": 1646,
 		"value": ";",
-		"line": 61,
+		"line": 62,
 		"col": 14
 	},
 	{
 		"type": "brace_close",
-		"start": 1636,
-		"end": 1637,
+		"start": 1648,
+		"end": 1649,
 		"value": "}",
-		"line": 62,
+		"line": 63,
 		"col": 2
 	},
 	{
 		"type": "comment",
-		"start": 1640,
-		"end": 1667,
+		"start": 1652,
+		"end": 1679,
 		"value": "/** multiple return vals */",
-		"line": 64,
+		"line": 65,
 		"col": 2
 	},
 	{
 		"type": "keyword",
-		"start": 1669,
-		"end": 1670,
+		"start": 1681,
+		"end": 1682,
 		"value": "f",
-		"line": 65,
+		"line": 66,
 		"col": 2
 	},
 	{
 		"type": "identifier",
-		"start": 1671,
-		"end": 1693,
+		"start": 1683,
+		"end": 1705,
 		"value": "methodThatReturnsBool?",
-		"line": 65,
+		"line": 66,
 		"col": 4
 	},
 	{
 		"type": "right_arrow",
-		"start": 1694,
-		"end": 1696,
+		"start": 1706,
+		"end": 1708,
 		"value": "->",
-		"line": 65,
+		"line": 66,
 		"col": 27
 	},
 	{
 		"type": "type",
-		"start": 1697,
-		"end": 1701,
+		"start": 1709,
+		"end": 1713,
 		"value": "bool",
-		"line": 65,
+		"line": 66,
 		"col": 30
 	},
 	{
 		"type": "comma",
-		"start": 1701,
-		"end": 1702,
+		"start": 1713,
+		"end": 1714,
 		"value": ",",
-		"line": 65,
+		"line": 66,
 		"col": 34
 	},
 	{
 		"type": "type",
-		"start": 1703,
-		"end": 1709,
+		"start": 1715,
+		"end": 1721,
 		"value": "number",
-		"line": 65,
+		"line": 66,
 		"col": 36
 	},
 	{
 		"type": "comma",
-		"start": 1709,
-		"end": 1710,
+		"start": 1721,
+		"end": 1722,
 		"value": ",",
-		"line": 65,
+		"line": 66,
 		"col": 42
 	},
 	{
 		"type": "identifier",
-		"start": 1711,
-		"end": 1716,
+		"start": 1723,
+		"end": 1728,
 		"value": "Thing",
-		"line": 65,
+		"line": 66,
 		"col": 44
 	},
 	{
 		"type": "brace_open",
-		"start": 1717,
-		"end": 1718,
+		"start": 1729,
+		"end": 1730,
 		"value": "{",
-		"line": 65,
+		"line": 66,
 		"col": 50
 	},
 	{
 		"type": "keyword",
-		"start": 1721,
-		"end": 1727,
+		"start": 1733,
+		"end": 1739,
 		"value": "return",
-		"line": 66,
+		"line": 67,
 		"col": 3
 	},
 	{
 		"type": "bool",
-		"start": 1728,
-		"end": 1733,
+		"start": 1740,
+		"end": 1745,
 		"value": "false",
-		"line": 66,
+		"line": 67,
 		"col": 10
 	},
 	{
 		"type": "comma",
-		"start": 1733,
-		"end": 1734,
+		"start": 1745,
+		"end": 1746,
 		"value": ",",
-		"line": 66,
+		"line": 67,
 		"col": 15
 	},
 	{
 		"type": "number",
-		"start": 1735,
-		"end": 1736,
+		"start": 1747,
+		"end": 1748,
 		"value": "5",
-		"line": 66,
+		"line": 67,
 		"col": 17
 	},
 	{
 		"type": "comma",
-		"start": 1736,
-		"end": 1737,
+		"start": 1748,
+		"end": 1749,
 		"value": ",",
-		"line": 66,
+		"line": 67,
 		"col": 18
 	},
 	{
 		"type": "identifier",
-		"start": 1738,
-		"end": 1743,
+		"start": 1750,
+		"end": 1755,
 		"value": "Thing",
-		"line": 66,
+		"line": 67,
 		"col": 20
 	},
 	{
 		"type": "dot",
-		"start": 1743,
-		"end": 1744,
+		"start": 1755,
+		"end": 1756,
 		"value": ".",
-		"line": 66,
+		"line": 67,
 		"col": 25
 	},
 	{
 		"type": "identifier",
-		"start": 1744,
-		"end": 1750,
+		"start": 1756,
+		"end": 1762,
 		"value": "create",
-		"line": 66,
+		"line": 67,
 		"col": 26
 	},
 	{
 		"type": "paren_open",
-		"start": 1750,
-		"end": 1751,
+		"start": 1762,
+		"end": 1763,
 		"value": "(",
-		"line": 66,
+		"line": 67,
 		"col": 32
 	},
 	{
 		"type": "paren_close",
-		"start": 1751,
-		"end": 1752,
+		"start": 1763,
+		"end": 1764,
 		"value": ")",
-		"line": 66,
+		"line": 67,
 		"col": 33
 	},
 	{
 		"type": "semicolon",
-		"start": 1752,
-		"end": 1753,
+		"start": 1764,
+		"end": 1765,
 		"value": ";",
-		"line": 66,
+		"line": 67,
 		"col": 34
 	},
 	{
 		"type": "brace_close",
-		"start": 1755,
-		"end": 1756,
+		"start": 1767,
+		"end": 1768,
 		"value": "}",
-		"line": 67,
+		"line": 68,
 		"col": 2
 	},
 	{
 		"type": "brace_close",
-		"start": 1757,
-		"end": 1758,
+		"start": 1769,
+		"end": 1770,
 		"value": "}",
-		"line": 68,
+		"line": 69,
 		"col": 1
 	}
 ]

@@ -325,15 +325,15 @@ export class ASTParameter implements AST {
 		ast.isRest = isRest;
 		ast.name = name;
 
-		if (declaredType) { // only set if it's not undefined
+		if (typeof declaredType !== 'undefined') { // only set if it's not undefined
 			ast.declaredType = declaredType;
 		}
 
-		if (inferredType) { // only set if it's not undefined
+		if (typeof inferredType !== 'undefined') { // only set if it's not undefined
 			ast.inferredType = inferredType;
 		}
 
-		if (defaultValue) { // only set if it's not undefined
+		if (typeof defaultValue !== 'undefined') { // only set if it's not undefined
 			ast.defaultValue = defaultValue;
 		}
 

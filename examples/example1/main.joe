@@ -14,7 +14,7 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 	let bar = 'baz'; // let
 	const isDone? = true; // const
 
-	/** method with no args and no return */
+	/** method with no args */
 	f foo -> number {
 		const size = when someNumber {
 			1, 2 -> 'small',
@@ -48,7 +48,8 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 
 		let partialObj = myObject[a, d]; // new object {a: 1, d: 'foo'}
 
-		const initializeAndAssignLater: number = 5;
+		let initializeAndAssignLater: number;
+		initializeAndAssignLater = 5;
 
 		return initializeAndAssignLater;
 	}
