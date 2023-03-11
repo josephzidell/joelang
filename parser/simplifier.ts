@@ -1,4 +1,4 @@
-import { IfStatementNode, Node, NT, UnaryExpressionNode } from "./types";
+import { Node, NT, UnaryExpressionNode } from "./types";
 
 // SParseTree = Simplified Parse Tree
 
@@ -49,9 +49,6 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 
 		let extraInformation = {};
 		switch (node.type) {
-			case NT.IfStatement:
-				extraInformation = {before: (node as IfStatementNode).before};
-				break;
 			case NT.UnaryExpression:
 				extraInformation = {before: (node as UnaryExpressionNode).before};
 				break;

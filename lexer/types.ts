@@ -43,13 +43,14 @@ export const tokenTypesUsingSymbols = {
 	'triangle_close': '|>',
 };
 
-export const builtInTypes = [
+export const primitiveTypes = [
 	'bool',
 	'number',
 	'path',
 	'regex',
 	'string',
-];
+] as const;
+export type PrimitiveType = typeof primitiveTypes[number];
 
 const otherTokenTypes = [
 	'bool',
@@ -61,6 +62,7 @@ const otherTokenTypes = [
 	'path',
 	'regex',
 	'string',
+	'this',
 	'type',
 ] as const;
 export type TokenType = keyof typeof tokenTypesUsingSymbols | typeof otherTokenTypes[number];
@@ -111,7 +113,6 @@ export const keywords = [
 	'repeat',
 	'return',
 	'static',
-	'this',
 	'when',
 	'while',
 ] as const;

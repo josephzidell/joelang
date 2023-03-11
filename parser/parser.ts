@@ -4,7 +4,7 @@ import { Token, tokenTypesUsingSymbols } from "../lexer/types";
 import ErrorContext from "../shared/errorContext";
 import { error, ok, Result } from "../shared/result";
 import ParserError, { ParserErrorCode } from './error';
-import { MakeIfStatementNode, MakeNode, MakeUnaryExpressionNode } from './node';
+import { MakeNode, MakeUnaryExpressionNode } from './node';
 import { Node, NT } from './types';
 
 export default class Parser {
@@ -27,12 +27,14 @@ export default class Parser {
 	// node types that when faced with a semicolon, will be ended
 	nodeTypesThatASemicolonEnds: NT[] = [
 		NT.ArrayExpression,
+		NT.AssignmentExpression,
 		NT.BinaryExpression,
 		NT.FunctionDeclaration, // for abstract functions
 		NT.FunctionReturns, // for abstract functions
 		NT.IfStatement,
 		NT.MemberExpression,
 		NT.ObjectExpression,
+		NT.PostfixIfStatement,
 		NT.PrintStatement,
 		NT.Property,
 		NT.RangeExpression,
@@ -175,7 +177,7 @@ export default class Parser {
 					case NT.TypeArgumentsList:
 						const twoBack = this.prev(2);
 
-						if (twoBack?.type && ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type)) {
+						if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)) {
 							// we're in a CallExpression after the GenericTypesList
 							const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
 							let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
@@ -334,6 +336,7 @@ export default class Parser {
 				}
 			} else if (token.type === 'bracket_close') {
 				this.endExpressionIfIn(NT.IfStatement);
+				this.endExpressionIfIn(NT.PostfixIfStatement);
 				this.endExpressionIfIn(NT.TernaryElse);
 				this.endExpressionIfIn(NT.TernaryExpression);
 
@@ -392,6 +395,13 @@ export default class Parser {
 					this.addNode(MakeNode(NT.Comment, token, this.currentRoot));
 				}
 			} else if (token.type === 'assign') {
+				if (!([NT.Parameter, NT.VariableDeclaration] as NT[]).includes(this.currentRoot.type)) {
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.AssignmentExpression, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+				}
+
 				this.addNode(MakeNode(NT.AssignmentOperator, token, this.currentRoot, true));
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn(NT.UnaryExpression);
@@ -474,7 +484,7 @@ export default class Parser {
 
 				if (prev?.type === NT.TypeArgumentsList) {
 					const twoBack = this.prev(2);
-					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type)) {
+					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)) {
 						// we're in a MemberExpression after the GenericTypesList
 						// eg. `foo<bar>.baz`
 						// we need to create a new InstantiationExpression node
@@ -499,14 +509,13 @@ export default class Parser {
 					prev?.type === NT.MemberExpression ||
 					prev?.type === NT.Type ||
 					prev?.type === NT.InstantiationExpression ||
-					(prev?.type === NT.Keyword && prev.value === 'this')
+					prev?.type === NT.ThisKeyword
 				) {
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
 						return result;
 					}
 				}
-
 			} else if (token.type === 'dotdotdot') {
 				this.ifInWhenExpressionBlockStatementBeginCase(token);
 
@@ -567,9 +576,9 @@ export default class Parser {
 
 				// postfix `if` in an array
 				// this is separate from the above if/elses since this can happen _after and in addition to_ one of the above scenarios
-				if (this.currentRoot.type === NT.IfStatement && this.currentRoot.parent?.type === NT.ArrayExpression) {
+				if (this.currentRoot.type === NT.PostfixIfStatement && this.currentRoot.parent?.type === NT.ArrayExpression) {
 					this.endExpression(); // end the IfStatement which _is_ the entry
-				} else if (this.currentRoot.type === NT.IfStatement && this.currentRoot.parent?.type === NT.Property) {
+				} else if (this.currentRoot.type === NT.PostfixIfStatement && this.currentRoot.parent?.type === NT.Property) {
 					this.endExpression(); // end the IfStatement
 					this.endExpression(); // end the Property
 				}
@@ -603,7 +612,7 @@ export default class Parser {
 			} else if (token.type === 'bang') {
 				this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 			} else if (token.type === 'right_arrow') {
-				if (this.currentRoot.type === NT.WhenCaseTests) {
+				if (this.currentRoot.type === NT.WhenCaseValues) {
 					this.endExpression();
 					this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
 				} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionType) {
@@ -664,7 +673,10 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 				} else {
 					const prev = this.prev();
-					if (this.currentRoot.type === NT.ArgumentsList) {
+					if (this.currentRoot.type === NT.ArgumentsList ||
+						// foo.bar<|T|>
+						(this.currentRoot.type === NT.MemberExpression && prev?.type === NT.Identifier)
+					) {
 						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.InstantiationExpression, token, this.currentRoot, true));
 						if (result.outcome === 'error') {
 							return result;
@@ -685,7 +697,7 @@ export default class Parser {
 					const twoBack = this.prev(2);
 
 					if (twoBack?.type
-						&& ([NT.Identifier, NT.MemberExpression] as NT[]).includes(twoBack.type)
+						&& ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)
 						&& !([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(this.currentRoot.type)
 						&& this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
 					) {
@@ -833,7 +845,8 @@ export default class Parser {
 						return result;
 					}
 				}
-
+			} else if (token.type === 'this') {
+				this.addNode(MakeNode(NT.ThisKeyword, token, this.currentRoot, true));
 			} else if (token.type === 'keyword') {
 				if (this.debug) {
 					console.debug(`Handling keyword "${token.value}"`);
@@ -978,7 +991,7 @@ export default class Parser {
 						const prev = this.prev();
 						if (prev?.type === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
 							// this is after, therefore take the CallExpression, array element, or Property
-							const result = this.beginExpressionWithAdoptingPreviousNode(MakeIfStatementNode(token, false, this.currentRoot));
+							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true));
 							if (result.outcome === 'error') {
 								return result;
 							}
@@ -998,7 +1011,7 @@ export default class Parser {
 								this.endExpression(); // end the IfStatement
 							}
 
-							this.beginExpressionWith(MakeIfStatementNode(token, true, this.currentRoot));
+							this.beginExpressionWith(MakeNode(NT.IfStatement, token, this.currentRoot, true));
 						}
 						break;
 					case 'implements':
@@ -1131,7 +1144,7 @@ export default class Parser {
 	private ifInWhenExpressionBlockStatementBeginCase(token: Token) {
 		if (this.currentRoot.type === NT.BlockStatement && this.currentRoot.parent?.type === NT.WhenExpression) {
 			this.beginExpressionWith(MakeNode(NT.WhenCase, token, this.currentRoot, true));
-			this.beginExpressionWith(MakeNode(NT.WhenCaseTests, token, this.currentRoot, true));
+			this.beginExpressionWith(MakeNode(NT.WhenCaseValues, token, this.currentRoot, true));
 		}
 	}
 

@@ -31,6 +31,14 @@ export enum AnalysisErrorCode {
 	AssignmentOperatorExpected = 'S021',
 	BodyExpected = 'S022',
 	ParameterExpected = 'S023',
+	ThisKeywordExpected = 'S024',
+	WhenCaseExpected = 'S025',
+	WhenCaseValueExpected = 'S026',
+	WhenCaseConsequentExpected = 'S027',
+	RestElementExpected = 'S028',
+	RangeBoundExpected = 'S029',
+	BlockStatementExpected = 'S030',
+	CommaExpected = 'S031',
 }
 
 /**

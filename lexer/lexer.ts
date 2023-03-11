@@ -322,7 +322,9 @@ export default class Lexer {
 			// check if it's a keyword, then check if it's a special value, otherwise it's an identifier
 			// keywords in joelang are case sensitive
 			let token: Token;
-			if ((keywords as unknown as string[]).includes(value)) {
+			if (value === 'this') {
+				token = { type: 'this', start, end: this.cursorPosition, value, line, col };
+			} else if ((keywords as unknown as string[]).includes(value)) {
 				token = { type: 'keyword', start, end: this.cursorPosition, value, line, col };
 			} else if ((types as unknown as string[]).includes(value)) {
 				token = { type: 'type', start, end: this.cursorPosition, value, line, col };

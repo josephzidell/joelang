@@ -2,6 +2,8 @@
  * This fils contains all the AST classes.
  */
 
+import { PrimitiveType } from "../lexer/types";
+
 export interface ASTThatHasModifiers {
 	modifiers: ASTModifier[];
 }
@@ -29,7 +31,7 @@ export class ASTArgumentsList implements AST {
 
 export class ASTArrayExpression implements AST {
 	/** The type, usually inferred from the initial value, if any, or from context */
-	type?: ASTType;
+	type: ASTType | undefined = undefined;
 	items: AssignableASTs[] = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
@@ -37,6 +39,22 @@ export class ASTArrayExpression implements AST {
 		const ast = new ASTArrayExpression();
 		ast.type = type;
 		ast.items = items;
+		return ast;
+	}
+}
+
+export class ASTAssignmentExpression implements AST {
+	left!: ASTIdentifier | ASTMemberExpression;
+	right!: AssignableASTs;
+
+	// factory function
+	static _({ left, right }: {
+		left: ASTIdentifier | ASTMemberExpression;
+		right: AssignableASTs;
+	}): ASTAssignmentExpression {
+		const ast = new ASTAssignmentExpression();
+		ast.left = left;
+		ast.right = right;
 		return ast;
 	}
 }
@@ -183,6 +201,29 @@ export class ASTIdentifier implements AST {
 	}
 }
 
+export class ASTIfStatement implements AST {
+	test!: Expression;
+	consequent!: ASTBlockStatement;
+	alternate?: ASTBlockStatement | ASTIfStatement = undefined;
+
+	// factory function
+	static _({ test, consequent, alternate }: {
+		test: Expression;
+		consequent: ASTBlockStatement;
+		alternate?: ASTBlockStatement | ASTIfStatement;
+	}): ASTIfStatement {
+		const ast = new ASTIfStatement();
+		ast.test = test;
+		ast.consequent = consequent;
+
+		if (alternate) { // only set if it's not undefined
+			ast.alternate = alternate;
+		}
+
+		return ast;
+	}
+}
+
 export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
 	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
@@ -208,12 +249,22 @@ export class ASTInterfaceDeclaration implements AST, ASTThatHasModifiers, ASTTha
 	}
 }
 
+export class ASTThisKeyword implements AST {
+	// factory function
+	static _(): ASTThisKeyword {
+		return new ASTThisKeyword();
+	}
+}
+
 export class ASTMemberExpression implements AST {
-	object!: ASTIdentifier | ASTMemberExpression; // TODO add ASTCallExpression
-	property!: ASTIdentifier;
+	object!: ASTIdentifier | ASTMemberExpression | ASTThisKeyword; // TODO add ASTCallExpression
+	property!: ASTIdentifier | ASTTypeInstantiationExpression;
 
 	// factory function
-	static _({ object, property }: { object: ASTIdentifier | ASTMemberExpression; property: ASTIdentifier; }): ASTMemberExpression {
+	static _({ object, property }: {
+		object: ASTIdentifier | ASTMemberExpression | ASTThisKeyword;
+		property: ASTIdentifier | ASTTypeInstantiationExpression;
+	}): ASTMemberExpression {
 		const ast = new ASTMemberExpression();
 		ast.object = object;
 		ast.property = property;
@@ -305,6 +356,22 @@ export class ASTPath implements AST {
 	}
 }
 
+export class ASTPostfixIfStatement implements AST {
+	expression!: Expression;
+	test!: Expression;
+
+	// factory function
+	static _({ expression, test }: {
+		expression: Expression;
+		test: Expression;
+	}): ASTPostfixIfStatement {
+		const ast = new ASTPostfixIfStatement();
+		ast.expression = expression;
+		ast.test = test;
+		return ast;
+	}
+}
+
 export class ASTPrintStatement implements AST {
 	expressions: Expression[] = [];
 
@@ -319,6 +386,22 @@ export class ASTPrintStatement implements AST {
 /** It's just a kind of BlockStatement */
 export class ASTProgram extends ASTBlockStatement {}
 
+export class ASTRangeExpression implements AST {
+	lower!: RangeBound;
+	upper!: RangeBound;
+
+	// factory function
+	static _({ lower, upper }: {
+		lower: RangeBound;
+		upper: RangeBound;
+	}): ASTRangeExpression {
+		const ast = new ASTRangeExpression();
+		ast.lower = lower;
+		ast.upper = upper;
+		return ast;
+	}
+}
+
 export class ASTRegularExpression implements AST {
 	pattern!: string;
 	flags!: string[];
@@ -329,6 +412,13 @@ export class ASTRegularExpression implements AST {
 		ast.pattern = pattern;
 		ast.flags = flags;
 		return ast;
+	}
+}
+
+export class ASTRestElement implements AST {
+	// factory function
+	static _(): ASTRestElement {
+		return new ASTRestElement();
 	}
 }
 
@@ -358,10 +448,10 @@ export class ASTTupleExpression implements AST { }
 
 /** Begin ASTType */
 export class ASTTypePrimitive {
-	type!: string;
+	type!: PrimitiveType;
 
 	// factory function
-	static _(type: string): ASTTypePrimitive {
+	static _(type: PrimitiveType): ASTTypePrimitive {
 		const ast = new ASTTypePrimitive();
 		ast.type = type;
 		return ast;
@@ -412,8 +502,6 @@ export class ASTUnaryExpression<T> implements AST {
 	}
 }
 
-export class ASTWhenExpression implements AST { }
-
 export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
 	modifiers: ASTModifier[] = [];
 	mutable!: boolean;
@@ -456,6 +544,36 @@ export class ASTVariableDeclaration implements AST, ASTThatHasModifiers {
 		return ast;
 	}
 }
+
+export class ASTWhenCase implements AST {
+	values: Array<ASTBoolLiteral | ASTNumberLiteral | ASTRangeExpression | ASTRestElement | ASTStringLiteral> = [];
+	consequent!: ASTBlockStatement | AssignableASTs;
+
+	// factory function
+	static _({ values, consequent }: {
+		values: Array<ASTBoolLiteral | ASTNumberLiteral | ASTRangeExpression | ASTRestElement | ASTStringLiteral>;
+		consequent: ASTBlockStatement | AssignableASTs;
+	}): ASTWhenCase {
+		const ast = new ASTWhenCase();
+		ast.values = values;
+		ast.consequent = consequent;
+		return ast;
+	}
+}
+
+export class ASTWhenExpression implements AST {
+	expression!: Expression;
+	cases: ASTWhenCase[] = [];
+
+	// factory function
+	static _({ expression, cases }: { expression: Expression; cases: ASTWhenCase[]; }): ASTWhenExpression {
+		const ast = new ASTWhenExpression();
+		ast.expression = expression;
+		ast.cases = cases;
+		return ast;
+	}
+}
+
 // noop
 export class Skip implements AST { }
 
@@ -478,3 +596,7 @@ export type Expression =
 
 	/** ASTs that can be assigned to a variable or passed as an argument */
 export type AssignableASTs = Expression | ASTFunctionDeclaration;
+
+export type RangeBound = ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTNumberLiteral; // TODO add array access
+
+export type ASTWhenCaseValue = ASTBoolLiteral | ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTNumberLiteral | ASTPath | ASTRangeExpression | ASTRegularExpression | ASTRestElement | ASTStringLiteral;

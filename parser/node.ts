@@ -1,6 +1,5 @@
-import { IfStatementNode, Node, NT, UnaryExpressionNode } from "./types";
-import { Token, TokenType } from "../lexer/types";
-import ParserError from './error';
+import { Token } from "../lexer/types";
+import { Node, NT, UnaryExpressionNode } from "./types";
 
 /**
  * Makes a Node
@@ -15,32 +14,6 @@ export function MakeNode (type: NT, token: Token, parent: Node, discardValue = f
 	const node: Node = {
 		type,
 		value: discardValue ? undefined : token.value,
-		pos: {
-			start: token.start,
-			end: token.end,
-			line: token.line,
-			col: token.col,
-		},
-		parent,
-		children: [],
-	}
-
-	return node;
-}
-
-/**
- * Makes an IfStatement Node
- *
- * @param token - The Token from the lexer
- * @param before - Was the operator before the expression?
- * @param parent - The parent Node
- * @returns A IfStatement Node
- */
-export function MakeIfStatementNode (token: Token, before: boolean, parent: Node): IfStatementNode {
-	const node: IfStatementNode = {
-		type: NT.IfStatement,
-		value: undefined,
-		before,
 		pos: {
 			start: token.start,
 			end: token.end,

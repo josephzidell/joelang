@@ -3,6 +3,7 @@ export enum NT {
 	ArgumentsList = 'ArgumentsList',
 	ArrayExpression = 'ArrayExpression',
 	ArrayType = 'ArrayType',
+	AssignmentExpression = 'AssignmentExpression',
 	AssignmentOperator = 'AssignmentOperator',
 	BinaryExpression = 'BinaryExpression',
 	BlockStatement = 'BlockStatement',
@@ -43,6 +44,7 @@ export enum NT {
 	ParametersList = 'ParametersList',
 	Parenthesized = 'Parenthesized',
 	Path = 'Path',
+	PostfixIfStatement = 'PostfixIfStatement',
 	PrintStatement = 'PrintStatement',
 	Program = 'Program',
 	Property = 'Property',
@@ -58,6 +60,7 @@ export enum NT {
 	TernaryElse = 'TernaryElse',
 	TernaryExpression = 'TernaryExpression',
 	TernaryThen = 'TernaryThen',
+	ThisKeyword = 'ThisKeyword',
 	TupleExpression = 'TupleExpression',
 	TupleType = 'TupleType',
 	Type = 'Type',
@@ -69,7 +72,7 @@ export enum NT {
 	VariableDeclaration = 'VariableDeclaration',
 	WhenExpression = 'WhenExpression',
 	WhenCase = 'WhenCase',
-	WhenCaseTests = 'WhenCaseTests',
+	WhenCaseValues = 'WhenCaseValues',
 	WhenCaseConsequent = 'WhenCaseConsequent',
 	WhileStatement = 'WhileStatement',
 };
@@ -100,12 +103,27 @@ export const ExpressionNodeTypes: NT[] = [
 export const AssignableNodeTypes: NT[] = [
 	...ExpressionNodeTypes,
 	NT.FunctionDeclaration,
+	NT.ThisKeyword,
 ];
 
 /** These are the Types corresponding to AssignableNodeTypes */
 export const AssignableTypes: NT[] = [NT.FunctionType, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
 
 export const validChildrenInTypeArgumentList = [NT.CommaSeparator, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
+
+export const validChildrenInWhenCaseValues = [
+	NT.BoolLiteral,
+	NT.CallExpression,
+	NT.CommaSeparator,
+	NT.Identifier,
+	NT.MemberExpression,
+	NT.NumberLiteral,
+	NT.Path,
+	NT.RangeExpression,
+	NT.RegularExpression,
+	NT.RestElement,
+	NT.StringLiteral,
+];
 
 /** A node's positional information */
 export type Pos = {
@@ -128,11 +146,6 @@ export type Node = {
 	pos: Pos;
 	parent?: Node;
 	children: Node[];
-}
-
-/** IfStatement nodes have more info than a regular node, owing to the need to know whether the `if` is before or after the object */
-export type IfStatementNode = Node & {
-	before: boolean;
 }
 
 /** UnaryExpression nodes have more info than a regular node, owing to the need to know whether the operator is before or after the object */
