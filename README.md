@@ -33,7 +33,7 @@ Let's establish a few ground truths, which I think we can agree on:
 
 
 ## Solution
-[KISS](https://en.wikipedia.org/wiki/KISS_principle). Keep the syntax concise, simlar to ruby, but without the magic.
+[KISS](https://en.wikipedia.org/wiki/KISS_principle). Keep the syntax simple, and easy to read and understand.
 
 In reality, simplicity is hard. But we do the hard work so you can do the easy work.
 

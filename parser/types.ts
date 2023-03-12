@@ -26,7 +26,6 @@ export enum NT {
 	Identifier = 'Identifier',
 	IfStatement = 'IfStatement',
 	ImportDeclaration = 'ImportDeclaration',
-	InstantiationExpression = 'InstantiationExpression',
 	InterfaceDeclaration = 'InterfaceDeclaration',
 	InterfaceExtension = 'InterfaceExtension',
 	InterfaceExtensionsList = 'InterfaceExtensionsList',
@@ -34,7 +33,8 @@ export enum NT {
 	Keyword = 'Keyword',
 	Loop = 'Loop',
 	MemberExpression = 'MemberExpression',
-	MembersList = 'MembersList',
+	MemberList = 'MemberList',
+	MemberListExpression = 'MemberListExpression',
 	Modifier = 'Modifier', // for Class, Function, Interface, or Variable
 	ModifiersList = 'ModifiersList', // for Class, Function, Interface, or Variable
 	NumberLiteral = 'NumberLiteral',
@@ -56,15 +56,16 @@ export enum NT {
 	RightArrowOperator = 'RightArrowOperator',
 	SemicolonSeparator = 'SemicolonSeparator',
 	StringLiteral = 'StringLiteral',
+	TernaryAlternate = 'TernaryAlternate',
 	TernaryCondition = 'TernaryCondition',
-	TernaryElse = 'TernaryElse',
+	TernaryConsequent = 'TernaryConsequent',
 	TernaryExpression = 'TernaryExpression',
-	TernaryThen = 'TernaryThen',
 	ThisKeyword = 'ThisKeyword',
 	TupleExpression = 'TupleExpression',
 	TupleShape = 'TupleShape',
 	Type = 'Type',
 	TypeArgumentsList = 'TypeArgumentsList',
+	TypeInstantiationExpression = 'TypeInstantiationExpression',
 	TypeParameter = 'TypeParameter',
 	TypeParametersList = 'TypeParametersList',
 	UnaryExpression = 'UnaryExpression',
@@ -94,8 +95,11 @@ export const ExpressionNodeTypes: NT[] = [
 	NT.CallExpression,
 	NT.Identifier,
 	NT.MemberExpression,
+	NT.MemberListExpression,
 	NT.Parenthesized,
 	NT.RangeExpression,
+	NT.TernaryExpression,
+	NT.TypeInstantiationExpression,
 	NT.UnaryExpression,
 	NT.WhenExpression,
 ];
@@ -108,9 +112,44 @@ export const AssignableNodeTypes: NT[] = [
 ];
 
 /** These are the Types corresponding to AssignableNodeTypes */
-export const AssignableTypes: NT[] = [NT.FunctionSignature, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
+export const AssignableTypes: NT[] = [NT.FunctionSignature, NT.Identifier, NT.MemberExpression, NT.MemberListExpression, NT.Type, NT.TypeInstantiationExpression];
 
-export const validChildrenInTypeArgumentList = [NT.CommaSeparator, NT.Identifier, NT.InstantiationExpression, NT.MemberExpression, NT.Type];
+export const CallableTypes: NT[] = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.TypeInstantiationExpression];
+
+/** These apply equally to MemberExpressions as well as MemberListExpressions */
+export const validChildrenAsMemberObject = [
+	NT.CallExpression, // eg. foo()['bar'] or foo()['bar', 'baz']
+	NT.Identifier, // eg. foo['bar'] or foo['bar', 'baz']
+	NT.MemberExpression, // eg. foo.bar['baz'] or foo.bar['baz', 'qux']
+	NT.ThisKeyword, // eg. this.bar or this['bar', 'baz']
+	NT.TypeInstantiationExpression, // eg. foo<|T|>['bar'] or foo<|T|>['bar', 'baz']
+];
+
+export const validChildrenAsMemberProperty = [
+	NT.BinaryExpression, // eg. foo[index + 1]
+	NT.CallExpression, // eg. foo[bar() -> number]
+	NT.CommaSeparator, // eg. foo[bar, baz]
+	NT.Identifier, // eg. foo[bar: number]
+	NT.MemberExpression, // eg. foo[bar.baz]
+	NT.NumberLiteral, // eg. foo[1]
+	NT.RangeExpression, // eg. foo[1..2]
+	NT.StringLiteral, // eg. foo['bar']
+	NT.TernaryExpression, // eg. foo[bar ? 1 : 2]
+	NT.TypeInstantiationExpression, // eg. foo.Foo<|T|>
+	NT.UnaryExpression, // eg. foo[index++]
+];
+
+export const validChildrenInTypeArgumentList = [
+	NT.ArrayOf,
+	NT.CommaSeparator,
+	NT.FunctionSignature,
+	NT.Identifier,
+	NT.MemberExpression,
+	NT.ObjectShape,
+	NT.TupleShape,
+	NT.Type,
+	NT.TypeInstantiationExpression,
+];
 
 export const validChildrenInWhenCaseValues = [
 	NT.BoolLiteral,

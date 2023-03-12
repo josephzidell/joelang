@@ -39,6 +39,9 @@ export enum AnalysisErrorCode {
 	RangeBoundExpected = 'S029',
 	BlockStatementExpected = 'S030',
 	CommaExpected = 'S031',
+	TernaryConditionExpected = 'S032',
+	TernaryConsequentExpected = 'S033',
+	TernaryAlternateExpected = 'S034',
 }
 
 /**

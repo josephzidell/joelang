@@ -32,9 +32,9 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 		let count = 1..myArray[2]; // new array [1, 2, 3]
 		let countDown = myArray[1]..0; // new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 		let partitionedArray = [
-			countDown[:1],
-			countDown[2:6],
-			countDown[7:],
+			countDown[0..1],
+			countDown[2..6],
+			countDown[7..-1],
 		]; // new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
 		let selectedArrayItems = countDown[1, 4, 9]; // new array [9, 6, 1]
 

@@ -4,8 +4,8 @@ import { Token, tokenTypesUsingSymbols } from "../lexer/types";
 import ErrorContext from "../shared/errorContext";
 import { error, ok, Result } from "../shared/result";
 import ParserError, { ParserErrorCode } from './error';
-import { MakeNode, MakeUnaryExpressionNode } from './node';
-import { Node, NT } from './types';
+import { ChangeNodeType, MakeNode, MakeUnaryExpressionNode } from './node';
+import { Node, NT, validChildrenAsMemberObject } from './types';
 
 export default class Parser {
 	prevToken: Token | undefined;
@@ -33,6 +33,7 @@ export default class Parser {
 		NT.FunctionReturns, // for abstract functions
 		NT.IfStatement,
 		NT.MemberExpression,
+		NT.MemberListExpression,
 		NT.ObjectExpression,
 		NT.PostfixIfStatement,
 		NT.PrintStatement,
@@ -40,7 +41,7 @@ export default class Parser {
 		NT.RangeExpression,
 		NT.RegularExpression,
 		NT.ReturnStatement,
-		NT.TernaryElse,
+		NT.TernaryAlternate,
 		NT.TernaryExpression,
 		NT.UnaryExpression,
 		NT.VariableDeclaration,
@@ -210,9 +211,9 @@ export default class Parser {
 						break;
 				}
 			} else if (token.type === 'paren_close') {
-				// check if we're in a TernaryElse and then in a TernaryExpression, if so, it's finished
+				// check if we're in a TernaryAlternate and then in a TernaryExpression, if so, it's finished
 				// eg `(foo ? true : false)`
-				this.endExpressionIfIn(NT.TernaryElse);
+				this.endExpressionIfIn(NT.TernaryAlternate);
 				this.endExpressionIfIn(NT.TernaryExpression);
 
 				// check if we're in a BinaryExpression, if so, it's finished
@@ -223,7 +224,7 @@ export default class Parser {
 				// eg `!foo()`
 				this.endExpressionIfIn(NT.UnaryExpression);
 
-				// end the Parenthesized
+				// end the ArgumentsList or Parenthesized
 				this.endExpression();
 
 				// check if we're in a CallExpression, if so, it's also finished
@@ -323,25 +324,133 @@ export default class Parser {
 					}
 
 
-					// the second condition is to preclude this `{a: [1]}`
-				} else if (([NT.CallExpression, NT.Identifier, NT.MemberExpression] as NT[]).includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
+				// the second condition is to preclude this `{a: [1]}`
+				} else if (validChildrenAsMemberObject.includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
+					// since we're an opening bracket, we're definitely either a MemberExpression or a MemberListExpression
+					// the difference being based on what is between the brackets. At this point, we don't know, so we'll
+					// assume it's a MemberListExpression, and then at the bracket_close, we can retroactively determine
+					// if it's a MemberListExpression or a MemberExpression (and then change the type of the node)
+
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberListExpression, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
 						return result;
 					}
 
-					this.beginExpressionWith(MakeNode(NT.MembersList, token, this.currentRoot, true));
+					this.beginExpressionWith(MakeNode(NT.MemberList, token, this.currentRoot, true));
 				} else {
 					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'bracket_close') {
 				this.endExpressionIfIn(NT.IfStatement);
 				this.endExpressionIfIn(NT.PostfixIfStatement);
-				this.endExpressionIfIn(NT.TernaryElse);
+				this.endExpressionIfIn(NT.TernaryAlternate);
 				this.endExpressionIfIn(NT.TernaryExpression);
+				this.endExpressionIfIn(NT.UnaryExpression);
+				this.endExpressionIfIn(NT.BinaryExpression);
 
-				this.endExpression(); // ArrayExpression, ArrayOf or MemberList
-				this.endExpressionWhileIn([NT.InstantiationExpression]);
+				// we may be ending a MemberList, and need to determine if it should become a MemberExpression or remain a MemberListExpression
+				// and that depends on the children of the MemberList. If there is only one child, and it matches the rules for what a
+				// MemberExpression looks like, then we can convert it to a MemberExpression, otherwise we leave it alone.
+
+				// we have to determine which of these scenarios we're in:
+				// - arr[0]
+				// - arr[index]
+				// - arr[0, 2, 4]
+				// - keys = [0, 2, 4]; arr[...keys]
+				// - arr[1..3]
+				// - lower = 1; upper = 3; arr[lower..upper]
+				// - obj['prop']
+				// - obj['prop', 'other']
+				// - keys = ['prop', 'other']; obj[...keys]
+
+				// a few other cases:
+				// - arr[index + 1]
+				// - arr[index + 1, index + 2]
+				// - arr[index + 1..index + 3]
+				// - arr[index++]
+				// - arr[++index]
+				// - arr[index--]
+				// - arr[--index]
+				// - arr[index += 1], etc.
+
+				// rules are when it's a single item (number or string), it's a MemberExpression
+				// if it's a variable, we treat it as a single item
+
+				// if it's a spread, we treat it as a MemberListExpression (even if the spreaded array has only a single item)
+				// if it's a range, we treat it as a MemberListExpression (even if the range has only a single item)
+				// if it's a comma separated list, we treat it as a MemberListExpression
+
+				// If it should be a MemberListExpression, we don't need to do anything, because that's what it already is.
+				// But if it should be a MemberExpression, we need to change the type of the node(, and then move the
+				// children of the MemberList to the children of the MemberExpression).
+
+				if (this.currentRoot.type === NT.MemberList &&
+					this.currentRoot.parent?.type === NT.MemberListExpression &&
+					this.currentRoot.children.length === 1 && (
+						// object property
+						this.currentRoot.children[0].type === NT.StringLiteral ||
+
+						// array, string, or tuple index
+						this.currentRoot.children[0].type === NT.NumberLiteral ||
+
+						// an Identifier is assumed to be an index of property name
+						this.currentRoot.children[0].type === NT.Identifier ||
+
+						// a MemberExpression is assumed to contain an index or property name
+						this.currentRoot.children[0].type === NT.MemberExpression ||
+
+						// a CallExpression is assumed to return an index or property name
+						this.currentRoot.children[0].type === NT.CallExpression ||
+
+						// a UnaryExpression is checked whether is contains a mathematical operation
+						(
+							this.currentRoot.children[0].type === NT.UnaryExpression &&
+							this.currentRoot.children[0].value &&
+							[tokenTypesUsingSymbols.plus_plus, tokenTypesUsingSymbols.minus_minus, tokenTypesUsingSymbols.minus].includes(this.currentRoot.children[0].value)
+						) ||
+
+						// a BinaryExpression is checked whether is contains a mathematical operation
+						(
+							this.currentRoot.children[0].type === NT.BinaryExpression &&
+							this.currentRoot.children[0].value &&
+							[
+								tokenTypesUsingSymbols.plus,
+								tokenTypesUsingSymbols.plus_equals,
+								tokenTypesUsingSymbols.minus,
+								tokenTypesUsingSymbols.minus_equals,
+								tokenTypesUsingSymbols.asterisk,
+								tokenTypesUsingSymbols.asterisk_equals,
+
+								// we don't support division or modulus operations since they return floats, which cannot be used as an index
+								// if the user wants to use division or modulus, they can use a CallExpression instead that returns an integer
+							].includes(this.currentRoot.children[0].value)
+						) ||
+
+						// a TernaryExpression is assumed to return an index or property name
+						// it's possible it'll return an incompatiable type, but we'll let the compiler handle that
+						this.currentRoot.children[0].type === NT.TernaryExpression
+					)
+				) {
+					// some surgery is required:
+					// we're in a MemberListExpression.MemberList, and need to be a MemberExpression
+					// we're changing from a MemberListExpression -> [objectNode, propertyNode: MemberList -> this] to MemberExpression -> [objectNode, propertyNode: this]
+					ChangeNodeType(this.currentRoot.parent, NT.MemberExpression);
+
+					// make a copy of the current node, replacing the parent with the parent of the newly changed MemberExpression
+					// keep this in a variable, rather than inlining it, to avoid pointer issues
+					const currentRootIncumbent: Node = {...this.currentRoot.children[0], parent: this.currentRoot.parent};
+
+					this.currentRoot = this.currentRoot.parent;
+
+					// replace the second child with the new node (the first child is the member object which we're not touching, the second child is the member property)
+					this.currentRoot.children[1] = currentRootIncumbent;
+				}
+
+				this.endExpressionIfIn(NT.ArrayExpression);
+				this.endExpressionIfIn(NT.ArrayOf);
+				this.endExpressionIfIn(NT.MemberList);
+				this.endExpressionIfIn(NT.MemberListExpression);
+				this.endExpressionWhileIn([NT.TypeInstantiationExpression]);
 				this.endExpressionIfIn(NT.MemberExpression);
 			} else if (token.type === 'bool') {
 				this.addNode(MakeNode(NT.BoolLiteral, token, this.currentRoot));
@@ -385,6 +494,7 @@ export default class Parser {
 				this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
 
 				// check if currentRoot is a MemberExpression and next token is not a <| (types), and if so, it's finished
+				// since there may not be brackets. eg. `a.b` vs `a['b']`
 				if (`${this.lexer.peek(0)}${this.lexer.peek(1)}` !== tokenTypesUsingSymbols.triangle_open) {
 					this.endExpressionIfIn(NT.MemberExpression);
 				}
@@ -487,20 +597,20 @@ export default class Parser {
 					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)) {
 						// we're in a MemberExpression after the GenericTypesList
 						// eg. `foo<bar>.baz`
-						// we need to create a new InstantiationExpression node
+						// we need to create a new TypeInstantiationExpression node
 						// capturing the previous two nodes of Identifier and GenericTypesList
-						const instantiationExpressionNode = MakeNode(NT.InstantiationExpression, token, this.currentRoot, true);
-						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, instantiationExpressionNode);
+						const typeInstantiationExpressionNode = MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true);
+						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
 						if (wasAdopted.outcome === 'error') {
 							return error(wasAdopted.error);
 						}
 
-						wasAdopted = this.adoptNode(this.currentRoot, prev, instantiationExpressionNode);
-						this.beginExpressionWith(instantiationExpressionNode);
-						this.endExpression(); // end the InstantiationExpression
+						wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
+						this.beginExpressionWith(typeInstantiationExpressionNode);
+						this.endExpression(); // end the TypeInstantiationExpression
 
 						// once done, this new node then becomes the "previous" for the next if
-						prev = instantiationExpressionNode;
+						prev = typeInstantiationExpressionNode;
 					}
 				} // do not connect this to the next if since this is independent of the next if
 
@@ -508,7 +618,7 @@ export default class Parser {
 					prev?.type === NT.Identifier ||
 					prev?.type === NT.MemberExpression ||
 					prev?.type === NT.Type ||
-					prev?.type === NT.InstantiationExpression ||
+					prev?.type === NT.TypeInstantiationExpression ||
 					prev?.type === NT.ThisKeyword
 				) {
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
@@ -526,10 +636,10 @@ export default class Parser {
 
 				this.addNode(MakeNode(NT.RestElement, token, this.currentRoot));
 			} else if (token.type === 'colon') {
-				if (this.currentRoot.type === NT.TernaryThen) {
+				if (this.currentRoot.type === NT.TernaryConsequent) {
 					// TernaryExpression
-					this.endExpression(); // end the TernaryThen
-					this.beginExpressionWith(MakeNode(NT.TernaryElse, token, this.currentRoot, true));
+					this.endExpression(); // end the TernaryConsequent
+					this.beginExpressionWith(MakeNode(NT.TernaryAlternate, token, this.currentRoot, true));
 
 				} else if ([NT.ObjectExpression, NT.ObjectShape].includes(this.currentRoot.type) && this.prev()?.type === NT.Identifier) {
 					// POJOs notation
@@ -553,8 +663,8 @@ export default class Parser {
 				}
 
 			} else if (token.type === 'comma') {
-				if (this.currentRoot.type === NT.TernaryElse) {
-					this.endExpression(); // end the TernaryElse
+				if (this.currentRoot.type === NT.TernaryAlternate) {
+					this.endExpression(); // end the TernaryAlternate
 					this.endExpression(); // end the TernaryExpression
 					this.endExpressionIfIn(NT.Property); // end if in Property
 				} else if (this.currentRoot.type === NT.WhenCaseConsequent) {
@@ -565,6 +675,8 @@ export default class Parser {
 					this.endExpression(); // end the WhenCaseConsequent
 					this.endExpression(); // end the WhenCase
 				} else if (this.currentRoot.type === NT.BinaryExpression) {
+					this.endExpression();
+				} else if (this.currentRoot.type === NT.UnaryExpression) {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.Parameter || this.currentRoot.type === NT.TypeParameter) {
 					this.endExpression();
@@ -584,7 +696,25 @@ export default class Parser {
 				}
 
 				this.addNode(MakeNode(NT.CommaSeparator, token, this.currentRoot));
-			} else if (['and', 'compare', 'equals', 'greater_than_equals', 'less_than_equals', 'not_equals', 'or'].includes(token.type)) {
+			} else if ([
+				// logic
+				'and',
+				'or',
+
+				// math
+				'asterisk_equals',
+				'forward_slash_equals',
+				'minus_equals',
+				'mod_equals',
+				'plus_equals',
+
+				// comparison
+				'compare',
+				'equals',
+				'greater_than_equals',
+				'less_than_equals',
+				'not_equals',
+			].includes(token.type)) {
 				const prev = this.prev();
 
 				// '<=>' can be a function name
@@ -621,29 +751,9 @@ export default class Parser {
 					this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
 				}
 			} else if (token.type === 'dotdot') {
-				const prev = this.prev();
-
-				// we need to go 2 levels up
-				if (this.currentRoot.type === NT.BinaryExpression || this.currentRoot.type === NT.Parenthesized) {
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
-					}
-				} else if (prev?.type === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
-					}
-				} else if (prev?.type === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
-					}
-				} else {
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
-					}
+				const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
+				if (result.outcome === 'error') {
+					return result;
 				}
 			} else if (token.type === 'triangle_open') {
 				/**
@@ -677,7 +787,7 @@ export default class Parser {
 						// foo.bar<|T|>
 						(this.currentRoot.type === NT.MemberExpression && prev?.type === NT.Identifier)
 					) {
-						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.InstantiationExpression, token, this.currentRoot, true));
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true));
 						if (result.outcome === 'error') {
 							return result;
 						}
@@ -687,7 +797,7 @@ export default class Parser {
 				}
 			} else if (token.type === 'triangle_close') {
 				this.endExpressionIfIn(NT.TypeArgumentsList);
-				this.endExpressionIfIn(NT.InstantiationExpression);
+				this.endExpressionIfIn(NT.TypeInstantiationExpression);
 
 				this.endExpressionIfIn(NT.TypeParameter);
 				this.endExpressionIfIn(NT.TypeParametersList);
@@ -703,17 +813,17 @@ export default class Parser {
 					) {
 						// we're in a MemberExpression after the GenericTypesList
 						// eg. `foo<bar>.baz`
-						// we need to create a new InstantiationExpression node
+						// we need to create a new TypeInstantiationExpression node
 						// capturing the previous two nodes of Identifier and GenericTypesList
-						const instantiationExpressionNode = MakeNode(NT.InstantiationExpression, token, this.currentRoot, true);
-						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, instantiationExpressionNode);
+						const typeInstantiationExpressionNode = MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true);
+						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
 						if (wasAdopted.outcome === 'error') {
 							return error(wasAdopted.error);
 						}
 
-						wasAdopted = this.adoptNode(this.currentRoot, prev, instantiationExpressionNode);
-						this.beginExpressionWith(instantiationExpressionNode);
-						this.endExpression(); // end the InstantiationExpression
+						wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
+						this.beginExpressionWith(typeInstantiationExpressionNode);
+						this.endExpression(); // end the TypeInstantiationExpression
 					}
 				}
 
@@ -738,7 +848,6 @@ export default class Parser {
 				 */
 
 				const prevType = this.prev()?.type;
-				// console.debug({prevType, currentRoot: this.currentRoot});
 
 				const literals: NT[] = [NT.BoolLiteral, NT.NumberLiteral, NT.StringLiteral];
 				const nodeTypesThatPrecedeABinaryExpression: NT[] = [
@@ -773,12 +882,6 @@ export default class Parser {
 						return result;
 					}
 
-				} else if (prevType === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.outcome === 'error') {
-						return result;
-					}
-
 				} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
 					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 
@@ -794,8 +897,8 @@ export default class Parser {
 				const prevType = this.prev()?.type;
 
 				// first close out a ternary
-				if (this.currentRoot.type === NT.TernaryElse) {
-					this.endExpression(); // end the TernaryElse
+				if (this.currentRoot.type === NT.TernaryAlternate) {
+					this.endExpression(); // end the TernaryAlternate
 					this.endExpression(); // end the TernaryExpression
 				}
 
@@ -803,40 +906,6 @@ export default class Parser {
 
 				if (this.currentRoot.type === NT.TupleExpression || this.currentRoot.type === NT.TupleShape) {
 					this.endExpression(); // end the TupleExpression or TupleShape
-
-				} else if (prevType === NT.NumberLiteral) {
-					// if prev is a number, this is a comparison
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.outcome === 'error') {
-						return result;
-					}
-
-				} else if (prevType === NT.Identifier) {
-					/**
-					 * if prev is an Identifier, it can be a BooleanExpression or a Tuple
-					 * - foo = 5; foo<6; // number comparison
-					 * - foo = <T>; // tuple
-					 */
-
-					// 'less than' BinaryExpression
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.outcome === 'error') {
-						return result;
-					}
-
-				} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
-					// we need to go 2 levels up
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.outcome === 'error') {
-						return result;
-					}
-
-				} else if (prevType === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-					// we need to go 2 levels up
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.outcome === 'error') {
-						return result;
-					}
 
 				} else {
 					// 'greater than' BinaryExpression
@@ -1081,7 +1150,7 @@ export default class Parser {
 				}
 
 				this.endExpression(); // end the TernaryCondition
-				this.beginExpressionWith(MakeNode(NT.TernaryThen, token, this.currentRoot, true));
+				this.beginExpressionWith(MakeNode(NT.TernaryConsequent, token, this.currentRoot, true));
 			} else {
 				// this should eventually turn into an error
 				this.addNode(MakeNode(NT.Unknown, token, this.currentRoot));
@@ -1127,10 +1196,9 @@ export default class Parser {
 		if (this.currentRoot.type === NT.BinaryExpression && ['and', 'or'].includes(token.type)) {
 			// && and || have higher order precedence than equality checks
 			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-		} else if (prev?.type === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
-			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-		} else if (prev?.type === NT.MembersList && this.currentRoot.type === NT.MemberExpression) {
-			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+
+		// TODO add PEMDAS
+
 		} else {
 			return this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot), 'a value');
 		}

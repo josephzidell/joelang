@@ -1,3 +1,4 @@
+import { Get } from "type-fest";
 import { Token } from "../lexer/types";
 import { Node, NT, UnaryExpressionNode } from "./types";
 
@@ -25,6 +26,11 @@ export function MakeNode (type: NT, token: Token, parent: Node, discardValue = f
 	}
 
 	return node;
+}
+
+/** Changes the type of a Node */
+export function ChangeNodeType (node: Node, newType: NT): void {
+	node.type = newType;
 }
 
 /**
