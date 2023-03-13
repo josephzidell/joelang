@@ -19,15 +19,16 @@ void (async (): Promise<void> => {
 	}
 
 	// if we're analyzing an inline string, we allow all ASTs in an ASTProgram
-	const isThisAnInlineAnalysis = args[0] === '-i';
+	const isThisAnInlineAnalysis = args.includes('-i');
 
-	if (args[0] === '-i') {
+	if (isThisAnInlineAnalysis) {
 		if (args.length < 2) {
 			console.error('No input string provided.');
 			process.exit(1);
 		}
 
-		input = args[1];
+		const inputIndex = args.indexOf('-i') + 1;
+		input = args[inputIndex];
 	} else {
 		const filename = args[0];
 
@@ -60,6 +61,8 @@ void (async (): Promise<void> => {
 	// right now, it's a bool
 	const debug = args.includes('-d');
 
+	const onlyParse = args.includes('-p');
+
 	// compile
 	// for now, parse and output AST
 	const parser = new Parser(input, debug);
@@ -67,41 +70,43 @@ void (async (): Promise<void> => {
 	switch (treeResult.outcome) {
 		case 'ok':
 			// NEW: continue to SemanticAnalysis
-			const analyzer = new SemanticAnalyzer(treeResult.value, parser);
-			if (isThisAnInlineAnalysis) {
-				analyzer.thisIsAnInlineAnalysis();
+			if (!onlyParse) {
+				const analyzer = new SemanticAnalyzer(treeResult.value, parser);
+				if (isThisAnInlineAnalysis) {
+					analyzer.thisIsAnInlineAnalysis();
+				}
+
+				const analysisResult = analyzer.analyze();
+				switch (analysisResult.outcome) {
+					case 'ok':
+						{
+							const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
+							console.info(output);
+						}
+						break;
+					case 'error':
+						{
+							const analysisError = analysisResult.error as AnalysisError;
+
+							console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
+							analysisError.getContext().toStringArray(analysisError.message).forEach(str => console.info(str));
+							console.groupEnd();
+
+							console.groupCollapsed('Current Node');
+							console.info(analysisError.getNode());
+							console.groupEnd();
+
+							console.groupCollapsed('CST');
+							const parseTree = simplifyTree([treeResult.value]);
+							const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
+							console.info(output);
+							console.groupEnd();
+						}
+
+						process.exit(1);
+						break;
+				}
 			}
-
-			const analysisResult = analyzer.analyze();
-			switch (analysisResult.outcome) {
-				case 'ok':
-					{
-						const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
-						console.info(output);
-					}
-					break;
-				case 'error':
-					{
-						const analysisError = analysisResult.error as AnalysisError;
-
-						console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
-						analysisError.getContext().toStringArray(analysisError.message).forEach(str => console.info(str));
-						console.groupEnd();
-
-						console.groupCollapsed('Current Node');
-						console.info(analysisError.getNode());
-						console.groupEnd();
-
-						console.groupCollapsed('CST');
-						const parseTree = simplifyTree([treeResult.value]);
-						const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
-						console.info(output);
-						console.groupEnd();
-					}
-
-					process.exit(1);
-					break;
- 			}
 
 			// output simplified tree
 			const parseTree = simplifyTree([treeResult.value]);

@@ -8,7 +8,7 @@
     "lexify": "ts-node index.ts lexify",
     "parse": "ts-node index.ts parse",
     "test": "jest --detectOpenHandles && npm run --silent test-integration",
-    "test-integration": "npm run --silent lexify -- \"$(cat examples/example1/main.joe)\" examples/example1/main.tokens && npm run --silent parse -- \"$(cat examples/example1/main.joe)\" examples/example1/main.parse-tree"
+    "test-integration": "npm run --silent lexify -- \"$(cat examples/example1/main.joe)\" examples/example1/main.tokens && ./joec examples/example1/main.joe -p -o examples/example1/main.parse-tree"
   },
   "repository": {
     "type": "git",

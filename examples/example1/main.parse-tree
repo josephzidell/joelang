@@ -80,19 +80,14 @@
       [
         'ClassDeclaration',
         [
+          [ 'Identifier', 'Foo' ],
           [
-            'Typed',
+            'TypeParametersList',
             [
-              [ 'Identifier', 'Foo' ],
               [
-                'TypeParametersList',
+                'TypeParameter',
                 [
-                  [
-                    'TypeParameter',
-                    [
-                      [ 'Identifier', 'A' ]
-                    ]
-                  ]
+                  [ 'Identifier', 'A' ]
                 ]
               ]
             ]
@@ -101,7 +96,7 @@
             'ClassExtensionsList',
             [
               [
-                'Typed',
+                'ClassExtension',
                 [
                   [ 'Identifier', 'Bar' ],
                   [
@@ -113,14 +108,19 @@
                 ]
               ],
               [ 'CommaSeparator' ],
-              [ 'Identifier', 'Baz' ]
+              [
+                'ClassExtension',
+                [
+                  [ 'Identifier', 'Baz' ]
+                ]
+              ]
             ]
           ],
           [
             'ClassImplementsList',
             [
               [
-                'Typed',
+                'ClassImplement',
                 [
                   [ 'Identifier', 'AbstractFooBar' ],
                   [
@@ -132,7 +132,12 @@
                 ]
               ],
               [ 'CommaSeparator' ],
-              [ 'Identifier', 'AnotherAbstractClass' ]
+              [
+                'ClassImplement',
+                [
+                  [ 'Identifier', 'AnotherAbstractClass' ]
+                ]
+              ]
             ]
           ],
           [
@@ -163,10 +168,7 @@
               [
                 'FunctionDeclaration',
                 [
-                  [
-                    'JoeDoc',
-                    '/** method with no args and no return */'
-                  ],
+                  [ 'JoeDoc', '/** method with no args */' ],
                   [ 'Identifier', 'foo' ],
                   [
                     'FunctionReturns',
@@ -194,7 +196,7 @@
                                     'WhenCase',
                                     [
                                       [
-                                        'WhenCaseTests',
+                                        'WhenCaseValues',
                                         [
                                           [ 'NumberLiteral', '1' ],
                                           [ 'CommaSeparator' ],
@@ -214,7 +216,7 @@
                                     'WhenCase',
                                     [
                                       [
-                                        'WhenCaseTests',
+                                        'WhenCaseValues',
                                         [
                                           [
                                             'RangeExpression',
@@ -238,7 +240,7 @@
                                     'WhenCase',
                                     [
                                       [
-                                        'WhenCaseTests',
+                                        'WhenCaseValues',
                                         [
                                           [ 'NumberLiteral', '11' ]
                                         ]
@@ -256,7 +258,7 @@
                                     'WhenCase',
                                     [
                                       [
-                                        'WhenCaseTests',
+                                        'WhenCaseValues',
                                         [
                                           [ 'RestElement', '...' ]
                                         ]
@@ -292,14 +294,13 @@
                               [ 'NumberLiteral', '1' ],
                               [ 'CommaSeparator' ],
                               [
-                                'IfStatement',
-                                { before: false },
+                                'PostfixIfStatement',
                                 [
                                   [ 'NumberLiteral', '10' ],
                                   [
                                     'MemberExpression',
                                     [
-                                      [ 'Keyword', 'this' ],
+                                      [ 'ThisKeyword' ],
                                       [ 'Identifier', 'isDone?' ]
                                     ]
                                   ]
@@ -330,12 +331,7 @@
                                 'MemberExpression',
                                 [
                                   [ 'Identifier', 'myArray' ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [ 'NumberLiteral', '2' ]
-                                    ]
-                                  ]
+                                  [ 'NumberLiteral', '2' ]
                                 ]
                               ]
                             ]
@@ -357,12 +353,7 @@
                                 'MemberExpression',
                                 [
                                   [ 'Identifier', 'myArray' ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [ 'NumberLiteral', '1' ]
-                                    ]
-                                  ]
+                                  [ 'NumberLiteral', '1' ]
                                 ]
                               ],
                               [ 'NumberLiteral', '0' ]
@@ -385,43 +376,64 @@
                             'ArrayExpression',
                             [
                               [
-                                'MemberExpression',
+                                'MemberListExpression',
                                 [
                                   [ 'Identifier', 'countDown' ],
                                   [
-                                    'MembersList',
+                                    'MemberList',
                                     [
-                                      [ 'ColonSeparator' ],
-                                      [ 'NumberLiteral', '1' ]
+                                      [
+                                        'RangeExpression',
+                                        [
+                                          [ 'NumberLiteral', '0' ],
+                                          [ 'NumberLiteral', '1' ]
+                                        ]
+                                      ]
                                     ]
                                   ]
                                 ]
                               ],
                               [ 'CommaSeparator' ],
                               [
-                                'MemberExpression',
+                                'MemberListExpression',
                                 [
                                   [ 'Identifier', 'countDown' ],
                                   [
-                                    'MembersList',
+                                    'MemberList',
                                     [
-                                      [ 'NumberLiteral', '2' ],
-                                      [ 'ColonSeparator' ],
-                                      [ 'NumberLiteral', '6' ]
+                                      [
+                                        'RangeExpression',
+                                        [
+                                          [ 'NumberLiteral', '2' ],
+                                          [ 'NumberLiteral', '6' ]
+                                        ]
+                                      ]
                                     ]
                                   ]
                                 ]
                               ],
                               [ 'CommaSeparator' ],
                               [
-                                'MemberExpression',
+                                'MemberListExpression',
                                 [
                                   [ 'Identifier', 'countDown' ],
                                   [
-                                    'MembersList',
+                                    'MemberList',
                                     [
-                                      [ 'NumberLiteral', '7' ],
-                                      [ 'ColonSeparator' ]
+                                      [
+                                        'RangeExpression',
+                                        [
+                                          [ 'NumberLiteral', '7' ],
+                                          [
+                                            'UnaryExpression',
+                                            '-',
+                                            { before: true },
+                                            [
+                                              [ 'NumberLiteral', '1' ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
                                     ]
                                   ]
                                 ]
@@ -443,11 +455,11 @@
                           [ 'Identifier', 'selectedArrayItems' ],
                           [ 'AssignmentOperator' ],
                           [
-                            'MemberExpression',
+                            'MemberListExpression',
                             [
                               [ 'Identifier', 'countDown' ],
                               [
-                                'MembersList',
+                                'MemberList',
                                 [
                                   [ 'NumberLiteral', '1' ],
                                   [ 'CommaSeparator' ],
@@ -484,14 +496,13 @@
                                 [
                                   [ 'Identifier', 'b' ],
                                   [
-                                    'IfStatement',
-                                    { before: false },
+                                    'PostfixIfStatement',
                                     [
                                       [ 'StringLiteral', 'coat' ],
                                       [
                                         'MemberExpression',
                                         [
-                                          [ 'Keyword', 'this' ],
+                                          [ 'ThisKeyword' ],
                                           [ 'Identifier', 'isDone?' ]
                                         ]
                                       ]
@@ -518,13 +529,13 @@
                                         ]
                                       ],
                                       [
-                                        'TernaryThen',
+                                        'TernaryConsequent',
                                         [
                                           [ 'BoolLiteral', 'true' ]
                                         ]
                                       ],
                                       [
-                                        'TernaryElse',
+                                        'TernaryAlternate',
                                         [
                                           [ 'BoolLiteral', 'false' ]
                                         ]
@@ -571,11 +582,11 @@
                           [ 'Identifier', 'partialObj' ],
                           [ 'AssignmentOperator' ],
                           [
-                            'MemberExpression',
+                            'MemberListExpression',
                             [
                               [ 'Identifier', 'myObject' ],
                               [
-                                'MembersList',
+                                'MemberList',
                                 [
                                   [ 'Identifier', 'a' ],
                                   [ 'CommaSeparator' ],
@@ -590,11 +601,18 @@
                       [ 'Comment', "// new object {a: 1, d: 'foo'}" ],
                       [
                         'VariableDeclaration',
-                        'const',
+                        'let',
                         [
                           [ 'Identifier', 'initializeAndAssignLater' ],
                           [ 'ColonSeparator' ],
-                          [ 'Type', 'number' ],
+                          [ 'Type', 'number' ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'AssignmentExpression',
+                        [
+                          [ 'Identifier', 'initializeAndAssignLater' ],
                           [ 'AssignmentOperator' ],
                           [ 'NumberLiteral', '5' ]
                         ]
@@ -653,7 +671,7 @@
                           [ 'Identifier', 'otherStuff' ],
                           [ 'ColonSeparator' ],
                           [
-                            'ArrayType',
+                            'ArrayOf',
                             [
                               [ 'Identifier', 'Thing' ]
                             ]
