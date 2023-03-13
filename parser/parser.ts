@@ -133,7 +133,8 @@ export default class Parser {
 
 			if (token.type === 'paren_open') {
 				const prev = this.prev();
-				switch (prev?.type) {
+				this.getEffectiveTypeOfNode(prev);
+				switch ( prev?.type) {
 					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case NT.Identifier:
 						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
@@ -316,29 +317,35 @@ export default class Parser {
 
 				if (typeof prevType === 'undefined') {
 					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
-				} else if (isNextABracketClose && (([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType))) { // TODO or member chain
-					// we have an array type
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayOf, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
-					}
-
-
-				// the second condition is to preclude this `{a: [1]}`
-				} else if (validNodeTypesAsMemberObject.includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
-					// since we're an opening bracket, we're definitely either a MemberExpression or a MemberListExpression
-					// the difference being based on what is between the brackets. At this point, we don't know, so we'll
-					// assume it's a MemberListExpression, and then at the bracket_close, we can retroactively determine
-					// if it's a MemberListExpression or a MemberExpression (and then change the type of the node)
-
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberListExpression, token, this.currentRoot, true));
-					if (result.outcome === 'error') {
-						return result;
-					}
-
-					this.beginExpressionWith(MakeNode(NT.MemberList, token, this.currentRoot, true));
 				} else {
-					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
+					if (prevType === NT.Parenthesized) {
+						console.debug({prev: this.prev()?.children, currentRoot: this.currentRoot});
+					}
+
+					if (isNextABracketClose && (([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType))) { // TODO or member chain
+						// we have an array type
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayOf, token, this.currentRoot, true));
+						if (result.outcome === 'error') {
+							return result;
+						}
+
+
+					// the second condition is to preclude this `{a: [1]}`
+					} else if (validNodeTypesAsMemberObject.includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
+						// since we're an opening bracket, we're definitely either a MemberExpression or a MemberListExpression
+						// the difference being based on what is between the brackets. At this point, we don't know, so we'll
+						// assume it's a MemberListExpression, and then at the bracket_close, we can retroactively determine
+						// if it's a MemberListExpression or a MemberExpression (and then change the type of the node)
+
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberListExpression, token, this.currentRoot, true));
+						if (result.outcome === 'error') {
+							return result;
+						}
+
+						this.beginExpressionWith(MakeNode(NT.MemberList, token, this.currentRoot, true));
+					} else {
+						this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
+					}
 				}
 			} else if (token.type === 'bracket_close') {
 				this.endExpressionIfIn(NT.IfStatement);
@@ -1224,6 +1231,16 @@ export default class Parser {
 	 */
 	private prev(howMany = 1): Node | undefined {
 		return this.currentRoot.children.at(-howMany);
+	}
+
+	private getEffectiveTypeOfNode(node: Node | undefined): NT | undefined {
+		if (typeof node === 'undefined') {
+			return undefined;
+		} else if (node.type === NT.Parenthesized && node.children.length === 1) {
+			return this.getEffectiveTypeOfNode(node.children.at(0));
+		} else {
+			return node.type;
+		}
 	}
 
 	/**

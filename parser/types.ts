@@ -131,6 +131,7 @@ export const validNodeTypesAsMemberObject = [
 	NT.CallExpression, // eg. foo()['bar'] or foo()['bar', 'baz']
 	NT.Identifier, // eg. foo['bar'] or foo['bar', 'baz']
 	NT.MemberExpression, // eg. foo.bar['baz'] or foo.bar['baz', 'qux']
+	NT.Parenthesized, // eg. (foo)[0] or (foo)[0, 1]
 	NT.StringLiteral, // eg. "foo"[0] or "foo"[0, 1]
 	NT.ThisKeyword, // eg. this.bar or this['bar', 'baz']
 	NT.TupleExpression, // eg. <1, "two", [3, 4]>[0] or <1, "two", [3, 4]>[0, 1]
