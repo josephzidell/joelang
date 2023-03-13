@@ -11,7 +11,7 @@ import {
 	Node,
 	NT,
 	UnaryExpressionNode,
-	validChildrenAsMemberObject,
+	validNodeTypesAsMemberObject,
 	validChildrenAsMemberProperty,
 	validChildrenInTypeArgumentList,
 	validChildrenInWhenCaseValues
@@ -768,7 +768,7 @@ export default class SemanticAnalyzer {
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.ExpressionExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"}`,
+				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
 			},
 		]);
 		switch (handlingResult.outcome) {
@@ -1304,7 +1304,7 @@ export default class SemanticAnalyzer {
 		// first grammatical requirement: parent (required)
 		{
 			const child = nodesChildren.shift();
-			if (!child?.type || !validChildrenAsMemberObject.includes(child.type)) {
+			if (!child?.type || !validNodeTypesAsMemberObject.includes(child.type)) {
 				return error(new AnalysisError(
 					AnalysisErrorCode.IdentifierExpected,
 					`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
@@ -1371,7 +1371,7 @@ export default class SemanticAnalyzer {
 		// first grammatical requirement: parent (required)
 		{
 			const child = nodesChildren.shift();
-			if (!child?.type || !validChildrenAsMemberObject.includes(child.type)) {
+			if (!child?.type || !validNodeTypesAsMemberObject.includes(child.type)) {
 				return error(new AnalysisError(
 					AnalysisErrorCode.IdentifierExpected,
 					`We were expecting an Identifier in this MemberListExpression, but found "${child?.type}"`,

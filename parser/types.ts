@@ -112,12 +112,13 @@ export const AssignableNodeTypes: NT[] = [
 ];
 
 /** These are the Types corresponding to AssignableNodeTypes */
-export const AssignableTypes: NT[] = [NT.FunctionSignature, NT.Identifier, NT.MemberExpression, NT.MemberListExpression, NT.Type, NT.TypeInstantiationExpression];
+export const AssignableTypes: NT[] = [NT.ArrayOf, NT.FunctionSignature, NT.Identifier, NT.MemberExpression, NT.MemberListExpression, NT.Type, NT.TypeInstantiationExpression];
 
 export const CallableTypes: NT[] = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.TypeInstantiationExpression];
 
 /** These apply equally to MemberExpressions as well as MemberListExpressions */
-export const validChildrenAsMemberObject = [
+export const validNodeTypesAsMemberObject = [
+	NT.ArrayExpression, // eg. ['A', 'B', 'C'][0] or ['A', 'B', 'C'][0, 1]
 	NT.CallExpression, // eg. foo()['bar'] or foo()['bar', 'baz']
 	NT.Identifier, // eg. foo['bar'] or foo['bar', 'baz']
 	NT.MemberExpression, // eg. foo.bar['baz'] or foo.bar['baz', 'qux']

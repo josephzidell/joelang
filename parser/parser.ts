@@ -5,7 +5,7 @@ import ErrorContext from "../shared/errorContext";
 import { error, ok, Result } from "../shared/result";
 import ParserError, { ParserErrorCode } from './error';
 import { ChangeNodeType, MakeNode, MakeUnaryExpressionNode } from './node';
-import { Node, NT, validChildrenAsMemberObject } from './types';
+import { Node, NT, validNodeTypesAsMemberObject } from './types';
 
 export default class Parser {
 	prevToken: Token | undefined;
@@ -325,7 +325,7 @@ export default class Parser {
 
 
 				// the second condition is to preclude this `{a: [1]}`
-				} else if (validChildrenAsMemberObject.includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
+				} else if (validNodeTypesAsMemberObject.includes(prevType) && !(this.currentRoot.type === NT.Property && prevType === NT.Identifier)) {
 					// since we're an opening bracket, we're definitely either a MemberExpression or a MemberListExpression
 					// the difference being based on what is between the brackets. At this point, we don't know, so we'll
 					// assume it's a MemberListExpression, and then at the bracket_close, we can retroactively determine
@@ -438,7 +438,7 @@ export default class Parser {
 
 					// make a copy of the current node, replacing the parent with the parent of the newly changed MemberExpression
 					// keep this in a variable, rather than inlining it, to avoid pointer issues
-					const currentRootIncumbent: Node = {...this.currentRoot.children[0], parent: this.currentRoot.parent};
+					const currentRootIncumbent: Node = { ...this.currentRoot.children[0], parent: this.currentRoot.parent };
 
 					this.currentRoot = this.currentRoot.parent;
 
@@ -1348,7 +1348,7 @@ export default class Parser {
 	 *
 	 * @param newKid - Node to begin expression with and is the adopter
 	 * @param adoptee - Node To adopt
- 	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
+	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
 	 * @returns - newKid
 	 */
 	private beginExpressionWithAdopting(newKid: Node, adoptee: Node | undefined, whatWeExpectInPrevNode?: string): Result<Node> {
@@ -1401,7 +1401,7 @@ export default class Parser {
 	 * @param childIndex - Of the child up for adoption
 	 * @param adopter - The adopter
 	 */
-	 private adoptNode(adopteesParent: Node | undefined, adoptee: Node, adopter: Node): Result<undefined> {
+	private adoptNode(adopteesParent: Node | undefined, adoptee: Node, adopter: Node): Result<undefined> {
 		if (typeof adopteesParent === 'undefined') {
 			return error(new ParserError(
 				ParserErrorCode.MissingParentNode,
