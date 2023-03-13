@@ -122,6 +122,7 @@ export const validNodeTypesAsMemberObject = [
 	NT.CallExpression, // eg. foo()['bar'] or foo()['bar', 'baz']
 	NT.Identifier, // eg. foo['bar'] or foo['bar', 'baz']
 	NT.MemberExpression, // eg. foo.bar['baz'] or foo.bar['baz', 'qux']
+	NT.StringLiteral, // eg. "foo"[0] or "foo"[0, 1]
 	NT.ThisKeyword, // eg. this.bar or this['bar', 'baz']
 	NT.TypeInstantiationExpression, // eg. foo<|T|>['bar'] or foo<|T|>['bar', 'baz']
 ];
