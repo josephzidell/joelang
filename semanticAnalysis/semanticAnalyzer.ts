@@ -60,6 +60,8 @@ import {
 	ASTThatHasRequiredBody,
 	ASTThatHasTypeParams,
 	ASTThisKeyword,
+	ASTTupleExpression,
+	ASTTupleShape,
 	ASTType,
 	ASTTypeExceptPrimitive,
 	ASTTypeInstantiationExpression,
@@ -184,11 +186,19 @@ export default class SemanticAnalyzer {
 		), this.ast);
 	}
 
-	// reusable function to handle a node that has children of the same type
-	// we will check the node type and that the node has a value
-	// if it does, we will call the callback to assign the value to the AST node
-	// if it doesn't, we will return an error
-	convertNodesChildrenOfSameType<R>(
+	/**
+	 * Reusable function to visit all of a node's children, and return them in an array
+	 * This method skips comments and any SkipAST nodes.
+	 *
+	 * In addition, it will check that the children are of the expected type, and return an error if they are not.
+	 *
+	 * @param parentNode Whose children we are visiting
+	 * @param validChildren The types of children we are expecting
+	 * @param errorCode Error code to use if a child is invalid
+	 * @param errorMessageFn Function to generate an error message if a child is invalid
+	 * @returns
+	 */
+	visitChildren<R>(
 		parentNode: Node,
 		validChildren: NT[],
 		errorCode: AnalysisErrorCode,
@@ -204,22 +214,16 @@ export default class SemanticAnalyzer {
 			}
 
 			if (validChildren.includes(child.type)) {
-				let result: Result<R>;
-				// if (typeof converters !== 'undefined' && child.type in converters) {
-				// 	result = converters[child.type].call(this, child);
-				// } else {
-					result = this.nodeToAST<R>(child);
-				// }
-
-				switch (result.outcome) {
+				const visitResult = this.nodeToAST<R>(child);
+				switch (visitResult.outcome) {
 					case 'ok':
-						if (result.value instanceof SkipAST) {
+						if (visitResult.value instanceof SkipAST) {
 							continue;
 						}
 
-						children.push(result.value as Exclude<R, SkipAST>);
+						children.push(visitResult.value as Exclude<R, SkipAST>);
 						break;
-					case 'error': return result; break;
+					case 'error': return visitResult; break;
 				}
 			} else {
 				return error(new AnalysisError(errorCode, errorMessageFn(child), child, this.getErrorContext(child, 1)), this.ast);
@@ -470,23 +474,15 @@ export default class SemanticAnalyzer {
 	 * @see {@link inferASTTypeFromASTAssignable()}
 	 */
 	assignInferredType(valueAST: AssignableASTs, valueNode: Node, assigner: (inferredType: ASTType) => void): Result<void> {
-		const inferredTypeResult = this.inferASTTypeFromASTAssignable(valueAST, valueNode);
-		switch (inferredTypeResult.outcome) {
-			case 'ok':
-				const inferredTypeMaybe = inferredTypeResult.value;
-				if (inferredTypeMaybe.has) {
-					assigner(inferredTypeMaybe.value);
-				}
-
-				// could not infer a type: ok :)
-
-				// either way, we're done
-				return ok(undefined);
-
-			// Ruh roh
-			case 'error':
-				return inferredTypeResult;
+		const inferredTypeMaybe = this.inferASTTypeFromASTAssignable(valueAST, valueNode);
+		if (inferredTypeMaybe.has) {
+			assigner(inferredTypeMaybe.value);
 		}
+
+		// could not infer a type: ok :) 🤷 ¯\_(ツ)_/¯
+
+		// either way, we're done
+		return ok(undefined);
 	}
 
 	noop(node: Node): Result<SkipAST> {
@@ -531,49 +527,22 @@ export default class SemanticAnalyzer {
 	}
 
 	/** Attempts to infer an ASTType from an ASTAssignable. This is very forgiving, and only returns an error in extremely unlikely cases */
-	private inferASTTypeFromASTAssignable(expr: AST, node: Node): ResultAndAMaybe<ASTType> {
+	private inferASTTypeFromASTAssignable(expr: AST, node: Node): Maybe<ASTType> {
 		switch (expr.constructor) {
-			case ASTBoolLiteral: return ok(has(ASTTypePrimitiveBool)); break;
-			case ASTNumberLiteral: return ok(has(ASTTypePrimitiveNumber)); break;
-			case ASTPath: return ok(has(ASTTypePrimitivePath)); break;
-			case ASTPostfixIfStatement:
-				const expression = (expr as ASTPostfixIfStatement).expression;
-				return this.inferASTTypeFromASTAssignable(expression, node);
-				break;
-			case ASTRangeExpression: return ok(has(ASTTypeRange)); break;
-			case ASTRegularExpression: return ok(has(ASTTypePrimitiveRegex)); break;
-			case ASTStringLiteral: return ok(has(ASTTypePrimitiveString)); break;
-			case ASTTernaryExpression:
-				const typeOfConsequent = this.inferASTTypeFromASTAssignable((expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).consequent.value, node);
-				const typeOfAlternate = this.inferASTTypeFromASTAssignable((expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).alternate.value, node);
-
-				if (typeOfConsequent.outcome === 'ok' && typeOfAlternate.outcome === 'ok' &&
-					typeOfConsequent.value.has && typeOfAlternate.value.has &&
-					// do not use .constructor, because we need the actual type, not the ASTType which would be the same for all primitives
-					typeOfConsequent.value.value === typeOfAlternate.value.value
-				) {
-					return ok(has(typeOfConsequent.value.value));
-				}
-
-				return ok(hasNot());
-
-				break;
-			case ASTUnaryExpression:
+			case ASTArrayExpression:
 				{
-					const operator = (expr as ASTUnaryExpression<ExpressionASTs>).operator;
-					switch (operator) {
-						case '!':
-							return ok(has(ASTTypePrimitiveBool));
-							break;
-
-						case '-':
-						case '++':
-						case '--':
-							return ok(has(ASTTypePrimitiveNumber));
-							break;
-						default:
-							return error(new AnalysisError(AnalysisErrorCode.UnknownOperator, `Cannot infer type from unary operator "${operator}"`, node, this.getErrorContext(node, 1)));
+					// if the array is empty, we can't infer anything
+					if ((expr as ASTArrayExpression<ExpressionASTs>).items.length === 0) {
+						return hasNot();
 					}
+
+					const childType = this.inferASTTypeFromASTAssignable((expr as ASTArrayExpression<ExpressionASTs>).items[0], node);
+					// if we can't infer the type of the child, we can't infer the type of the array
+					if (!childType.has) {
+						return hasNot();
+					}
+
+					return has(ASTArrayOf._(childType.value));
 				}
 				break;
 			case ASTBinaryExpression:
@@ -588,7 +557,7 @@ export default class SemanticAnalyzer {
 						case '<=':
 						case '&&':
 						case '||':
-							return ok(has(ASTTypePrimitiveBool));
+							return has(ASTTypePrimitiveBool);
 							break;
 						case '+':
 						case '-':
@@ -596,17 +565,75 @@ export default class SemanticAnalyzer {
 						case '/':
 						case '%':
 						case '^e':
-							return ok(has(ASTTypePrimitiveNumber));
+							return has(ASTTypePrimitiveNumber);
 							break;
-						default:
-							return error(new AnalysisError(AnalysisErrorCode.UnknownOperator, `Cannot infer type from binary operator "${operator}"`, node, this.getErrorContext(node, 1)));
+					}
+				}
+				break;
+			case ASTBoolLiteral: return has(ASTTypePrimitiveBool); break;
+			case ASTNumberLiteral: return has(ASTTypePrimitiveNumber); break;
+			case ASTPath: return has(ASTTypePrimitivePath); break;
+			case ASTPostfixIfStatement:
+				const expression = (expr as ASTPostfixIfStatement).expression;
+				return this.inferASTTypeFromASTAssignable(expression, node);
+				break;
+			case ASTRangeExpression: return has(ASTTypeRange._()); break;
+			case ASTRegularExpression: return has(ASTTypePrimitiveRegex); break;
+			case ASTStringLiteral: return has(ASTTypePrimitiveString); break;
+			case ASTTernaryExpression:
+				const typeOfConsequent = this.inferASTTypeFromASTAssignable((expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).consequent.value, node);
+				const typeOfAlternate = this.inferASTTypeFromASTAssignable((expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).alternate.value, node);
+
+				if (typeOfConsequent.has && typeOfAlternate.has &&
+					// do not use .constructor, because we need the actual type, not the ASTType which would be the same for all primitives
+					typeOfConsequent.value === typeOfAlternate.value
+				) {
+					return has(typeOfConsequent.value);
+				}
+
+				return hasNot();
+
+				break;
+			case ASTTupleExpression:
+				{
+					const itemMaybes = (expr as ASTTupleExpression).items.map(item => {
+						return this.inferASTTypeFromASTAssignable(item, node);
+					});
+
+					let items = [];
+					for (const itemMaybe of itemMaybes) {
+						if (itemMaybe.has) {
+							items.push(itemMaybe.value);
+						} else {
+							return hasNot();
+						}
+					}
+
+					return has(ASTTupleShape._(items));
+				}
+				break;
+			case ASTUnaryExpression:
+				{
+					const operator = (expr as ASTUnaryExpression<ExpressionASTs>).operator;
+					switch (operator) {
+						case '!':
+							return has(ASTTypePrimitiveBool);
+							break;
+
+						case '-':
+						case '++':
+						case '--':
+							return has(ASTTypePrimitiveNumber);
+							break;
 					}
 				}
 				break;
 			default:
-				// TODO more work needed here. Discover inferred type of CallExpression, MemberExpression, MemberListExpression
-				return ok(hasNot());
+				// TODO more work needed here. Discover inferred type of CallExpression, MemberExpression, MemberListExpression, and more
+				return hasNot();
 		}
+
+		return hasNot();
 	}
 
 	/** Visitees */
@@ -614,7 +641,7 @@ export default class SemanticAnalyzer {
 	visitArgumentList(node: Node): Result<ASTArgumentsList> {
 		const ast = new ASTArgumentsList();
 
-		const argsResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
+		const argsResult = this.visitChildren<AssignableASTs>(
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator],
 			AnalysisErrorCode.AssignableExpected,
@@ -631,10 +658,10 @@ export default class SemanticAnalyzer {
 	}
 
 	/** An ArrayExpression needs a type, which can be evaluated either via the first item or via the context (VariableDeclaration, Argument Type, etc.) */
-	visitArrayExpression(node: Node): Result<ASTArrayExpression> {
+	visitArrayExpression(node: Node): Result<ASTArrayExpression<AssignableASTs>> {
 		const ast = new ASTArrayExpression();
 
-		const itemsResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
+		const itemsResult = this.visitChildren<AssignableASTs>(
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator, NT.PostfixIfStatement],
 			AnalysisErrorCode.AssignableExpected,
@@ -658,6 +685,29 @@ export default class SemanticAnalyzer {
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
+	}
+
+	visitArrayOf(node: Node): Result<ASTArrayOf> {
+		if (node.children.length !== 1) {
+			return error(new AnalysisError(
+				AnalysisErrorCode.TypeExpected,
+				`We were expecting one type, but found ${node.children.length} types`,
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			), this.ast);
+		}
+
+		const visitResult = this.visitType(node.children[0]);
+		switch (visitResult.outcome) {
+			case 'ok':
+				const ast = ASTArrayOf._(visitResult.value);
+
+				this.astPointer = this.ast = ast;
+
+				return ok(ast);
+				break;
+			case 'error': return visitResult; break;
+		}
 	}
 
 	visitAssignmentExpression(node: Node): Result<ASTAssignmentExpression> {
@@ -730,7 +780,7 @@ export default class SemanticAnalyzer {
 				AnalysisErrorCode.OperatorExpected,
 				'Operator Expected',
 				node,
-				this.getErrorContext(node, 1),
+				this.getErrorContext(node, node.value?.length || 1),
 			), this.ast);
 		}
 
@@ -787,7 +837,7 @@ export default class SemanticAnalyzer {
 		const ast = new ASTBlockStatement();
 
 		// next, get the expressions from the children
-		const expressionsResult = this.convertNodesChildrenOfSameType<AST>(
+		const expressionsResult = this.visitChildren<AST>(
 			node,
 			validChildren,
 			AnalysisErrorCode.ExtraNodesFound,
@@ -812,7 +862,12 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(AnalysisErrorCode.BoolLiteralExpected, 'Bool Expected', node, this.getErrorContext(node, 1)), this.ast);
+		return error(new AnalysisError(
+			AnalysisErrorCode.BoolLiteralExpected,
+			'Bool Expected',
+			node,
+			this.getErrorContext(node, node.value?.length || 1),
+		), this.ast);
 	}
 
 	visitCallExpression(node: Node): Result<ASTCallExpression> {
@@ -1093,7 +1148,7 @@ export default class SemanticAnalyzer {
 	visitFunctionReturns(node: Node): Result<ASTType[]> {
 		let returns: ASTType[] = [];
 
-		const conversionResult = this.convertNodesChildrenOfSameType<AssignableASTs>(
+		const conversionResult = this.visitChildren<AssignableASTs>(
 			node,
 			[...AssignableTypes, NT.CommaSeparator],
 			AnalysisErrorCode.TypeExpected,
@@ -1356,7 +1411,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitMemberList(node: Node): Result<MemberExpressionPropertyASTs[]> {
-		return this.convertNodesChildrenOfSameType<MemberExpressionPropertyASTs>(
+		return this.visitChildren<MemberExpressionPropertyASTs>(
 			node,
 			validChildrenAsMemberProperty,
 			AnalysisErrorCode.IdentifierExpected,
@@ -1433,7 +1488,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitModifiersList(node: Node): Result<ASTModifier[]> {
-		return this.convertNodesChildrenOfSameType(
+		return this.visitChildren(
 			node,
 			[NT.Modifier],
 			AnalysisErrorCode.ModifierExpected,
@@ -1621,7 +1676,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitParametersList(node: Node): Result<ASTParameter[]> {
-		return this.convertNodesChildrenOfSameType(
+		return this.visitChildren(
 			node,
 			[NT.Parameter, NT.CommaSeparator],
 			AnalysisErrorCode.ParameterExpected,
@@ -1665,7 +1720,12 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(AnalysisErrorCode.ValidPathExpected, 'Valid Path Expected', node, this.getErrorContext(node, 1)), this.ast);
+		return error(new AnalysisError(
+			AnalysisErrorCode.ValidPathExpected,
+			'Valid Path Expected',
+			node,
+			this.getErrorContext(node, node.value?.length || 1),
+		), this.ast);
 	}
 
 	visitPostfixIfStatement(node: Node): Result<ASTPostfixIfStatement> {
@@ -1716,9 +1776,9 @@ export default class SemanticAnalyzer {
 		const ast = new ASTPrintStatement();
 
 		// first, get the expression to print
-		const expressionsResult = this.convertNodesChildrenOfSameType<ExpressionASTs>(
+		const expressionsResult = this.visitChildren<ExpressionASTs>(
 			node,
-			ExpressionNodeTypes,
+			[...ExpressionNodeTypes, NT.CommaSeparator],
 			AnalysisErrorCode.ExpressionExpected,
 			() => 'Expression Expected',
 		);
@@ -1747,7 +1807,7 @@ export default class SemanticAnalyzer {
 		// skip for now
 
 		// the declarations
-		const declarationsResult = this.convertNodesChildrenOfSameType<AST>(
+		const declarationsResult = this.visitChildren<AST>(
 			node,
 			validChildren,
 			AnalysisErrorCode.ExtraNodesFound,
@@ -1852,7 +1912,12 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(AnalysisErrorCode.ExpressionExpected, 'Regular Expression expected', node, this.getErrorContext(node, 1)));
+		return error(new AnalysisError(
+			AnalysisErrorCode.ExpressionExpected,
+			'Regular Expression expected',
+			node,
+			this.getErrorContext(node, node.value?.length || 1),
+		), this.ast);
 	}
 
 	visitRestElement(node: Node): Result<ASTRestElement> {
@@ -1875,7 +1940,7 @@ export default class SemanticAnalyzer {
 	visitReturnStatement(node: Node): Result<ASTReturnStatement> {
 		const ast = new ASTReturnStatement();
 
-		const conversionResult = this.convertNodesChildrenOfSameType<ExpressionASTs>(
+		const conversionResult = this.visitChildren<ExpressionASTs>(
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator],
 			AnalysisErrorCode.AssignableExpected,
@@ -1892,7 +1957,8 @@ export default class SemanticAnalyzer {
 	}
 
 	visitStringLiteral(node: Node): Result<ASTStringLiteral> {
-		if (node?.type === NT.StringLiteral && node.value) {
+		// check if the value is undefined, since empty strings are valid
+		if (node?.type === NT.StringLiteral && typeof node.value !== 'undefined') {
 			const ast = new ASTStringLiteral();
 
 			ast.value = node.value;
@@ -1902,7 +1968,12 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(AnalysisErrorCode.BoolLiteralExpected, 'Bool Expected', node, this.getErrorContext(node, 1)), this.ast);
+		return error(new AnalysisError(
+			AnalysisErrorCode.StringLiteralExpected,
+			'String Expected',
+			node,
+			this.getErrorContext(node, node.value?.length || 1),
+		), this.ast);
 	}
 
 	visitTernaryAlternate(node: Node): Result<ASTTernaryAlternate<AssignableASTs>> {
@@ -2056,27 +2127,70 @@ export default class SemanticAnalyzer {
 		), this.ast);
 	}
 
-	visitArrayOf(node: Node): Result<ASTArrayOf> {
-		if (node.children.length !== 1) {
+	visitTupleExpression(node: Node): Result<ASTTupleExpression> {
+		const ast = new ASTTupleExpression();
+
+		const handlingResult = this.visitChildren<AssignableASTs>(
+			node,
+			[...AssignableNodeTypes, NT.CommaSeparator],
+			AnalysisErrorCode.AssignableExpected,
+			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
+		);
+		switch (handlingResult.outcome) {
+			case 'ok': ast.items = handlingResult.value; break;
+			case 'error': return handlingResult; break;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	visitTupleShape(node: Node): Result<ASTTupleShape> {
+		if (node.children.length < 1) {
 			return error(new AnalysisError(
 				AnalysisErrorCode.TypeExpected,
-				`We were expecting one type, but found ${node.children.length} types`,
+				`We were expecting at least one type, but found none`,
 				node,
 				this.getErrorContext(node, node.value?.length || 1),
 			), this.ast);
 		}
 
-		const visitResult = this.visitType(node.children[0]);
-		switch (visitResult.outcome) {
-			case 'ok':
-				const ast = ASTArrayOf._(visitResult.value);
+		const children: Array<Exclude<ASTType, SkipAST>> = [];
 
-				this.astPointer = this.ast = ast;
+		for (const child of node.children) {
+			// ignore comments
+			if (child.type === NT.Comment) {
+				continue;
+			}
 
-				return ok(ast);
-				break;
-			case 'error': return visitResult; break;
+			if ([...AssignableTypes, NT.CommaSeparator].includes(child.type)) {
+				const visitResult = this.visitType(child);
+				switch (visitResult.outcome) {
+					case 'ok':
+						if (visitResult.value instanceof SkipAST) {
+							continue;
+						}
+
+						children.push(visitResult.value as Exclude<ASTType, SkipAST>);
+						break;
+					case 'error': return visitResult; break;
+				}
+			} else {
+				return error(new AnalysisError(
+					AnalysisErrorCode.TypeExpected,
+					`We were expecting a type here, but we got a ${child.type} instead`,
+					child,
+					this.getErrorContext(child, child.value?.length || 1),
+				), this.ast);
+			}
 		}
+
+		const ast = ASTTupleShape._(children);
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	/**
@@ -2137,6 +2251,7 @@ export default class SemanticAnalyzer {
 			case NT.FunctionSignature:
 			case NT.Identifier:
 			case NT.MemberExpression:
+			case NT.TupleShape:
 			case NT.TypeInstantiationExpression:
 				return this.nodeToAST<ASTArrayOf | ASTFunctionSignature | ASTIdentifier | ASTMemberExpression>(node);
 				break;
@@ -2213,7 +2328,7 @@ export default class SemanticAnalyzer {
 				type: NT.TypeArgumentsList,
 				required: true,
 				callback: (child: Node) => {
-					const conversionResult = this.convertNodesChildrenOfSameType<ASTType>(
+					const conversionResult = this.visitChildren<ASTType>(
 						child,
 						validChildrenInTypeArgumentList,
 						AnalysisErrorCode.ExtraNodesFound,
@@ -2248,7 +2363,7 @@ export default class SemanticAnalyzer {
 	visitTypeParametersList(node: Node): Result<ASTTypeExceptPrimitive[]> {
 		let typeParams: ASTTypeExceptPrimitive[] = [];
 
-		const conversionResult = this.convertNodesChildrenOfSameType<ASTTypeExceptPrimitive>(
+		const conversionResult = this.visitChildren<ASTTypeExceptPrimitive>(
 			node,
 			[NT.CommaSeparator, NT.TypeParameter],
 			AnalysisErrorCode.TypeExpected,
@@ -2275,7 +2390,7 @@ export default class SemanticAnalyzer {
 				AnalysisErrorCode.OperatorExpected,
 				'Operator Expected',
 				node,
-				this.getErrorContext(node, 1),
+				this.getErrorContext(node, node.value?.length || 1),
 			), this.ast);
 		}
 
@@ -2329,7 +2444,7 @@ export default class SemanticAnalyzer {
 				AnalysisErrorCode.KeywordExpected,
 				'Expecting keyword "const" or "let"',
 				node,
-				this.getErrorContext(node, 1),
+				this.getErrorContext(node, node.value?.length || 1),
 			), this.ast);
 		}
 
@@ -2557,7 +2672,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitWhenCaseValues(child: Node): Result<WhenCaseValueASTs[]> {
-		return this.convertNodesChildrenOfSameType<WhenCaseValueASTs>(
+		return this.visitChildren<WhenCaseValueASTs>(
 			child,
 			validChildrenInWhenCaseValues,
 			AnalysisErrorCode.WhenCaseValueExpected,
@@ -2592,7 +2707,7 @@ export default class SemanticAnalyzer {
 		{
 			const child = nodesChildren.shift();
 			if (child?.type && child.type === NT.BlockStatement) {
-				const conversionResult = this.convertNodesChildrenOfSameType<ASTWhenCase>(
+				const conversionResult = this.visitChildren<ASTWhenCase>(
 					child,
 					[NT.WhenCase, NT.CommaSeparator],
 					AnalysisErrorCode.WhenCaseExpected,

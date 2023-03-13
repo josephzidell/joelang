@@ -104,7 +104,7 @@ export const ExpressionNodeTypes: NT[] = [
 	NT.WhenExpression,
 ];
 
-/** These are Node Types that are physically assignable to some variable or param. */
+/** These are Node Types that are physically assignable to some variable, param, or in a return. */
 export const AssignableNodeTypes: NT[] = [
 	...ExpressionNodeTypes,
 	NT.FunctionDeclaration,
@@ -112,7 +112,16 @@ export const AssignableNodeTypes: NT[] = [
 ];
 
 /** These are the Types corresponding to AssignableNodeTypes */
-export const AssignableTypes: NT[] = [NT.ArrayOf, NT.FunctionSignature, NT.Identifier, NT.MemberExpression, NT.MemberListExpression, NT.Type, NT.TypeInstantiationExpression];
+export const AssignableTypes: NT[] = [
+	NT.ArrayOf,
+	NT.FunctionSignature,
+	NT.Identifier,
+	NT.MemberExpression,
+	NT.MemberListExpression,
+	NT.TupleShape,
+	NT.Type,
+	NT.TypeInstantiationExpression,
+];
 
 export const CallableTypes: NT[] = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.TypeInstantiationExpression];
 
@@ -124,6 +133,7 @@ export const validNodeTypesAsMemberObject = [
 	NT.MemberExpression, // eg. foo.bar['baz'] or foo.bar['baz', 'qux']
 	NT.StringLiteral, // eg. "foo"[0] or "foo"[0, 1]
 	NT.ThisKeyword, // eg. this.bar or this['bar', 'baz']
+	NT.TupleExpression, // eg. <1, "two", [3, 4]>[0] or <1, "two", [3, 4]>[0, 1]
 	NT.TypeInstantiationExpression, // eg. foo<|T|>['bar'] or foo<|T|>['bar', 'baz']
 ];
 

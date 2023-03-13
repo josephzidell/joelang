@@ -138,7 +138,8 @@ export function matchAST (actualASTResult: Result<ASTProgram>, expectedASTProgra
 			}
 
 			try {
-				expect(actualAST).toMatchObject(expectedASTProgramDeclarations);
+				// don't use .toMatchObject() because it only matches partially
+				expect(actualAST).toEqual(expectedASTProgramDeclarations);
 
 				return {pass: true, message: () => 'they match'};
 			} catch {

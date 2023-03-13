@@ -33,14 +33,17 @@ export class ASTArgumentsList implements AST {
 	}
 }
 
-export class ASTArrayExpression implements AST {
+export class ASTArrayExpression<T extends AssignableASTs> implements AST {
 	/** The type, usually inferred from the initial value, if any, or from context */
 	type: ASTType | undefined = undefined;
-	items: AssignableASTs[] = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
+	items: T[] = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
-	static _({ type, items }: { type?: ASTType; items: AssignableASTs[]; }): ASTArrayExpression {
-		const ast = new ASTArrayExpression();
+	static _<T extends AssignableASTs>({ type, items }: {
+		type?: ASTType;
+		items: T[];
+	}): ASTArrayExpression<T> {
+		const ast = new ASTArrayExpression<T>();
 		ast.type = type;
 		ast.items = items;
 		return ast;
@@ -576,7 +579,27 @@ export class ASTThisKeyword implements AST {
 	}
 }
 
-export class ASTTupleExpression implements AST { }
+export class ASTTupleExpression implements AST {
+	items: AssignableASTs[] = [];
+
+	// factory function
+	static _(items: AssignableASTs[]): ASTTupleExpression {
+		const ast = new ASTTupleExpression();
+		ast.items = items;
+		return ast;
+	}
+}
+
+export class ASTTupleShape implements AST {
+	types!: ASTType[];
+
+	// factory function
+	static _(types: ASTType[]): ASTTupleShape {
+		const ast = new ASTTupleShape();
+		ast.types = types;
+		return ast;
+	}
+}
 
 /** Begin ASTType */
 export class ASTTypeInstantiationExpression {
@@ -651,20 +674,20 @@ export class ASTVariableDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHas
 	/** The type declared by the source code, if any */
 	declaredType?: ASTType;
 
+	initialValue?: AssignableASTs;
+
 	/** The type inferred from the initial value, if any */
 	inferredType?: ASTType;
 
-	initialValue?: AssignableASTs;
-
 	// factory function
-	static _({ joeDoc, modifiers, mutable, identifier, declaredType, inferredType, initialValue }: {
+	static _({ joeDoc, modifiers, mutable, identifier, declaredType, initialValue, inferredType }: {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		mutable: boolean;
 		identifier: ASTIdentifier;
 		declaredType?: ASTType;
-		inferredType?: ASTType;
 		initialValue?: AssignableASTs;
+		inferredType?: ASTType;
 	}): ASTVariableDeclaration {
 		const ast = new ASTVariableDeclaration();
 
@@ -676,16 +699,16 @@ export class ASTVariableDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHas
 		ast.mutable = mutable;
 		ast.identifier = identifier;
 
-		if (declaredType) { // only set if it's not undefined
+		if (typeof declaredType !== 'undefined') { // only set if it's not undefined
 			ast.declaredType = declaredType;
 		}
 
-		if (inferredType) { // only set if it's not undefined
-			ast.inferredType = inferredType;
+		if (typeof initialValue !== 'undefined') { // only set if it's not undefined
+			ast.initialValue = initialValue;
 		}
 
-		if (initialValue) { // only set if it's not undefined
-			ast.initialValue = initialValue;
+		if (typeof inferredType !== 'undefined') { // only set if it's not undefined
+			ast.inferredType = inferredType;
 		}
 
 		return ast;
@@ -731,7 +754,7 @@ export type CallableASTs = ASTCallExpression | ASTIdentifier | ASTMemberExpressi
 
 /** ASTs that can be used in UnaryExpressions and BinaryExpressions */
 export type ExpressionASTs =
-	ASTArrayExpression |
+	ASTArrayExpression<AssignableASTs> |
 	ASTBinaryExpression<ExpressionASTs, ExpressionASTs> |
 	ASTBoolLiteral |
 	ASTCallExpression |
