@@ -486,6 +486,161 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 };
 
 describe('parser.ts', (): void => {
+	describe('Braces', () => {
+
+		it('allows a code block in middle of a function', () => {
+			testParseAndAnalyze(
+				`f foo {
+					print 'hello';
+
+					{
+						print 'world';
+					}
+
+					print '!';
+				}`,
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, [
+							[NT.PrintStatement, [
+								[NT.StringLiteral, 'hello'],
+							]],
+							[NT.SemicolonSeparator],
+							[NT.BlockStatement, [
+								[NT.PrintStatement, [
+									[NT.StringLiteral, 'world'],
+								]],
+								[NT.SemicolonSeparator],
+							]],
+							[NT.PrintStatement, [
+								[NT.StringLiteral, '!'],
+							]],
+							[NT.SemicolonSeparator],
+						]],
+					]],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [],
+						body: ASTBlockStatement._([
+							ASTPrintStatement._([
+								ASTStringLiteral._('hello'),
+							]),
+							ASTBlockStatement._([
+								ASTPrintStatement._([
+									ASTStringLiteral._('world'),
+								]),
+							]),
+							ASTPrintStatement._([
+								ASTStringLiteral._('!'),
+							]),
+						]),
+					}),
+				],
+			);
+		});
+
+		it('allows nested code blocks in middle of a function', () => {
+			testParseAndAnalyze(
+				`f foo {
+					print 'hello';
+
+					{
+						print 'world';
+
+						{
+							const x = 4;
+						}
+
+						{
+							print x; // should get error
+						}
+					}
+
+					print '!';
+				}`,
+				[
+					[NT.FunctionDeclaration, [
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, [
+							[NT.PrintStatement, [
+								[NT.StringLiteral, 'hello'],
+							]],
+							[NT.SemicolonSeparator],
+							[NT.BlockStatement, [
+								[NT.PrintStatement, [
+									[NT.StringLiteral, 'world'],
+								]],
+								[NT.SemicolonSeparator],
+								[NT.BlockStatement, [
+									[NT.VariableDeclaration, 'const', [
+										[NT.Identifier, 'x'],
+										[NT.AssignmentOperator],
+										[NT.NumberLiteral, '4'],
+									]],
+									[NT.SemicolonSeparator],
+								]],
+								[NT.BlockStatement, [
+									[NT.PrintStatement, [
+										[NT.Identifier, 'x'],
+									]],
+									[NT.SemicolonSeparator],
+									[NT.Comment, '// should get error'],
+								]],
+							]],
+							[NT.PrintStatement, [
+								[NT.StringLiteral, '!'],
+							]],
+							[NT.SemicolonSeparator],
+						]],
+					]],
+				],
+				[
+					ASTFunctionDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('foo'),
+						typeParams: [],
+						params: [],
+						returnTypes: [],
+						body: ASTBlockStatement._([
+							ASTPrintStatement._([
+								ASTStringLiteral._('hello'),
+							]),
+							ASTBlockStatement._([
+								ASTPrintStatement._([
+									ASTStringLiteral._('world'),
+								]),
+								ASTBlockStatement._([
+									ASTVariableDeclaration._({
+										modifiers: [],
+										mutable: false,
+										identifier: ASTIdentifier._('x'),
+										initialValue: ASTNumberLiteral._({format: 'int', value: 4}),
+										inferredType: ASTTypePrimitive._('number'),
+									}),
+								]),
+								ASTBlockStatement._([
+									ASTPrintStatement._([
+										ASTIdentifier._('x'),
+									]),
+								]),
+							]),
+							ASTPrintStatement._([
+								ASTStringLiteral._('!'),
+							]),
+						]),
+					}),
+				],
+			);
+		});
+
+	});
+
 	describe('CallExpression', () => {
 
 		it('works with several nested layers', () => {
