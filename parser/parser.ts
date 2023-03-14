@@ -132,9 +132,8 @@ export default class Parser {
 			}
 
 			if (token.type === 'paren_open') {
-				const prev = this.prev();
-				this.getEffectiveTypeOfNode(prev);
-				switch ( prev?.type) {
+				const [prev, prevType] = this.prev();
+				switch (prevType) {
 					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
 					case NT.Identifier:
 						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
@@ -177,9 +176,9 @@ export default class Parser {
 						}
 						break;
 					case NT.TypeArgumentsList:
-						const twoBack = this.prev(2);
+						const [twoBack, twoBackType] = this.prev(2);
 
-						if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)) {
+						if (twoBackType && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)) {
 							// we're in a CallExpression after the GenericTypesList
 							const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
 							let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
@@ -265,7 +264,7 @@ export default class Parser {
 				}
 
 				// this could be a BlockStatement or an ObjectExpression
-				const prevType = this.prev()?.type;
+				const [, prevType] = this.prev();
 				const nodeTypesThatPrecedeAnObjectExpression: NT[] = [
 					NT.AssignmentOperator,
 					NT.ArgumentsList,
@@ -313,15 +312,11 @@ export default class Parser {
 				this.endExpressionIfIn(NT.WhileStatement);
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
-				const prevType = this.prev()?.type;
+				const [, prevType] = this.prev();
 
 				if (typeof prevType === 'undefined') {
 					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
 				} else {
-					if (prevType === NT.Parenthesized) {
-						console.debug({prev: this.prev()?.children, currentRoot: this.currentRoot});
-					}
-
 					if (isNextABracketClose && (([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType))) { // TODO or member chain
 						// we have an array type
 						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayOf, token, this.currentRoot, true));
@@ -522,7 +517,7 @@ export default class Parser {
 				this.addNode(MakeNode(NT.AssignmentOperator, token, this.currentRoot, true));
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn(NT.UnaryExpression);
-				const result = this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token);
 				if (result.outcome === 'error') {
 					return result;
 				}
@@ -532,7 +527,7 @@ export default class Parser {
 					this.currentRoot.type !== NT.BinaryExpression && this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1..-2`
 				) {
 					this.endExpressionIfIn(NT.UnaryExpression);
-					const result = this.handleBinaryExpression(token, this.prev());
+					const result = this.handleBinaryExpression(token);
 					if (result.outcome === 'error') {
 						return result;
 					}
@@ -543,8 +538,8 @@ export default class Parser {
 			} else if (token.type === 'plus_plus' || token.type === 'minus_minus') {
 				// check token before, then check token after
 				// works on an Identifier, and MemberExpression
-				const prev = this.prev();
-				if (prev?.type === NT.Identifier || prev?.type === NT.MemberExpression) {
+				const [, prevType] = this.prev();
+				if (prevType === NT.Identifier || prevType === NT.MemberExpression) {
 					// this is postfix
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeUnaryExpressionNode(token, false, this.currentRoot));
 					if (result.outcome === 'error') {
@@ -556,17 +551,17 @@ export default class Parser {
 					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 				}
 			} else if (token.type === 'asterisk') {
-				const result = this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token);
 				if (result.outcome === 'error') {
 					return result;
 				}
 			} else if (token.type === 'forward_slash') {
-				const result = this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token);
 				if (result.outcome === 'error') {
 					return result;
 				}
 			} else if (token.type === 'mod') {
-				const result = this.handleBinaryExpression(token, this.prev());
+				const result = this.handleBinaryExpression(token);
 				if (result.outcome === 'error') {
 					return result;
 				}
@@ -597,11 +592,11 @@ export default class Parser {
 
 				this.addNode(MakeNode(NT.SemicolonSeparator, token, this.currentRoot));
 			} else if (token.type === 'dot') {
-				let prev = this.prev();
+				let [prev, prevType] = this.prev();
 
-				if (prev?.type === NT.TypeArgumentsList) {
-					const twoBack = this.prev(2);
-					if (twoBack?.type && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)) {
+				if (prev && prevType === NT.TypeArgumentsList) {
+					const [twoBack, twoBackType] = this.prev(2);
+					if (twoBackType && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)) {
 						// we're in a MemberExpression after the GenericTypesList
 						// eg. `foo<bar>.baz`
 						// we need to create a new TypeInstantiationExpression node
@@ -618,15 +613,16 @@ export default class Parser {
 
 						// once done, this new node then becomes the "previous" for the next if
 						prev = typeInstantiationExpressionNode;
+						prevType = this.getEffectiveTypeOfNode(prev);
 					}
 				} // do not connect this to the next if since this is independent of the next if
 
-				if (prev?.type === NT.CallExpression ||
-					prev?.type === NT.Identifier ||
-					prev?.type === NT.MemberExpression ||
-					prev?.type === NT.Type ||
-					prev?.type === NT.TypeInstantiationExpression ||
-					prev?.type === NT.ThisKeyword
+				if (prevType === NT.CallExpression ||
+					prevType === NT.Identifier ||
+					prevType === NT.MemberExpression ||
+					prevType === NT.Type ||
+					prevType === NT.TypeInstantiationExpression ||
+					prevType === NT.ThisKeyword
 				) {
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.MemberExpression, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
@@ -648,7 +644,7 @@ export default class Parser {
 					this.endExpression(); // end the TernaryConsequent
 					this.beginExpressionWith(MakeNode(NT.TernaryAlternate, token, this.currentRoot, true));
 
-				} else if ([NT.ObjectExpression, NT.ObjectShape].includes(this.currentRoot.type) && this.prev()?.type === NT.Identifier) {
+				} else if ([NT.ObjectExpression, NT.ObjectShape].includes(this.currentRoot.type) && this.prev()[1] === NT.Identifier) {
 					// POJOs notation
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
@@ -722,14 +718,12 @@ export default class Parser {
 				'less_than_equals',
 				'not_equals',
 			].includes(token.type)) {
-				const prev = this.prev();
-
 				// '<=>' can be a function name
 				if (token.type === 'compare' && this.isCurrentRootAFunctionInAClass()) {
 					this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
 
 				} else {
-					const result = this.handleBinaryExpression(token, prev);
+					const result = this.handleBinaryExpression(token);
 					if (result.outcome === 'error') {
 						return result;
 					}
@@ -789,10 +783,10 @@ export default class Parser {
 				if (([NT.ClassDeclaration, NT.FunctionDeclaration, NT.FunctionSignature, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
 					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 				} else {
-					const prev = this.prev();
+					const [, prevType] = this.prev();
 					if (this.currentRoot.type === NT.ArgumentsList ||
 						// foo.bar<|T|>
-						(this.currentRoot.type === NT.MemberExpression && prev?.type === NT.Identifier)
+						(this.currentRoot.type === NT.MemberExpression && prevType === NT.Identifier)
 					) {
 						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true));
 						if (result.outcome === 'error') {
@@ -809,12 +803,12 @@ export default class Parser {
 				this.endExpressionIfIn(NT.TypeParameter);
 				this.endExpressionIfIn(NT.TypeParametersList);
 
-				const prev = this.prev();
-				if (prev?.type === NT.TypeArgumentsList) {
-					const twoBack = this.prev(2);
+				const [prev, prevType] = this.prev();
+				if (prevType === NT.TypeArgumentsList) {
+					const [twoBack, twoBackType] = this.prev(2);
 
-					if (twoBack?.type
-						&& ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBack.type)
+					if (twoBackType
+						&& ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)
 						&& !([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(this.currentRoot.type)
 						&& this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
 					) {
@@ -854,7 +848,7 @@ export default class Parser {
 				 * - the beginning of a tuple type
 				 */
 
-				const prevType = this.prev()?.type;
+				const [, prevType] = this.prev();
 
 				const literals: NT[] = [NT.BoolLiteral, NT.NumberLiteral, NT.StringLiteral];
 				const nodeTypesThatPrecedeABinaryExpression: NT[] = [
@@ -901,7 +895,6 @@ export default class Parser {
 				 * - a number comparison
 				 * - the end of a TupleExpression
 				 */
-				const prevType = this.prev()?.type;
 
 				// first close out a ternary
 				if (this.currentRoot.type === NT.TernaryAlternate) {
@@ -1045,7 +1038,7 @@ export default class Parser {
 							}
 
 							// if we're after a ColonSeparator, then this is a FunctionSignature
-							if (this.prev()?.type === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
+							if (this.prev()[1] === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
 								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionSignature, token, this.currentRoot, true)));
 							} else {
 								fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)));
@@ -1064,8 +1057,8 @@ export default class Parser {
 					case 'if':
 						// check token before, then check token after
 						// works on a CallExpression as well as Literal in an ArrayExpression
-						const prev = this.prev();
-						if (prev?.type === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
+						const [, prevType] = this.prev();
+						if (prevType === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
 							// this is after, therefore take the CallExpression, array element, or Property
 							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true));
 							if (result.outcome === 'error') {
@@ -1197,9 +1190,8 @@ export default class Parser {
 	 * Shortcut method to handle all scenarios of a BinaryExpression
 	 *
 	 * @param token Current token
-	 * @param prev Previous Node
 	 */
-	private handleBinaryExpression(token: Token, prev: Node | undefined): Result<Node> {
+	private handleBinaryExpression(token: Token): Result<Node> {
 		if (this.currentRoot.type === NT.BinaryExpression && ['and', 'or'].includes(token.type)) {
 			// && and || have higher order precedence than equality checks
 			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
@@ -1224,23 +1216,45 @@ export default class Parser {
 	}
 
 	/**
-	 * Gets a previous node
+	 * Gets a previous node and its effective type. We recommend using this instead of prev.type
+	 *
+	 * @see {@link getEffectiveTypeOfNode} for more details on effective type
 	 *
 	 * @param howMany - How many to go back? Defaults to 1
-	 * @returns the previous node
+	 * @returns [the previous node, the effective type of the previous node] or [undefined, undefined]
 	 */
-	private prev(howMany = 1): Node | undefined {
-		return this.currentRoot.children.at(-howMany);
+	private prev(howMany = 1): [Node, NT] | [undefined, undefined] {
+		const prevAtX = this.currentRoot.children.at(-howMany);
+		if (typeof prevAtX === 'undefined') {
+			return [undefined, undefined];
+		}
+
+		return [prevAtX, this.getEffectiveTypeOfNode(prevAtX)];
 	}
 
+	/**
+	 * Sometimes we want to know the effective type of a node in order to make decisions.
+	 * In most cases, this is the same as the node's type. However, there are some cases
+	 * where the effective type is different than the node's type. For example, a Parenthesized
+	 * node's effective type is the type of its child. This method handles those cases.
+	 *
+	 * @param node To get the effective type of
+	 */
+	private getEffectiveTypeOfNode(node: Node): NT;
+	private getEffectiveTypeOfNode(node: undefined): undefined;
 	private getEffectiveTypeOfNode(node: Node | undefined): NT | undefined {
 		if (typeof node === 'undefined') {
 			return undefined;
-		} else if (node.type === NT.Parenthesized && node.children.length === 1) {
-			return this.getEffectiveTypeOfNode(node.children.at(0));
-		} else {
-			return node.type;
 		}
+
+		if (node.type === NT.Parenthesized && node.children.length === 1) { // there should only ever be one child
+			return this.getEffectiveTypeOfNode(node.children[0]);
+		}
+
+		// if we get here, we can just return the node's type because either it's not a
+		// Parenthesized node or it is a Parenthesized node with not exactly 1 child,
+		// so return the node's type as-is.
+		return node.type;
 	}
 
 	/**
@@ -1312,7 +1326,7 @@ export default class Parser {
 	 * @returns A response error if there is no previous node
 	 */
 	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Result<Node> {
-		return this.beginExpressionWithAdopting(newKid, this.prev(), whatWeExpectInPrevNode);
+		return this.beginExpressionWithAdopting(newKid, this.prev()[0], whatWeExpectInPrevNode);
 	}
 
 	/**
@@ -1379,6 +1393,9 @@ export default class Parser {
 		}
 
 		if (this.debug) {
+			// Note in this case, it IS possible for adoptee to be a Parenthesized, and while under
+			// many circumstances, we would want to get the effective type, but here we want to log
+			// the actual type for debugging, so we use adoptee.type instead of the effective type.
 			console.debug(`Moving ${adoptee.type} to under ${newKid.type}`);
 		}
 

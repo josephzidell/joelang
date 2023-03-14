@@ -4074,7 +4074,123 @@ describe('parser.ts', (): void => {
 				);
 			});
 
-		})
+		});
+
+		describe('should work on parenthesized objects', () => {
+			it('should work on an ArrayExpression', () => {
+				testParseAndAnalyze(
+					'(["A", "B"])[0]',
+					[
+						[NT.MemberExpression, [
+							[NT.Parenthesized, [
+								[NT.ArrayExpression, [
+									[NT.StringLiteral, 'A'],
+									[NT.CommaSeparator],
+									[NT.StringLiteral, 'B'],
+								]],
+							]],
+							[NT.NumberLiteral, '0'],
+						]],
+					],
+					[
+						ASTMemberExpression._({
+							object: ASTArrayExpression._({
+								type: ASTTypePrimitive._('string'),
+								items: [
+									ASTStringLiteral._('A'),
+									ASTStringLiteral._('B'),
+								],
+							}),
+							property: ASTNumberLiteral._({format: 'int', value: 0}),
+						}),
+					],
+				);
+			});
+
+			it('should work on a StringLiteral', () => {
+				testParseAndAnalyze(
+					'(("A"))[0]',
+					[
+						[NT.MemberExpression, [
+							[NT.Parenthesized, [
+								[NT.Parenthesized, [
+									[NT.StringLiteral, 'A'],
+								]],
+							]],
+							[NT.NumberLiteral, '0'],
+						]],
+					],
+					[
+						ASTMemberExpression._({
+							object: ASTStringLiteral._('A'),
+							property: ASTNumberLiteral._({format: 'int', value: 0}),
+						}),
+					],
+				);
+			});
+
+			it('should work on an TupleExpression', () => {
+				testParseAndAnalyze(
+					'(((((<4, "B">)))))[0]',
+					[
+						[NT.MemberExpression, [
+							[NT.Parenthesized, [
+								[NT.Parenthesized, [
+									[NT.Parenthesized, [
+										[NT.Parenthesized, [
+											[NT.Parenthesized, [
+												[NT.TupleExpression, [
+													[NT.NumberLiteral, '4'],
+													[NT.CommaSeparator],
+													[NT.StringLiteral, 'B'],
+												]],
+											]],
+										]],
+									]],
+								]],
+							]],
+							[NT.NumberLiteral, '0'],
+						]],
+					],
+					[
+						ASTMemberExpression._({
+							object: ASTTupleExpression._([
+								ASTNumberLiteral._({format: 'int', value: 4}),
+								ASTStringLiteral._('B'),
+							]),
+							property: ASTNumberLiteral._({format: 'int', value: 0}),
+						}),
+					],
+				);
+			});
+
+			it('should work directly on a CallExpression', () => {
+				testParseAndAnalyze(
+					'(foo())[0]',
+					[
+						[NT.MemberExpression, [
+							[NT.Parenthesized, [
+								[NT.CallExpression, [
+									[NT.Identifier, 'foo'],
+									[NT.ArgumentsList, []],
+								]],
+							]],
+							[NT.NumberLiteral, '0'],
+						]],
+					],
+					[
+						ASTMemberExpression._({
+							object: ASTCallExpression._({
+								callee: ASTIdentifier._('foo'),
+								args: [],
+							}),
+							property: ASTNumberLiteral._({format: 'int', value: 0}),
+						}),
+					],
+				);
+			});
+
+		});
 
 	});
 
