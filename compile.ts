@@ -80,8 +80,19 @@ void (async (): Promise<void> => {
 				switch (analysisResult.outcome) {
 					case 'ok':
 						{
-							const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
-							console.info(output);
+							// const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
+							const output = JSON.stringify(analysisResult.value, null, '\t');
+							if (typeof outfile === 'string') {
+								try {
+									await fsPromises.writeFile(outfile, output);
+								} catch (err) {
+									console.error(`%cError writing to outfile ${outfile}: ${(err as Error).message}`, 'color: red');
+									process.exit(1);
+								}
+							} else {
+								console.info(JSON.stringify(analysisResult.value, null, 2));
+								console.info(output);
+							}
 						}
 						break;
 					case 'error':
@@ -113,11 +124,15 @@ void (async (): Promise<void> => {
 			const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
 			if (typeof outfile === 'string') {
-				try {
-					await fsPromises.writeFile(outfile, output);
-				} catch (err) {
-					console.error(`%cError writing to outfile ${outfile}: ${(err as Error).message}`, 'color: red');
-					process.exit(1);
+				// if the case of an outfile, only output the simplified tree
+				// if we're only parsing and not compiling.
+				if (onlyParse) {
+					try {
+						await fsPromises.writeFile(outfile, output);
+					} catch (err) {
+						console.error(`%cError writing to outfile ${outfile}: ${(err as Error).message}`, 'color: red');
+						process.exit(1);
+					}
 				}
 			} else {
 				console.info(output);

@@ -704,6 +704,15 @@ export default class SemanticAnalyzer {
 		const visitResult = this.visitType(node.children[0]);
 		switch (visitResult.outcome) {
 			case 'ok':
+				if (visitResult.value instanceof SkipAST) {
+					return error(new AnalysisError(
+						AnalysisErrorCode.TypeExpected,
+						`We were expecting a type, but found ${node.children[0].type} instead`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					), this.ast);
+				}
+
 				const ast = ASTArrayOf._(visitResult.value);
 
 				this.astPointer = this.ast = ast;
