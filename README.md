@@ -1,33 +1,22 @@
 # joelang
-A scripting language focused on easy reading
+A scripting language focused on easy reading. [Read the docs](https://joelang.dev)
 
 ## Quick Start
 
 ```bash
-# run the compiler (ATM only analyzes)
-./joec main.joe # compiles a .joe file
-./joec main.joe -o outfile # specify output file
-./joec -i '...' # compiles an expression
+# compile a .joe file (ATM only analyzes)
+./joec main.joe # outputs 3 files [main.tokens, main.parse-tree, main.ast.json]
 
-# play with the parser
-./joec main.joe -p # parses a .joe file
-./joec main.joe -p -o outfile # specify output file
-./joec -i '...' -p # parses an expression
+# There is an example .joe file at examples/example1/main.joe
 
-# play with the lexer
-npm run --silent lexify -- 'your expression' # lexify an expression
-npm run --silent lexify -- "$(cat path/to/file.joe)" # lexify a .joe file
-npm run --silent lexify -- '...' file.tokens # send the tokens output to a file
+# play with the compiler, parser, or lexer
+./joec -i '...' # run the compiler; will output the AST as objects
+./joec -i '...' --json # run the compiler; will output the AST as JSON
+./joec -i '...' -p # parse only, do not analyze; will output the Parse Tree
+./joec -i '...' -l # (that's the lowercase L, not the number 1) lexify only, do not parse; will console.table()'s the Tokens
 
 # run the tests
 npm test
-
-# run lexer example1
-npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
-# run parser example1
-./joec examples/example1/main.joe -p -o examples/example1/main.parse-tree
-# run analyzer example1
-./joec examples/example1/main.joe -o examples/example1/main.parse-tree
 ```
 
 ## Challenge

@@ -20,8 +20,8 @@ joelang is a strongly typed scripting language focused on easy code writing/read
 - Boolean `true`, `false`
 - Path `@/path/to/file/relative/to/calling/dir`, `./path/relative/to/current/file` (this will be cross-OS, so Windows paths will use Unix style, eg: use `./code/joe/file` instead of `.\code\joe\file`
 - Array `[1, 2, 3]`, `['a', 'b']`, `[1, 2 if condition, 3]`
-- Tuple `<1, 'pizza', 3.14>`, `<1, 'pizza' if they have, 3.14>`
-- POJO (Plain Ol' Joe Object) `{a: 1, b: 2 if condition, c: 3}`
+- Tuple `<1, 'pizza', 3.14>`
+- POJO (Plain Ol' Joe Object) `{a: 1, b: 2, c: 3}`
 - When statements return a value
 
 ### Type Inference
@@ -121,14 +121,6 @@ do() if someCondition;
 
 // this can be used in arrays
 [1, 2 if someCondition, 3] // array will either be [1, 2, 3] or [1, 3]
-
-// in tuples
-<1, 'fun', 3.14 if wantPie, false> // same idea
-
-// and in POJOs
-{a: 1, b: 2 if condition, c: 3} // `b` will not be in object if condition is false
-// if you want the property to always be there, use a ternary
-{a: 1, b: condition ? 2 : 0, c: 3} // `b` will definitely be in object
 ```
 
 ## When

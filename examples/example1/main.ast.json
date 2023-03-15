@@ -1,0 +1,916 @@
+{
+	"kind": "Program",
+	"declarations": [
+		{
+			"kind": "FunctionDeclaration",
+			"modifiers": [],
+			"name": {
+				"kind": "Identifier",
+				"name": "main"
+			},
+			"typeParams": [],
+			"params": [],
+			"returnTypes": [],
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": [
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [],
+						"mutable": false,
+						"identifier": {
+							"kind": "Identifier",
+							"name": "myFoo"
+						},
+						"initialValue": {
+							"kind": "CallExpression",
+							"callee": {
+								"kind": "MemberExpression",
+								"object": {
+									"kind": "Identifier",
+									"name": "Foo"
+								},
+								"property": {
+									"kind": "Identifier",
+									"name": "create"
+								}
+							},
+							"args": []
+						}
+					},
+					{
+						"kind": "PrintStatement",
+						"expressions": [
+							{
+								"kind": "CallExpression",
+								"callee": {
+									"kind": "MemberExpression",
+									"object": {
+										"kind": "Identifier",
+										"name": "myFoo"
+									},
+									"property": {
+										"kind": "Identifier",
+										"name": "foo"
+									}
+								},
+								"args": []
+							}
+						]
+					},
+					{
+						"kind": "PrintStatement",
+						"expressions": [
+							{
+								"kind": "MemberExpression",
+								"object": {
+									"kind": "Identifier",
+									"name": "Foo"
+								},
+								"property": {
+									"kind": "Identifier",
+									"name": "bar"
+								}
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"kind": "ClassDeclaration",
+			"modifiers": [],
+			"typeParams": [
+				{
+					"kind": "Identifier",
+					"name": "A"
+				}
+			],
+			"extends": [
+				{
+					"kind": "TypeInstantiationExpression",
+					"typeArgs": [
+						{
+							"kind": "Identifier",
+							"name": "A"
+						}
+					],
+					"base": {
+						"kind": "Identifier",
+						"name": "Bar"
+					}
+				},
+				{
+					"kind": "Identifier",
+					"name": "Baz"
+				}
+			],
+			"implements": [
+				{
+					"kind": "TypeInstantiationExpression",
+					"typeArgs": [
+						{
+							"kind": "Identifier",
+							"name": "A"
+						}
+					],
+					"base": {
+						"kind": "Identifier",
+						"name": "AbstractFooBar"
+					}
+				},
+				{
+					"kind": "Identifier",
+					"name": "AnotherAbstractClass"
+				}
+			],
+			"name": {
+				"kind": "Identifier",
+				"name": "Foo"
+			},
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": [
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [],
+						"mutable": true,
+						"identifier": {
+							"kind": "Identifier",
+							"name": "bar"
+						},
+						"initialValue": {
+							"kind": "StringLiteral",
+							"value": "baz"
+						},
+						"inferredType": {
+							"kind": "TypePrimitive",
+							"type": "string"
+						}
+					},
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [],
+						"mutable": false,
+						"identifier": {
+							"kind": "Identifier",
+							"name": "isDone?"
+						},
+						"declaredType": {
+							"kind": "TypePrimitive",
+							"type": "bool"
+						},
+						"initialValue": {
+							"kind": "BoolLiteral",
+							"value": true
+						},
+						"inferredType": {
+							"kind": "TypePrimitive",
+							"type": "bool"
+						}
+					},
+					{
+						"kind": "FunctionDeclaration",
+						"modifiers": [],
+						"name": {
+							"kind": "Identifier",
+							"name": "foo"
+						},
+						"typeParams": [],
+						"params": [],
+						"returnTypes": [
+							{
+								"kind": "TypePrimitive",
+								"type": "number"
+							}
+						],
+						"body": {
+							"kind": "BlockStatement",
+							"expressions": [
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": false,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "size"
+									},
+									"initialValue": {
+										"kind": "WhenExpression",
+										"cases": [
+											{
+												"kind": "WhenCase",
+												"values": [
+													{
+														"kind": "NumberLiteral",
+														"format": "int",
+														"value": 1
+													},
+													{
+														"kind": "NumberLiteral",
+														"format": "int",
+														"value": 2
+													}
+												],
+												"consequent": {
+													"kind": "StringLiteral",
+													"value": "small"
+												}
+											},
+											{
+												"kind": "WhenCase",
+												"values": [
+													{
+														"kind": "RangeExpression",
+														"lower": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 3
+														},
+														"upper": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 10
+														}
+													}
+												],
+												"consequent": {
+													"kind": "StringLiteral",
+													"value": "medium"
+												}
+											},
+											{
+												"kind": "WhenCase",
+												"values": [
+													{
+														"kind": "NumberLiteral",
+														"format": "int",
+														"value": 11
+													}
+												],
+												"consequent": {
+													"kind": "StringLiteral",
+													"value": "large"
+												}
+											},
+											{
+												"kind": "WhenCase",
+												"values": [
+													{
+														"kind": "RestElement"
+													}
+												],
+												"consequent": {
+													"kind": "StringLiteral",
+													"value": "off the charts"
+												}
+											}
+										],
+										"expression": {
+											"kind": "Identifier",
+											"name": "someNumber"
+										}
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "myArray"
+									},
+									"initialValue": {
+										"kind": "ArrayExpression",
+										"type": {
+											"kind": "TypePrimitive",
+											"type": "number"
+										},
+										"items": [
+											{
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 1
+											},
+											{
+												"kind": "PostfixIfStatement",
+												"expression": {
+													"kind": "NumberLiteral",
+													"format": "int",
+													"value": 10
+												},
+												"test": {
+													"kind": "MemberExpression",
+													"object": {
+														"kind": "ThisKeyword"
+													},
+													"property": {
+														"kind": "Identifier",
+														"name": "isDone?"
+													}
+												}
+											},
+											{
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 3
+											}
+										]
+									},
+									"inferredType": {
+										"kind": "ArrayOf",
+										"type": {
+											"kind": "TypePrimitive",
+											"type": "number"
+										}
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "count"
+									},
+									"initialValue": {
+										"kind": "RangeExpression",
+										"lower": {
+											"kind": "NumberLiteral",
+											"format": "int",
+											"value": 1
+										},
+										"upper": {
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "Identifier",
+												"name": "myArray"
+											},
+											"property": {
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 2
+											}
+										}
+									},
+									"inferredType": {
+										"kind": "TypeRange"
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "countDown"
+									},
+									"initialValue": {
+										"kind": "RangeExpression",
+										"lower": {
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "Identifier",
+												"name": "myArray"
+											},
+											"property": {
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 1
+											}
+										},
+										"upper": {
+											"kind": "NumberLiteral",
+											"format": "int",
+											"value": 0
+										}
+									},
+									"inferredType": {
+										"kind": "TypeRange"
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "partitionedArray"
+									},
+									"initialValue": {
+										"kind": "ArrayExpression",
+										"items": [
+											{
+												"kind": "MemberListExpression",
+												"properties": [
+													{
+														"kind": "RangeExpression",
+														"lower": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 0
+														},
+														"upper": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 1
+														}
+													}
+												],
+												"object": {
+													"kind": "Identifier",
+													"name": "countDown"
+												}
+											},
+											{
+												"kind": "MemberListExpression",
+												"properties": [
+													{
+														"kind": "RangeExpression",
+														"lower": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 2
+														},
+														"upper": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 6
+														}
+													}
+												],
+												"object": {
+													"kind": "Identifier",
+													"name": "countDown"
+												}
+											},
+											{
+												"kind": "MemberListExpression",
+												"properties": [
+													{
+														"kind": "RangeExpression",
+														"lower": {
+															"kind": "NumberLiteral",
+															"format": "int",
+															"value": 7
+														},
+														"upper": {
+															"kind": "UnaryExpression",
+															"before": true,
+															"operator": "-",
+															"operand": {
+																"kind": "NumberLiteral",
+																"format": "int",
+																"value": 1
+															}
+														}
+													}
+												],
+												"object": {
+													"kind": "Identifier",
+													"name": "countDown"
+												}
+											}
+										]
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "selectedArrayItems"
+									},
+									"initialValue": {
+										"kind": "MemberListExpression",
+										"properties": [
+											{
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 1
+											},
+											{
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 4
+											},
+											{
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 9
+											}
+										],
+										"object": {
+											"kind": "Identifier",
+											"name": "countDown"
+										}
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "myObject"
+									},
+									"initialValue": {
+										"kind": "ObjectExpression",
+										"properties": [
+											{
+												"kind": "Property",
+												"key": {
+													"kind": "Identifier",
+													"name": "a"
+												},
+												"value": {
+													"kind": "NumberLiteral",
+													"format": "int",
+													"value": 1
+												}
+											},
+											{
+												"kind": "Property",
+												"key": {
+													"kind": "Identifier",
+													"name": "b"
+												},
+												"value": {
+													"kind": "StringLiteral",
+													"value": "coat"
+												}
+											},
+											{
+												"kind": "Property",
+												"key": {
+													"kind": "Identifier",
+													"name": "c"
+												},
+												"value": {
+													"kind": "TernaryExpression",
+													"test": {
+														"kind": "TernaryCondition",
+														"expression": {
+															"kind": "Identifier",
+															"name": "cond"
+														}
+													},
+													"consequent": {
+														"kind": "TernaryConsequent",
+														"value": {
+															"kind": "BoolLiteral",
+															"value": true
+														}
+													},
+													"alternate": {
+														"kind": "TernaryAlternate",
+														"value": {
+															"kind": "BoolLiteral",
+															"value": false
+														}
+													}
+												}
+											}
+										]
+									},
+									"inferredType": {
+										"kind": "ObjectShape",
+										"properties": [
+											{
+												"kind": "PropertyShape",
+												"key": {
+													"kind": "Identifier",
+													"name": "a"
+												},
+												"type": {
+													"kind": "TypePrimitive",
+													"type": "number"
+												}
+											},
+											{
+												"kind": "PropertyShape",
+												"key": {
+													"kind": "Identifier",
+													"name": "b"
+												},
+												"type": {
+													"kind": "TypePrimitive",
+													"type": "string"
+												}
+											},
+											{
+												"kind": "PropertyShape",
+												"key": {
+													"kind": "Identifier",
+													"name": "c"
+												},
+												"type": {
+													"kind": "TypePrimitive",
+													"type": "bool"
+												}
+											}
+										]
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": false,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "myTuple"
+									},
+									"initialValue": {
+										"kind": "TupleExpression",
+										"items": [
+											{
+												"kind": "NumberLiteral",
+												"format": "int",
+												"value": 1
+											},
+											{
+												"kind": "BoolLiteral",
+												"value": true
+											},
+											{
+												"kind": "StringLiteral",
+												"value": "string"
+											},
+											{
+												"kind": "Path",
+												"absolute": true,
+												"path": "@/foo",
+												"isDir": false
+											}
+										]
+									},
+									"inferredType": {
+										"kind": "TupleShape",
+										"types": [
+											{
+												"kind": "TypePrimitive",
+												"type": "number"
+											},
+											{
+												"kind": "TypePrimitive",
+												"type": "bool"
+											},
+											{
+												"kind": "TypePrimitive",
+												"type": "string"
+											},
+											{
+												"kind": "TypePrimitive",
+												"type": "path"
+											}
+										]
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "partialObj"
+									},
+									"initialValue": {
+										"kind": "MemberListExpression",
+										"properties": [
+											{
+												"kind": "Identifier",
+												"name": "a"
+											},
+											{
+												"kind": "Identifier",
+												"name": "d"
+											}
+										],
+										"object": {
+											"kind": "Identifier",
+											"name": "myObject"
+										}
+									}
+								},
+								{
+									"kind": "VariableDeclaration",
+									"modifiers": [],
+									"mutable": true,
+									"identifier": {
+										"kind": "Identifier",
+										"name": "initializeAndAssignLater"
+									},
+									"declaredType": {
+										"kind": "TypePrimitive",
+										"type": "number"
+									}
+								},
+								{
+									"kind": "AssignmentExpression",
+									"left": {
+										"kind": "Identifier",
+										"name": "initializeAndAssignLater"
+									},
+									"right": {
+										"kind": "NumberLiteral",
+										"format": "int",
+										"value": 5
+									}
+								},
+								{
+									"kind": "ReturnStatement",
+									"expressions": [
+										{
+											"kind": "Identifier",
+											"name": "initializeAndAssignLater"
+										}
+									]
+								}
+							]
+						},
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** method with no args */"
+						}
+					},
+					{
+						"kind": "FunctionDeclaration",
+						"modifiers": [],
+						"name": {
+							"kind": "Identifier",
+							"name": "methodWithArgs"
+						},
+						"typeParams": [],
+						"params": [
+							{
+								"kind": "Parameter",
+								"modifiers": [],
+								"isRest": false,
+								"name": {
+									"kind": "Identifier",
+									"name": "arg1"
+								},
+								"declaredType": {
+									"kind": "TypePrimitive",
+									"type": "bool"
+								}
+							},
+							{
+								"kind": "Parameter",
+								"modifiers": [],
+								"isRest": false,
+								"name": {
+									"kind": "Identifier",
+									"name": "arg2"
+								},
+								"declaredType": {
+									"kind": "Identifier",
+									"name": "Tuple"
+								}
+							},
+							{
+								"kind": "Parameter",
+								"modifiers": [],
+								"isRest": false,
+								"name": {
+									"kind": "Identifier",
+									"name": "arg3"
+								},
+								"defaultValue": {
+									"kind": "BoolLiteral",
+									"value": true
+								},
+								"inferredType": {
+									"kind": "TypePrimitive",
+									"type": "bool"
+								}
+							},
+							{
+								"kind": "Parameter",
+								"modifiers": [],
+								"isRest": true,
+								"name": {
+									"kind": "Identifier",
+									"name": "otherStuff"
+								},
+								"declaredType": {
+									"kind": "ArrayOf",
+									"type": {
+										"kind": "Identifier",
+										"name": "Thing"
+									}
+								}
+							}
+						],
+						"returnTypes": [],
+						"body": {
+							"kind": "BlockStatement",
+							"expressions": []
+						},
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** with args */"
+						}
+					},
+					{
+						"kind": "FunctionDeclaration",
+						"modifiers": [],
+						"name": {
+							"kind": "Identifier",
+							"name": "methodThatReturnsBool?"
+						},
+						"typeParams": [],
+						"params": [],
+						"returnTypes": [
+							{
+								"kind": "TypePrimitive",
+								"type": "bool"
+							}
+						],
+						"body": {
+							"kind": "BlockStatement",
+							"expressions": [
+								{
+									"kind": "ReturnStatement",
+									"expressions": [
+										{
+											"kind": "BoolLiteral",
+											"value": true
+										}
+									]
+								}
+							]
+						},
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** with one return val */"
+						}
+					},
+					{
+						"kind": "FunctionDeclaration",
+						"modifiers": [],
+						"name": {
+							"kind": "Identifier",
+							"name": "methodThatReturnsBool?"
+						},
+						"typeParams": [],
+						"params": [],
+						"returnTypes": [
+							{
+								"kind": "TypePrimitive",
+								"type": "bool"
+							},
+							{
+								"kind": "TypePrimitive",
+								"type": "number"
+							},
+							{
+								"kind": "Identifier",
+								"name": "Thing"
+							}
+						],
+						"body": {
+							"kind": "BlockStatement",
+							"expressions": [
+								{
+									"kind": "ReturnStatement",
+									"expressions": [
+										{
+											"kind": "BoolLiteral",
+											"value": false
+										},
+										{
+											"kind": "NumberLiteral",
+											"format": "int",
+											"value": 5
+										},
+										{
+											"kind": "CallExpression",
+											"callee": {
+												"kind": "MemberExpression",
+												"object": {
+													"kind": "Identifier",
+													"name": "Thing"
+												},
+												"property": {
+													"kind": "Identifier",
+													"name": "create"
+												}
+											},
+											"args": []
+										}
+									]
+								}
+							]
+						},
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** multiple return vals */"
+						}
+					}
+				]
+			}
+		}
+	]
+}
