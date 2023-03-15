@@ -43,6 +43,8 @@ export enum AnalysisErrorCode {
 	TernaryConsequentExpected = 'S033',
 	TernaryAlternateExpected = 'S034',
 	StringLiteralExpected = 'S035',
+	PropertyExpected = 'S036',
+	ValueExpected = 'S037',
 }
 
 /**

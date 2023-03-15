@@ -45,7 +45,7 @@ export function error<T, E extends Error = Error, ED = unknown>(error: E, data?:
  * switch (somePossibleResult.outcome) { // outcome: `ok` or `error`
  * 	case 'ok':
  * 		const somePossibility = somePossibleResult.value;
- * 		if (somePossibility.has) { // has: true or false
+ * 		if (somePossibility.has()) { // has: true or false
  * 			// use the data
  * 			const req: Http.Request = somePossibility.value;
  * 			req.handle(); // etc

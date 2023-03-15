@@ -48,6 +48,7 @@ export enum NT {
 	PrintStatement = 'PrintStatement',
 	Program = 'Program',
 	Property = 'Property',
+	PropertyShape = 'PropertyShape',
 	RangeExpression = 'RangeExpression',
 	RegularExpression = 'RegularExpression',
 	RepeatStatement = 'RepeatStatement',
@@ -118,6 +119,7 @@ export const AssignableTypes: NT[] = [
 	NT.Identifier,
 	NT.MemberExpression,
 	NT.MemberListExpression,
+	NT.ObjectShape,
 	NT.TupleShape,
 	NT.Type,
 	NT.TypeInstantiationExpression,
@@ -145,7 +147,7 @@ export const validChildrenAsMemberProperty = [
 	NT.Identifier, // eg. foo[bar: number]
 	NT.MemberExpression, // eg. foo[bar.baz]
 	NT.NumberLiteral, // eg. foo[1]
-	NT.RangeExpression, // eg. foo[1..2]
+	NT.RangeExpression, // eg. foo[1 .. 2]
 	NT.StringLiteral, // eg. foo['bar']
 	NT.TernaryExpression, // eg. foo[bar ? 1 : 2]
 	NT.TypeInstantiationExpression, // eg. foo.Foo<|T|>

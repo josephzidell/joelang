@@ -50,7 +50,6 @@ export default class Parser {
 
 	nodeTypesThatAllowAPostfixIf: NT[] = [
 		NT.ArrayExpression,
-		NT.Property,
 	];
 
 	mapParentNodeToChild: Partial<Record<NT, NT>> = {
@@ -359,8 +358,8 @@ export default class Parser {
 				// - arr[index]
 				// - arr[0, 2, 4]
 				// - keys = [0, 2, 4]; arr[...keys]
-				// - arr[1..3]
-				// - lower = 1; upper = 3; arr[lower..upper]
+				// - arr[1 .. 3]
+				// - lower = 1; upper = 3; arr[lower .. upper]
 				// - obj['prop']
 				// - obj['prop', 'other']
 				// - keys = ['prop', 'other']; obj[...keys]
@@ -368,7 +367,7 @@ export default class Parser {
 				// a few other cases:
 				// - arr[index + 1]
 				// - arr[index + 1, index + 2]
-				// - arr[index + 1..index + 3]
+				// - arr[index + 1 .. index + 3]
 				// - arr[index++]
 				// - arr[++index]
 				// - arr[index--]
@@ -524,7 +523,7 @@ export default class Parser {
 			} else if (token.type === 'minus') {
 				if (this.currentRoot.children.length > 0 &&
 					this.nodeTypesPrecedingArithmeticOperator.includes(this.currentRoot.children[this.currentRoot.children.length - 1].type) &&
-					this.currentRoot.type !== NT.BinaryExpression && this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1..-2`
+					this.currentRoot.type !== NT.BinaryExpression && this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1 .. -2`
 				) {
 					this.endExpressionIfIn(NT.UnaryExpression);
 					const result = this.handleBinaryExpression(token);
@@ -644,9 +643,16 @@ export default class Parser {
 					this.endExpression(); // end the TernaryConsequent
 					this.beginExpressionWith(MakeNode(NT.TernaryAlternate, token, this.currentRoot, true));
 
-				} else if ([NT.ObjectExpression, NT.ObjectShape].includes(this.currentRoot.type) && this.prev()[1] === NT.Identifier) {
+				} else if (this.currentRoot.type === NT.ObjectExpression && this.prev()[1] === NT.Identifier) {
 					// POJOs notation
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+					if (result.outcome === 'error') {
+						return result;
+					}
+
+				} else if (this.currentRoot.type === NT.ObjectShape && this.prev()[1] === NT.Identifier) {
+					// POJOs notation
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.PropertyShape, token, this.currentRoot, true));
 					if (result.outcome === 'error') {
 						return result;
 					}
@@ -685,7 +691,7 @@ export default class Parser {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.ClassExtension || this.currentRoot.type === NT.ClassImplement || this.currentRoot.type === NT.InterfaceExtension) {
 					this.endExpression();
-				} else if (this.currentRoot.type === NT.Property) {
+				} else if (this.currentRoot.type === NT.Property || this.currentRoot.type === NT.PropertyShape) {
 					this.endExpression();
 				}
 
@@ -693,9 +699,6 @@ export default class Parser {
 				// this is separate from the above if/elses since this can happen _after and in addition to_ one of the above scenarios
 				if (this.currentRoot.type === NT.PostfixIfStatement && this.currentRoot.parent?.type === NT.ArrayExpression) {
 					this.endExpression(); // end the IfStatement which _is_ the entry
-				} else if (this.currentRoot.type === NT.PostfixIfStatement && this.currentRoot.parent?.type === NT.Property) {
-					this.endExpression(); // end the IfStatement
-					this.endExpression(); // end the Property
 				}
 
 				this.addNode(MakeNode(NT.CommaSeparator, token, this.currentRoot));
@@ -863,12 +866,16 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 
 				} else if (typeof prevType === 'undefined') {
-					// tuple
+					// TupleExpression
 					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
 
 				} else if (this.currentRoot.type === NT.Property && prevType === NT.Identifier) {
-					// tuple
+					// TupleExpression
 					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
+
+				} else if (this.currentRoot.type === NT.PropertyShape && prevType === NT.Identifier) {
+					// TupleShape
+					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 
 				} else if (nodeTypesThatPrecedeABinaryExpression.includes(prevType)) {
 					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));

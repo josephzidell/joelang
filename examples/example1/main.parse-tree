@@ -495,26 +495,10 @@
                                 'Property',
                                 [
                                   [ 'Identifier', 'b' ],
-                                  [
-                                    'PostfixIfStatement',
-                                    [
-                                      [ 'StringLiteral', 'coat' ],
-                                      [
-                                        'MemberExpression',
-                                        [
-                                          [ 'ThisKeyword' ],
-                                          [ 'Identifier', 'isDone?' ]
-                                        ]
-                                      ]
-                                    ]
-                                  ]
+                                  [ 'StringLiteral', 'coat' ]
                                 ]
                               ],
                               [ 'CommaSeparator' ],
-                              [
-                                'Comment',
-                                '// if false, property will not be in object'
-                              ],
                               [
                                 'Property',
                                 [

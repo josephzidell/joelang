@@ -36,12 +36,12 @@ export class ASTArgumentsList implements AST {
 export class ASTArrayExpression<T extends AssignableASTs> implements AST {
 	/** The type, usually inferred from the initial value, if any, or from context */
 	type: ASTType | undefined = undefined;
-	items: T[] = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
+	items: Array<T | ASTPostfixIfStatement> = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
 	static _<T extends AssignableASTs>({ type, items }: {
 		type?: ASTType;
-		items: T[];
+		items: Array<T | ASTPostfixIfStatement>;
 	}): ASTArrayExpression<T> {
 		const ast = new ASTArrayExpression<T>();
 		ast.type = type;
@@ -359,7 +359,53 @@ export class ASTNumberLiteral implements AST {
 	}
 }
 
-export class ASTObjectExpression implements AST { }
+export class ASTObjectExpression implements AST {
+	properties!: ASTProperty[];
+
+	// factory function
+	static _(properties: ASTProperty[]): ASTObjectExpression {
+		const ast = new ASTObjectExpression();
+		ast.properties = properties;
+		return ast;
+	}
+}
+
+export class ASTObjectShape implements AST {
+	properties: ASTPropertyShape[] = [];
+
+	// factory function
+	static _(properties: ASTPropertyShape[]): ASTObjectShape {
+		const ast = new ASTObjectShape();
+		ast.properties = properties;
+		return ast;
+	}
+}
+
+export class ASTProperty implements AST {
+	key!: ASTIdentifier;
+	value!: AssignableASTs;
+
+	// factory function
+	static _(key: ASTIdentifier, value: AssignableASTs): ASTProperty {
+		const ast = new ASTProperty();
+		ast.key = key;
+		ast.value = value;
+		return ast;
+	}
+}
+
+export class ASTPropertyShape implements AST {
+	key!: ASTIdentifier;
+	type!: ASTType;
+
+	// factory function
+	static _(key: ASTIdentifier, type: ASTType): ASTPropertyShape {
+		const ast = new ASTPropertyShape();
+		ast.key = key;
+		ast.type = type;
+		return ast;
+	}
+}
 
 export class ASTParameter implements AST {
 	modifiers: ASTModifier[] = [];
@@ -767,6 +813,8 @@ export type ExpressionASTs =
 	ASTRangeExpression |
 	ASTRegularExpression |
 	ASTStringLiteral |
+	ASTTernaryExpression<AssignableASTs, AssignableASTs> |
+	ASTThisKeyword |
 	ASTTupleExpression |
 	ASTUnaryExpression<ExpressionASTs> |
 	ASTWhenExpression;

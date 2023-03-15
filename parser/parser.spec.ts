@@ -20,10 +20,14 @@ import {
 	ASTMemberListExpression,
 	ASTModifier,
 	ASTNumberLiteral,
+	ASTObjectExpression,
+	ASTObjectShape,
 	ASTParameter,
 	ASTPath,
 	ASTPostfixIfStatement,
 	ASTPrintStatement,
+	ASTProperty,
+	ASTPropertyShape,
 	ASTRangeExpression,
 	ASTRegularExpression,
 	ASTRestElement,
@@ -2329,7 +2333,7 @@ describe('parser.ts', (): void => {
 				`f school (age: number) -> string {
 					return when age {
 						11 -> 'Hogwarts First Year',
-						12..17 -> 'Another Year at Hogwarts',
+						12 .. 17 -> 'Another Year at Hogwarts',
 						18, 19 -> 'Auror Training',
 						... -> 'Auror',
 					};
@@ -4489,7 +4493,7 @@ describe('parser.ts', (): void => {
 
 		it('should parse a RangeExpression in brackets as part of a MemberListExpression', () => {
 			testParseAndAnalyze(
-				'foo[1..3]',
+				'foo[1 .. 3]',
 				[
 					[NT.MemberListExpression, [
 						[NT.Identifier, 'foo'],
@@ -4517,7 +4521,7 @@ describe('parser.ts', (): void => {
 
 		it('should parse multiple RangeExpressions in brackets as part of a MemberListExpression', () => {
 			testParseAndAnalyze(
-				'foo[1..3, 5..7]',
+				'foo[1 .. 3, 5 .. 7]',
 				[
 					[NT.MemberListExpression, [
 						[NT.Identifier, 'foo'],
@@ -5856,7 +5860,7 @@ describe('parser.ts', (): void => {
 		// 2 numbers
 		it(`.. with 2 number literals`, (): void => {
 			testParseAndAnalyze(
-				`1 .. 2;`,
+				`1..2;`, // this one should not have spaces since even though we recommend spaces, they are optional
 				[
 					[NT.RangeExpression, [
 						[NT.NumberLiteral, '1'],
@@ -6916,7 +6920,7 @@ describe('parser.ts', (): void => {
 						<1, 'pizza', 3.14>,
 						true,
 						@/some/file.joe,
-						1..3,
+						1 .. 3,
 						<1, 2, 'fizz', 4, 'buzz'>
 					>;`,
 					[
@@ -7055,23 +7059,47 @@ describe('parser.ts', (): void => {
 			});
 
 			it('tuple in object', () => {
-				expect(parse(
-					'const foo = {tpl: <1>};')).toMatchParseTree(
+				testParseAndAnalyze(
+					'const foo = {tpl: <1>};',
 					[
 						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, [
-							[NT.Property, [
-								[NT.Identifier, 'tpl'],
-								[NT.TupleExpression, [
-									[NT.NumberLiteral, '1'],
+							[NT.Identifier, 'foo'],
+							[NT.AssignmentOperator],
+							[NT.ObjectExpression, [
+								[NT.Property, [
+									[NT.Identifier, 'tpl'],
+									[NT.TupleExpression, [
+										[NT.NumberLiteral, '1'],
+									]],
 								]],
 							]],
 						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							initialValue: ASTObjectExpression._([
+								ASTProperty._(
+									ASTIdentifier._('tpl'),
+									ASTTupleExpression._([
+										ASTNumberLiteral._({format: 'int', value: 1}),
+									]),
+								),
+							]),
+							inferredType: ASTObjectShape._([
+								ASTPropertyShape._(
+									ASTIdentifier._('tpl'),
+									ASTTupleShape._([
+										ASTTypePrimitive._('number'),
+									]),
+								),
+							]),
+						}),
+					],
+				);
 			})
 
 		});
@@ -7326,42 +7354,98 @@ describe('parser.ts', (): void => {
 			});
 
 			it('pojos', () => {
-				expect(parse(
-					"const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];")).toMatchParseTree(
+				testParseAndAnalyze(
+					"const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];",
 					[
 						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.ColonSeparator],
-						[NT.ArrayOf, [
-							[NT.ObjectShape, [
-								[NT.Property, [
-									[NT.Identifier, 'a'],
-									[NT.Type, 'number'],
+							[NT.Identifier, 'foo'],
+							[NT.ColonSeparator],
+							[NT.ArrayOf, [
+								[NT.ObjectShape, [
+									[NT.PropertyShape, [
+										[NT.Identifier, 'a'],
+										[NT.Type, 'number'],
+									]],
+									[NT.CommaSeparator],
+									[NT.PropertyShape, [
+										[NT.Identifier, 'b'],
+										[NT.Type, 'string'],
+									]],
 								]],
-								[NT.CommaSeparator],
-								[NT.Property, [
-									[NT.Identifier, 'b'],
-									[NT.Type, 'string'],
+							]],
+							[NT.AssignmentOperator],
+							[NT.ArrayExpression, [
+								[NT.ObjectExpression, [
+									[NT.Property, [
+										[NT.Identifier, 'a'],
+										[NT.NumberLiteral, '4'],
+									]],
+									[NT.CommaSeparator],
+									[NT.Property, [
+										[NT.Identifier, 'b'],
+										[NT.StringLiteral, 'c'],
+									]],
 								]],
 							]],
 						]],
-						[NT.AssignmentOperator],
-						[NT.ArrayExpression, [
-							[NT.ObjectExpression, [
-								[NT.Property, [
-									[NT.Identifier, 'a'],
-									[NT.NumberLiteral, '4'],
-								]],
-								[NT.CommaSeparator],
-								[NT.Property, [
-									[NT.Identifier, 'b'],
-									[NT.StringLiteral, 'c'],
-								]],
-							]],
-						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							declaredType: ASTArrayOf._(
+								ASTObjectShape._([
+									ASTPropertyShape._(
+										ASTIdentifier._('a'),
+										ASTTypePrimitive._('number'),
+									),
+									ASTPropertyShape._(
+										ASTIdentifier._('b'),
+										ASTTypePrimitive._('string'),
+									),
+								]),
+							),
+							initialValue: ASTArrayExpression._({
+								type: ASTObjectShape._([
+									ASTPropertyShape._(
+										ASTIdentifier._('a'),
+										ASTTypePrimitive._('number'),
+									),
+									ASTPropertyShape._(
+										ASTIdentifier._('b'),
+										ASTTypePrimitive._('string'),
+									),
+								]),
+								items: [
+									ASTObjectExpression._([
+										ASTProperty._(
+											ASTIdentifier._('a'),
+											ASTNumberLiteral._({ format: 'int', value: 4 }),
+										),
+										ASTProperty._(
+											ASTIdentifier._('b'),
+											ASTStringLiteral._('c'),
+										),
+									]),
+								],
+							}),
+							inferredType: ASTArrayOf._(
+								ASTObjectShape._([
+									ASTPropertyShape._(
+										ASTIdentifier._('a'),
+										ASTTypePrimitive._('number'),
+									),
+									ASTPropertyShape._(
+										ASTIdentifier._('b'),
+										ASTTypePrimitive._('string'),
+									),
+								]),
+							),
+						}),
+					],
+				);
 			});
 
 			it('assignments', () => {
@@ -7652,64 +7736,126 @@ describe('parser.ts', (): void => {
 		describe('pojos', () => {
 
 			it('pojo', () => {
-				expect(parse(
-					'const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};')).toMatchParseTree(
+				testParseAndAnalyze(
+					'const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};',
 					[
 						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, [
-							[NT.Property, [
-								[NT.Identifier, 'a'],
-								[NT.NumberLiteral, '1'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'b'],
-								[NT.StringLiteral, 'pizza'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'c'],
-								[NT.NumberLiteral, '3.14'],
-							]],
-							[NT.CommaSeparator],
-							[NT.Property, [
-								[NT.Identifier, 'd'],
-								[NT.ArrayExpression, [
-									[NT.NumberLiteral, '10'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '11'],
+							[NT.Identifier, 'foo'],
+							[NT.AssignmentOperator],
+							[NT.ObjectExpression, [
+								[NT.Property, [
+									[NT.Identifier, 'a'],
+									[NT.NumberLiteral, '1'],
+								]],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'b'],
+									[NT.StringLiteral, 'pizza'],
+								]],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'c'],
+									[NT.NumberLiteral, '3.14'],
+								]],
+								[NT.CommaSeparator],
+								[NT.Property, [
+									[NT.Identifier, 'd'],
+									[NT.ArrayExpression, [
+										[NT.NumberLiteral, '10'],
+										[NT.CommaSeparator],
+										[NT.NumberLiteral, '11'],
+									]],
 								]],
 							]],
 						]],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							initialValue: ASTObjectExpression._([
+								ASTProperty._(
+									ASTIdentifier._('a'),
+									ASTNumberLiteral._({ format: 'int', value: 1}),
+								),
+								ASTProperty._(
+									ASTIdentifier._('b'),
+									ASTStringLiteral._('pizza'),
+								),
+								ASTProperty._(
+									ASTIdentifier._('c'),
+									ASTNumberLiteral._({ format: 'decimal', value: 3.14}),
+								),
+								ASTProperty._(
+									ASTIdentifier._('d'),
+									ASTArrayExpression._({
+										type: ASTTypePrimitive._('number'),
+										items: [
+											ASTNumberLiteral._({ format: 'int', value: 10}),
+											ASTNumberLiteral._({ format: 'int', value: 11}),
+										],
+									}),
+								),
+							]),
+							inferredType: ASTObjectShape._([
+								ASTPropertyShape._(
+									ASTIdentifier._('a'),
+									ASTTypePrimitive._('number'),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('b'),
+									ASTTypePrimitive._('string'),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('c'),
+									ASTTypePrimitive._('number'),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('d'),
+									ASTArrayOf._(
+										ASTTypePrimitive._('number'),
+									),
+								),
+							]),
+						}),
+					],
+				);
 			});
 
 			it('empty pojo', () => {
-				expect(parse(
-					'const foo = {};')).toMatchParseTree(
+				testParseAndAnalyze(
+					'const foo = {};',
 					[
 						[NT.VariableDeclaration, 'const', [
-						[NT.Identifier, 'foo'],
-						[NT.AssignmentOperator],
-						[NT.ObjectExpression, []],
-					]],
-					[NT.SemicolonSeparator],
-				]);
+							[NT.Identifier, 'foo'],
+							[NT.AssignmentOperator],
+							[NT.ObjectExpression, []],
+						]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							initialValue: ASTObjectExpression._([]),
+							inferredType: ASTObjectShape._([]),
+						}),
+					],
+				);
 			});
 
 			it('nested pojos', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`const foo = {
 						obj: {a: 1, b: 'pizza', pi: {two_digits: 3.14}},
 						bol: true,
 						pth: @/some/file.joe,
-						rng: {rng: 1..3},
+						rng: {rng: 1 .. 3},
 						tpl: <1, 2, 'fizz', 4, 'buzz'>
-					};`)).toMatchParseTree(
+					};`,
 					[
 						[NT.VariableDeclaration, 'const', [
 							[NT.Identifier, 'foo'],
@@ -7780,82 +7926,257 @@ describe('parser.ts', (): void => {
 							]],
 						]],
 						[NT.SemicolonSeparator],
-					]);
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifier: ASTIdentifier._('foo'),
+							initialValue: ASTObjectExpression._([
+								ASTProperty._(
+									ASTIdentifier._('obj'),
+									ASTObjectExpression._([
+										ASTProperty._(
+											ASTIdentifier._('a'),
+											ASTNumberLiteral._({format: 'int', value: 1}),
+										),
+										ASTProperty._(
+											ASTIdentifier._('b'),
+											ASTStringLiteral._('pizza'),
+										),
+										ASTProperty._(
+											ASTIdentifier._('pi'),
+											ASTObjectExpression._([
+												ASTProperty._(
+													ASTIdentifier._('two_digits'),
+													ASTNumberLiteral._({format: 'decimal', value: 3.14}),
+												),
+											]),
+										),
+									]),
+								),
+								ASTProperty._(
+									ASTIdentifier._('bol'),
+									ASTBoolLiteral._(true),
+								),
+								ASTProperty._(
+									ASTIdentifier._('pth'),
+									ASTPath._({
+										absolute: true,
+										path: '@/some/file.joe',
+										isDir: false,
+									}),
+								),
+								ASTProperty._(
+									ASTIdentifier._('rng'),
+									ASTObjectExpression._([
+										ASTProperty._(
+											ASTIdentifier._('rng'),
+											ASTRangeExpression._({
+												lower: ASTNumberLiteral._({format: 'int', value: 1}),
+												upper: ASTNumberLiteral._({format: 'int', value: 3}),
+											}),
+										),
+									]),
+								),
+								ASTProperty._(
+									ASTIdentifier._('tpl'),
+									ASTTupleExpression._([
+										ASTNumberLiteral._({format: 'int', value: 1}),
+										ASTNumberLiteral._({format: 'int', value: 2}),
+										ASTStringLiteral._('fizz'),
+										ASTNumberLiteral._({format: 'int', value: 4}),
+										ASTStringLiteral._('buzz'),
+									]),
+								),
+							]),
+							inferredType: ASTObjectShape._([
+								ASTPropertyShape._(
+									ASTIdentifier._('obj'),
+									ASTObjectShape._([
+										ASTPropertyShape._(
+											ASTIdentifier._('a'),
+											ASTTypePrimitive._('number'),
+										),
+										ASTPropertyShape._(
+											ASTIdentifier._('b'),
+											ASTTypePrimitive._('string'),
+										),
+										ASTPropertyShape._(
+											ASTIdentifier._('pi'),
+											ASTObjectShape._([
+												ASTPropertyShape._(
+													ASTIdentifier._('two_digits'),
+													ASTTypePrimitive._('number'),
+												),
+											]),
+										),
+									]),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('bol'),
+									ASTTypePrimitive._('bool'),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('pth'),
+									ASTTypePrimitive._('path'),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('rng'),
+									ASTObjectShape._([
+										ASTPropertyShape._(
+											ASTIdentifier._('rng'),
+											ASTTypeRange._(),
+										),
+									]),
+								),
+								ASTPropertyShape._(
+									ASTIdentifier._('tpl'),
+									ASTTupleShape._([
+										ASTTypePrimitive._('number'),
+										ASTTypePrimitive._('number'),
+										ASTTypePrimitive._('string'),
+										ASTTypePrimitive._('number'),
+										ASTTypePrimitive._('string'),
+									]),
+								),
+							])
+						}),
+					],
+				);
 			});
 
 			it('with ternary in item', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`{
 						a: 1,
 						b: someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
 						c: true
-					}`)).toMatchParseTree(
+					}`,
 					[
 						[NT.ObjectExpression, [
-						[NT.Property, [
-							[NT.Identifier, 'a'],
-							[NT.NumberLiteral, '1'],
-						]],
-						[NT.CommaSeparator],
-						[NT.Property, [
-							[NT.Identifier, 'b'],
-							[NT.TernaryExpression, [
-								[NT.TernaryCondition, [
-									[NT.Identifier, 'someCondition'],
-								]],
-								[NT.TernaryConsequent, [
-									[NT.StringLiteral, 'burnt-orange'],
-								]],
-								[NT.TernaryAlternate, [
-									[NT.StringLiteral, ''],
+							[NT.Property, [
+								[NT.Identifier, 'a'],
+								[NT.NumberLiteral, '1'],
+							]],
+							[NT.CommaSeparator],
+							[NT.Property, [
+								[NT.Identifier, 'b'],
+								[NT.TernaryExpression, [
+									[NT.TernaryCondition, [
+										[NT.Identifier, 'someCondition'],
+									]],
+									[NT.TernaryConsequent, [
+										[NT.StringLiteral, 'burnt-orange'],
+									]],
+									[NT.TernaryAlternate, [
+										[NT.StringLiteral, ''],
+									]],
 								]],
 							]],
+							[NT.CommaSeparator],
+							[NT.Comment, '// will always be defined, so the shape is correct'],
+							[NT.Property, [
+								[NT.Identifier, 'c'],
+								[NT.BoolLiteral, 'true'],
+							]],
 						]],
-						[NT.CommaSeparator],
-						[NT.Comment, '// will always be defined, so the shape is correct'],
-						[NT.Property, [
-							[NT.Identifier, 'c'],
-							[NT.BoolLiteral, 'true'],
-						]],
-					]],
-				]);
+					],
+					[
+						ASTObjectExpression._([
+							ASTProperty._(
+								ASTIdentifier._('a'),
+								ASTNumberLiteral._({format: 'int', value: 1}),
+							),
+							ASTProperty._(
+								ASTIdentifier._('b'),
+								ASTTernaryExpression._({
+									test: ASTTernaryCondition._(
+										ASTIdentifier._('someCondition'),
+									),
+									consequent: ASTTernaryConsequent._(
+										ASTStringLiteral._('burnt-orange'),
+									),
+									alternate: ASTTernaryAlternate._(
+										ASTStringLiteral._(''),
+									),
+								}),
+							),
+							ASTProperty._(
+								ASTIdentifier._('c'),
+								ASTBoolLiteral._(true),
+							),
+						]),
+					],
+				);
 			});
 
 			it('with array in item', () => {
-				expect(parse(
+				testParseAndAnalyze(
 					`{
 						a: [1]
-					}`)).toMatchParseTree(
+					}`,
 					[
 						[NT.ObjectExpression, [
-						[NT.Property, [
-							[NT.Identifier, 'a'],
-							[NT.ArrayExpression, [
-								[NT.NumberLiteral, '1'],
-							]],
-						]],
-					]],
-				]);
-			});
-
-			it('with MemberExpression in item', () => {
-				expect(parse(
-					`{
-						a: [foo[1]]
-					}`)).toMatchParseTree(
-					[
-						[NT.ObjectExpression, [
-						[NT.Property, [
-							[NT.Identifier, 'a'],
-							[NT.ArrayExpression, [
-								[NT.MemberExpression, [
-									[NT.Identifier, 'foo'],
+							[NT.Property, [
+								[NT.Identifier, 'a'],
+								[NT.ArrayExpression, [
 									[NT.NumberLiteral, '1'],
 								]],
 							]],
 						]],
-					]],
-				]);
+					],
+					[
+						ASTObjectExpression._([
+							ASTProperty._(
+								ASTIdentifier._('a'),
+								ASTArrayExpression._({
+									type: ASTTypePrimitive._('number'),
+									items: [
+										ASTNumberLiteral._({format: 'int', value: 1}),
+									],
+								}),
+							),
+						]),
+					],
+				);
+			});
+
+			it('with MemberExpression in item', () => {
+				testParseAndAnalyze(
+					`{
+						a: [foo[1]]
+					}`,
+					[
+						[NT.ObjectExpression, [
+							[NT.Property, [
+								[NT.Identifier, 'a'],
+								[NT.ArrayExpression, [
+									[NT.MemberExpression, [
+										[NT.Identifier, 'foo'],
+										[NT.NumberLiteral, '1'],
+									]],
+								]],
+							]],
+						]],
+					],
+					[
+						ASTObjectExpression._([
+							ASTProperty._(
+								ASTIdentifier._('a'),
+								ASTArrayExpression._({
+									type: undefined,
+									items: [
+										ASTMemberExpression._({
+											object: ASTIdentifier._('foo'),
+											property: ASTNumberLiteral._({format: 'int', value: 1}),
+										}),
+									],
+								}),
+							),
+						]),
+					],
+				);
 			});
 
 		});
@@ -7910,7 +8231,7 @@ describe('parser.ts', (): void => {
 
 		it('should assign a range', () => {
 			testParseAndAnalyze(
-				'const foo = 1..3;',
+				'const foo = 1 .. 3;',
 				[
 					[NT.VariableDeclaration, 'const', [
 						[NT.Identifier, 'foo'],
@@ -8053,7 +8374,7 @@ describe('parser.ts', (): void => {
 			testParseAndAnalyze(
 				`const size = when someNumber {
 					1, 2 -> 'small',
-					3..10 -> 'medium',
+					3 .. 10 -> 'medium',
 					11 -> {
 						doThing1();
 						doThing2();
@@ -8316,9 +8637,9 @@ describe('parser.ts', (): void => {
 	});
 
 	describe('bugs fixed', (): void => {
-		it('"foo()..3" should place the RangeExpression outside of the CallExpression', (): void => {
+		it('"foo() .. 3" should place the RangeExpression outside of the CallExpression', (): void => {
 			testParseAndAnalyze(
-				'foo()..3',
+				'foo() .. 3',
 				[
 					[NT.RangeExpression, [
 						[NT.CallExpression, [

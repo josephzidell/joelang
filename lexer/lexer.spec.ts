@@ -830,7 +830,7 @@ describe('lexer.ts', (): void => {
 		it('works with single values, multiple values, ranges, and ...', (): void => {
 			expect(lexify(`const size = when someNumber {
 				1, 2 -> 'small',
-				3..10 -> 'medium',
+				3 .. 10 -> 'medium',
 				11 -> {
 					doThing1();
 					doThing2();
@@ -897,8 +897,8 @@ describe('lexer.ts', (): void => {
 			]);
 		});
 
-		it('"3..10" should have dotdot token', (): void => {
-			expect(lexify('3..10')).toMatchTokens([
+		it('"3 .. 10" should have dotdot token', (): void => {
+			expect(lexify('3 .. 10')).toMatchTokens([
 				['number', '3'],
 				['dotdot', '..'],
 				['number', '10'],

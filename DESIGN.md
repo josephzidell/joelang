@@ -34,7 +34,7 @@ const file = ./foo.joe; // path
 const num = 3; // number
 const str = "hello"; // string
 const ary = ['foo', 'bar']; // array<string>
-const range = 1..10; // array<number> since it's a range. In joelang, ranges are always inclusive on both sides
+const range = 1 .. 10; // array<number> since it's a range. In joelang, ranges are always inclusive on both sides
 const tpl = <1, 'fun', 3.4, false>; // tuple
 const object = {a: 1, b: 2}; // object (POJO - Plain Ol' Joe Object)
 const myMethod = f {...} // function type (as opposed to a regular function `f myMethod {}`)
@@ -43,8 +43,8 @@ const myMethod = f {...} // function type (as opposed to a regular function `f m
 If you instantiate a variable without assigning it immediately, a type is required:
 
 ```joelang
-let myName: string; // assign after, OK
-let myName; // error missing type or assigment
+let myName: string; // assign later, OK  ✅
+let myName; // error since missing type and assigment  ❌
 const myName; // error missing assignment, since constants cannot be reassigned
 ```
 
@@ -149,7 +149,7 @@ const size = when someNumber {
 	1, 2 -> 'small',
 
 	// between 3 and 10 (inclusive)
-	3..10 -> 'medium',
+	3 .. 10 -> 'medium',
 
 	// do stuff before, and use explicit return
 	11 -> {
@@ -171,7 +171,7 @@ when someNumber {
 	// call a function
 	1, 2 -> small(),
 
-	3..10 -> medium(),
+	3 .. 10 -> medium(),
 
 	// fallback function to call
 	... -> offTheCharts(),
@@ -182,7 +182,7 @@ when someNumber {
 	// call a function
 	1, 2 -> somethingSimple(),
 
-	3..10 -> {
+	3 .. 10 -> {
 		doComplicatedThing1();
 		doComplicatedThing2();
 	},
