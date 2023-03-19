@@ -1808,7 +1808,7 @@
 		"col": 39
 	},
 	{
-		"type": "greater_than",
+		"type": "more_than",
 		"start": 1311,
 		"end": 1312,
 		"value": ">",

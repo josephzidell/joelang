@@ -880,8 +880,8 @@ export default class Parser {
 					// comparison
 					'compare',
 					'equals',
-					'greater_than_equals',
 					'less_than_equals',
+					'more_than_equals',
 					'not_equals',
 				].includes(token.type)
 			) {
@@ -1123,7 +1123,7 @@ export default class Parser {
 						MakeNode(NT.TupleExpression, token, this.currentRoot, true),
 					);
 				}
-			} else if (token.type === 'greater_than') {
+			} else if (token.type === 'more_than') {
 				/**
 				 * > can be:
 				 * - a number comparison
@@ -1144,7 +1144,7 @@ export default class Parser {
 				) {
 					this.endExpression(); // end the TupleExpression or TupleShape
 				} else {
-					// 'greater than' BinaryExpression
+					// 'more than' BinaryExpression
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.BinaryExpression, token, this.currentRoot),
 					);

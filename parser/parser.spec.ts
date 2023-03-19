@@ -6212,11 +6212,11 @@ describe('parser.ts', (): void => {
 					binaryExpressionScenariosCheckingOperator('<=');
 				});
 
-				describe('greater than', (): void => {
+				describe('more than', (): void => {
 					binaryExpressionScenariosCheckingOperator('>');
 				});
 
-				describe('greater than or equals', (): void => {
+				describe('more than or equals', (): void => {
 					binaryExpressionScenariosCheckingOperator('>=');
 				});
 

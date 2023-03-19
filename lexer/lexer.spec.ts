@@ -173,7 +173,7 @@ describe('lexer.ts', (): void => {
 				['identifier', 'foo'],
 				['less_than', '<'],
 				['identifier', 'T'],
-				['greater_than', '>'],
+				['more_than', '>'],
 				['paren_open', '('],
 				['identifier', 'a'],
 				['colon', ':'],
@@ -487,12 +487,12 @@ describe('lexer.ts', (): void => {
 					binaryExpressionScenarios('less_than_equals', '<=');
 				});
 
-				describe('greater than', (): void => {
-					binaryExpressionScenarios('greater_than', '>');
+				describe('more than', (): void => {
+					binaryExpressionScenarios('more_than', '>');
 				});
 
-				describe('greater than or equals', (): void => {
-					binaryExpressionScenarios('greater_than_equals', '>=');
+				describe('more than or equals', (): void => {
+					binaryExpressionScenarios('more_than_equals', '>=');
 				});
 			});
 		});

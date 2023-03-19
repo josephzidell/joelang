@@ -1,0 +1,15 @@
+/**
+ * used for the comparison between two values
+ *
+ * Example:
+ *
+ * ```
+ * 3 <=> 4 // Less
+ * 'apples' <=> 'apples' // Equal
+ * ```
+ */
+enum Comparison {
+	Less,
+	Equal,
+	More,
+}

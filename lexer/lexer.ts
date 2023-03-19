@@ -216,7 +216,7 @@ export default class Lexer {
 				{
 					[patterns.MINUS]: 'minus_minus',
 					[patterns.EQUALS]: 'minus_equals',
-					[patterns.GREATER_THAN]: 'right_arrow',
+					[patterns.MORE_THAN]: 'right_arrow',
 				},
 				'minus',
 				line,
@@ -250,7 +250,7 @@ export default class Lexer {
 			return this.peekAndHandle(
 				{
 					[patterns.PIPE]: 'or',
-					[patterns.GREATER_THAN]: 'triangle_close',
+					[patterns.MORE_THAN]: 'triangle_close',
 				},
 				undefined,
 				line,
@@ -298,7 +298,7 @@ export default class Lexer {
 					[patterns.EQUALS]: (): Result<Token> => {
 						return this.peekAndHandle(
 							{
-								[patterns.GREATER_THAN]: 'compare', // <=>
+								[patterns.MORE_THAN]: 'compare', // <=>
 							},
 							'less_than_equals',
 							line,
@@ -314,12 +314,12 @@ export default class Lexer {
 			);
 		}
 
-		if (this.char === patterns.GREATER_THAN) {
+		if (this.char === patterns.MORE_THAN) {
 			return this.peekAndHandle(
 				{
-					[patterns.EQUALS]: 'greater_than_equals',
+					[patterns.EQUALS]: 'more_than_equals',
 				},
-				'greater_than',
+				'more_than',
 				line,
 				col,
 			);
