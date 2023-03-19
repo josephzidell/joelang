@@ -45,6 +45,9 @@ export enum AnalysisErrorCode {
 	StringLiteralExpected = 'S035',
 	PropertyExpected = 'S036',
 	ValueExpected = 'S037',
+	IterableExpected = 'S038',
+	InKeywordExpected = 'S039',
+	JoeDocExpected = 'S040', // TBD if this will ever actually be used / enforced
 }
 
 /**

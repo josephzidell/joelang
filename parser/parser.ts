@@ -1062,32 +1062,34 @@ export default class Parser {
 						this.beginExpressionWith(MakeNode(NT.ForStatement, token, this.currentRoot, true));
 						break;
 					case 'if':
-						// check token before, then check token after
-						// works on a CallExpression as well as Literal in an ArrayExpression
-						const [, prevType] = this.prev();
-						if (prevType === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
-							// this is after, therefore take the CallExpression, array element, or Property
-							const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true));
-							if (result.outcome === 'error') {
-								return result;
-							}
-						} else {
-							// this is before
+						{
+							// check token before, then check token after
+							// works on a CallExpression as well as Literal in an ArrayExpression
+							const [, prevType] = this.prev();
+							if (prevType === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
+								// this is after, therefore take the CallExpression, array element, or Property
+								const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true));
+								if (result.outcome === 'error') {
+									return result;
+								}
+							} else {
+								// this is before
 
-							// if prev token is 'else', this IfStatement goes into current node
-							// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
+								// if prev token is 'else', this IfStatement goes into current node
+								// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
 
-							// the token is already ready for the next, so we need to go 2 back
-							const prevToken = this.lexer.prevToken(2);
-							if (this.currentRoot.type === NT.IfStatement && typeof prevToken !== 'undefined' && !(prevToken.type === 'keyword' && prevToken.value === 'else')) {
-								if (this.debug) {
-									console.debug('Found an "if" statement after another "if" without an "else"; now closing the first IfStatement');
+								// the token is already ready for the next, so we need to go 2 back
+								const prevToken = this.lexer.prevToken(2);
+								if (this.currentRoot.type === NT.IfStatement && typeof prevToken !== 'undefined' && !(prevToken.type === 'keyword' && prevToken.value === 'else')) {
+									if (this.debug) {
+										console.debug('Found an "if" statement after another "if" without an "else"; now closing the first IfStatement');
+									}
+
+									this.endExpression(); // end the IfStatement
 								}
 
-								this.endExpression(); // end the IfStatement
+								this.beginExpressionWith(MakeNode(NT.IfStatement, token, this.currentRoot, true));
 							}
-
-							this.beginExpressionWith(MakeNode(NT.IfStatement, token, this.currentRoot, true));
 						}
 						break;
 					case 'implements':
@@ -1098,6 +1100,36 @@ export default class Parser {
 						break;
 					case 'import':
 						this.beginExpressionWith(MakeNode(NT.ImportDeclaration, token, this.currentRoot, true));
+						break;
+					case 'in':
+						{
+							// eg. for const i in ary {}, so we end the VariableDeclaration
+							this.endExpressionIfIn(NT.VariableDeclaration)
+
+							// check the previous node, which should be either a VariableDeclaration or an Identifier
+							const [prev, prevType] = this.prev();
+							if (typeof prev === 'undefined') {
+								return error(new ParserError(
+									ParserErrorCode.MissingPreviousNode,
+									`We hoped to find a variable before it, but alas!`,
+									this.currentRoot,
+									this.getErrorContext((token.value || '').length),
+								));
+							}
+
+							if ((this.currentRoot.type === NT.ForStatement || (this.currentRoot.type === NT.Parenthesized && this.currentRoot.parent?.type === NT.ForStatement))
+								&& ([NT.Identifier, NT.VariableDeclaration] as NT[]).includes(prevType)
+							) {
+								this.addNode(MakeNode(NT.InKeyword, token, this.currentRoot, true));
+							} else {
+								return error(new ParserError(
+									ParserErrorCode.MissingParentNode,
+									`Misplaced keyword "in" found. Do you mean to use a "for" loop?`,
+									this.currentRoot,
+									this.getErrorContext((token.value || '').length),
+								));
+							}
+						}
 						break;
 					case 'interface':
 						{

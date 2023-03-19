@@ -26,6 +26,7 @@ export enum NT {
 	Identifier = 'Identifier',
 	IfStatement = 'IfStatement',
 	ImportDeclaration = 'ImportDeclaration',
+	InKeyword = 'InKeyword',
 	InterfaceDeclaration = 'InterfaceDeclaration',
 	InterfaceExtension = 'InterfaceExtension',
 	InterfaceExtensionsList = 'InterfaceExtensionsList',

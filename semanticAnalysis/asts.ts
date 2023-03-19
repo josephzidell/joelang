@@ -3,6 +3,8 @@
  */
 
 import { PrimitiveType } from "../lexer/types";
+import util from 'util';
+
 
 export interface ASTThatHasJoeDoc {
 	joeDoc: ASTJoeDoc | undefined;
@@ -20,9 +22,24 @@ export interface ASTThatHasTypeParams {
 	typeParams: ASTType[];
 }
 
-export interface AST { }
+export abstract class AST {
+	abstract kind: string;
 
-export class ASTArgumentsList implements AST {
+	/**
+	 * Override the default behavior when calling util.insepct()
+	 * and don't display the `kind` property. It is only necessary
+	 * for JSON serialization since the class name isn't there.
+	 */
+	[util.inspect.custom](depth: number, options: util.InspectOptions): string {
+		const { kind, ...rest } = this;
+
+		// we need to explcitely dsplay the class name since it
+		// disappears when using a custom inspect function.
+		return `${this.constructor.name} ${util.inspect(rest, options)}`;
+	}
+}
+
+export class ASTArgumentsList extends AST {
 	kind = 'ArgumentsList';
 	args: AssignableASTs[] = []; // usually this is empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
@@ -34,7 +51,7 @@ export class ASTArgumentsList implements AST {
 	}
 }
 
-export class ASTArrayExpression<T extends AssignableASTs> implements AST {
+export class ASTArrayExpression<T extends AssignableASTs> extends AST {
 	kind = 'ArrayExpression';
 	/** The type, usually inferred from the initial value, if any, or from context */
 	type: ASTType | undefined = undefined;
@@ -52,7 +69,7 @@ export class ASTArrayExpression<T extends AssignableASTs> implements AST {
 	}
 }
 
-export class ASTArrayOf implements AST {
+export class ASTArrayOf extends AST {
 	kind = 'ArrayOf';
 	type!: ASTType;
 
@@ -64,7 +81,7 @@ export class ASTArrayOf implements AST {
 	}
 }
 
-export class ASTAssignmentExpression implements AST {
+export class ASTAssignmentExpression extends AST {
 	kind = 'AssignmentExpression';
 	left!: ASTIdentifier | ASTMemberExpression;
 	right!: AssignableASTs;
@@ -81,7 +98,7 @@ export class ASTAssignmentExpression implements AST {
 	}
 }
 
-export class ASTBinaryExpression<L extends ExpressionASTs, R extends ExpressionASTs> implements AST {
+export class ASTBinaryExpression<L extends ExpressionASTs, R extends ExpressionASTs> extends AST {
 	kind = 'BinaryExpression';
 	operator!: string;
 	left!: L;
@@ -97,7 +114,7 @@ export class ASTBinaryExpression<L extends ExpressionASTs, R extends ExpressionA
 	}
 }
 
-export class ASTBlockStatement implements AST {
+export class ASTBlockStatement extends AST {
 	kind = 'BlockStatement';
 	expressions: AST[] = [];
 
@@ -109,7 +126,7 @@ export class ASTBlockStatement implements AST {
 	}
 }
 
-export class ASTBoolLiteral implements AST {
+export class ASTBoolLiteral extends AST {
 	kind = 'BoolLiteral';
 	value!: boolean | ASTUnaryExpression<boolean>;
 
@@ -121,7 +138,7 @@ export class ASTBoolLiteral implements AST {
 	}
 }
 
-export class ASTCallExpression implements AST {
+export class ASTCallExpression extends AST {
 	kind = 'CallExpression';
 	callee!: CallableASTs;
 	typeArgs!: ASTType[];
@@ -145,7 +162,7 @@ export class ASTCallExpression implements AST {
 	}
 }
 
-export class ASTClassDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+export class ASTClassDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
 	kind = 'ClassDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -181,7 +198,27 @@ export class ASTClassDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasMod
 	}
 }
 
-export class ASTFunctionDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasTypeParams {
+export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
+	kind = 'ForStatement';
+	initializer!: ASTIdentifier | ASTVariableDeclaration;
+	iterable!: IterableASTs;
+	body!: ASTBlockStatement;
+
+	// factory function
+	static _({ initializer, iterable, body }: {
+		initializer: ASTIdentifier | ASTVariableDeclaration;
+		iterable: IterableASTs;
+		body: ASTBlockStatement;
+	}): ASTForStatement {
+		const ast = new ASTForStatement();
+		ast.initializer = initializer;
+		ast.iterable = iterable;
+		ast.body = body;
+		return ast;
+	}
+}
+
+export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasTypeParams {
 	kind = 'FunctionDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -217,7 +254,7 @@ export class ASTFunctionDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHas
 	}
 }
 
-export class ASTFunctionSignature implements AST, ASTThatHasTypeParams {
+export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 	kind = 'FunctionSignature';
 	typeParams: ASTType[] = [];
 	params: ASTParameter[] = [];
@@ -237,7 +274,7 @@ export class ASTFunctionSignature implements AST, ASTThatHasTypeParams {
 	}
 }
 
-export class ASTIdentifier implements AST {
+export class ASTIdentifier extends AST {
 	kind = 'Identifier';
 	name!: string;
 
@@ -249,7 +286,7 @@ export class ASTIdentifier implements AST {
 	}
 }
 
-export class ASTIfStatement implements AST {
+export class ASTIfStatement extends AST {
 	kind = 'IfStatement';
 	test!: ExpressionASTs;
 	consequent!: ASTBlockStatement;
@@ -273,7 +310,7 @@ export class ASTIfStatement implements AST {
 	}
 }
 
-export class ASTInterfaceDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+export class ASTInterfaceDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
 	kind = 'InterfaceDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -306,7 +343,7 @@ export class ASTInterfaceDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHa
 	}
 }
 
-export class ASTJoeDoc implements AST {
+export class ASTJoeDoc extends AST {
 	kind = 'JoeDoc';
 	content?: string = undefined; // TODO parse into parts
 
@@ -318,7 +355,7 @@ export class ASTJoeDoc implements AST {
 	}
 }
 
-export class ASTMemberExpression implements AST {
+export class ASTMemberExpression extends AST {
 	kind = 'MemberExpression';
 	object!: MemberExpressionObjectASTs;
 	property!: MemberExpressionPropertyASTs;
@@ -335,7 +372,7 @@ export class ASTMemberExpression implements AST {
 	}
 }
 
-export class ASTMemberListExpression implements AST {
+export class ASTMemberListExpression extends AST {
 	kind = 'MemberListExpression';
 	object!: MemberExpressionObjectASTs;
 	properties: MemberExpressionPropertyASTs[] = [];
@@ -352,7 +389,7 @@ export class ASTMemberListExpression implements AST {
 	}
 }
 
-export class ASTModifier implements AST {
+export class ASTModifier extends AST {
 	kind = 'Modifier';
 	keyword!: string;
 
@@ -364,7 +401,7 @@ export class ASTModifier implements AST {
 	}
 }
 
-export class ASTNumberLiteral implements AST {
+export class ASTNumberLiteral extends AST {
 	kind = 'NumberLiteral';
 	format!: 'int' | 'decimal';
 	value!: number | ASTUnaryExpression<number>;
@@ -378,7 +415,7 @@ export class ASTNumberLiteral implements AST {
 	}
 }
 
-export class ASTObjectExpression implements AST {
+export class ASTObjectExpression extends AST {
 	kind = 'ObjectExpression';
 	properties!: ASTProperty[];
 
@@ -390,7 +427,7 @@ export class ASTObjectExpression implements AST {
 	}
 }
 
-export class ASTObjectShape implements AST {
+export class ASTObjectShape extends AST {
 	kind = 'ObjectShape';
 	properties: ASTPropertyShape[] = [];
 
@@ -402,7 +439,7 @@ export class ASTObjectShape implements AST {
 	}
 }
 
-export class ASTProperty implements AST {
+export class ASTProperty extends AST {
 	kind = 'Property';
 	key!: ASTIdentifier;
 	value!: AssignableASTs;
@@ -416,7 +453,7 @@ export class ASTProperty implements AST {
 	}
 }
 
-export class ASTPropertyShape implements AST {
+export class ASTPropertyShape extends AST {
 	kind = 'PropertyShape';
 	key!: ASTIdentifier;
 	type!: ASTType;
@@ -430,7 +467,7 @@ export class ASTPropertyShape implements AST {
 	}
 }
 
-export class ASTParameter implements AST {
+export class ASTParameter extends AST {
 	kind = 'Parameter';
 	modifiers: ASTModifier[] = [];
 	isRest = false;
@@ -474,7 +511,7 @@ export class ASTParameter implements AST {
 	}
 }
 
-export class ASTPath implements AST {
+export class ASTPath extends AST {
 	kind = 'Path';
 	absolute!: boolean;
 	path!: string;
@@ -490,7 +527,7 @@ export class ASTPath implements AST {
 	}
 }
 
-export class ASTPostfixIfStatement implements AST {
+export class ASTPostfixIfStatement extends AST {
 	kind = 'PostfixIfStatement';
 	expression!: ExpressionASTs;
 	test!: ExpressionASTs;
@@ -507,7 +544,7 @@ export class ASTPostfixIfStatement implements AST {
 	}
 }
 
-export class ASTPrintStatement implements AST {
+export class ASTPrintStatement extends AST {
 	kind = 'PrintStatement';
 	expressions: ExpressionASTs[] = [];
 
@@ -520,7 +557,7 @@ export class ASTPrintStatement implements AST {
 }
 
 /** It's just a kind of BlockStatement */
-export class ASTProgram implements AST {
+export class ASTProgram extends AST {
 	kind = 'Program';
 	declarations: AST[] = [];
 
@@ -536,7 +573,7 @@ export class ASTProgram implements AST {
 	}
 }
 
-export class ASTRangeExpression implements AST {
+export class ASTRangeExpression extends AST {
 	kind = 'RangeExpression';
 	lower!: RangeBoundASTs;
 	upper!: RangeBoundASTs;
@@ -553,7 +590,7 @@ export class ASTRangeExpression implements AST {
 	}
 }
 
-export class ASTRegularExpression implements AST {
+export class ASTRegularExpression extends AST {
 	kind = 'RegularExpression';
 	pattern!: string;
 	flags!: string[];
@@ -567,7 +604,7 @@ export class ASTRegularExpression implements AST {
 	}
 }
 
-export class ASTRestElement implements AST {
+export class ASTRestElement extends AST {
 	kind = 'RestElement';
 	// factory function
 	static _(): ASTRestElement {
@@ -575,7 +612,7 @@ export class ASTRestElement implements AST {
 	}
 }
 
-export class ASTReturnStatement implements AST {
+export class ASTReturnStatement extends AST {
 	kind = 'ReturnStatement';
 	expressions: AssignableASTs[] = [];
 
@@ -587,7 +624,7 @@ export class ASTReturnStatement implements AST {
 	}
 }
 
-export class ASTStringLiteral implements AST {
+export class ASTStringLiteral extends AST {
 	kind = 'StringLiteral';
 	value!: string;
 
@@ -599,7 +636,7 @@ export class ASTStringLiteral implements AST {
 	}
 }
 
-export class ASTTernaryAlternate<T extends AssignableASTs> implements AST {
+export class ASTTernaryAlternate<T extends AssignableASTs> extends AST {
 	kind = 'TernaryAlternate';
 	value!: T;
 
@@ -611,7 +648,7 @@ export class ASTTernaryAlternate<T extends AssignableASTs> implements AST {
 	}
 }
 
-export class ASTTernaryCondition implements AST {
+export class ASTTernaryCondition extends AST {
 	kind = 'TernaryCondition';
 	expression!: ExpressionASTs;
 
@@ -623,7 +660,7 @@ export class ASTTernaryCondition implements AST {
 	}
 }
 
-export class ASTTernaryConsequent<T extends AssignableASTs> implements AST {
+export class ASTTernaryConsequent<T extends AssignableASTs> extends AST {
 	kind = 'TernaryConsequent';
 	value!: T;
 
@@ -635,7 +672,7 @@ export class ASTTernaryConsequent<T extends AssignableASTs> implements AST {
 	}
 }
 
-export class ASTTernaryExpression<C extends AssignableASTs, A extends AssignableASTs> implements AST {
+export class ASTTernaryExpression<C extends AssignableASTs, A extends AssignableASTs> extends AST {
 	kind = 'TernaryExpression';
 	test!: ASTTernaryCondition;
 	consequent!: ASTTernaryConsequent<C>;
@@ -655,7 +692,7 @@ export class ASTTernaryExpression<C extends AssignableASTs, A extends Assignable
 	}
 }
 
-export class ASTThisKeyword implements AST {
+export class ASTThisKeyword extends AST {
 	kind = 'ThisKeyword';
 	// factory function
 	static _(): ASTThisKeyword {
@@ -663,7 +700,7 @@ export class ASTThisKeyword implements AST {
 	}
 }
 
-export class ASTTupleExpression implements AST {
+export class ASTTupleExpression extends AST {
 	kind = 'TupleExpression';
 	items: AssignableASTs[] = [];
 
@@ -675,7 +712,7 @@ export class ASTTupleExpression implements AST {
 	}
 }
 
-export class ASTTupleShape implements AST {
+export class ASTTupleShape extends AST {
 	kind = 'TupleShape';
 	types!: ASTType[];
 
@@ -688,7 +725,7 @@ export class ASTTupleShape implements AST {
 }
 
 /** Begin ASTType */
-export class ASTTypeInstantiationExpression {
+export class ASTTypeInstantiationExpression extends AST {
 	kind = 'TypeInstantiationExpression';
 	base!: ASTIdentifier | ASTMemberExpression;
 	typeArgs: ASTType[] = [];
@@ -705,7 +742,7 @@ export class ASTTypeInstantiationExpression {
 	}
 }
 
-export class ASTTypePrimitive {
+export class ASTTypePrimitive extends AST {
 	kind = 'TypePrimitive';
 	type!: PrimitiveType;
 
@@ -727,7 +764,7 @@ ASTTypePrimitiveRegex.type = 'regex';
 export const ASTTypePrimitiveString = new ASTTypePrimitive();
 ASTTypePrimitiveString.type = 'string';
 
-export class ASTTypeRange implements AST {
+export class ASTTypeRange extends AST {
 	kind = 'TypeRange';
 	// factory function
 	static _(): ASTTypeRange {
@@ -739,7 +776,7 @@ export type ASTTypeExceptPrimitive = ASTFunctionSignature | ASTIdentifier | ASTM
 export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
 /** End ASTType */
 
-export class ASTUnaryExpression<T> implements AST {
+export class ASTUnaryExpression<T> extends AST {
 	kind = 'UnaryExpression';
 	before!: boolean;
 	operator!: string;
@@ -755,7 +792,7 @@ export class ASTUnaryExpression<T> implements AST {
 	}
 }
 
-export class ASTVariableDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHasModifiers {
+export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers {
 	kind = 'VariableDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -806,7 +843,7 @@ export class ASTVariableDeclaration implements AST, ASTThatHasJoeDoc, ASTThatHas
 	}
 }
 
-export class ASTWhenCase implements AST {
+export class ASTWhenCase extends AST {
 	kind = 'WhenCase';
 	values: Array<ASTBoolLiteral | ASTNumberLiteral | ASTRangeExpression | ASTRestElement | ASTStringLiteral> = [];
 	consequent!: ASTBlockStatement | AssignableASTs;
@@ -823,7 +860,7 @@ export class ASTWhenCase implements AST {
 	}
 }
 
-export class ASTWhenExpression implements AST {
+export class ASTWhenExpression extends AST {
 	kind = 'WhenExpression';
 	expression!: ExpressionASTs;
 	cases: ASTWhenCase[] = [];
@@ -838,7 +875,9 @@ export class ASTWhenExpression implements AST {
 }
 
 // noop
-export class SkipAST implements AST { }
+export class SkipAST extends AST {
+	kind = 'Skip';
+}
 
 /** ASTs that can be assigned to a variable go in an array/object/tuple, passed as an argument, or returned */
 export type AssignableASTs = ExpressionASTs | ASTFunctionDeclaration;
@@ -865,6 +904,17 @@ export type ExpressionASTs =
 	ASTTupleExpression |
 	ASTUnaryExpression<ExpressionASTs> |
 	ASTWhenExpression;
+
+export type IterableASTs =
+	// main types
+	ASTArrayExpression<AssignableASTs> |
+	ASTMemberListExpression | // on an array
+	ASTRangeExpression |
+
+	// can hold/return the above types
+	ASTCallExpression |
+	ASTIdentifier |
+	ASTMemberExpression;
 
 export type MemberExpressionObjectASTs =
 	ASTCallExpression |

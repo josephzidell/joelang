@@ -31,6 +31,7 @@ import {
 	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTClassDeclaration,
+	ASTForStatement,
 	ASTFunctionDeclaration,
 	ASTFunctionSignature,
 	ASTIdentifier,
@@ -82,6 +83,7 @@ import {
 	ASTWhenExpression,
 	CallableASTs,
 	ExpressionASTs,
+	IterableASTs,
 	MemberExpressionObjectASTs,
 	MemberExpressionPropertyASTs,
 	RangeBoundASTs,
@@ -272,10 +274,13 @@ export default class SemanticAnalyzer {
 			type: NT.JoeDoc,
 			required: false,
 			callback: (child) => {
-				const maybeJoeDoc = this.visitJoeDoc(child);
-				if (maybeJoeDoc.has()) {
-					ast.joeDoc = maybeJoeDoc.value;
+				const joeDocResult = this.visitJoeDoc(child);
+				if (joeDocResult.outcome === 'ok') {
+					ast.joeDoc = joeDocResult.value;
 				}
+
+				// ignore an error that JoeDoc is missing
+				// since it's optional
 
 				return ok(undefined);
 			},
@@ -773,9 +778,8 @@ export default class SemanticAnalyzer {
 				},
 			],
 		);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -834,9 +838,8 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -930,9 +933,8 @@ export default class SemanticAnalyzer {
 				}
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -997,9 +999,8 @@ export default class SemanticAnalyzer {
 			// the body
 			this.getChildHandlerForRequiredBody(ast),
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1050,9 +1051,8 @@ export default class SemanticAnalyzer {
 				},
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		if (typeof identifierOrMemberExpression === 'undefined') {
@@ -1081,6 +1081,81 @@ export default class SemanticAnalyzer {
 
 	visitElseStatement(child: Node): Result<ASTBlockStatement | ASTIfStatement> {
 		return this.nodeToAST<ASTBlockStatement | ASTIfStatement>(child);
+	}
+
+	visitForStatement(node: Node): Result<ASTForStatement> {
+		const ast = new ASTForStatement();
+
+		// if the first child is a parenthesized node, then we need to unwrap it
+		// and replace it with its children
+		if (node.children[0].type === NT.Parenthesized) {
+			node.children = [...node.children[0].children, ...node.children.slice(1)];
+		}
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(
+			node,
+			[
+				// the initializer variable
+				{
+					type: [NT.Identifier, NT.VariableDeclaration],
+					required: true,
+					callback: (child) => {
+						const visitResult = this.nodeToAST<ASTIdentifier | ASTVariableDeclaration>(child);
+						switch (visitResult.outcome) {
+							case 'ok': ast.initializer = visitResult.value; break;
+							case 'error': return visitResult; break;
+						}
+
+						return ok(undefined);
+					},
+					errorCode: AnalysisErrorCode.IdentifierExpected,
+					errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+				},
+
+				// the InKeyword
+				{
+					type: NT.InKeyword,
+					required: true,
+					callback: skipThisChild,
+					errorCode: AnalysisErrorCode.InKeywordExpected,
+					errorMessage: (child: Node | undefined) => `We were expecting "... in ...", but found "${child?.type}"`,
+				},
+
+				// the iterable
+				{
+					type: [
+						NT.ArrayExpression,
+						NT.CallExpression,
+						NT.Identifier,
+						NT.MemberExpression,
+						NT.MemberListExpression,
+						NT.RangeExpression,
+					],
+					required: true,
+					callback: (child) => {
+						const visitResult = this.nodeToAST<IterableASTs>(child);
+						switch (visitResult.outcome) {
+							case 'ok': ast.iterable = visitResult.value; break;
+							case 'error': return visitResult; break;
+						}
+
+						return ok(undefined);
+					},
+					errorCode: AnalysisErrorCode.IterableExpected,
+					errorMessage: (child: Node | undefined) => `We were expecting an Iterable, but found "${child?.type}"`,
+				},
+
+				// the body
+				this.getChildHandlerForRequiredBody(ast),
+			],
+		);
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
 	visitFunctionDeclaration(node: Node): Result<ASTFunctionDeclaration> {
@@ -1148,9 +1223,8 @@ export default class SemanticAnalyzer {
 				},
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1208,9 +1282,8 @@ export default class SemanticAnalyzer {
 				},
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1289,9 +1362,8 @@ export default class SemanticAnalyzer {
 				},
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1343,9 +1415,8 @@ export default class SemanticAnalyzer {
 			// the body
 			this.getChildHandlerForRequiredBody(ast),
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1357,12 +1428,28 @@ export default class SemanticAnalyzer {
 		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.InterfaceExtension);
 	}
 
-	visitJoeDoc(node: Node): Maybe<ASTJoeDoc> {
+	/**
+	 * Visits a JoeDoc node. At this point, we have no intention of enforcing that
+	 * JoeDocs be present (but that may change, possibly for public functions).
+	 *
+	 * TODO: check the contents of the JoeDoc, and enforce any rules
+	 *
+	 * @param node NT.JoeDoc
+	 * @returns A Result containing the AST node if successful, or an error if not
+	 */
+	visitJoeDoc(node: Node): Result<ASTJoeDoc> {
 		if (node.type === NT.JoeDoc && node.value) {
-			return has(ASTJoeDoc._(node.value));
+			return ok(ASTJoeDoc._(node.value));
 		}
 
-		return hasNot();
+		// check the contents of the JoeDoc
+
+		return error(new AnalysisError(
+			AnalysisErrorCode.JoeDocExpected,
+			`We were expecting a JoeDoc, but found "${node.type}"`,
+			node,
+			this.getErrorContext(node, node.value?.length || 1),
+		));
 	}
 
 	visitMemberExpression(node: Node): Result<ASTMemberExpression> {
@@ -1698,9 +1785,8 @@ export default class SemanticAnalyzer {
 				},
 			],
 		);
-		switch (handleResult.outcome) {
-			case 'ok': break;
-			case 'error': return handleResult; break;
+		if (handleResult.outcome === 'error') {
+			return handleResult;
 		}
 
 		// now perform some additional checks
@@ -1817,9 +1903,8 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1915,9 +2000,8 @@ export default class SemanticAnalyzer {
 				},
 			],
 		);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1962,9 +2046,8 @@ export default class SemanticAnalyzer {
 				},
 			],
 		);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2249,9 +2332,8 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an Expression for the "else" clause, but found "${child?.type}"`,
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2496,9 +2578,8 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
 			},
 		]);
-		switch (handleResult.outcome) {
-			case 'ok': break;
-			case 'error': return handleResult; break;
+		if (handleResult.outcome === 'error') {
+			return handleResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2726,9 +2807,8 @@ export default class SemanticAnalyzer {
 				errorMessage: (child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
 			},
 		]);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		// now perform some additional checks
@@ -2795,9 +2875,8 @@ export default class SemanticAnalyzer {
 				},
 			],
 		);
-		switch (handlingResult.outcome) {
-			case 'ok': break;
-			case 'error': return handlingResult; break;
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;

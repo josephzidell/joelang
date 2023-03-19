@@ -10,6 +10,7 @@ import {
 	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTClassDeclaration,
+	ASTForStatement,
 	ASTFunctionDeclaration,
 	ASTFunctionSignature,
 	ASTIdentifier,
@@ -1693,56 +1694,315 @@ describe('parser.ts', (): void => {
 
 	describe('ForStatement', (): void => {
 
-		it('simple for statement', () => {
-			expect(parse(
-				'for let i = 0; i < 10; i++ {}')).toMatchParseTree(
+		it('simple for statement with range', () => {
+			testParseAndAnalyze(
+				'for let i in 0..9 {}',
 				[
 					[NT.ForStatement, [
-					[NT.VariableDeclaration, 'let', [
-						[NT.Identifier, 'i'],
-						[NT.AssignmentOperator],
-						[NT.NumberLiteral, '0'],
-					]],
-					[NT.SemicolonSeparator],
-					[NT.BinaryExpression, '<', [
-						[NT.Identifier, 'i'],
-						[NT.NumberLiteral, '10'],
-					]],
-					[NT.SemicolonSeparator],
-					[NT.UnaryExpression, '++', { before: false }, [
-						[NT.Identifier, 'i'],
-					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
-		});
-
-		it('with parens', () => {
-			expect(parse(
-				'for (let i = 0; i < 10; i++) {}')).toMatchParseTree(
-				[
-					[NT.ForStatement, [
-					[NT.Parenthesized, [
 						[NT.VariableDeclaration, 'let', [
 							[NT.Identifier, 'i'],
-							[NT.AssignmentOperator],
+						]],
+						[NT.InKeyword],
+						[NT.RangeExpression, [
 							[NT.NumberLiteral, '0'],
+							[NT.NumberLiteral, '9'],
 						]],
-						[NT.SemicolonSeparator],
-						[NT.BinaryExpression, '<', [
-							[NT.Identifier, 'i'],
-							[NT.NumberLiteral, '10'],
-						]],
-						[NT.SemicolonSeparator],
-						[NT.UnaryExpression, '++', { before: false }, [
-							[NT.Identifier, 'i'],
-						]],
+						[NT.BlockStatement, []],
 					]],
-					[NT.BlockStatement, []],
-				]],
-			]);
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTRangeExpression._({
+							lower: ASTNumberLiteral._({format: 'int', value: 0}),
+							upper: ASTNumberLiteral._({format: 'int', value: 9}),
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
+		it('with range in parens', () => {
+			testParseAndAnalyze(
+				'for (let i in 0..9) {}',
+				[
+					[NT.ForStatement, [
+						[NT.Parenthesized, [
+							[NT.VariableDeclaration, 'let', [
+								[NT.Identifier, 'i'],
+							]],
+							[NT.InKeyword],
+							[NT.RangeExpression, [
+								[NT.NumberLiteral, '0'],
+								[NT.NumberLiteral, '9'],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTRangeExpression._({
+							lower: ASTNumberLiteral._({format: 'int', value: 0}),
+							upper: ASTNumberLiteral._({format: 'int', value: 9}),
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('with identifier', () => {
+			testParseAndAnalyze(
+				'const foo = [1, 2, 3]; for let i in foo {}',
+				[
+					[NT.VariableDeclaration, 'const', [
+						[NT.Identifier, 'foo'],
+						[NT.AssignmentOperator],
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '2'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3'],
+						]],
+					]],
+					[NT.SemicolonSeparator],
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: false,
+						identifier: ASTIdentifier._('foo'),
+						initialValue: ASTArrayExpression._({
+							type: ASTTypePrimitive._('number'),
+							items: [
+								ASTNumberLiteral._({format: 'int', value: 1}),
+								ASTNumberLiteral._({format: 'int', value: 2}),
+								ASTNumberLiteral._({format: 'int', value: 3}),
+							],
+						}),
+						inferredType: ASTArrayOf._(
+							ASTTypePrimitive._('number'),
+						),
+					}),
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTIdentifier._('foo'),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+		it('with array', () => {
+			testParseAndAnalyze(
+				'for let i in [1, 2, 3] {}',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.ArrayExpression, [
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '2'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3'],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTArrayExpression._({
+							type: ASTTypePrimitive._('number'),
+							items: [
+								ASTNumberLiteral._({format: 'int', value: 1}),
+								ASTNumberLiteral._({format: 'int', value: 2}),
+								ASTNumberLiteral._({format: 'int', value: 3}),
+							],
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+		it('with call expression', () => {
+			testParseAndAnalyze(
+				'for let i in foo() {}',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.CallExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.ArgumentsList, []],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTCallExpression._({
+							callee: ASTIdentifier._('foo'),
+							args: [],
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+		it('with member expression', () => {
+			testParseAndAnalyze(
+				'for let i in foo.bar {}',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.MemberExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.Identifier, 'bar'],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTMemberExpression._({
+							object: ASTIdentifier._('foo'),
+							property: ASTIdentifier._('bar'),
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+		it('with member list expression', () => {
+			testParseAndAnalyze(
+				'for let i in foo[0, 2, 4] {}',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.MemberListExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.MemberList, [
+								[NT.NumberLiteral, '0'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '2'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '4'],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTMemberListExpression._({
+							object: ASTIdentifier._('foo'),
+							properties: [
+								ASTNumberLiteral._({format: 'int', value: 0}),
+								ASTNumberLiteral._({format: 'int', value: 2}),
+								ASTNumberLiteral._({format: 'int', value: 4}),
+							],
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+		it('with member list expression using a range', () => {
+			testParseAndAnalyze(
+				'for let i in foo[0 .. 4] {}',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.MemberListExpression, [
+							[NT.Identifier, 'foo'],
+							[NT.MemberList, [
+								[NT.RangeExpression, [
+									[NT.NumberLiteral, '0'],
+									[NT.NumberLiteral, '4'],
+								]],
+							]],
+						]],
+						[NT.BlockStatement, []],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTMemberListExpression._({
+							object: ASTIdentifier._('foo'),
+							properties: [
+								ASTRangeExpression._({
+									lower: ASTNumberLiteral._({format: 'int', value: 0}),
+									upper: ASTNumberLiteral._({format: 'int', value: 4}),
+								}),
+							],
+						}),
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
 	});
 
 	describe('FunctionDeclaration', (): void => {

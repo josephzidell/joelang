@@ -6,9 +6,9 @@ import Lexer from './lexer/lexer';
 import ParserError from './parser/error';
 import Parser from './parser/parser';
 import { simplifyTree } from './parser/simplifier';
+import { Node } from "./parser/types";
 import AnalysisError from './semanticAnalysis/error';
 import SemanticAnalyzer from './semanticAnalysis/semanticAnalyzer';
-import { Node } from "/home/joe/code/joelang/parser/types";
 
 const args = process.argv.slice(2);
 // let input: string;
@@ -116,6 +116,15 @@ void (async (): Promise<void> => {
 
 /** Runs the Semantic Analyzer and returns the exit code */
 async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnalysis: boolean) {
+	function omitKind(key: string, value: any) {
+		// Exclude property "kind" from the output
+		if (key === "kind") {
+			return undefined;
+		}
+
+		return value;
+	}
+
 	const analyzer = new SemanticAnalyzer(cst, parser);
 	if (isThisAnInlineAnalysis) {
 		analyzer.thisIsAnInlineAnalysis();
@@ -130,7 +139,8 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 						const output = JSON.stringify(analysisResult.value, null, '\t');
 						console.info(output);
 					} else {
-						console.info(analysisResult.value);
+						const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
+						console.info(output);
 					}
 
 				} else {
