@@ -98,13 +98,10 @@ export const keywords = [
 	'import',
 	'in',
 	'interface',
-	'is',
 	'let',
 	'loop',
 	'next', // aka continue
 	'print',
-	'private',
-	'public',
 	'return',
 	'static',
 	'when',

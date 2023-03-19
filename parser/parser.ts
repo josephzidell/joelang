@@ -1521,7 +1521,14 @@ export default class Parser {
 						);
 						break;
 					default:
-						this.addNode(MakeNode(NT.Keyword, token, this.currentRoot));
+						return error(
+							new ParserError(
+								ParserErrorCode.UnknownKeyword,
+								`Unknown keyword "${token.value}"`,
+								this.currentRoot,
+								this.getErrorContext((token.value || '').length),
+							),
+						);
 						break;
 				}
 			} else if (token.type === 'path') {
@@ -1550,8 +1557,14 @@ export default class Parser {
 					MakeNode(NT.TernaryConsequent, token, this.currentRoot, true),
 				);
 			} else {
-				// this should eventually turn into an error
-				this.addNode(MakeNode(NT.Unknown, token, this.currentRoot));
+				return error(
+					new ParserError(
+						ParserErrorCode.UnknownToken,
+						`Unknown token "${token.value}"`,
+						this.currentRoot,
+						this.getErrorContext((token.value || '').length),
+					),
+				);
 			}
 		} while (this.currentToken.outcome === 'ok');
 

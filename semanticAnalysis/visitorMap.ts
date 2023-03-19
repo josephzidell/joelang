@@ -4,17 +4,17 @@ import SemanticAnalyzer from './semanticAnalyzer';
 
 export type visitor = <T>(node: Node, analyzer: SemanticAnalyzer) => Result<T>;
 
-const visitorMap: Partial<Record<NT, visitor>> = {
+const visitorMap: Record<NT, visitor> = {
 	[NT.ArgumentsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitArgumentList(node) as Result<T>,
 	[NT.ArrayExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitArrayExpression(node) as Result<T>,
 	[NT.ArrayOf]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitArrayOf(node) as Result<T>,
-	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
-		analyzer.noop(node) as Result<T>,
 	[NT.AssignmentExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitAssignmentExpression(node) as Result<T>,
+	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.noop(node) as Result<T>,
 	[NT.BinaryExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitBinaryExpression(node) as Result<T>,
 	[NT.BlockStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -45,6 +45,8 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitElseStatement(node) as Result<T>,
 	[NT.ForStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitForStatement(node) as Result<T>,
+	[NT.FromKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.noop(node) as Result<T>,
 	[NT.FunctionDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitFunctionDeclaration(node) as Result<T>,
 	[NT.FunctionReturns]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -57,6 +59,8 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitIfStatement(node) as Result<T>,
 	[NT.ImportDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitImportDeclaration(node) as Result<T>,
+	[NT.InKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.noop(node) as Result<T>,
 	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitInterfaceDeclaration(node) as Result<T>,
 	[NT.InterfaceExtension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -65,7 +69,6 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitInterfaceExtensionsList(node) as Result<T>,
 	[NT.JoeDoc]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitJoeDoc(node) as Result<T>,
-	// [NT.Keyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitKeyword(node) as Result<T>,
 	[NT.LoopStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitLoopStatement(node) as Result<T>,
 	[NT.MemberExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>

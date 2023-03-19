@@ -10,6 +10,8 @@ export enum ParserErrorCode {
 	MisplacedKeyword = 'P000',
 	MissingPreviousNode = 'P001',
 	MissingParentNode = 'P002',
+	UnknownKeyword = 'P003',
+	UnknownToken = 'P004',
 }
 
 /**

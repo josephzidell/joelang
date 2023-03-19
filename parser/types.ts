@@ -32,7 +32,6 @@ export enum NT {
 	InterfaceExtension = 'InterfaceExtension',
 	InterfaceExtensionsList = 'InterfaceExtensionsList',
 	JoeDoc = 'JoeDoc', // for Class, Function, Interface, or Variable
-	Keyword = 'Keyword',
 	LoopStatement = 'LoopStatement',
 	MemberExpression = 'MemberExpression',
 	MemberList = 'MemberList',
@@ -72,7 +71,6 @@ export enum NT {
 	TypeParameter = 'TypeParameter',
 	TypeParametersList = 'TypeParametersList',
 	UnaryExpression = 'UnaryExpression',
-	Unknown = 'Unknown', // this is temp. while the parser is being built, afterwards this becomes a Syntax Error
 	VariableDeclaration = 'VariableDeclaration',
 	WhenExpression = 'WhenExpression',
 	WhenCase = 'WhenCase',
