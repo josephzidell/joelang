@@ -36,7 +36,9 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 			countDown[2 .. 6],
 			countDown[7 .. -1],
 		]; // new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]
-		let selectedArrayItems = countDown[1, 4, 9]; // new array [9, 6, 1]
+		for const num in countDown[1, 4, 9] { // new array [9, 6, 1]
+			print num;
+		}
 
 		let myObject = {
 			a: 1,

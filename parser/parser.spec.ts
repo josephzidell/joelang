@@ -1816,6 +1816,7 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
 		it('with array', () => {
 			testParseAndAnalyze(
 				'for let i in [1, 2, 3] {}',
@@ -1855,6 +1856,7 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
 		it('with call expression', () => {
 			testParseAndAnalyze(
 				'for let i in foo() {}',
@@ -1887,6 +1889,7 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
 		it('with member expression', () => {
 			testParseAndAnalyze(
 				'for let i in foo.bar {}',
@@ -1919,6 +1922,7 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
 		it('with member list expression', () => {
 			testParseAndAnalyze(
 				'for let i in foo[0, 2, 4] {}',
@@ -1961,6 +1965,7 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
 		it('with member list expression using a range', () => {
 			testParseAndAnalyze(
 				'for let i in foo[0 .. 4] {}',
@@ -2003,6 +2008,87 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
+		it('should end with the closing brace and next expression comes after', () => {
+			testParseAndAnalyze(
+				'for let i in foo {}print "something after";',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
+					]],
+					[NT.PrintStatement, [
+						[NT.StringLiteral, 'something after'],
+					]],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTIdentifier._('foo'),
+						body: ASTBlockStatement._([]),
+					}),
+					ASTPrintStatement._([
+						ASTStringLiteral._('something after'),
+					]),
+				],
+			);
+		});
+
+		it('should behave correctly with nested ForStatements', () => {
+			testParseAndAnalyze(
+				'for let i in foo { for let j in bar {} }',
+				[
+					[NT.ForStatement, [
+						[NT.VariableDeclaration, 'let', [
+							[NT.Identifier, 'i'],
+						]],
+						[NT.InKeyword],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, [
+							[NT.ForStatement, [
+								[NT.VariableDeclaration, 'let', [
+									[NT.Identifier, 'j'],
+								]],
+								[NT.InKeyword],
+								[NT.Identifier, 'bar'],
+								[NT.BlockStatement, []],
+							]],
+						]],
+					]],
+				],
+				[
+					ASTForStatement._({
+						initializer: ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: true,
+							identifier: ASTIdentifier._('i'),
+						}),
+						iterable: ASTIdentifier._('foo'),
+						body: ASTBlockStatement._([
+							ASTForStatement._({
+								initializer: ASTVariableDeclaration._({
+									modifiers: [],
+									mutable: true,
+									identifier: ASTIdentifier._('j'),
+								}),
+								iterable: ASTIdentifier._('bar'),
+								body: ASTBlockStatement._([]),
+							}),
+						]),
+					}),
+				],
+			);
+		})
+
 	});
 
 	describe('FunctionDeclaration', (): void => {

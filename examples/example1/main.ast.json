@@ -475,14 +475,17 @@
 									}
 								},
 								{
-									"kind": "VariableDeclaration",
-									"modifiers": [],
-									"mutable": true,
-									"identifier": {
-										"kind": "Identifier",
-										"name": "selectedArrayItems"
+									"kind": "ForStatement",
+									"initializer": {
+										"kind": "VariableDeclaration",
+										"modifiers": [],
+										"mutable": false,
+										"identifier": {
+											"kind": "Identifier",
+											"name": "num"
+										}
 									},
-									"initialValue": {
+									"iterable": {
 										"kind": "MemberListExpression",
 										"properties": [
 											{
@@ -505,6 +508,20 @@
 											"kind": "Identifier",
 											"name": "countDown"
 										}
+									},
+									"body": {
+										"kind": "BlockStatement",
+										"expressions": [
+											{
+												"kind": "PrintStatement",
+												"expressions": [
+													{
+														"kind": "Identifier",
+														"name": "num"
+													}
+												]
+											}
+										]
 									}
 								},
 								{

@@ -449,11 +449,16 @@
                         '// new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]'
                       ],
                       [
-                        'VariableDeclaration',
-                        'let',
+                        'ForStatement',
                         [
-                          [ 'Identifier', 'selectedArrayItems' ],
-                          [ 'AssignmentOperator' ],
+                          [
+                            'VariableDeclaration',
+                            'const',
+                            [
+                              [ 'Identifier', 'num' ]
+                            ]
+                          ],
+                          [ 'InKeyword' ],
                           [
                             'MemberListExpression',
                             [
@@ -469,11 +474,22 @@
                                 ]
                               ]
                             ]
+                          ],
+                          [
+                            'BlockStatement',
+                            [
+                              [ 'Comment', '// new array [9, 6, 1]' ],
+                              [
+                                'PrintStatement',
+                                [
+                                  [ 'Identifier', 'num' ]
+                                ]
+                              ],
+                              [ 'SemicolonSeparator' ]
+                            ]
                           ]
                         ]
                       ],
-                      [ 'SemicolonSeparator' ],
-                      [ 'Comment', '// new array [9, 6, 1]' ],
                       [
                         'VariableDeclaration',
                         'let',

@@ -302,6 +302,7 @@ export default class Parser {
 				this.endExpression();
 
 				this.endExpressionIfIn(NT.Loop);
+				this.endExpressionIfIn(NT.ForStatement);
 				this.endExpressionIfIn(NT.FunctionDeclaration);
 				this.endExpressionIfIn(NT.FunctionSignature);
 				this.endExpressionIfIn(NT.ClassDeclaration);
