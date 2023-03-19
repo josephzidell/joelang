@@ -1,8 +1,8 @@
-import _ from "lodash";
-import { Simplify } from "type-fest";
-import { PrimitiveType, primitiveTypes } from "../lexer/types";
-import { regexFlags } from "../lexer/util";
-import Parser from "../parser/parser";
+import _ from 'lodash';
+import { Simplify } from 'type-fest';
+import { PrimitiveType, primitiveTypes } from '../lexer/types';
+import { regexFlags } from '../lexer/util';
+import Parser from '../parser/parser';
 import {
 	AssignableNodeTypes,
 	AssignableTypes,
@@ -11,14 +11,14 @@ import {
 	Node,
 	NT,
 	UnaryExpressionNode,
-	validNodeTypesAsMemberObject,
 	validChildrenAsMemberProperty,
 	validChildrenInTypeArgumentList,
-	validChildrenInWhenCaseValues
-} from "../parser/types";
-import ErrorContext from "../shared/errorContext";
-import { has, hasNot, Maybe } from "../shared/maybe";
-import { error, ok, Result, ResultAndAMaybe } from "../shared/result";
+	validChildrenInWhenCaseValues,
+	validNodeTypesAsMemberObject,
+} from '../parser/types';
+import ErrorContext from '../shared/errorContext';
+import { has, hasNot, Maybe } from '../shared/maybe';
+import { error, ok, Result } from '../shared/result';
 import {
 	AssignableASTs,
 	AST,
@@ -88,24 +88,35 @@ import {
 	MemberExpressionPropertyASTs,
 	RangeBoundASTs,
 	SkipAST,
-	WhenCaseValueASTs
-} from "./asts";
-import AnalysisError, { AnalysisErrorCode } from "./error";
-import visitorMap, { visitor } from "./visitorMap";
+	WhenCaseValueASTs,
+} from './asts';
+import AnalysisError, { AnalysisErrorCode } from './error';
+import visitorMap, { visitor } from './visitorMap';
 
 // reusable handler callback for child nodes if we want to skip them
-const skipThisChild = (child: Node) => ok(undefined);
+const skipThisChild = (_child: Node) => ok(undefined);
 
-type childNodeHandler = Simplify<{
-	type: NT | NT[];
-	callback: (child: Node) => Result<void>;
-} & ({
-	required: true | ((child: Node | undefined, childIndex: number, allChildren: Node[]) => boolean);
-	errorCode: AnalysisErrorCode;
-	errorMessage: (child: Node | undefined) => string;
-} | {
-	required: false;
-})>;
+type childNodeHandler = Simplify<
+	{
+		type: NT | NT[];
+		callback: (child: Node) => Result<void>;
+	} & (
+		| {
+				required:
+					| true
+					| ((
+							child: Node | undefined,
+							childIndex: number,
+							allChildren: Node[],
+					  ) => boolean);
+				errorCode: AnalysisErrorCode;
+				errorMessage: (child: Node | undefined) => string;
+		  }
+		| {
+				required: false;
+		  }
+	)
+>;
 
 export default class SemanticAnalyzer {
 	currentNode: Node;
@@ -152,17 +163,22 @@ export default class SemanticAnalyzer {
 			return (visitorMap[node.type] as visitor)(node, this);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.MissingVisitee,
-			`Please implement visit${node.type.at(0)?.toUpperCase()}${node.type.substring(1)}() method`,
-			node,
-			new ErrorContext(
-				this.parser.lexer.code,
-				node.pos.line,
-				node.pos.col,
-				node.value?.length || 1,
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.MissingVisitee,
+				`Please implement visit${node.type.at(0)?.toUpperCase()}${node.type.substring(
+					1,
+				)}() method`,
+				node,
+				new ErrorContext(
+					this.parser.lexer.code,
+					node.pos.line,
+					node.pos.col,
+					node.value?.length || 1,
+				),
 			),
-		), this.getAST);
+			this.getAST,
+		);
 	}
 
 	// reusable function to handle a node that has a value
@@ -184,12 +200,15 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			errorCode,
-			errorMessage(node),
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				errorCode,
+				errorMessage(node),
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	/**
@@ -229,17 +248,30 @@ export default class SemanticAnalyzer {
 
 						children.push(visitResult.value as Exclude<R, SkipAST>);
 						break;
-					case 'error': return visitResult; break;
+					case 'error':
+						return visitResult;
+						break;
 				}
 			} else {
-				return error(new AnalysisError(errorCode, errorMessageFn(child), child, this.getErrorContext(child, 1)), this.ast);
+				return error(
+					new AnalysisError(
+						errorCode,
+						errorMessageFn(child),
+						child,
+						this.getErrorContext(child, 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
 		return ok(children);
 	}
 
-	handleClassOrInterfaceExtensionsOrImplementsList(node: Node, nodeType: NT): Result<ASTTypeExceptPrimitive[]> {
+	handleClassOrInterfaceExtensionsOrImplementsList(
+		node: Node,
+		nodeType: NT,
+	): Result<ASTTypeExceptPrimitive[]> {
 		const validChildren = [nodeType, NT.CommaSeparator];
 		const extensions: ASTTypeExceptPrimitive[] = [];
 
@@ -254,15 +286,20 @@ export default class SemanticAnalyzer {
 
 						extensions.push(visitResult.value);
 						break;
-					case 'error': return visitResult; break;
+					case 'error':
+						return visitResult;
+						break;
 				}
 			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.ExtraNodesFound,
-					`A ${child.type} is not allowed directly in a ${node.type}`,
-					child,
-					this.getErrorContext(child, child.value?.length || 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.ExtraNodesFound,
+						`A ${child.type} is not allowed directly in a ${node.type}`,
+						child,
+						this.getErrorContext(child, child.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
@@ -294,8 +331,13 @@ export default class SemanticAnalyzer {
 			callback: (child) => {
 				const visitResult = this.visitModifiersList(child);
 				switch (visitResult.outcome) {
-					case 'ok': ast.modifiers = visitResult.value; return ok(undefined); break;
-					case 'error': return visitResult; break;
+					case 'ok':
+						ast.modifiers = visitResult.value;
+						return ok(undefined);
+						break;
+					case 'error':
+						return visitResult;
+						break;
 				}
 			},
 		};
@@ -308,12 +350,18 @@ export default class SemanticAnalyzer {
 			callback: (child) => {
 				const visitResult = this.visitBlockStatement(child);
 				switch (visitResult.outcome) {
-					case 'ok': ast.body = visitResult.value; return ok(undefined); break;
-					case 'error': return visitResult; break;
+					case 'ok':
+						ast.body = visitResult.value;
+						return ok(undefined);
+						break;
+					case 'error':
+						return visitResult;
+						break;
 				}
 			},
 			errorCode: AnalysisErrorCode.BodyExpected,
-			errorMessage: (child: Node | undefined) => 'Class Body Expected',
+			errorMessage: (child: Node | undefined) =>
+				`We were expecting a body, but found a ${child?.type} instead`,
 		};
 	}
 
@@ -324,8 +372,13 @@ export default class SemanticAnalyzer {
 			callback: (child) => {
 				const result = this.visitTypeParametersList(child);
 				switch (result.outcome) {
-					case 'ok': ast.typeParams = result.value; return ok(undefined); break;
-					case 'error': return result; break;
+					case 'ok':
+						ast.typeParams = result.value;
+						return ok(undefined);
+						break;
+					case 'error':
+						return result;
+						break;
 				}
 			},
 		};
@@ -343,7 +396,7 @@ export default class SemanticAnalyzer {
 
 		if (this.debug) {
 			// debug that we're beginning this function
-			console.debug('begin handleNodesChildrenOfDifferentTypes...', );
+			console.debug('begin handleNodesChildrenOfDifferentTypes...');
 
 			// debug the children
 			console.groupCollapsed('children.length', children.length);
@@ -368,35 +421,48 @@ export default class SemanticAnalyzer {
 		for (const [index, childHandler] of childrenHandlers.entries()) {
 			// debug the handler number
 			if (this.debug) {
-				console.groupCollapsed('checking child handler', index, 'against child of type', child?.type);
+				console.groupCollapsed(
+					'checking child handler',
+					index,
+					'against child of type',
+					child?.type,
+				);
 				console.debug({ childHandler });
 				console.groupEnd();
 			}
 
 			// concretize the required function if it is a function
-			const definitelyRequired = typeof childHandler.required === 'boolean' && childHandler.required;
+			const definitelyRequired =
+				typeof childHandler.required === 'boolean' && childHandler.required;
 			// when running a callback, provide *the unmodified children array*
-			const required = definitelyRequired || (typeof childHandler.required === 'function' && childHandler.required(child, index, node.children));
+			const required =
+				definitelyRequired ||
+				(typeof childHandler.required === 'function' &&
+					childHandler.required(child, index, node.children));
 			if (this.debug) {
 				console.debug('handler required', required);
 			}
 
 			// if the child is required and it is not present, return an error
 			if (required && !child) {
-				return error(new AnalysisError(
-					childHandler.errorCode,
-					childHandler.errorMessage(child),
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						childHandler.errorCode,
+						childHandler.errorMessage(child),
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 
 			// if the child is present
 			if (child) {
 				// is the type acceptable?
-				const isTheTypeAcceptable = typeof childHandler.type === 'undefined'
-					|| (typeof childHandler.type === 'string' && child.type === childHandler.type)
-					|| (Array.isArray(childHandler.type) && childHandler.type.includes(child.type));
+				const isTheTypeAcceptable =
+					typeof childHandler.type === 'undefined' ||
+					(typeof childHandler.type === 'string' && child.type === childHandler.type) ||
+					(Array.isArray(childHandler.type) && childHandler.type.includes(child.type));
 
 				// debug the isTheTypeAcceptable value
 				if (this.debug) {
@@ -413,15 +479,27 @@ export default class SemanticAnalyzer {
 					if (required) {
 						// debug the situation
 						if (this.debug) {
-							console.debug("we're expecting a child of type", childHandler.type, 'but we found a child of type', child.type);
+							console.debug(
+								`We were expecting a child of type ${childHandler.type}, but found a "${child.type}"`,
+							);
 							console.debug('and this child is required, so we will return an error');
 						}
 
-						return error(new AnalysisError(childHandler.errorCode, childHandler.errorMessage(child), child, this.getErrorContext(child, child.value?.length || 1)), this.ast);
+						return error(
+							new AnalysisError(
+								childHandler.errorCode,
+								childHandler.errorMessage(child),
+								child,
+								this.getErrorContext(child, child.value?.length || 1),
+							),
+							this.ast,
+						);
 					} else {
 						// debug the situation
 						if (this.debug) {
-							console.debug("we're expecting a child of type", childHandler.type, 'but we found a child of type', child.type);
+							console.debug(
+								`We were expecting a child of type ${childHandler.type}, but found a "${child.type}"`,
+							);
 							console.debug('since this handler is not required, we will skip it');
 						}
 						continue;
@@ -458,16 +536,19 @@ export default class SemanticAnalyzer {
 
 		// there should be no more children
 		if (typeof child !== 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.ExpressionNotExpected,
-				`We did not expect to find an expression of type "${child.type}" here`,
-				child,
-				this.getErrorContext(child, child.value?.length ?? 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.ExpressionNotExpected,
+					`We did not expect to find an expression of type "${child.type}" here`,
+					child,
+					this.getErrorContext(child, child.value?.length ?? 1),
+				),
+				this.ast,
+			);
 		}
 
 		if (this.debug) {
-			console.debug('end handleNodesChildrenOfDifferentTypes', );
+			console.debug('end handleNodesChildrenOfDifferentTypes');
 		}
 
 		return ok(undefined);
@@ -482,7 +563,11 @@ export default class SemanticAnalyzer {
 	 *
 	 * @see {@link inferASTTypeFromASTAssignable()}
 	 */
-	assignInferredType(valueAST: AssignableASTs, valueNode: Node, assigner: (inferredType: ASTType) => void): Result<void> {
+	assignInferredType(
+		valueAST: AssignableASTs,
+		valueNode: Node,
+		assigner: (inferredType: ASTType) => void,
+	): Result<void> {
 		const inferredTypeMaybe = this.inferASTTypeFromASTAssignable(valueAST, valueNode);
 		if (inferredTypeMaybe.has()) {
 			assigner(inferredTypeMaybe.value);
@@ -494,7 +579,7 @@ export default class SemanticAnalyzer {
 		return ok(undefined);
 	}
 
-	noop(node: Node): Result<SkipAST> {
+	noop(_node: Node): Result<SkipAST> {
 		const ast = new SkipAST();
 
 		this.astPointer = this.ast = ast;
@@ -510,12 +595,7 @@ export default class SemanticAnalyzer {
 	 * at least closely-relevant positional information.
 	 */
 	getErrorContext(node: Node, length: number): ErrorContext {
-		return new ErrorContext(
-			this.parser.lexer.code,
-			node.pos.line,
-			node.pos.col,
-			length,
-		);
+		return new ErrorContext(this.parser.lexer.code, node.pos.line, node.pos.col, length);
 	}
 
 	/**
@@ -547,13 +627,16 @@ export default class SemanticAnalyzer {
 
 					// map the child type maybe into a Maybe<ASTArrayOf>
 					// if we can infer the type of the child, we can infer the type of the array
-					return this.inferASTTypeFromASTAssignable((expr as ASTArrayExpression<ExpressionASTs>).items[0], node)
-						.map((childType) => ASTArrayOf._(childType));
+					return this.inferASTTypeFromASTAssignable(
+						(expr as ASTArrayExpression<ExpressionASTs>).items[0],
+						node,
+					).map((childType) => ASTArrayOf._(childType));
 				}
 				break;
 			case ASTBinaryExpression:
 				{
-					const operator = (expr as ASTBinaryExpression<ExpressionASTs, ExpressionASTs>).operator;
+					const operator = (expr as ASTBinaryExpression<ExpressionASTs, ExpressionASTs>)
+						.operator;
 					switch (operator) {
 						case '==':
 						case '!=':
@@ -576,49 +659,79 @@ export default class SemanticAnalyzer {
 					}
 				}
 				break;
-			case ASTBoolLiteral: return has(ASTTypePrimitiveBool); break;
-			case ASTNumberLiteral: return has(ASTTypePrimitiveNumber); break;
+			case ASTBoolLiteral:
+				return has(ASTTypePrimitiveBool);
+				break;
+			case ASTNumberLiteral:
+				return has(ASTTypePrimitiveNumber);
+				break;
 			case ASTObjectExpression:
 				{
-					const propertyShapeMaybes = (expr as ASTObjectExpression).properties.map((property) => {
-						return this.inferASTTypeFromASTAssignable(property.value, node).map(propertyType => {
-							return ASTPropertyShape._(
-								property.key,
-								propertyType,
+					const propertyShapeMaybes = (expr as ASTObjectExpression).properties.map(
+						(property) => {
+							return this.inferASTTypeFromASTAssignable(property.value, node).map(
+								(propertyType) => {
+									return ASTPropertyShape._(property.key, propertyType);
+								},
 							);
-						});
-					});
+						},
+					);
 
-					return Maybe.flatten(propertyShapeMaybes).map(propertyShapes => ASTObjectShape._(propertyShapes));
+					return Maybe.flatten(propertyShapeMaybes).map((propertyShapes) =>
+						ASTObjectShape._(propertyShapes),
+					);
 				}
 				break;
-			case ASTPath: return has(ASTTypePrimitivePath); break;
+			case ASTPath:
+				return has(ASTTypePrimitivePath);
+				break;
 			case ASTPostfixIfStatement:
-				const expression = (expr as ASTPostfixIfStatement).expression;
-				return this.inferASTTypeFromASTAssignable(expression, node);
+				return this.inferASTTypeFromASTAssignable(
+					(expr as ASTPostfixIfStatement).expression,
+					node,
+				);
 				break;
-			case ASTRangeExpression: return has(ASTTypeRange._()); break;
-			case ASTRegularExpression: return has(ASTTypePrimitiveRegex); break;
-			case ASTStringLiteral: return has(ASTTypePrimitiveString); break;
+			case ASTRangeExpression:
+				return has(ASTTypeRange._());
+				break;
+			case ASTRegularExpression:
+				return has(ASTTypePrimitiveRegex);
+				break;
+			case ASTStringLiteral:
+				return has(ASTTypePrimitiveString);
+				break;
 			case ASTTernaryExpression:
-				const typeOfConsequent = this.inferASTTypeFromASTAssignable((expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).consequent.value, node);
-				const typeOfAlternate = this.inferASTTypeFromASTAssignable((expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).alternate.value, node);
+				{
+					const typeOfConsequent = this.inferASTTypeFromASTAssignable(
+						(expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).consequent
+							.value,
+						node,
+					);
+					const typeOfAlternate = this.inferASTTypeFromASTAssignable(
+						(expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>).alternate
+							.value,
+						node,
+					);
 
-				if (typeOfConsequent.has() && typeOfAlternate.has() &&
-					// do not use .constructor, because we need the actual type, not the ASTType which would be the same for all primitives
-					typeOfConsequent.value === typeOfAlternate.value
-				) {
-					return has(typeOfConsequent.value);
+					if (
+						typeOfConsequent.has() &&
+						typeOfAlternate.has() &&
+						// do not use .constructor, because we need the actual type, not the ASTType which would be the same for all primitives
+						typeOfConsequent.value === typeOfAlternate.value
+					) {
+						return has(typeOfConsequent.value);
+					}
+
+					return hasNot();
 				}
-
-				return hasNot();
-
 				break;
 			case ASTTupleExpression:
 				{
 					return Maybe.flatten(
-						(expr as ASTTupleExpression).items.map(item => this.inferASTTypeFromASTAssignable(item, node))
-					).map(types => ASTTupleShape._(types))
+						(expr as ASTTupleExpression).items.map((item) =>
+							this.inferASTTypeFromASTAssignable(item, node),
+						),
+					).map((types) => ASTTupleShape._(types));
 				}
 				break;
 			case ASTUnaryExpression:
@@ -657,8 +770,12 @@ export default class SemanticAnalyzer {
 			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
 		);
 		switch (argsResult.outcome) {
-			case 'ok': ast.args = argsResult.value; break;
-			case 'error': return argsResult; break;
+			case 'ok':
+				ast.args = argsResult.value;
+				break;
+			case 'error':
+				return argsResult;
+				break;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -677,15 +794,23 @@ export default class SemanticAnalyzer {
 			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
 		);
 		switch (itemsResult.outcome) {
-			case 'ok': ast.items = itemsResult.value; break;
-			case 'error': return itemsResult; break;
+			case 'ok':
+				ast.items = itemsResult.value;
+				break;
+			case 'error':
+				return itemsResult;
+				break;
 		}
 
 		// infer the type from the first value
 		if (ast.items.length > 0) {
-			const assignmentResult = this.assignInferredType(ast.items[0], node.children[0], (inferredType: ASTType) => {
-				ast.type = inferredType;
-			});
+			const assignmentResult = this.assignInferredType(
+				ast.items[0],
+				node.children[0],
+				(inferredType: ASTType) => {
+					ast.type = inferredType;
+				},
+			);
 			if (assignmentResult.outcome === 'error') {
 				return error(assignmentResult.error, this.ast);
 			}
@@ -698,86 +823,104 @@ export default class SemanticAnalyzer {
 
 	visitArrayOf(node: Node): Result<ASTArrayOf> {
 		if (node.children.length !== 1) {
-			return error(new AnalysisError(
-				AnalysisErrorCode.TypeExpected,
-				`We were expecting one type, but found ${node.children.length} types`,
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.TypeExpected,
+					`We were expecting one type, but found ${node.children.length} types`,
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		const visitResult = this.visitType(node.children[0]);
 		switch (visitResult.outcome) {
 			case 'ok':
-				if (visitResult.value instanceof SkipAST) {
-					return error(new AnalysisError(
-						AnalysisErrorCode.TypeExpected,
-						`We were expecting a type, but found ${node.children[0].type} instead`,
-						node,
-						this.getErrorContext(node, node.value?.length || 1),
-					), this.ast);
+				{
+					if (visitResult.value instanceof SkipAST) {
+						return error(
+							new AnalysisError(
+								AnalysisErrorCode.TypeExpected,
+								`We were expecting a type, but found ${node.children[0].type} instead`,
+								node,
+								this.getErrorContext(node, node.value?.length || 1),
+							),
+							this.ast,
+						);
+					}
+
+					const ast = ASTArrayOf._(visitResult.value);
+
+					this.astPointer = this.ast = ast;
+
+					return ok(ast);
 				}
-
-				const ast = ASTArrayOf._(visitResult.value);
-
-				this.astPointer = this.ast = ast;
-
-				return ok(ast);
 				break;
-			case 'error': return visitResult; break;
+			case 'error':
+				return visitResult;
+				break;
 		}
 	}
 
 	visitAssignmentExpression(node: Node): Result<ASTAssignmentExpression> {
 		const ast = new ASTAssignmentExpression();
 
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(
-			node,
-			[
-				// first child: left-hand side
-				{
-					type: [NT.Identifier, NT.MemberExpression],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.left = visitResult.value; break;
-							case 'error': return visitResult; break;
-						}
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: left-hand side
+			{
+				type: [NT.Identifier, NT.MemberExpression],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.left = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 
-						return ok(undefined);
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: (child) => `We were expecting an Identifier here, but we got a ${child?.type} instead`,
+					return ok(undefined);
 				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child) =>
+					`We were expecting an Identifier here, but we got a ${child?.type} instead`,
+			},
 
-				// second child: the assignment operator
-				{
-					type: [NT.AssignmentOperator],
-					required: true,
-					callback: skipThisChild,
-					errorCode: AnalysisErrorCode.AssignmentOperatorExpected,
-					errorMessage: (child) => `We were expecting an Assignment Operator here, but we got a ${child?.type} instead`,
+			// second child: the assignment operator
+			{
+				type: [NT.AssignmentOperator],
+				required: true,
+				callback: skipThisChild,
+				errorCode: AnalysisErrorCode.AssignmentOperatorExpected,
+				errorMessage: (child) =>
+					`We were expecting an Assignment Operator here, but we got a ${child?.type} instead`,
+			},
+
+			// third child: the right-hand side
+			{
+				type: AssignableNodeTypes,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<AssignableASTs>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.right = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+
+					return ok(undefined);
 				},
-
-				// third child: the right-hand side
-				{
-					type: AssignableNodeTypes,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<AssignableASTs>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.right = visitResult.value; break;
-							case 'error': return visitResult; break;
-						}
-
-						return ok(undefined);
-					},
-					errorCode: AnalysisErrorCode.AssignableExpected,
-					errorMessage: (child) => `We were expecting a value here, but we got a ${child?.type} instead`,
-				},
-			],
-		);
+				errorCode: AnalysisErrorCode.AssignableExpected,
+				errorMessage: (child) =>
+					`We were expecting a value here, but we got a ${child?.type} instead`,
+			},
+		]);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -789,16 +932,18 @@ export default class SemanticAnalyzer {
 
 	visitBinaryExpression(node: Node): Result<ASTBinaryExpression<ExpressionASTs, ExpressionASTs>> {
 		const ast = new ASTBinaryExpression<ExpressionASTs, ExpressionASTs>();
-		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first grammatical requirement: the operator
 		if (!node.value) {
-			return error(new AnalysisError(
-				AnalysisErrorCode.OperatorExpected,
-				'Operator Expected',
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.OperatorExpected,
+					'Operator Expected',
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		ast.operator = node.value;
@@ -811,14 +956,19 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<ExpressionASTs>(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.left = visitResult.value; break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.left = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.ExpressionExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Expression, but found "${child?.type}"`,
 			},
 
 			// second child: right-hand side
@@ -828,14 +978,19 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<ExpressionASTs>(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.right = visitResult.value; break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.right = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.ExpressionExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Expression, but found "${child?.type}"`,
 			},
 		]);
 		if (handlingResult.outcome === 'error') {
@@ -848,7 +1003,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitBlockStatement(node: Node): Result<ASTBlockStatement> {
-		const validChildren = Object.values(NT).filter(nt => nt !== NT.ImportDeclaration);
+		const validChildren = Object.values(NT).filter((nt) => nt !== NT.ImportDeclaration);
 
 		const ast = new ASTBlockStatement();
 
@@ -860,8 +1015,11 @@ export default class SemanticAnalyzer {
 			(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
 		);
 		switch (expressionsResult.outcome) {
-			case 'ok': ast.expressions = expressionsResult.value; break;
-			case 'error': return expressionsResult;
+			case 'ok':
+				ast.expressions = expressionsResult.value;
+				break;
+			case 'error':
+				return expressionsResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -878,12 +1036,15 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.BoolLiteralExpected,
-			'Bool Expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.BoolLiteralExpected,
+				'Bool Expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitCallExpression(node: Node): Result<ASTCallExpression> {
@@ -897,14 +1058,19 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<CallableASTs>(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.callee = visitResult.value; break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.callee = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the type arguments
@@ -914,8 +1080,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitTypeArgumentsList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.typeArgs = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.typeArgs = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -927,10 +1098,15 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitArgumentList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.args = visitResult.value.args; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.args = visitResult.value.args;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
-				}
+				},
 			},
 		]);
 		if (handlingResult.outcome === 'error') {
@@ -959,12 +1135,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const result = this.visitIdentifier(child);
 					switch (result.outcome) {
-						case 'ok': ast.name = result.value; return ok(undefined); break;
-						case 'error': return result; break;
+						case 'ok':
+							ast.name = result.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return result;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// type parameters
@@ -977,8 +1159,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitClassExtensionsList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.extends = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.extends = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -990,8 +1177,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitClassImplementsList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.implements = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.implements = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1028,14 +1220,19 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<ASTIdentifier | ASTMemberExpression>(child);
 					switch (visitResult.outcome) {
-						case 'ok': identifierOrMemberExpression = visitResult.value; break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							identifierOrMemberExpression = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the type arguments
@@ -1045,8 +1242,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitTypeArgumentsList(child);
 					switch (visitResult.outcome) {
-						case 'ok': typeArgs = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							typeArgs = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1056,16 +1258,22 @@ export default class SemanticAnalyzer {
 		}
 
 		if (typeof identifierOrMemberExpression === 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.IdentifierExpected,
-				'We were expecting a Type, but found nothing',
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.IdentifierExpected,
+					'We were expecting a Type, but found nothing',
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		if (typeof typeArgs !== 'undefined') {
-			const ast = ASTTypeInstantiationExpression._({base: identifierOrMemberExpression, typeArgs});
+			const ast = ASTTypeInstantiationExpression._({
+				base: identifierOrMemberExpression,
+				typeArgs,
+			});
 
 			this.astPointer = this.ast = ast;
 
@@ -1092,63 +1300,73 @@ export default class SemanticAnalyzer {
 			node.children = [...node.children[0].children, ...node.children.slice(1)];
 		}
 
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(
-			node,
-			[
-				// the initializer variable
-				{
-					type: [NT.Identifier, NT.VariableDeclaration],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<ASTIdentifier | ASTVariableDeclaration>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.initializer = visitResult.value; break;
-							case 'error': return visitResult; break;
-						}
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// the initializer variable
+			{
+				type: [NT.Identifier, NT.VariableDeclaration],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<ASTIdentifier | ASTVariableDeclaration>(
+						child,
+					);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.initializer = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 
-						return ok(undefined);
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+					return ok(undefined);
 				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
+			},
 
-				// the InKeyword
-				{
-					type: NT.InKeyword,
-					required: true,
-					callback: skipThisChild,
-					errorCode: AnalysisErrorCode.InKeywordExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting "... in ...", but found "${child?.type}"`,
+			// the InKeyword
+			{
+				type: NT.InKeyword,
+				required: true,
+				callback: skipThisChild,
+				errorCode: AnalysisErrorCode.InKeywordExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting "... in ...", but found "${child?.type}"`,
+			},
+
+			// the iterable
+			{
+				type: [
+					NT.ArrayExpression,
+					NT.CallExpression,
+					NT.Identifier,
+					NT.MemberExpression,
+					NT.MemberListExpression,
+					NT.RangeExpression,
+				],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<IterableASTs>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.iterable = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+
+					return ok(undefined);
 				},
+				errorCode: AnalysisErrorCode.IterableExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Iterable, but found "${child?.type}"`,
+			},
 
-				// the iterable
-				{
-					type: [
-						NT.ArrayExpression,
-						NT.CallExpression,
-						NT.Identifier,
-						NT.MemberExpression,
-						NT.MemberListExpression,
-						NT.RangeExpression,
-					],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<IterableASTs>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.iterable = visitResult.value; break;
-							case 'error': return visitResult; break;
-						}
-
-						return ok(undefined);
-					},
-					errorCode: AnalysisErrorCode.IterableExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting an Iterable, but found "${child?.type}"`,
-				},
-
-				// the body
-				this.getChildHandlerForRequiredBody(ast),
-			],
-		);
+			// the body
+			this.getChildHandlerForRequiredBody(ast),
+		]);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -1175,8 +1393,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const result = this.visitIdentifier(child);
 					switch (result.outcome) {
-						case 'ok': ast.name = result.value; return ok(undefined); break;
-						case 'error': return result; break;
+						case 'ok':
+							ast.name = result.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return result;
+							break;
 					}
 				},
 			},
@@ -1191,8 +1414,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitParametersList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.params = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.params = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1204,8 +1432,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitFunctionReturns(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.returnTypes = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.returnTypes = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1217,8 +1450,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitBlockStatement(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.body = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.body = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1242,8 +1480,12 @@ export default class SemanticAnalyzer {
 			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
 		);
 		switch (conversionResult.outcome) {
-			case 'ok': returns = conversionResult.value; break;
-			case 'error': return conversionResult; break;
+			case 'ok':
+				returns = conversionResult.value;
+				break;
+			case 'error':
+				return conversionResult;
+				break;
 		}
 
 		return ok(returns);
@@ -1263,8 +1505,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitParametersList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.params = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.params = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1276,8 +1523,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitFunctionReturns(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.returnTypes = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.returnTypes = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1298,12 +1550,15 @@ export default class SemanticAnalyzer {
 	visitIdentifier(node: Node | undefined): Result<ASTIdentifier> {
 		// this node is special so needs this check for undefined
 		if (typeof node === 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.IdentifierExpected,
-				'We were expecting a Type, but found nothing',
-				node,
-				this.getErrorContextUnsafe(node, 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.IdentifierExpected,
+					'We were expecting a Type, but found nothing',
+					node,
+					this.getErrorContextUnsafe(node, 1),
+				),
+				this.ast,
+			);
 		}
 
 		return this.handleNodeThatHasValueAndNoChildren(
@@ -1326,12 +1581,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<ExpressionASTs>(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.test = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.test = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.ExpressionExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Expression, but found "${child?.type}"`,
 			},
 
 			// second child: the consequent
@@ -1341,12 +1602,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitBlockStatement(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.consequent = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.consequent = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.BodyExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting a Body, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a Body, but found "${child?.type}"`,
 			},
 
 			// third child: the alternate
@@ -1356,8 +1623,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitElseStatement(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.alternate = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.alternate = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1388,12 +1660,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const result = this.visitIdentifier(child);
 					switch (result.outcome) {
-						case 'ok': ast.name = result.value; return ok(undefined); break;
-						case 'error': return result; break;
+						case 'ok':
+							ast.name = result.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return result;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// the type parameters
@@ -1406,8 +1684,13 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitInterfaceExtensionsList(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.extends = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.extends = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 			},
@@ -1444,12 +1727,14 @@ export default class SemanticAnalyzer {
 
 		// check the contents of the JoeDoc
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.JoeDocExpected,
-			`We were expecting a JoeDoc, but found "${node.type}"`,
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		));
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.JoeDocExpected,
+				`We were expecting a JoeDoc, but found "${node.type}"`,
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+		);
 	}
 
 	visitMemberExpression(node: Node): Result<ASTMemberExpression> {
@@ -1460,18 +1745,25 @@ export default class SemanticAnalyzer {
 		{
 			const child = nodesChildren.shift();
 			if (!child?.type || !validNodeTypesAsMemberObject.includes(child.type)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.IdentifierExpected,
-					`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
-					child || node,
-					this.getErrorContext(child || node, 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.IdentifierExpected,
+						`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
+						child || node,
+						this.getErrorContext(child || node, 1),
+					),
+					this.ast,
+				);
 			}
 
 			const visitResult = this.nodeToAST<MemberExpressionObjectASTs>(child);
 			switch (visitResult.outcome) {
-				case 'ok': ast.object = visitResult.value; break;
-				case 'error': return visitResult; break;
+				case 'ok':
+					ast.object = visitResult.value;
+					break;
+				case 'error':
+					return visitResult;
+					break;
 			}
 		}
 
@@ -1479,30 +1771,40 @@ export default class SemanticAnalyzer {
 		{
 			const child = nodesChildren.shift();
 			if (!child?.type || !validChildrenAsMemberProperty.includes(child.type)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.IdentifierExpected,
-					`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
-					child || node,
-					this.getErrorContext(child || node, 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.IdentifierExpected,
+						`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
+						child || node,
+						this.getErrorContext(child || node, 1),
+					),
+					this.ast,
+				);
 			}
 
 			const visitResult = this.nodeToAST<MemberExpressionPropertyASTs>(child);
 			switch (visitResult.outcome) {
-				case 'ok': ast.property = visitResult.value; break;
-				case 'error': return visitResult; break;
+				case 'ok':
+					ast.property = visitResult.value;
+					break;
+				case 'error':
+					return visitResult;
+					break;
 			}
 		}
 
 		// there should be no more children
 		const child = nodesChildren.shift();
 		if (typeof child !== 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.SemicolonExpected,
-				'Semicolon Expected',
-				child,
-				this.getErrorContext(child, 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.SemicolonExpected,
+					'Semicolon Expected',
+					child,
+					this.getErrorContext(child, 1),
+				),
+				this.ast,
+			);
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1515,7 +1817,8 @@ export default class SemanticAnalyzer {
 			node,
 			validChildrenAsMemberProperty,
 			AnalysisErrorCode.IdentifierExpected,
-			(child: Node) => `We were expecting an Identifier in this MemberList, but found "${child.type}"`
+			(child: Node) =>
+				`We were expecting an Identifier in this MemberList, but found "${child.type}"`,
 		);
 	}
 
@@ -1527,18 +1830,25 @@ export default class SemanticAnalyzer {
 		{
 			const child = nodesChildren.shift();
 			if (!child?.type || !validNodeTypesAsMemberObject.includes(child.type)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.IdentifierExpected,
-					`We were expecting an Identifier in this MemberListExpression, but found "${child?.type}"`,
-					child || node,
-					this.getErrorContext(child || node, node.value?.length || 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.IdentifierExpected,
+						`We were expecting an Identifier in this MemberListExpression, but found "${child?.type}"`,
+						child || node,
+						this.getErrorContext(child || node, node.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 
 			const visitResult = this.nodeToAST<MemberExpressionObjectASTs>(child);
 			switch (visitResult.outcome) {
-				case 'ok': ast.object = visitResult.value; break;
-				case 'error': return visitResult; break;
+				case 'ok':
+					ast.object = visitResult.value;
+					break;
+				case 'error':
+					return visitResult;
+					break;
 			}
 		}
 
@@ -1546,30 +1856,40 @@ export default class SemanticAnalyzer {
 		{
 			const child = nodesChildren.shift();
 			if (!child?.type || child.type !== NT.MemberList) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.IdentifierExpected,
-					`We were expecting a MemberList in this MemberListExpression, but found "${child?.type}"`,
-					child || node,
-					this.getErrorContext(child || node, 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.IdentifierExpected,
+						`We were expecting a MemberList in this MemberListExpression, but found "${child?.type}"`,
+						child || node,
+						this.getErrorContext(child || node, 1),
+					),
+					this.ast,
+				);
 			}
 
 			const conversionResult = this.visitMemberList(child);
 			switch (conversionResult.outcome) {
-				case 'ok': ast.properties = conversionResult.value; break;
-				case 'error': return conversionResult; break;
+				case 'ok':
+					ast.properties = conversionResult.value;
+					break;
+				case 'error':
+					return conversionResult;
+					break;
 			}
 		}
 
 		// there should be no more children
 		const child = nodesChildren.shift();
 		if (typeof child !== 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.SemicolonExpected,
-				'Semicolon Expected',
-				child,
-				this.getErrorContext(child, 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.SemicolonExpected,
+					'Semicolon Expected',
+					child,
+					this.getErrorContext(child, 1),
+				),
+				this.ast,
+			);
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1601,11 +1921,15 @@ export default class SemanticAnalyzer {
 			node,
 			NT.NumberLiteral,
 			(value) => {
+				// eslint-disable-next-line no-useless-escape
 				const commasRemoved = value.replace(/\,/g, '');
 
 				// TODO test this
 				if (value.includes('.')) {
-					return ASTNumberLiteral._({ format: 'decimal', value: parseFloat(commasRemoved) });
+					return ASTNumberLiteral._({
+						format: 'decimal',
+						value: parseFloat(commasRemoved),
+					});
 				} else {
 					return ASTNumberLiteral._({ format: 'int', value: parseInt(commasRemoved) });
 				}
@@ -1620,15 +1944,18 @@ export default class SemanticAnalyzer {
 			node,
 			[NT.Property, NT.CommaSeparator],
 			AnalysisErrorCode.PropertyExpected,
-			(child: Node) => `We were expecting a Property in this ObjectExpression, but found "${child.type}"`,
+			(child: Node) =>
+				`We were expecting a Property in this ObjectExpression, but found "${child.type}"`,
 		);
 		switch (conversionResult.outcome) {
 			case 'ok':
-				const ast = ASTObjectExpression._(conversionResult.value);
+				{
+					const ast = ASTObjectExpression._(conversionResult.value);
 
-				this.astPointer = this.ast = ast;
+					this.astPointer = this.ast = ast;
 
-				return ok(ast);
+					return ok(ast);
+				}
 				break;
 			case 'error':
 				return conversionResult;
@@ -1641,15 +1968,18 @@ export default class SemanticAnalyzer {
 			node,
 			[NT.PropertyShape, NT.CommaSeparator],
 			AnalysisErrorCode.PropertyExpected,
-			(child: Node) => `We were expecting a Property in this ObjectShape, but found "${child.type}"`,
+			(child: Node) =>
+				`We were expecting a Property in this ObjectShape, but found "${child.type}"`,
 		);
 		switch (conversionResult.outcome) {
 			case 'ok':
-				const ast = ASTObjectShape._(conversionResult.value);
+				{
+					const ast = ASTObjectShape._(conversionResult.value);
 
-				this.astPointer = this.ast = ast;
+					this.astPointer = this.ast = ast;
 
-				return ok(ast);
+					return ok(ast);
+				}
 				break;
 			case 'error':
 				return conversionResult;
@@ -1662,129 +1992,151 @@ export default class SemanticAnalyzer {
 
 		const ast = new ASTParameter();
 
-		const handleResult = this.handleNodesChildrenOfDifferentTypes(
-			node,
-			[
-				// TODO add support for modifiers
-				// first child: modifiers
-				// this.getChildHandlerForModifiers(ast),
+		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// TODO add support for modifiers
+			// first child: modifiers
+			// this.getChildHandlerForModifiers(ast),
 
-				// first child: isRest
-				{
-					type: NT.RestElement,
-					required: false,
-					callback: (child) => {
-						ast.isRest = true; // if this node is present, then it is a rest parameter
+			// first child: isRest
+			{
+				type: NT.RestElement,
+				required: false,
+				callback: (_child) => {
+					ast.isRest = true; // if this node is present, then it is a rest parameter
 
-						return ok(undefined);
+					return ok(undefined);
+				},
+			},
+
+			// second child: name
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitIdentifier(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.name = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (node: Node | undefined) =>
+					`We were expecting an identifier, but found a "${node?.type}"`,
+			},
 
-				// second child: name
-				{
-					type: NT.Identifier,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.visitIdentifier(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.name = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: (node: Node | undefined) => `We were expecting an identifier, but found a "${node?.type}"`,
+			// third child: a colon
+			{
+				type: NT.ColonSeparator,
+				required: false,
+
+				// do nothing, just skip it
+				callback: skipThisChild,
+			},
+
+			// third child: type (required if there was a colon separator)
+			{
+				type: AssignableTypes,
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
 				},
-
-				// third child: a colon
-				{
-					type: NT.ColonSeparator,
-					required: false,
-
-					// do nothing, just skip it
-					callback: skipThisChild,
-				},
-
-				// third child: type (required if there was a colon separator)
-				{
-					type: AssignableTypes,
-					required: (child, childIndex, allChildren) => {
-						return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
-					},
-					callback: (child) => {
-						const visitResult = this.visitType(child);
-						switch (visitResult.outcome) {
-							case 'ok':
-								if (visitResult.value instanceof SkipAST) {
-									return error(new AnalysisError(
+				callback: (child) => {
+					const visitResult = this.visitType(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							if (visitResult.value instanceof SkipAST) {
+								return error(
+									new AnalysisError(
 										AnalysisErrorCode.TypeExpected,
 										`We were expecting a Type, but found a "${child?.type}"`,
 										child,
 										this.getErrorContext(child, child.value?.length ?? 1),
-									), this.ast);
-								}
+									),
+									this.ast,
+								);
+							}
 
-								ast.declaredType = visitResult.value;
-								break;
-							case 'error': return visitResult; break;
-						}
+							ast.declaredType = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 
-						return ok(undefined);
-					},
-					errorCode: AnalysisErrorCode.TypeExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting a Type, but found "${child?.type}"`,
+					return ok(undefined);
+				},
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a Type, but found "${child?.type}"`,
+			},
+
+			// next could be an initial value assignment, or nothing
+			{
+				type: NT.AssignmentOperator,
+				required: false,
+
+				// do nothing, we just want to skip over the assignment operator
+				callback: skipThisChild,
+			},
+
+			// fourth child: default value
+			{
+				type: AssignableNodeTypes,
+
+				// if the previous child was an assignment operator, then this child is required
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.AssignmentOperator;
 				},
 
-				// next could be an initial value assignment, or nothing
-				{
-					type: NT.AssignmentOperator,
-					required: false,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<AssignableASTs>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.defaultValue = visitResult.value;
 
-					// do nothing, we just want to skip over the assignment operator
-					callback: skipThisChild,
-				},
+							// now attempt to infer the type from the default value
 
-				// fourth child: default value
-				{
-					type: AssignableNodeTypes,
-
-					// if the previous child was an assignment operator, then this child is required
-					required: (child, childIndex, allChildren) => {
-						return allChildren[childIndex - 1]?.type === NT.AssignmentOperator;
-					},
-
-					callback: (child) => {
-						const visitResult = this.nodeToAST<AssignableASTs>(child);
-						switch (visitResult.outcome) {
-							case 'ok':
-								ast.defaultValue = visitResult.value;
-
-								// now attempt to infer the type from the default value
-
-								// ast.defaultValue is guaranteed to be defined at this point
-								this.assignInferredType(ast.defaultValue, child, (inferredType: ASTType) => {
+							// ast.defaultValue is guaranteed to be defined at this point
+							this.assignInferredType(
+								ast.defaultValue,
+								child,
+								(inferredType: ASTType) => {
 									ast.inferredType = inferredType;
-								});
+								},
+							);
 
-								if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
-									return error(new AnalysisError(
+							if (
+								typeof ast.declaredType !== 'undefined' &&
+								typeof ast.inferredType !== 'undefined' &&
+								ast.inferredType.constructor !== ast.declaredType?.constructor
+							) {
+								return error(
+									new AnalysisError(
 										AnalysisErrorCode.TypeMismatch,
 										`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
 										child,
 										this.getErrorContext(child, child.value?.length || 1),
-									));
-								}
+									),
+								);
+							}
 
-								break;
-							case 'error': return visitResult; break;
-						}
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 
-						return ok(undefined);
-					},
-					errorCode: AnalysisErrorCode.AssignableExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
+					return ok(undefined);
 				},
-			],
-		);
+				errorCode: AnalysisErrorCode.AssignableExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an assignable expression, but found "${child?.type}"`,
+			},
+		]);
 		if (handleResult.outcome === 'error') {
 			return handleResult;
 		}
@@ -1794,20 +2146,32 @@ export default class SemanticAnalyzer {
 		// if the identifier ends with a '?', check that either the declared type is bool
 		// or that the inferred type is bool
 		if (ast.name.name.at(-1) === '?') {
-			if (typeof ast.declaredType !== 'undefined' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BoolTypeExpected,
-					`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
-			} else if (typeof ast.inferredType !== 'undefined' && !_.isEqual(ast.inferredType, ASTTypePrimitiveBool)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BoolTypeExpected,
-					`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
+			if (
+				typeof ast.declaredType !== 'undefined' &&
+				!_.isEqual(ast.declaredType, ASTTypePrimitiveBool)
+			) {
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.BoolTypeExpected,
+						`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
+			} else if (
+				typeof ast.inferredType !== 'undefined' &&
+				!_.isEqual(ast.inferredType, ASTTypePrimitiveBool)
+			) {
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.BoolTypeExpected,
+						`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
@@ -1831,12 +2195,15 @@ export default class SemanticAnalyzer {
 		// first grammatical requirement: the assignable
 		const child = nodesChildren.shift();
 		if (!child?.type || !AssignableNodeTypes.includes(child.type)) {
-			return error(new AnalysisError(
-				AnalysisErrorCode.AssignableExpected,
-				'Assignable Expected',
-				child || node,
-				this.getErrorContext(child || node, 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.AssignableExpected,
+					'Assignable Expected',
+					child || node,
+					this.getErrorContext(child || node, 1),
+				),
+				this.ast,
+			);
 		}
 
 		// this is a pass-through node, aka return the child, since we don't retain parentheses
@@ -1861,12 +2228,15 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.ValidPathExpected,
-			'Valid Path Expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.ValidPathExpected,
+				'Valid Path Expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitPostfixIfStatement(node: Node): Result<ASTPostfixIfStatement> {
@@ -1880,12 +2250,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<ExpressionASTs>(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.expression = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.expression = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.BodyExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an expression or value, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an expression or value, but found "${child?.type}"`,
 			},
 
 			// second child: the test
@@ -1895,12 +2271,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.nodeToAST<ExpressionASTs>(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.test = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.test = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.ExpressionExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Expression, but found "${child?.type}"`,
 			},
 		]);
 		if (handlingResult.outcome === 'error') {
@@ -1923,8 +2305,12 @@ export default class SemanticAnalyzer {
 			() => 'Expression Expected',
 		);
 		switch (expressionsResult.outcome) {
-			case 'ok': ast.expressions = expressionsResult.value; break;
-			case 'error': return expressionsResult; break;
+			case 'ok':
+				ast.expressions = expressionsResult.value;
+				break;
+			case 'error':
+				return expressionsResult;
+				break;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1933,7 +2319,15 @@ export default class SemanticAnalyzer {
 	}
 
 	visitProgram(node: Node): Result<ASTProgram> {
-		let validChildren = [NT.ClassDeclaration, NT.Comment, NT.FunctionDeclaration, NT.ImportDeclaration, NT.InterfaceDeclaration, NT.SemicolonSeparator, NT.VariableDeclaration];
+		let validChildren = [
+			NT.ClassDeclaration,
+			NT.Comment,
+			NT.FunctionDeclaration,
+			NT.ImportDeclaration,
+			NT.InterfaceDeclaration,
+			NT.SemicolonSeparator,
+			NT.VariableDeclaration,
+		];
 
 		// if this is an inline analysis, allow all ASTs in the program, to avoid having
 		// to wrap code in a function, class, or variable declaration just to analyze it
@@ -1954,8 +2348,11 @@ export default class SemanticAnalyzer {
 			(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
 		);
 		switch (declarationsResult.outcome) {
-			case 'ok': ast.declarations = declarationsResult.value; break;
-			case 'error': return declarationsResult;
+			case 'ok':
+				ast.declarations = declarationsResult.value;
+				break;
+			case 'error':
+				return declarationsResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -1966,40 +2363,49 @@ export default class SemanticAnalyzer {
 	visitProperty(node: Node): Result<ASTProperty> {
 		const ast = new ASTProperty();
 
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(
-			node,
-			[
-				// first child: the property name
-				{
-					type: [NT.Identifier],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<ASTIdentifier>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.key = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the property name
+			{
+				type: [NT.Identifier],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<ASTIdentifier>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.key = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
+			},
 
-				// second child: the property value
-				{
-					type: [...AssignableNodeTypes, NT.CommaSeparator],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<AssignableASTs>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.value = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.ValueExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting a Value, but found "${child?.type}"`,
+			// second child: the property value
+			{
+				type: [...AssignableNodeTypes, NT.CommaSeparator],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<AssignableASTs>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.value = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 				},
-			],
-		);
+				errorCode: AnalysisErrorCode.ValueExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a Value, but found "${child?.type}"`,
+			},
+		]);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -2012,40 +2418,49 @@ export default class SemanticAnalyzer {
 	visitPropertyShape(node: Node): Result<ASTPropertyShape> {
 		const ast = new ASTPropertyShape();
 
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(
-			node,
-			[
-				// first child: the property name
-				{
-					type: [NT.Identifier],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<ASTIdentifier>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.key = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.IdentifierExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the property name
+			{
+				type: [NT.Identifier],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<ASTIdentifier>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.key = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
+			},
 
-				// second child: the property type
-				{
-					type: [...AssignableTypes, NT.CommaSeparator],
-					required: true,
-					callback: (child) => {
-						const visitResult = this.nodeToAST<ASTType>(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.type = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.ValueExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting a Value, but found "${child?.type}"`,
+			// second child: the property type
+			{
+				type: [...AssignableTypes, NT.CommaSeparator],
+				required: true,
+				callback: (child) => {
+					const visitResult = this.nodeToAST<ASTType>(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.type = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 				},
-			],
-		);
+				errorCode: AnalysisErrorCode.ValueExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a Value, but found "${child?.type}"`,
+			},
+		]);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -2056,7 +2471,14 @@ export default class SemanticAnalyzer {
 	}
 
 	visitRangeExpression(node: Node): Result<ASTRangeExpression> {
-		const validChildren = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.NumberLiteral, NT.Parenthesized, NT.UnaryExpression];
+		const validChildren = [
+			NT.CallExpression,
+			NT.Identifier,
+			NT.MemberExpression,
+			NT.NumberLiteral,
+			NT.Parenthesized,
+			NT.UnaryExpression,
+		];
 
 		const ast = new ASTRangeExpression();
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
@@ -2066,16 +2488,23 @@ export default class SemanticAnalyzer {
 		if (lowerBound?.type && validChildren.includes(lowerBound.type)) {
 			const visitResult = this.nodeToAST<RangeBoundASTs>(lowerBound);
 			switch (visitResult.outcome) {
-				case 'ok': ast.lower = visitResult.value; break;
-				case 'error': return visitResult; break;
+				case 'ok':
+					ast.lower = visitResult.value;
+					break;
+				case 'error':
+					return visitResult;
+					break;
 			}
 		} else {
-			return error(new AnalysisError(
-				AnalysisErrorCode.RangeBoundExpected,
-				`We were expecting a lower range bound, but instead found a ${lowerBound?.type}`,
-				lowerBound,
-				this.getErrorContext(node, node?.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.RangeBoundExpected,
+					`We were expecting a lower range bound, but instead found a ${lowerBound?.type}`,
+					lowerBound,
+					this.getErrorContext(node, node?.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		// second child: the upper bound (required)
@@ -2083,16 +2512,23 @@ export default class SemanticAnalyzer {
 		if (upperBound?.type && validChildren.includes(upperBound.type)) {
 			const visitResult = this.nodeToAST<RangeBoundASTs>(upperBound);
 			switch (visitResult.outcome) {
-				case 'ok': ast.upper = visitResult.value; break;
-				case 'error': return visitResult; break;
+				case 'ok':
+					ast.upper = visitResult.value;
+					break;
+				case 'error':
+					return visitResult;
+					break;
 			}
 		} else {
-			return error(new AnalysisError(
-				AnalysisErrorCode.RangeBoundExpected,
-				`We were expecting an upper range bound, but instead found a ${upperBound?.type}`,
-				upperBound,
-				this.getErrorContext(node, node?.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.RangeBoundExpected,
+					`We were expecting an upper range bound, but instead found a ${upperBound?.type}`,
+					upperBound,
+					this.getErrorContext(node, node?.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2112,7 +2548,7 @@ export default class SemanticAnalyzer {
 				const pattern = node.value.slice(0, lastSlashStringIndex + 1);
 
 				// check if pattern is valid
-				var isValid = true;
+				let isValid = true;
 				try {
 					new RegExp(pattern);
 				} catch (e) {
@@ -2120,7 +2556,14 @@ export default class SemanticAnalyzer {
 				}
 
 				if (!isValid) {
-					return error(new AnalysisError(AnalysisErrorCode.InvalidRegularExpression, 'Invalid regular expression pattern', node, this.getErrorContext(node, node.value.length)));
+					return error(
+						new AnalysisError(
+							AnalysisErrorCode.InvalidRegularExpression,
+							'Invalid regular expression pattern',
+							node,
+							this.getErrorContext(node, node.value.length),
+						),
+					);
 				}
 
 				ast.pattern = pattern;
@@ -2131,9 +2574,16 @@ export default class SemanticAnalyzer {
 				const flags = node.value.slice(lastSlashStringIndex + 1).split('');
 
 				// check for unidentified flags. this probably isn't neessary since the lexer does this, but it's a double check
-				const unidentifiedFlags = flags.filter(f => !regexFlags.includes(f));
+				const unidentifiedFlags = flags.filter((f) => !regexFlags.includes(f));
 				if (unidentifiedFlags.length > 0) {
-					return error(new AnalysisError(AnalysisErrorCode.InvalidRegularExpression, 'Invalid regular expression flags', node, this.getErrorContext(node, node.value.length)));
+					return error(
+						new AnalysisError(
+							AnalysisErrorCode.InvalidRegularExpression,
+							'Invalid regular expression flags',
+							node,
+							this.getErrorContext(node, node.value.length),
+						),
+					);
 				}
 
 				ast.flags = flags;
@@ -2144,12 +2594,15 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.ExpressionExpected,
-			'Regular Expression expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.ExpressionExpected,
+				'Regular Expression expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitRestElement(node: Node): Result<ASTRestElement> {
@@ -2161,12 +2614,15 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.RestElementExpected,
-			`We were expecting to find a rest element "...", but instead found a ${node.type}`,
-			node,
-			this.getErrorContext(node, node.value?.length || 1)
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.RestElementExpected,
+				`We were expecting to find a rest element "...", but instead found a ${node.type}`,
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitReturnStatement(node: Node): Result<ASTReturnStatement> {
@@ -2176,11 +2632,15 @@ export default class SemanticAnalyzer {
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator],
 			AnalysisErrorCode.AssignableExpected,
-			(child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
+			(child: Node | undefined) =>
+				`We were expecting an assignable expression, but found "${child?.type}"`,
 		);
 		switch (conversionResult.outcome) {
-			case 'ok': ast.expressions = conversionResult.value; break;
-			case 'error': return conversionResult;
+			case 'ok':
+				ast.expressions = conversionResult.value;
+				break;
+			case 'error':
+				return conversionResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2200,90 +2660,101 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.StringLiteralExpected,
-			'String Expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.StringLiteralExpected,
+				'String Expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitTernaryAlternate(node: Node): Result<ASTTernaryAlternate<AssignableASTs>> {
 		if (node?.type === NT.TernaryAlternate) {
 			const visitResult = this.nodeToAST<AssignableASTs>(node.children[0]);
-			switch (visitResult.outcome) {
-				case 'ok':
-					const ast = new ASTTernaryAlternate<AssignableASTs>();
-
-					ast.value = visitResult.value;
-
-					this.astPointer = this.ast = ast;
-
-					return ok(ast);
-					break;
-				case 'error': return visitResult; break;
+			if (visitResult.outcome === 'error') {
+				return visitResult;
 			}
+
+			const ast = new ASTTernaryAlternate<AssignableASTs>();
+
+			ast.value = visitResult.value;
+
+			this.astPointer = this.ast = ast;
+
+			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.TernaryAlternateExpected,
-			'Ternary Alternate Expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.TernaryAlternateExpected,
+				'Ternary Alternate Expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitTernaryCondition(node: Node): Result<ASTTernaryCondition> {
 		if (node?.type === NT.TernaryCondition) {
 			const visitResult = this.nodeToAST<AssignableASTs>(node.children[0]);
-			switch (visitResult.outcome) {
-				case 'ok':
-					const ast = new ASTTernaryCondition();
-
-					ast.expression = visitResult.value;
-
-					this.astPointer = this.ast = ast;
-
-					return ok(ast);
-					break;
-				case 'error': return visitResult; break;
+			if (visitResult.outcome === 'error') {
+				return visitResult;
 			}
+
+			const ast = new ASTTernaryCondition();
+
+			ast.expression = visitResult.value;
+
+			this.astPointer = this.ast = ast;
+
+			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.TernaryConditionExpected,
-			'Ternary Condition Expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.TernaryConditionExpected,
+				'Ternary Condition Expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitTernaryConsequent(node: Node): Result<ASTTernaryConsequent<AssignableASTs>> {
 		if (node?.type === NT.TernaryConsequent) {
 			const visitResult = this.nodeToAST<AssignableASTs>(node.children[0]);
-			switch (visitResult.outcome) {
-				case 'ok':
-					const ast = new ASTTernaryConsequent<AssignableASTs>();
-
-					ast.value = visitResult.value;
-
-					this.astPointer = this.ast = ast;
-
-					return ok(ast);
-					break;
-				case 'error': return visitResult; break;
+			if (visitResult.outcome === 'error') {
+				return visitResult;
 			}
+
+			const ast = new ASTTernaryConsequent<AssignableASTs>();
+
+			ast.value = visitResult.value;
+
+			this.astPointer = this.ast = ast;
+
+			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.TernaryConsequentExpected,
-			'Ternary Consequent Expected',
-			node,
-			this.getErrorContext(node, node.value?.length || 1),
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.TernaryConsequentExpected,
+				'Ternary Consequent Expected',
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
-	visitTernaryExpression(node: Node): Result<ASTTernaryExpression<AssignableASTs, AssignableASTs>> {
+	visitTernaryExpression(
+		node: Node,
+	): Result<ASTTernaryExpression<AssignableASTs, AssignableASTs>> {
 		const ast = new ASTTernaryExpression();
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
@@ -2294,12 +2765,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitTernaryCondition(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.test = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.test = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.TernaryConditionExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting a condition for the condition, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a condition for the condition, but found "${child?.type}"`,
 			},
 
 			// second child: the consequent
@@ -2309,12 +2786,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitTernaryConsequent(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.consequent = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.consequent = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.TernaryConsequentExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression for the "then" clause, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Expression for the "then" clause, but found "${child?.type}"`,
 			},
 
 			// third child: the alternate
@@ -2324,12 +2807,18 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitTernaryAlternate(child);
 					switch (visitResult.outcome) {
-						case 'ok': ast.alternate = visitResult.value; return ok(undefined); break;
-						case 'error': return visitResult; break;
+						case 'ok':
+							ast.alternate = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.TernaryAlternateExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Expression for the "else" clause, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Expression for the "else" clause, but found "${child?.type}"`,
 			},
 		]);
 		if (handlingResult.outcome === 'error') {
@@ -2350,12 +2839,15 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.ThisKeywordExpected,
-			`We were expecting to find a "this" keyword, but instead found a ${node.type}`,
-			node,
-			this.getErrorContext(node, node.value?.length || 1)
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.ThisKeywordExpected,
+				`We were expecting to find a "this" keyword, but instead found a ${node.type}`,
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitTupleExpression(node: Node): Result<ASTTupleExpression> {
@@ -2368,8 +2860,12 @@ export default class SemanticAnalyzer {
 			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
 		);
 		switch (handlingResult.outcome) {
-			case 'ok': ast.items = handlingResult.value; break;
-			case 'error': return handlingResult; break;
+			case 'ok':
+				ast.items = handlingResult.value;
+				break;
+			case 'error':
+				return handlingResult;
+				break;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2379,12 +2875,15 @@ export default class SemanticAnalyzer {
 
 	visitTupleShape(node: Node): Result<ASTTupleShape> {
 		if (node.children.length < 1) {
-			return error(new AnalysisError(
-				AnalysisErrorCode.TypeExpected,
-				`We were expecting at least one type, but found none`,
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.TypeExpected,
+					'We were expecting at least one type, but found none',
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		const children: Array<Exclude<ASTType, SkipAST>> = [];
@@ -2405,15 +2904,20 @@ export default class SemanticAnalyzer {
 
 						children.push(visitResult.value as Exclude<ASTType, SkipAST>);
 						break;
-					case 'error': return visitResult; break;
+					case 'error':
+						return visitResult;
+						break;
 				}
 			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.TypeExpected,
-					`We were expecting a type here, but we got a ${child.type} instead`,
-					child,
-					this.getErrorContext(child, child.value?.length || 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.TypeExpected,
+						`We were expecting a type here, but we got a ${child.type} instead`,
+						child,
+						this.getErrorContext(child, child.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
@@ -2435,12 +2939,14 @@ export default class SemanticAnalyzer {
 	 * @returns A result with an ASTType or ASTMemberExpression
 	 */
 	visitType(node: Node | undefined): Result<ASTType | SkipAST> {
-		const errorResult = error<ASTType>(new AnalysisError(
-			AnalysisErrorCode.TypeExpected,
-			`Type Expected, received "${node?.type}"`,
-			node,
-			this.getErrorContextUnsafe(node, node?.value?.length || 1),
-		));
+		const errorResult = error<ASTType>(
+			new AnalysisError(
+				AnalysisErrorCode.TypeExpected,
+				`Type Expected, received "${node?.type}"`,
+				node,
+				this.getErrorContextUnsafe(node, node?.value?.length || 1),
+			),
+		);
 
 		if (!node?.type) {
 			return errorResult;
@@ -2457,14 +2963,13 @@ export default class SemanticAnalyzer {
 
 					return ok(ast);
 
-				// check if it's a range
+					// check if it's a range
 				} else if (node.value && node.value === 'range') {
 					const ast = ASTTypeRange._();
 
 					this.astPointer = this.ast = ast;
 
 					return ok(ast);
-
 				} else {
 					return errorResult;
 				}
@@ -2485,7 +2990,15 @@ export default class SemanticAnalyzer {
 			case NT.ObjectShape:
 			case NT.TupleShape:
 			case NT.TypeInstantiationExpression:
-				return this.nodeToAST<ASTArrayOf | ASTFunctionSignature | ASTIdentifier | ASTMemberExpression>(node);
+				return this.nodeToAST<
+					| ASTArrayOf
+					| ASTFunctionSignature
+					| ASTIdentifier
+					| ASTMemberExpression
+					| ASTObjectShape
+					| ASTTupleShape
+					| ASTTypeInstantiationExpression
+				>(node);
 				break;
 		}
 
@@ -2511,12 +3024,14 @@ export default class SemanticAnalyzer {
 						return visitResult;
 				}
 			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.TypeExpected,
-					`Type Expected, received "${child.type}"`,
-					child,
-					this.getErrorContext(child, child.value?.length || 1),
-				));
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.TypeExpected,
+						`Type Expected, received "${child.type}"`,
+						child,
+						this.getErrorContext(child, child.value?.length || 1),
+					),
+				);
 			}
 		}
 
@@ -2537,22 +3052,28 @@ export default class SemanticAnalyzer {
 					switch (typeResult.outcome) {
 						case 'ok':
 							if (typeResult.value instanceof SkipAST) {
-								return error(new AnalysisError(
-									AnalysisErrorCode.TypeExpected,
-									`We were expecting to find a Type, but instead found a ${child.type}`,
-									child,
-									this.getErrorContext(child, child.value?.length || 1),
-								), this.ast);
+								return error(
+									new AnalysisError(
+										AnalysisErrorCode.TypeExpected,
+										`We were expecting to find a Type, but instead found a ${child.type}`,
+										child,
+										this.getErrorContext(child, child.value?.length || 1),
+									),
+									this.ast,
+								);
 							}
 
 							ast.base = typeResult.value;
 							return ok(undefined);
 							break;
-						case 'error': return typeResult; break;
+						case 'error':
+							return typeResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting to find a Type, but found a "${child?.type}"`,
 			},
 
 			// the type arguments
@@ -2564,18 +3085,22 @@ export default class SemanticAnalyzer {
 						child,
 						validChildrenInTypeArgumentList,
 						AnalysisErrorCode.ExtraNodesFound,
-						(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
+						(child: Node) =>
+							`A ${child.type} is not allowed directly in a ${node.type}`,
 					);
 					switch (conversionResult.outcome) {
 						case 'ok':
 							ast.typeArgs = conversionResult.value;
 							return ok(undefined);
 							break;
-						case 'error': return conversionResult; break;
+						case 'error':
+							return conversionResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting to find a Type, but found a "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting to find a Type, but found a "${child?.type}"`,
 			},
 		]);
 		if (handleResult.outcome === 'error') {
@@ -2601,8 +3126,12 @@ export default class SemanticAnalyzer {
 			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
 		);
 		switch (conversionResult.outcome) {
-			case 'ok': typeParams = conversionResult.value; break;
-			case 'error': return conversionResult; break;
+			case 'ok':
+				typeParams = conversionResult.value;
+				break;
+			case 'error':
+				return conversionResult;
+				break;
 		}
 
 		return ok(typeParams);
@@ -2617,12 +3146,15 @@ export default class SemanticAnalyzer {
 
 		// second grammatical requirement: the operator
 		if (!node.value) {
-			return error(new AnalysisError(
-				AnalysisErrorCode.OperatorExpected,
-				'Operator Expected',
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.OperatorExpected,
+					'Operator Expected',
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		ast.operator = node.value;
@@ -2633,28 +3165,38 @@ export default class SemanticAnalyzer {
 			if (child?.type && ExpressionNodeTypes.includes(child.type)) {
 				const visitResult = this.nodeToAST<ExpressionASTs>(child);
 				switch (visitResult.outcome) {
-					case 'ok': ast.operand = visitResult.value; break;
-					case 'error': return visitResult; break;
+					case 'ok':
+						ast.operand = visitResult.value;
+						break;
+					case 'error':
+						return visitResult;
+						break;
 				}
 			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.ExpressionExpected,
-					'Expression Expected',
-					child || node,
-					this.getErrorContext(child || node, 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.ExpressionExpected,
+						'Expression Expected',
+						child || node,
+						this.getErrorContext(child || node, 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
 		// there should be no more children
 		const child = nodesChildren.shift();
 		if (typeof child !== 'undefined') {
-			return error(new AnalysisError(
-				AnalysisErrorCode.SemicolonExpected,
-				'Semicolon Expected',
-				child,
-				this.getErrorContext(child, 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.SemicolonExpected,
+					'Semicolon Expected',
+					child,
+					this.getErrorContext(child, 1),
+				),
+				this.ast,
+			);
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2671,12 +3213,15 @@ export default class SemanticAnalyzer {
 		if (node.value && ['const', 'let'].includes(node.value)) {
 			ast.mutable = node.value === 'let';
 		} else {
-			return error(new AnalysisError(
-				AnalysisErrorCode.KeywordExpected,
-				'Expecting keyword "const" or "let"',
-				node,
-				this.getErrorContext(node, node.value?.length || 1),
-			), this.ast);
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.KeywordExpected,
+					'Expecting keyword "const" or "let"',
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		// handle the child nodes of different types
@@ -2704,11 +3249,14 @@ export default class SemanticAnalyzer {
 
 							return ok(undefined);
 							break;
-						case 'error': return visitResult; break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an Identifier, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// the colon (optional)
@@ -2731,23 +3279,29 @@ export default class SemanticAnalyzer {
 					switch (visitResult.outcome) {
 						case 'ok':
 							if (visitResult.value instanceof SkipAST) {
-								return error(new AnalysisError(
-									AnalysisErrorCode.TypeExpected,
-									`We were expecting a Type, but found a "${child?.type}"`,
-									child,
-									this.getErrorContext(child, child.value?.length ?? 1),
-								), this.ast);
+								return error(
+									new AnalysisError(
+										AnalysisErrorCode.TypeExpected,
+										`We were expecting a Type, but found a "${child?.type}"`,
+										child,
+										this.getErrorContext(child, child.value?.length ?? 1),
+									),
+									this.ast,
+								);
 							}
 
 							ast.declaredType = visitResult.value;
 							break;
-						case 'error': return visitResult; break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting a Type in this VariableDeclaration, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a Type in this VariableDeclaration, but found "${child?.type}"`,
 			},
 
 			// next could be an initial value assignment, or nothing
@@ -2778,9 +3332,13 @@ export default class SemanticAnalyzer {
 							// now attempt to infer the type from the initial value
 
 							// ast.initialValue is guaranteed to be defined at this point
-							this.assignInferredType(ast.initialValue, child, (inferredType: ASTType) => {
-								ast.inferredType = inferredType;
-							});
+							this.assignInferredType(
+								ast.initialValue,
+								child,
+								(inferredType: ASTType) => {
+									ast.inferredType = inferredType;
+								},
+							);
 
 							// console.debug({
 							// 	inferredType: ast.inferredType,
@@ -2789,22 +3347,31 @@ export default class SemanticAnalyzer {
 							// 	declaredConstructor: ast.declaredType?.constructor,
 							// 	match: ast.inferredType.constructor !== ast.declaredType?.constructor,
 							// })
-							if (typeof ast.declaredType !== 'undefined' && typeof ast.inferredType !== 'undefined' && ast.inferredType.constructor !== ast.declaredType?.constructor) {
-								return error(new AnalysisError(
-									AnalysisErrorCode.TypeMismatch,
-									`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
-									child,
-									this.getErrorContext(child, child.value?.length || 1),
-								));
+							if (
+								typeof ast.declaredType !== 'undefined' &&
+								typeof ast.inferredType !== 'undefined' &&
+								ast.inferredType.constructor !== ast.declaredType?.constructor
+							) {
+								return error(
+									new AnalysisError(
+										AnalysisErrorCode.TypeMismatch,
+										`cannot assign a "${ast.inferredType}" to a "${ast.declaredType}"`,
+										child,
+										this.getErrorContext(child, child.value?.length || 1),
+									),
+								);
 							}
 							break;
-						case 'error': return visitResult; break;
+						case 'error':
+							return visitResult;
+							break;
 					}
 
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.AssignableExpected,
-				errorMessage: (child: Node | undefined) => `We were expecting an assignable expression, but found "${child?.type}"`,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an assignable expression, but found "${child?.type}"`,
 			},
 		]);
 		if (handlingResult.outcome === 'error') {
@@ -2816,20 +3383,32 @@ export default class SemanticAnalyzer {
 		// if the identifier ends with a '?', check that either the declared type is bool
 		// or that the inferred type is bool
 		if (ast.identifier.name.at(-1) === '?') {
-			if (typeof ast.declaredType !== 'undefined' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BoolTypeExpected,
-					`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
-			} else if (typeof ast.inferredType !== 'undefined' && !_.isEqual(ast.inferredType, ASTTypePrimitiveBool)) {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BoolTypeExpected,
-					`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
+			if (
+				typeof ast.declaredType !== 'undefined' &&
+				!_.isEqual(ast.declaredType, ASTTypePrimitiveBool)
+			) {
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.BoolTypeExpected,
+						`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
+			} else if (
+				typeof ast.inferredType !== 'undefined' &&
+				!_.isEqual(ast.inferredType, ASTTypePrimitiveBool)
+			) {
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.BoolTypeExpected,
+						`bool type expected since the variable name "${ast.identifier.name}" ends with a "?"`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
@@ -2841,40 +3420,49 @@ export default class SemanticAnalyzer {
 	visitWhenCase(node: Node): Result<ASTWhenCase> {
 		const ast = new ASTWhenCase();
 
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(
-			node,
-			[
-				// first child: the values (required)
-				{
-					type: NT.WhenCaseValues,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.visitWhenCaseValues(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.values = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.WhenCaseValueExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting a value in this WhenCase, but found "${child?.type}"`,
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the values (required)
+			{
+				type: NT.WhenCaseValues,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitWhenCaseValues(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.values = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 				},
+				errorCode: AnalysisErrorCode.WhenCaseValueExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a value in this WhenCase, but found "${child?.type}"`,
+			},
 
-				// second child: the consequent (required)
-				{
-					type: NT.WhenCaseConsequent,
-					required: true,
-					callback: (child) => {
-						const visitResult = this.visitWhenCaseConsequent(child);
-						switch (visitResult.outcome) {
-							case 'ok': ast.consequent = visitResult.value; return ok(undefined); break;
-							case 'error': return visitResult; break;
-						}
-					},
-					errorCode: AnalysisErrorCode.WhenCaseConsequentExpected,
-					errorMessage: (child: Node | undefined) => `We were expecting a consequent in this WhenCase, but found "${child?.type}"`,
+			// second child: the consequent (required)
+			{
+				type: NT.WhenCaseConsequent,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitWhenCaseConsequent(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.consequent = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
 				},
-			],
-		);
+				errorCode: AnalysisErrorCode.WhenCaseConsequentExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a consequent in this WhenCase, but found "${child?.type}"`,
+			},
+		]);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -2888,16 +3476,22 @@ export default class SemanticAnalyzer {
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		const child = nodesChildren.shift();
-		if (child?.type && ([NT.BlockStatement, ...AssignableNodeTypes] as NT[]).includes(child.type)) {
+		if (
+			child?.type &&
+			([NT.BlockStatement, ...AssignableNodeTypes] as NT[]).includes(child.type)
+		) {
 			return this.nodeToAST<ASTBlockStatement | AssignableASTs>(child);
 		}
 
-		return error(new AnalysisError(
-			AnalysisErrorCode.ExpressionExpected,
-			`We were expecting an Expression in this WhenCaseConsequent, but found "${child?.type}"`,
-			node,
-			this.getErrorContext(node, node.value?.length || 1)
-		), this.ast);
+		return error(
+			new AnalysisError(
+				AnalysisErrorCode.ExpressionExpected,
+				`We were expecting an Expression in this WhenCaseConsequent, but found "${child?.type}"`,
+				node,
+				this.getErrorContext(node, node.value?.length || 1),
+			),
+			this.ast,
+		);
 	}
 
 	visitWhenCaseValues(child: Node): Result<WhenCaseValueASTs[]> {
@@ -2905,7 +3499,8 @@ export default class SemanticAnalyzer {
 			child,
 			validChildrenInWhenCaseValues,
 			AnalysisErrorCode.WhenCaseValueExpected,
-			(child: Node | undefined) => `We were expecting a WhenCaseValue, but found "${child?.type}"`
+			(child: Node | undefined) =>
+				`We were expecting a WhenCaseValue, but found "${child?.type}"`,
 		);
 	}
 
@@ -2919,16 +3514,23 @@ export default class SemanticAnalyzer {
 			if (child?.type && ExpressionNodeTypes.includes(child.type)) {
 				const result = this.nodeToAST<ExpressionASTs>(child);
 				switch (result.outcome) {
-					case 'ok': ast.expression = result.value; break;
-					case 'error': return result; break;
+					case 'ok':
+						ast.expression = result.value;
+						break;
+					case 'error':
+						return result;
+						break;
 				}
 			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.ExpressionExpected,
-					`We were expecting an expression, but found "${child?.type}"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.ExpressionExpected,
+						`We were expecting an expression, but found "${child?.type}"`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
@@ -2943,16 +3545,23 @@ export default class SemanticAnalyzer {
 					(child) => `We were expecting a WhenCase, but found "${child?.type}"`,
 				);
 				switch (conversionResult.outcome) {
-					case 'ok': ast.cases = conversionResult.value; break;
-					case 'error': return conversionResult; break;
+					case 'ok':
+						ast.cases = conversionResult.value;
+						break;
+					case 'error':
+						return conversionResult;
+						break;
 				}
 			} else {
-				return error(new AnalysisError(
-					AnalysisErrorCode.BlockStatementExpected,
-					`We were expecting a BlockStatement with WhenCases, but found "${child?.type}"`,
-					node,
-					this.getErrorContext(node, node.value?.length || 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.BlockStatementExpected,
+						`We were expecting a BlockStatement with WhenCases, but found "${child?.type}"`,
+						node,
+						this.getErrorContext(node, node.value?.length || 1),
+					),
+					this.ast,
+				);
 			}
 		}
 
@@ -2960,12 +3569,15 @@ export default class SemanticAnalyzer {
 		{
 			const child = nodesChildren.shift();
 			if (typeof child !== 'undefined') {
-				return error(new AnalysisError(
-					AnalysisErrorCode.CommaExpected,
-					`We were expecting a Comma, but found "${child.type}"`,
-					child,
-					this.getErrorContext(child, child.value?.length ?? 1),
-				), this.ast);
+				return error(
+					new AnalysisError(
+						AnalysisErrorCode.CommaExpected,
+						`We were expecting a Comma, but found "${child.type}"`,
+						child,
+						this.getErrorContext(child, child.value?.length ?? 1),
+					),
+					this.ast,
+				);
 			}
 		}
 

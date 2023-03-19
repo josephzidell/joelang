@@ -2,10 +2,12 @@
   "name": "joelang",
   "version": "0.0.0",
   "description": "A scripting lang that aims to be simple to read",
-  "main": "index.js",
   "scripts": {
-    "help": "ts-node index.ts help",
-    "test": "jest --detectOpenHandles && npm run --silent test-integration",
+    "lint": "eslint --ext .ts .",
+	"lint-fix": "eslint --ext .ts . --fix",
+	"prettier": "prettier --check .",
+	"prettier-fix": "prettier --write .",
+	"test": "jest --detectOpenHandles && npm run --silent test-integration",
     "test-integration": "./joec examples/example1/main.joe"
   },
   "repository": {
@@ -40,7 +42,13 @@
     "@types/jest": "^29.5.0",
     "@types/json-diff": "^0.9.1",
     "@types/lodash": "^4.14.191",
+    "@typescript-eslint/eslint-plugin": "^5.55.0",
+    "@typescript-eslint/parser": "^5.55.0",
     "babel-jest": "^29.5.0",
+    "eslint": "^8.36.0",
+    "eslint-config-prettier": "^8.7.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "2.8.4",
     "ts-jest": "^29.0.5"
   }
 }

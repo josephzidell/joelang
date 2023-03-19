@@ -1,6 +1,6 @@
 export default class ErrorContext {
 	/** the source code */
-	code: string = '';
+	code = '';
 
 	/** line begins at 1 */
 	line = 1;
@@ -11,28 +11,29 @@ export default class ErrorContext {
 	/** The length of the erroneous code, or how many ^^^s to use */
 	length = 1;
 
-	constructor (code: string, line: number, col: number, length: number) {
+	constructor(code: string, line: number, col: number, length: number) {
 		this.code = code;
 		this.line = line;
 		this.col = col;
 		this.length = length;
 	}
 
-	toStringArray (errorMessage: string): string[] {
-		const lines = this.code.split("\n");
+	toStringArray(errorMessage: string): string[] {
+		const lines = this.code.split('\n');
 
 		type Line = {
-			number: Number;
-			content: String;
+			number: number;
+			content: string;
 		};
 
 		// prev line
-		const prevLine: Line | undefined = this.line > 1 ?
-			{
-				number: this.line - 1,
-				content: lines[this.line - 2],
-			} :
-			undefined;
+		const prevLine: Line | undefined =
+			this.line > 1
+				? {
+						number: this.line - 1,
+						content: lines[this.line - 2],
+				  }
+				: undefined;
 
 		// current line
 		const currentLine: Line = {
@@ -41,14 +42,17 @@ export default class ErrorContext {
 		};
 
 		// next line
-		const nextLine: Line | undefined = this.line < lines.length - 1 ?
-			{
-				number: this.line + 1,
-				content: lines[this.line],
-			} :
-			undefined;
+		const nextLine: Line | undefined =
+			this.line < lines.length - 1
+				? {
+						number: this.line + 1,
+						content: lines[this.line],
+				  }
+				: undefined;
 
-		const prefix = `${' '.repeat((nextLine?.number ?? currentLine.number).toString().length)} |`;
+		const prefix = `${' '.repeat(
+			(nextLine?.number ?? currentLine.number).toString().length,
+		)} |`;
 
 		const lineToString = (line: Line): string => `${line.number} | ${line.content}`;
 
@@ -57,7 +61,7 @@ export default class ErrorContext {
 			prefix,
 
 			// previous line, if any
-			...prevLine ? [lineToString(prevLine)] : [],
+			...(prevLine ? [lineToString(prevLine)] : []),
 
 			// current line
 			lineToString(currentLine),
@@ -66,10 +70,10 @@ export default class ErrorContext {
 			`${prefix} ${' '.repeat(this.col - 1)}${'^'.repeat(this.length)} ${errorMessage}`,
 
 			// next line, if any
-			...nextLine ? [lineToString(nextLine)] : [],
+			...(nextLine ? [lineToString(nextLine)] : []),
 
 			// blank line to end
 			prefix,
-		]
+		];
 	}
 }

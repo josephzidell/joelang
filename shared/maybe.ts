@@ -41,11 +41,11 @@ export abstract class Maybe<T> {
 	}
 
 	static allHave<T>(maybes: Maybe<T>[]): maybes is MaybeHas<T>[] {
-		return maybes.every(maybe => maybe.has());
+		return maybes.every((maybe) => maybe.has());
 	}
 
 	static anyHasNot<T>(maybes: Maybe<T>[]): maybes is MaybeHasNot[] {
-		return maybes.some(maybe => !maybe.has());
+		return maybes.some((maybe) => !maybe.has());
 	}
 
 	/**
@@ -58,7 +58,7 @@ export abstract class Maybe<T> {
 	 */
 	static flatten<T>(maybes: Maybe<T>[]): Maybe<T[]> {
 		if (Maybe.allHave(maybes)) {
-			return has(maybes.map(maybe => maybe.value));
+			return has(maybes.map((maybe) => maybe.value));
 		}
 
 		return hasNot();
@@ -88,6 +88,6 @@ export function has<T>(value: T): MaybeHas<T> {
 	return new MaybeHas(value);
 }
 
-export function hasNot<T>(): MaybeHasNot {
+export function hasNot(): MaybeHasNot {
 	return new MaybeHasNot();
 }

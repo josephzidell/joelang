@@ -1,16 +1,18 @@
-import { Maybe } from "./maybe";
+import { Maybe } from './maybe';
 
 /**
  * This is an adaptation of the Result enum in Joelang
  */
-export type Result<T, E extends Error = Error, ED = unknown> = {
-	outcome: 'ok',
-	value: T
-} | {
-	outcome: 'error',
-	error: E,
-	data?: ED,
-};
+export type Result<T, E extends Error = Error, ED = unknown> =
+	| {
+			outcome: 'ok';
+			value: T;
+	  }
+	| {
+			outcome: 'error';
+			error: E;
+			data?: ED;
+	  };
 
 /** Shortcut to create an ok Result */
 export function ok<T>(value: T): Result<T> {
@@ -18,7 +20,10 @@ export function ok<T>(value: T): Result<T> {
 }
 
 /** Shortcut to create an error Result */
-export function error<T, E extends Error = Error, ED = unknown>(error: E, data?: ED): Result<T, E, ED> {
+export function error<T, E extends Error = Error, ED = unknown>(
+	error: E,
+	data?: ED,
+): Result<T, E, ED> {
 	return { outcome: 'error', error, data };
 }
 

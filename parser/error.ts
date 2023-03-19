@@ -21,7 +21,7 @@ export default class ParserError extends TypeError {
 	private tree;
 	private context;
 
-	constructor (errorCode: ParserErrorCode, message: string, tree: Node, context: ErrorContext) {
+	constructor(errorCode: ParserErrorCode, message: string, tree: Node, context: ErrorContext) {
 		super(message);
 
 		this.errorCode = errorCode;
@@ -29,15 +29,15 @@ export default class ParserError extends TypeError {
 		this.context = context;
 	}
 
-	getErrorCode (): ParserErrorCode {
+	getErrorCode(): ParserErrorCode {
 		return this.errorCode;
 	}
 
-	getTree (): Node {
+	getTree(): Node {
 		return this.tree;
 	}
 
-	getContext (): ErrorContext {
+	getContext(): ErrorContext {
 		return this.context;
 	}
 }

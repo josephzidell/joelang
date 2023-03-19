@@ -1,56 +1,50 @@
 // token types
 export const tokenTypesUsingSymbols = {
-	'and': '&&',
-	'assign': '=',
-	'asterisk_equals': '*=',
-	'asterisk': '*',
-	'bang': '!',
-	'brace_close': '}',
-	'brace_open': '{',
-	'bracket_close': ']',
-	'bracket_open': '[',
-	'caret': '^',
-	'colon': ':',
-	'comma': ',',
-	'compare': '<=>',
-	'dot': '.',
-	'dotdot': '..',
-	'dotdotdot': '...',
-	'equals': '==',
-	'exponent': '^e',
-	'forward_slash_equals': '/=',
-	'forward_slash': '/',
-	'greater_than_equals': '>=',
-	'greater_than': '>',
-	'less_than_equals': '<=',
-	'less_than': '<',
-	'minus_equals': '-=',
-	'minus_minus': '--',
-	'minus': '-',
-	'mod_equals': '%=',
-	'mod': '%',
-	'not_equals': '!=',
-	'or': '||',
-	'paren_close': ')',
-	'paren_open': '(',
-	'plus': '+',
-	'plus_equals': '+=',
-	'plus_plus': '++',
-	'question': '?',
-	'right_arrow': '->',
-	'semicolon': ';',
-	'triangle_open': '<|',
-	'triangle_close': '|>',
+	and: '&&',
+	assign: '=',
+	asterisk_equals: '*=',
+	asterisk: '*',
+	bang: '!',
+	brace_close: '}',
+	brace_open: '{',
+	bracket_close: ']',
+	bracket_open: '[',
+	caret: '^',
+	colon: ':',
+	comma: ',',
+	compare: '<=>',
+	dot: '.',
+	dotdot: '..',
+	dotdotdot: '...',
+	equals: '==',
+	exponent: '^e',
+	forward_slash_equals: '/=',
+	forward_slash: '/',
+	greater_than_equals: '>=',
+	greater_than: '>',
+	less_than_equals: '<=',
+	less_than: '<',
+	minus_equals: '-=',
+	minus_minus: '--',
+	minus: '-',
+	mod_equals: '%=',
+	mod: '%',
+	not_equals: '!=',
+	or: '||',
+	paren_close: ')',
+	paren_open: '(',
+	plus: '+',
+	plus_equals: '+=',
+	plus_plus: '++',
+	question: '?',
+	right_arrow: '->',
+	semicolon: ';',
+	triangle_open: '<|',
+	triangle_close: '|>',
 };
 
-export const primitiveTypes = [
-	'bool',
-	'number',
-	'path',
-	'regex',
-	'string',
-] as const;
-export type PrimitiveType = typeof primitiveTypes[number];
+export const primitiveTypes = ['bool', 'number', 'path', 'regex', 'string'] as const;
+export type PrimitiveType = (typeof primitiveTypes)[number];
 
 const otherTokenTypes = [
 	'bool',
@@ -65,7 +59,7 @@ const otherTokenTypes = [
 	'this',
 	'type',
 ] as const;
-export type TokenType = keyof typeof tokenTypesUsingSymbols | typeof otherTokenTypes[number];
+export type TokenType = keyof typeof tokenTypesUsingSymbols | (typeof otherTokenTypes)[number];
 
 // info about a token
 export type Token = {
@@ -117,21 +111,13 @@ export const keywords = [
 	'when',
 	'while',
 ] as const;
-type Keyword = typeof keywords[number];
 
 // types
-export const types = [
-	'bool',
-	'number',
-	'path',
-	'range',
-	'regex',
-	'string',
-] as const;
+export const types = ['bool', 'number', 'path', 'range', 'regex', 'string'] as const;
 
 // special Values
 const specialValues = ['true', 'false'] as const;
-type SpecialValue = typeof specialValues[number];
+type SpecialValue = (typeof specialValues)[number];
 export const specialValueTypes: Record<SpecialValue, TokenType> = {
 	true: 'bool',
 	false: 'bool',
@@ -169,6 +155,7 @@ export const patterns = {
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	PATH: /[a-zA-Z0-9-_./]/, // characters in path, excluding the front: @ or .
+	// eslint-disable-next-line no-control-regex
 	UNICODE: /[^\x00-\x7F]/, // characters above ASCII and in the Unicode standard, see https://stackoverflow.com/a/72733569
 	WHITESPACE: /\s/,
 };

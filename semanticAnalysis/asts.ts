@@ -2,9 +2,8 @@
  * This fils contains all the AST classes.
  */
 
-import { PrimitiveType } from "../lexer/types";
+import { PrimitiveType } from '../lexer/types';
 import util from 'util';
-
 
 export interface ASTThatHasJoeDoc {
 	joeDoc: ASTJoeDoc | undefined;
@@ -31,6 +30,7 @@ export abstract class AST {
 	 * for JSON serialization since the class name isn't there.
 	 */
 	[util.inspect.custom](depth: number, options: util.InspectOptions): string {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { kind, ...rest } = this;
 
 		// we need to explcitely dsplay the class name since it
@@ -58,7 +58,10 @@ export class ASTArrayExpression<T extends AssignableASTs> extends AST {
 	items: Array<T | ASTPostfixIfStatement> = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
-	static _<T extends AssignableASTs>({ type, items }: {
+	static _<T extends AssignableASTs>({
+		type,
+		items,
+	}: {
 		type?: ASTType;
 		items: Array<T | ASTPostfixIfStatement>;
 	}): ASTArrayExpression<T> {
@@ -87,7 +90,10 @@ export class ASTAssignmentExpression extends AST {
 	right!: AssignableASTs;
 
 	// factory function
-	static _({ left, right }: {
+	static _({
+		left,
+		right,
+	}: {
 		left: ASTIdentifier | ASTMemberExpression;
 		right: AssignableASTs;
 	}): ASTAssignmentExpression {
@@ -105,7 +111,15 @@ export class ASTBinaryExpression<L extends ExpressionASTs, R extends ExpressionA
 	right!: R;
 
 	// factory function
-	static _<L extends ExpressionASTs, R extends ExpressionASTs>({ operator, left, right }: { operator: string; left: L; right: R; }): ASTBinaryExpression<L, R> {
+	static _<L extends ExpressionASTs, R extends ExpressionASTs>({
+		operator,
+		left,
+		right,
+	}: {
+		operator: string;
+		left: L;
+		right: R;
+	}): ASTBinaryExpression<L, R> {
 		const ast = new ASTBinaryExpression<L, R>();
 		ast.operator = operator;
 		ast.left = left;
@@ -145,7 +159,11 @@ export class ASTCallExpression extends AST {
 	args!: ExpressionASTs[];
 
 	// factory function
-	static _({ callee, typeArgs, args }: {
+	static _({
+		callee,
+		typeArgs,
+		args,
+	}: {
 		callee: CallableASTs;
 		typeArgs?: ASTType[];
 		args: ExpressionASTs[];
@@ -162,7 +180,10 @@ export class ASTCallExpression extends AST {
 	}
 }
 
-export class ASTClassDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+export class ASTClassDeclaration
+	extends AST
+	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams
+{
 	kind = 'ClassDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -173,7 +194,15 @@ export class ASTClassDeclaration extends AST implements ASTThatHasJoeDoc, ASTTha
 	body!: ASTBlockStatement;
 
 	// factory function
-	static _({ joeDoc, modifiers, name, typeParams, extends: _extends, implements: _implements, body }: {
+	static _({
+		joeDoc,
+		modifiers,
+		name,
+		typeParams,
+		extends: _extends,
+		implements: _implements,
+		body,
+	}: {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
@@ -184,7 +213,8 @@ export class ASTClassDeclaration extends AST implements ASTThatHasJoeDoc, ASTTha
 	}): ASTClassDeclaration {
 		const ast = new ASTClassDeclaration();
 
-		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+		// only set if it's defined
+		if (typeof joeDoc !== 'undefined') {
 			ast.joeDoc = joeDoc;
 		}
 
@@ -205,7 +235,11 @@ export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
 	body!: ASTBlockStatement;
 
 	// factory function
-	static _({ initializer, iterable, body }: {
+	static _({
+		initializer,
+		iterable,
+		body,
+	}: {
 		initializer: ASTIdentifier | ASTVariableDeclaration;
 		iterable: IterableASTs;
 		body: ASTBlockStatement;
@@ -218,7 +252,10 @@ export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
 	}
 }
 
-export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasTypeParams {
+export class ASTFunctionDeclaration
+	extends AST
+	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasTypeParams
+{
 	kind = 'FunctionDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -229,7 +266,15 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	body: ASTBlockStatement | undefined = undefined;
 
 	// factory function
-	static _({ joeDoc, modifiers, name, typeParams, params, returnTypes, body }: {
+	static _({
+		joeDoc,
+		modifiers,
+		name,
+		typeParams,
+		params,
+		returnTypes,
+		body,
+	}: {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier | undefined;
@@ -240,7 +285,8 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	}): ASTFunctionDeclaration {
 		const ast = new ASTFunctionDeclaration();
 
-		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+		// only set if it's defined
+		if (typeof joeDoc !== 'undefined') {
 			ast.joeDoc = joeDoc;
 		}
 
@@ -261,7 +307,11 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 	returnTypes: ASTType[] = [];
 
 	// factory function
-	static _({ typeParams, params, returnTypes }: {
+	static _({
+		typeParams,
+		params,
+		returnTypes,
+	}: {
 		typeParams: ASTType[];
 		params: ASTParameter[];
 		returnTypes: ASTType[];
@@ -293,7 +343,11 @@ export class ASTIfStatement extends AST {
 	alternate?: ASTBlockStatement | ASTIfStatement = undefined;
 
 	// factory function
-	static _({ test, consequent, alternate }: {
+	static _({
+		test,
+		consequent,
+		alternate,
+	}: {
 		test: ExpressionASTs;
 		consequent: ASTBlockStatement;
 		alternate?: ASTBlockStatement | ASTIfStatement;
@@ -302,7 +356,8 @@ export class ASTIfStatement extends AST {
 		ast.test = test;
 		ast.consequent = consequent;
 
-		if (alternate) { // only set if it's not undefined
+		// only set if it's not undefined
+		if (alternate) {
 			ast.alternate = alternate;
 		}
 
@@ -310,7 +365,10 @@ export class ASTIfStatement extends AST {
 	}
 }
 
-export class ASTInterfaceDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams {
+export class ASTInterfaceDeclaration
+	extends AST
+	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams
+{
 	kind = 'InterfaceDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -320,7 +378,14 @@ export class ASTInterfaceDeclaration extends AST implements ASTThatHasJoeDoc, AS
 	body!: ASTBlockStatement;
 
 	// factory function
-	static _({ joeDoc, modifiers, name, typeParams, extends: _extends, body }: {
+	static _({
+		joeDoc,
+		modifiers,
+		name,
+		typeParams,
+		extends: _extends,
+		body,
+	}: {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
@@ -330,7 +395,8 @@ export class ASTInterfaceDeclaration extends AST implements ASTThatHasJoeDoc, AS
 	}): ASTInterfaceDeclaration {
 		const ast = new ASTInterfaceDeclaration();
 
-		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+		// only set if it's defined
+		if (typeof joeDoc !== 'undefined') {
 			ast.joeDoc = joeDoc;
 		}
 
@@ -361,7 +427,10 @@ export class ASTMemberExpression extends AST {
 	property!: MemberExpressionPropertyASTs;
 
 	// factory function
-	static _({ object, property }: {
+	static _({
+		object,
+		property,
+	}: {
 		object: MemberExpressionObjectASTs;
 		property: MemberExpressionPropertyASTs;
 	}): ASTMemberExpression {
@@ -378,7 +447,10 @@ export class ASTMemberListExpression extends AST {
 	properties: MemberExpressionPropertyASTs[] = [];
 
 	// factory function
-	static _({ object, properties }: {
+	static _({
+		object,
+		properties,
+	}: {
 		object: MemberExpressionObjectASTs;
 		properties: MemberExpressionPropertyASTs[];
 	}): ASTMemberListExpression {
@@ -407,7 +479,13 @@ export class ASTNumberLiteral extends AST {
 	value!: number | ASTUnaryExpression<number>;
 
 	// factory function
-	static _({ format, value }: { format: 'int' | 'decimal'; value: number | ASTUnaryExpression<number>; }): ASTNumberLiteral {
+	static _({
+		format,
+		value,
+	}: {
+		format: 'int' | 'decimal';
+		value: number | ASTUnaryExpression<number>;
+	}): ASTNumberLiteral {
 		const ast = new ASTNumberLiteral();
 		ast.format = format;
 		ast.value = value;
@@ -482,7 +560,14 @@ export class ASTParameter extends AST {
 	defaultValue?: AssignableASTs;
 
 	// factory function
-	static _({ modifiers, isRest, name, declaredType, inferredType, defaultValue }: {
+	static _({
+		modifiers,
+		isRest,
+		name,
+		declaredType,
+		inferredType,
+		defaultValue,
+	}: {
 		modifiers: ASTModifier[];
 		isRest: boolean;
 		name: ASTIdentifier;
@@ -495,15 +580,18 @@ export class ASTParameter extends AST {
 		ast.isRest = isRest;
 		ast.name = name;
 
-		if (typeof declaredType !== 'undefined') { // only set if it's not undefined
+		// only set if it's not undefined
+		if (typeof declaredType !== 'undefined') {
 			ast.declaredType = declaredType;
 		}
 
-		if (typeof inferredType !== 'undefined') { // only set if it's not undefined
+		// only set if it's not undefined
+		if (typeof inferredType !== 'undefined') {
 			ast.inferredType = inferredType;
 		}
 
-		if (typeof defaultValue !== 'undefined') { // only set if it's not undefined
+		// only set if it's not undefined
+		if (typeof defaultValue !== 'undefined') {
 			ast.defaultValue = defaultValue;
 		}
 
@@ -518,7 +606,15 @@ export class ASTPath extends AST {
 	isDir!: boolean;
 
 	// factory function
-	static _({ absolute, path, isDir }: { absolute: boolean; path: string; isDir: boolean; }): ASTPath {
+	static _({
+		absolute,
+		path,
+		isDir,
+	}: {
+		absolute: boolean;
+		path: string;
+		isDir: boolean;
+	}): ASTPath {
 		const ast = new ASTPath();
 		ast.absolute = absolute;
 		ast.path = path;
@@ -533,7 +629,10 @@ export class ASTPostfixIfStatement extends AST {
 	test!: ExpressionASTs;
 
 	// factory function
-	static _({ expression, test }: {
+	static _({
+		expression,
+		test,
+	}: {
 		expression: ExpressionASTs;
 		test: ExpressionASTs;
 	}): ASTPostfixIfStatement {
@@ -562,9 +661,7 @@ export class ASTProgram extends AST {
 	declarations: AST[] = [];
 
 	// factory function
-	static _({ declarations }: {
-		declarations: AST[];
-	}): ASTProgram {
+	static _({ declarations }: { declarations: AST[] }): ASTProgram {
 		const ast = new ASTProgram();
 
 		ast.declarations = declarations;
@@ -579,7 +676,10 @@ export class ASTRangeExpression extends AST {
 	upper!: RangeBoundASTs;
 
 	// factory function
-	static _({ lower, upper }: {
+	static _({
+		lower,
+		upper,
+	}: {
 		lower: RangeBoundASTs;
 		upper: RangeBoundASTs;
 	}): ASTRangeExpression {
@@ -596,7 +696,7 @@ export class ASTRegularExpression extends AST {
 	flags!: string[];
 
 	// factory function
-	static _({ pattern, flags }: { pattern: string; flags: string[]; }): ASTRegularExpression {
+	static _({ pattern, flags }: { pattern: string; flags: string[] }): ASTRegularExpression {
 		const ast = new ASTRegularExpression();
 		ast.pattern = pattern;
 		ast.flags = flags;
@@ -679,7 +779,11 @@ export class ASTTernaryExpression<C extends AssignableASTs, A extends Assignable
 	alternate!: ASTTernaryAlternate<A>;
 
 	// factory function
-	static _<C extends AssignableASTs, A extends AssignableASTs>({ test, consequent, alternate }: {
+	static _<C extends AssignableASTs, A extends AssignableASTs>({
+		test,
+		consequent,
+		alternate,
+	}: {
 		test: ASTTernaryCondition;
 		consequent: ASTTernaryConsequent<C>;
 		alternate: ASTTernaryAlternate<A>;
@@ -731,7 +835,10 @@ export class ASTTypeInstantiationExpression extends AST {
 	typeArgs: ASTType[] = [];
 
 	// factory function
-	static _({ base, typeArgs }: {
+	static _({
+		base,
+		typeArgs,
+	}: {
 		base: ASTIdentifier | ASTMemberExpression;
 		typeArgs: ASTType[];
 	}): ASTTypeInstantiationExpression {
@@ -772,7 +879,12 @@ export class ASTTypeRange extends AST {
 	}
 }
 
-export type ASTTypeExceptPrimitive = ASTFunctionSignature | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression | ASTTypeRange;
+export type ASTTypeExceptPrimitive =
+	| ASTFunctionSignature
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTTypeInstantiationExpression
+	| ASTTypeRange;
 export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
 /** End ASTType */
 
@@ -783,7 +895,15 @@ export class ASTUnaryExpression<T> extends AST {
 	operand!: T;
 
 	// factory function
-	static _<T>({ before, operator, operand }: { before: boolean; operator: string; operand: T; }): ASTUnaryExpression<T> {
+	static _<T>({
+		before,
+		operator,
+		operand,
+	}: {
+		before: boolean;
+		operator: string;
+		operand: T;
+	}): ASTUnaryExpression<T> {
 		const ast = new ASTUnaryExpression<T>();
 		ast.before = before;
 		ast.operator = operator;
@@ -808,7 +928,15 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	inferredType?: ASTType;
 
 	// factory function
-	static _({ joeDoc, modifiers, mutable, identifier, declaredType, initialValue, inferredType }: {
+	static _({
+		joeDoc,
+		modifiers,
+		mutable,
+		identifier,
+		declaredType,
+		initialValue,
+		inferredType,
+	}: {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		mutable: boolean;
@@ -819,7 +947,8 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	}): ASTVariableDeclaration {
 		const ast = new ASTVariableDeclaration();
 
-		if (typeof joeDoc !== 'undefined') { // only set if it's defined
+		// only set if it's defined
+		if (typeof joeDoc !== 'undefined') {
 			ast.joeDoc = joeDoc;
 		}
 
@@ -827,15 +956,18 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 		ast.mutable = mutable;
 		ast.identifier = identifier;
 
-		if (typeof declaredType !== 'undefined') { // only set if it's not undefined
+		// only set if it's not undefined
+		if (typeof declaredType !== 'undefined') {
 			ast.declaredType = declaredType;
 		}
 
-		if (typeof initialValue !== 'undefined') { // only set if it's not undefined
+		// only set if it's not undefined
+		if (typeof initialValue !== 'undefined') {
 			ast.initialValue = initialValue;
 		}
 
-		if (typeof inferredType !== 'undefined') { // only set if it's not undefined
+		// only set if it's not undefined
+		if (typeof inferredType !== 'undefined') {
 			ast.inferredType = inferredType;
 		}
 
@@ -845,12 +977,23 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 export class ASTWhenCase extends AST {
 	kind = 'WhenCase';
-	values: Array<ASTBoolLiteral | ASTNumberLiteral | ASTRangeExpression | ASTRestElement | ASTStringLiteral> = [];
+	values: Array<
+		ASTBoolLiteral | ASTNumberLiteral | ASTRangeExpression | ASTRestElement | ASTStringLiteral
+	> = [];
 	consequent!: ASTBlockStatement | AssignableASTs;
 
 	// factory function
-	static _({ values, consequent }: {
-		values: Array<ASTBoolLiteral | ASTNumberLiteral | ASTRangeExpression | ASTRestElement | ASTStringLiteral>;
+	static _({
+		values,
+		consequent,
+	}: {
+		values: Array<
+			| ASTBoolLiteral
+			| ASTNumberLiteral
+			| ASTRangeExpression
+			| ASTRestElement
+			| ASTStringLiteral
+		>;
 		consequent: ASTBlockStatement | AssignableASTs;
 	}): ASTWhenCase {
 		const ast = new ASTWhenCase();
@@ -866,7 +1009,13 @@ export class ASTWhenExpression extends AST {
 	cases: ASTWhenCase[] = [];
 
 	// factory function
-	static _({ expression, cases }: { expression: ExpressionASTs; cases: ASTWhenCase[]; }): ASTWhenExpression {
+	static _({
+		expression,
+		cases,
+	}: {
+		expression: ExpressionASTs;
+		cases: ASTWhenCase[];
+	}): ASTWhenExpression {
 		const ast = new ASTWhenExpression();
 		ast.expression = expression;
 		ast.cases = cases;
@@ -882,69 +1031,78 @@ export class SkipAST extends AST {
 /** ASTs that can be assigned to a variable go in an array/object/tuple, passed as an argument, or returned */
 export type AssignableASTs = ExpressionASTs | ASTFunctionDeclaration;
 
-export type CallableASTs = ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
+export type CallableASTs =
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTTypeInstantiationExpression;
 
 /** ASTs that can be used in UnaryExpressions and BinaryExpressions */
 export type ExpressionASTs =
-	ASTArrayExpression<AssignableASTs> |
-	ASTBinaryExpression<ExpressionASTs, ExpressionASTs> |
-	ASTBoolLiteral |
-	ASTCallExpression |
-	ASTIdentifier |
-	ASTMemberExpression |
-	ASTMemberListExpression |
-	ASTNumberLiteral |
-	ASTObjectExpression |
-	ASTPath |
-	ASTRangeExpression |
-	ASTRegularExpression |
-	ASTStringLiteral |
-	ASTTernaryExpression<AssignableASTs, AssignableASTs> |
-	ASTThisKeyword |
-	ASTTupleExpression |
-	ASTUnaryExpression<ExpressionASTs> |
-	ASTWhenExpression;
+	| ASTArrayExpression<AssignableASTs>
+	| ASTBinaryExpression<ExpressionASTs, ExpressionASTs>
+	| ASTBoolLiteral
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTMemberListExpression
+	| ASTNumberLiteral
+	| ASTObjectExpression
+	| ASTPath
+	| ASTRangeExpression
+	| ASTRegularExpression
+	| ASTStringLiteral
+	| ASTTernaryExpression<AssignableASTs, AssignableASTs>
+	| ASTThisKeyword
+	| ASTTupleExpression
+	| ASTUnaryExpression<ExpressionASTs>
+	| ASTWhenExpression;
 
 export type IterableASTs =
 	// main types
-	ASTArrayExpression<AssignableASTs> |
-	ASTMemberListExpression | // on an array
-	ASTRangeExpression |
+	| ASTArrayExpression<AssignableASTs>
+	| ASTMemberListExpression // on an array
+	| ASTRangeExpression
 
 	// can hold/return the above types
-	ASTCallExpression |
-	ASTIdentifier |
-	ASTMemberExpression;
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression;
 
 export type MemberExpressionObjectASTs =
-	ASTCallExpression |
-	ASTIdentifier |
-	ASTMemberExpression |
-	ASTThisKeyword |
-	ASTTypeInstantiationExpression;
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTThisKeyword
+	| ASTTypeInstantiationExpression;
 
 export type MemberExpressionPropertyASTs =
-	ASTBinaryExpression<ExpressionASTs, ExpressionASTs> |
-	ASTCallExpression |
-	ASTIdentifier |
-	ASTMemberExpression |
-	ASTNumberLiteral |
-	ASTRangeExpression |
-	ASTStringLiteral |
-	ASTTernaryExpression<AssignableASTs, AssignableASTs> |
-	ASTTypeInstantiationExpression |
-	ASTUnaryExpression<ExpressionASTs>;
+	| ASTBinaryExpression<ExpressionASTs, ExpressionASTs>
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTNumberLiteral
+	| ASTRangeExpression
+	| ASTStringLiteral
+	| ASTTernaryExpression<AssignableASTs, AssignableASTs>
+	| ASTTypeInstantiationExpression
+	| ASTUnaryExpression<ExpressionASTs>;
 
-export type RangeBoundASTs = ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTNumberLiteral | ASTUnaryExpression<ASTNumberLiteral>;
+export type RangeBoundASTs =
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTNumberLiteral
+	| ASTUnaryExpression<ASTNumberLiteral>;
 
 export type WhenCaseValueASTs =
-	ASTBoolLiteral |
-	ASTCallExpression |
-	ASTIdentifier |
-	ASTMemberExpression |
-	ASTNumberLiteral |
-	ASTPath |
-	ASTRangeExpression |
-	ASTRegularExpression |
-	ASTRestElement |
-	ASTStringLiteral;
+	| ASTBoolLiteral
+	| ASTCallExpression
+	| ASTIdentifier
+	| ASTMemberExpression
+	| ASTNumberLiteral
+	| ASTPath
+	| ASTRangeExpression
+	| ASTRegularExpression
+	| ASTRestElement
+	| ASTStringLiteral;

@@ -78,7 +78,7 @@ export enum NT {
 	WhenCaseValues = 'WhenCaseValues',
 	WhenCaseConsequent = 'WhenCaseConsequent',
 	WhileStatement = 'WhileStatement',
-};
+}
 
 export const LiteralTypes: NT[] = [
 	NT.ArrayExpression,
@@ -126,7 +126,12 @@ export const AssignableTypes: NT[] = [
 	NT.TypeInstantiationExpression,
 ];
 
-export const CallableTypes: NT[] = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.TypeInstantiationExpression];
+export const CallableTypes: NT[] = [
+	NT.CallExpression,
+	NT.Identifier,
+	NT.MemberExpression,
+	NT.TypeInstantiationExpression,
+];
 
 /** These apply equally to MemberExpressions as well as MemberListExpressions */
 export const validNodeTypesAsMemberObject = [
@@ -194,7 +199,7 @@ export type Pos = {
 
 	/** col position this node begins at, counting from 1, within the line of the first char (similar to `start`, but within the line - if the entire file were one line, then `col` would be `start + 1`) */
 	col: number;
-}
+};
 
 export type Node = {
 	type: NT;
@@ -202,9 +207,9 @@ export type Node = {
 	pos: Pos;
 	parent?: Node;
 	children: Node[];
-}
+};
 
 /** UnaryExpression nodes have more info than a regular node, owing to the need to know whether the operator is before or after the object */
 export type UnaryExpressionNode = Node & {
 	before: boolean;
-}
+};

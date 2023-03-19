@@ -9,18 +9,18 @@ export default class LexerError extends TypeError {
 	private tokens;
 	private context;
 
-	constructor (message: string, tokens: Token[], context: ErrorContext) {
+	constructor(message: string, tokens: Token[], context: ErrorContext) {
 		super(message);
 
 		this.tokens = tokens;
 		this.context = context;
 	}
 
-	getTokens (): Token[] {
+	getTokens(): Token[] {
 		return this.tokens;
 	}
 
-	getContext (): ErrorContext {
+	getContext(): ErrorContext {
 		return this.context;
 	}
 }

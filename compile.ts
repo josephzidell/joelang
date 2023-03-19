@@ -6,14 +6,14 @@ import Lexer from './lexer/lexer';
 import ParserError from './parser/error';
 import Parser from './parser/parser';
 import { simplifyTree } from './parser/simplifier';
-import { Node } from "./parser/types";
+import { Node } from './parser/types';
 import AnalysisError from './semanticAnalysis/error';
 import SemanticAnalyzer from './semanticAnalysis/semanticAnalyzer';
 
 const args = process.argv.slice(2);
 // let input: string;
 let pathSansExt = '';
-let outfiles = {
+const outfiles = {
 	tokens: (pathSansExt: string) => `${pathSansExt}.tokens`,
 	parseTree: (pathSansExt: string) => `${pathSansExt}.parse-tree`,
 	ast: (pathSansExt: string) => `${pathSansExt}.ast.json`,
@@ -34,7 +34,9 @@ void (async (): Promise<void> => {
 	// if we're analyzing an inline string, we allow all ASTs in an ASTProgram
 	const isThisAnInlineAnalysis = args.includes('-i');
 
-	const options = isThisAnInlineAnalysis ? getOptionsForInlineAnalysis(args) : await getOptionsForFileAnalysis(args);
+	const options = isThisAnInlineAnalysis
+		? getOptionsForInlineAnalysis(args)
+		: await getOptionsForFileAnalysis(args);
 
 	// if the user only wants to lexify, we don't need to do anything else
 	// this only applies for inline analyses
@@ -44,70 +46,89 @@ void (async (): Promise<void> => {
 		process.exit(exitCode);
 	}
 
-
 	// run the parser
 	const parser = new Parser(options.input, options.debug);
 	const parserResult = parser.parse();
 	switch (parserResult.outcome) {
 		case 'ok':
-			// first output tokens
-			if (!isThisAnInlineAnalysis) {
-				const output = JSON.stringify(parser.lexer.tokens, null, '\t');
-				const outfile = outfiles.tokens(pathSansExt);
+			{
+				// first output tokens
+				if (!isThisAnInlineAnalysis) {
+					const output = JSON.stringify(parser.lexer.tokens, null, '\t');
+					const outfile = outfiles.tokens(pathSansExt);
 
-				try {
-					await fsPromises.writeFile(outfile, output);
-				} catch (err) {
-					console.error(`%cError writing Tokens to ${outfile}: ${(err as Error).message}`, 'color: red');
-					process.exit(1);
+					try {
+						await fsPromises.writeFile(outfile, output);
+					} catch (err) {
+						console.error(
+							`%cError writing Tokens to ${outfile}: ${(err as Error).message}`,
+							'color: red',
+						);
+						process.exit(1);
+					}
 				}
-			}
 
-			// then output parse tree
-			const parseTree = simplifyTree([parserResult.value]);
-			const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
+				// then output parse tree
+				const parseTree = simplifyTree([parserResult.value]);
+				const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
-			if (!isThisAnInlineAnalysis) {
-				const outfile = outfiles.parseTree(pathSansExt);
+				if (!isThisAnInlineAnalysis) {
+					const outfile = outfiles.parseTree(pathSansExt);
 
-				try {
-					await fsPromises.writeFile(outfile, output);
-				} catch (err) {
-					console.error(`%cError writing Parse Tree to ${outfile}: ${(err as Error).message}`, 'color: red');
-					process.exit(1);
+					try {
+						await fsPromises.writeFile(outfile, output);
+					} catch (err) {
+						console.error(
+							`%cError writing Parse Tree to ${outfile}: ${(err as Error).message}`,
+							'color: red',
+						);
+						process.exit(1);
+					}
+				} else if (options.only === 'parse') {
+					// this option is only supported for inline analyses
+					console.info(output);
+
+					process.exit(0);
 				}
-			} else if (options.only === 'parse') { // this option is only supported for inline analyses
-				console.info(output);
 
-				process.exit(0);
+				// compile
+				// analyze
+				await runSemanticAnalyzer(parserResult.value, parser, isThisAnInlineAnalysis);
 			}
-
-			// compile
-			// analyze
-			await runSemanticAnalyzer(parserResult.value, parser, isThisAnInlineAnalysis);
 			break;
 		case 'error':
 			switch (parserResult.error.constructor) {
 				case LexerError:
-					const lexerError = parserResult.error as LexerError;
+					{
+						const lexerError = parserResult.error as LexerError;
 
-					console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
-					lexerError.getContext().toStringArray(lexerError.message).forEach(str => console.log(str));
-					console.groupEnd();
+						console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
+						lexerError
+							.getContext()
+							.toStringArray(lexerError.message)
+							.forEach((str) => console.log(str));
+						console.groupEnd();
+					}
 					break;
 				case ParserError:
-					const parserError = parserResult.error as ParserError;
+					{
+						const parserError = parserResult.error as ParserError;
 
-					console.groupCollapsed(`Error[${parserError.getErrorCode()}]: ${parserError.message}`);
-					parserError.getContext().toStringArray(parserError.message).forEach(str => console.log(str));
-					console.groupEnd();
+						console.groupCollapsed(
+							`Error[${parserError.getErrorCode()}]: ${parserError.message}`,
+						);
+						parserError
+							.getContext()
+							.toStringArray(parserError.message)
+							.forEach((str) => console.log(str));
+						console.groupEnd();
 
-					if ('getTree' in parserError) {
-						console.debug('Derived CST:');
-						console.debug(parserError.getTree());
+						if ('getTree' in parserError) {
+							console.debug('Derived CST:');
+							console.debug(parserError.getTree());
+						}
+						console.groupEnd();
 					}
-					console.groupEnd();
-
 					break;
 			}
 			break;
@@ -116,15 +137,6 @@ void (async (): Promise<void> => {
 
 /** Runs the Semantic Analyzer and returns the exit code */
 async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnalysis: boolean) {
-	function omitKind(key: string, value: any) {
-		// Exclude property "kind" from the output
-		if (key === "kind") {
-			return undefined;
-		}
-
-		return value;
-	}
-
 	const analyzer = new SemanticAnalyzer(cst, parser);
 	if (isThisAnInlineAnalysis) {
 		analyzer.thisIsAnInlineAnalysis();
@@ -139,19 +151,24 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 						const output = JSON.stringify(analysisResult.value, null, '\t');
 						console.info(output);
 					} else {
-						const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
+						const output = inspect(analysisResult.value, {
+							compact: 1,
+							showHidden: false,
+							depth: null,
+						});
 						console.info(output);
 					}
-
 				} else {
-					// const output = inspect(analysisResult.value, { compact: 1, showHidden: false, depth: null });
 					const output = JSON.stringify(analysisResult.value, null, '\t');
 					const outfile = outfiles.ast(pathSansExt);
 
 					try {
 						await fsPromises.writeFile(outfile, output);
 					} catch (err) {
-						console.error(`%cError writing AST to ${outfile}: ${(err as Error).message}`, 'color: red');
+						console.error(
+							`%cError writing AST to ${outfile}: ${(err as Error).message}`,
+							'color: red',
+						);
 						return 1;
 					}
 				}
@@ -162,7 +179,10 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 				const analysisError = analysisResult.error as AnalysisError;
 
 				console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
-				analysisError.getContext().toStringArray(analysisError.message).forEach(str => console.info(str));
+				analysisError
+					.getContext()
+					.toStringArray(analysisError.message)
+					.forEach((str) => console.info(str));
 				console.groupEnd();
 
 				console.groupCollapsed('Current Node');
@@ -201,19 +221,24 @@ function handleLexifyOnly(options: Options): number {
 			console.table(tokensResult.value);
 			break;
 		case 'error':
-			const lexerError = tokensResult.error as LexerError;
+			{
+				const lexerError = tokensResult.error as LexerError;
 
-			console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
-			lexerError.getContext().toStringArray(lexerError.message).forEach(str => console.log(str));
-			console.groupEnd();
+				console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
+				lexerError
+					.getContext()
+					.toStringArray(lexerError.message)
+					.forEach((str) => console.log(str));
+				console.groupEnd();
 
-			const tokens = lexerError.getTokens();
-			if (tokens.length > 0) {
-				console.info('Extracted tokens:');
-				console.table(tokens);
+				const tokens = lexerError.getTokens();
+				if (tokens.length > 0) {
+					console.info('Extracted tokens:');
+					console.table(tokens);
+				}
+
+				return 1;
 			}
-
-			return 1;
 			break;
 	}
 
@@ -248,10 +273,8 @@ function getOptionsForInlineAnalysis(args: string[]): Options {
 		debug: args.includes('-d'),
 
 		// these options are only supported for inline analyses
-		only: onlyLexify ? 'lexify' : (onlyParse ? 'parse' : undefined),
+		only: onlyLexify ? 'lexify' : onlyParse ? 'parse' : undefined,
 	};
-
-
 }
 
 async function getOptionsForFileAnalysis(args: string[]): Promise<Options> {
@@ -281,8 +304,7 @@ async function getOptionsForFileAnalysis(args: string[]): Promise<Options> {
 			input: buf.toString(),
 			debug: false, // for now
 			only: undefined,
-		}
-
+		};
 	} catch (err) {
 		console.error(`File ${filename} does not exist.`);
 		process.exit(1);

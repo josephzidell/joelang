@@ -1,6 +1,6 @@
-import { Result } from "../shared/result";
-import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from "./types";
-import { lexify } from "./util";
+import { Result } from '../shared/result';
+import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from './types';
+import { lexify } from './util';
 
 const unicodeIdentifiers = [
 	'ሀሎ', // amharic
@@ -25,9 +25,7 @@ const unicodeIdentifiers = [
 describe('lexer.ts', (): void => {
 	describe('keywords', (): void => {
 		it.each(keywords)('%s is recognized as a keyword - simplified', (keyword) => {
-			expect(lexify(keyword)).toMatchTokens([
-				['keyword', keyword],
-			]);
+			expect(lexify(keyword)).toMatchTokens([['keyword', keyword]]);
 		});
 	});
 
@@ -35,11 +33,11 @@ describe('lexer.ts', (): void => {
 		for (const type in tokenTypesUsingSymbols) {
 			if (Object.prototype.hasOwnProperty.call(tokenTypesUsingSymbols, type)) {
 				const symbol = tokenTypesUsingSymbols[type as keyof typeof tokenTypesUsingSymbols];
-				const testName = `${symbol} is recognized as ${['a', 'e', 'i', 'o', 'u'].includes(type.at(0) ?? '') ? 'an' : 'a'} ${type} symbol`;
+				const testName = `${symbol} is recognized as ${
+					['a', 'e', 'i', 'o', 'u'].includes(type.at(0) ?? '') ? 'an' : 'a'
+				} ${type} symbol`;
 				it(testName, () => {
-					expect(lexify(symbol)).toMatchTokens([
-						[type as TokenType, symbol],
-					]);
+					expect(lexify(symbol)).toMatchTokens([[type as TokenType, symbol]]);
 				});
 			}
 		}
@@ -67,15 +65,11 @@ describe('lexer.ts', (): void => {
 
 	describe('comments', (): void => {
 		it('single-line with hash', (): void => {
-			expect(lexify('# foo')).toMatchTokens([
-				['comment', '# foo'],
-			]);
+			expect(lexify('# foo')).toMatchTokens([['comment', '# foo']]);
 		});
 
 		it('single-line with slash', (): void => {
-			expect(lexify('// foo')).toMatchTokens([
-				['comment', '// foo'],
-			]);
+			expect(lexify('// foo')).toMatchTokens([['comment', '// foo']]);
 		});
 
 		it('multiline', (): void => {
@@ -191,29 +185,27 @@ describe('lexer.ts', (): void => {
 		});
 
 		describe('unicode', () => {
-			it.each(unicodeIdentifiers)('%s is recognized as an identifier in a function name', (identifier) => {
-				expect(lexify(`f ${identifier} {}`)).toMatchTokens([
-					['keyword', 'f'],
-					['identifier', identifier],
-					['brace_open', '{'],
-					['brace_close', '}'],
-				]);
-			});
+			it.each(unicodeIdentifiers)(
+				'%s is recognized as an identifier in a function name',
+				(identifier) => {
+					expect(lexify(`f ${identifier} {}`)).toMatchTokens([
+						['keyword', 'f'],
+						['identifier', identifier],
+						['brace_open', '{'],
+						['brace_close', '}'],
+					]);
+				},
+			);
 		});
-
 	});
 
 	describe('identifiers', (): void => {
 		it('should work with lower case letters, upper case letters, and numbers', (): void => {
-			expect(lexify('aR_g1')).toMatchTokens([
-				['identifier', 'aR_g1'],
-			]);
+			expect(lexify('aR_g1')).toMatchTokens([['identifier', 'aR_g1']]);
 		});
 
 		it.each(unicodeIdentifiers)('%s is recognized as a general identifier', (identifier) => {
-			expect(lexify(identifier)).toMatchTokens([
-				['identifier', identifier],
-			]);
+			expect(lexify(identifier)).toMatchTokens([['identifier', identifier]]);
 		});
 	});
 
@@ -229,28 +221,22 @@ describe('lexer.ts', (): void => {
 					{ type: 'number', start: 14, end: 16, value: '23', line: 3, col: 4 },
 					{ type: 'exponent', start: 16, end: 18, value: '^e', line: 3, col: 6 },
 					{ type: 'number', start: 18, end: 19, value: '5', line: 3, col: 8 },
-				]
-			} satisfies Result<Token[]>)
+				],
+			} satisfies Result<Token[]>);
 		});
 	});
 
 	describe('numbers', (): void => {
 		it('small number', (): void => {
-			expect(lexify('51')).toMatchTokens([
-				['number', '51'],
-			]);
+			expect(lexify('51')).toMatchTokens([['number', '51']]);
 		});
 
 		it('number with comma', (): void => {
-			expect(lexify('51,000')).toMatchTokens([
-				['number', '51,000'],
-			]);
+			expect(lexify('51,000')).toMatchTokens([['number', '51,000']]);
 		});
 
 		it('number with a decimal', (): void => {
-			expect(lexify('100001.0002')).toMatchTokens([
-				['number', '100001.0002'],
-			]);
+			expect(lexify('100001.0002')).toMatchTokens([['number', '100001.0002']]);
 		});
 
 		it('number with exponent', (): void => {
@@ -352,9 +338,7 @@ describe('lexer.ts', (): void => {
 		describe('binary expressions', (): void => {
 			describe('with bools', (): void => {
 				it('double pipe', (): void => {
-					expect(lexify('||')).toMatchTokens([
-						['or', '||'],
-					]);
+					expect(lexify('||')).toMatchTokens([['or', '||']]);
 
 					expect(lexify('a || true')).toMatchTokens([
 						['identifier', 'a'],
@@ -364,9 +348,7 @@ describe('lexer.ts', (): void => {
 				});
 
 				it('double ampersand', (): void => {
-					expect(lexify('&&')).toMatchTokens([
-						['and', '&&'],
-					]);
+					expect(lexify('&&')).toMatchTokens([['and', '&&']]);
 
 					expect(lexify('a && true')).toMatchTokens([
 						['identifier', 'a'],
@@ -519,40 +501,34 @@ describe('lexer.ts', (): void => {
 	describe('regex', (): void => {
 		describe('valid scenarios', (): void => {
 			it('without flags', (): void => {
-				expect(lexify('/[a-z]/')).toMatchTokens([
-					['regex', '/[a-z]/'],
-				])
+				expect(lexify('/[a-z]/')).toMatchTokens([['regex', '/[a-z]/']]);
 			});
 
 			it('with flags', (): void => {
-				expect(lexify('/[a-z]/ig')).toMatchTokens([
-					['regex', '/[a-z]/ig'],
-				])
+				expect(lexify('/[a-z]/ig')).toMatchTokens([['regex', '/[a-z]/ig']]);
 			});
 
 			it('identifier after', (): void => {
 				expect(lexify('/[a-z]/igq')).toMatchTokens([
 					['regex', '/[a-z]/ig'],
 					['identifier', 'q'],
-				])
+				]);
 			});
 
 			it('dot after', (): void => {
 				expect(lexify('/[a-z]/.')).toMatchTokens([
 					['regex', '/[a-z]/'],
 					['dot', '.'],
-				])
+				]);
 
 				expect(lexify('/[a-z]/i.')).toMatchTokens([
 					['regex', '/[a-z]/i'],
 					['dot', '.'],
-				])
+				]);
 			});
 
 			it('incomplete', (): void => {
-				expect(lexify('/[a-z]')).toMatchTokens([
-					['regex', '/[a-z]'],
-				])
+				expect(lexify('/[a-z]')).toMatchTokens([['regex', '/[a-z]']]);
 			});
 		});
 
@@ -563,7 +539,7 @@ describe('lexer.ts', (): void => {
 					['forward_slash', '/'],
 					['identifier', 'a'],
 					['forward_slash', '/'],
-				])
+				]);
 			});
 
 			it('space after opening slash', (): void => {
@@ -571,7 +547,7 @@ describe('lexer.ts', (): void => {
 					['forward_slash', '/'],
 					['identifier', 'a'],
 					['forward_slash', '/'],
-				])
+				]);
 			});
 		});
 	});
@@ -727,17 +703,16 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('keeps escaped quotes', (): void => {
-				expect(lexify("'a\\'b'")).toMatchTokens([
-					['string', "a\\'b"],
-				]);
+				expect(lexify("'a\\'b'")).toMatchTokens([['string', "a\\'b"]]);
 			});
 
 			describe('unicode', () => {
-				it.each(unicodeIdentifiers)('%s is recognized in a double-quoted string', (identifier) => {
-					expect(lexify(`"${identifier}"`)).toMatchTokens([
-						['string', identifier],
-					]);
-				});
+				it.each(unicodeIdentifiers)(
+					'%s is recognized in a double-quoted string',
+					(identifier) => {
+						expect(lexify(`"${identifier}"`)).toMatchTokens([['string', identifier]]);
+					},
+				);
 			});
 		});
 
@@ -770,20 +745,21 @@ describe('lexer.ts', (): void => {
 			});
 
 			describe('unicode', () => {
-				it.each(unicodeIdentifiers)('%s is recognized in a single-quoted string', (identifier) => {
-					expect(lexify("const foo = '" + identifier + "'")).toMatchTokens([
-						['keyword', 'const'],
-						['identifier', 'foo'],
-						['assign', '='],
-						['string', identifier],
-					]);
-				});
+				it.each(unicodeIdentifiers)(
+					'%s is recognized in a single-quoted string',
+					(identifier) => {
+						expect(lexify(`const foo = '${identifier}'`)).toMatchTokens([
+							['keyword', 'const'],
+							['identifier', 'foo'],
+							['assign', '='],
+							['string', identifier],
+						]);
+					},
+				);
 			});
 
 			it('keeps escaped quotes', (): void => {
-				expect(lexify('"a\\"b"')).toMatchTokens([
-					['string', 'a\\"b'],
-				]);
+				expect(lexify('"a\\"b"')).toMatchTokens([['string', 'a\\"b']]);
 			});
 		});
 	});
@@ -792,15 +768,15 @@ describe('lexer.ts', (): void => {
 		describe('each', (): void => {
 			for (const type of types) {
 				it(`${type} is recognized as a type`, () => {
-					expect(lexify(type)).toMatchTokens([
-						['type', type],
-					]);
+					expect(lexify(type)).toMatchTokens([['type', type]]);
 				});
 			}
 		});
 
 		it('works in a variable definition', (): void => {
-			expect(lexify('let initializeAndAssignLater: number;\ninitializeAndAssignLater = 5;	')).toMatchTokens([
+			expect(
+				lexify('let initializeAndAssignLater: number;\ninitializeAndAssignLater = 5;	'),
+			).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'initializeAndAssignLater'],
 				['colon', ':'],
@@ -828,18 +804,20 @@ describe('lexer.ts', (): void => {
 
 	describe('when', (): void => {
 		it('works with single values, multiple values, ranges, and ...', (): void => {
-			expect(lexify(`const size = when someNumber {
-				1, 2 -> 'small',
-				3 .. 10 -> 'medium',
-				11 -> {
-					doThing1();
-					doThing2();
+			expect(
+				lexify(`const size = when someNumber {
+					1, 2 -> 'small',
+					3 .. 10 -> 'medium',
+					11 -> {
+						doThing1();
+						doThing2();
 
-					return 'large';
-				},
-				12: doSomethingElse(),
-				... -> 'off the charts',
-		}`)).toMatchTokens([
+						return 'large';
+					},
+					12: doSomethingElse(),
+					... -> 'off the charts',
+				}`),
+			).toMatchTokens([
 				['keyword', 'const'],
 				['identifier', 'size'],
 				['assign', '='],
@@ -906,27 +884,19 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('". " should have dot token', (): void => {
-			expect(lexify('. ')).toMatchTokens([
-				['dot', '.'],
-			]);
+			expect(lexify('. ')).toMatchTokens([['dot', '.']]);
 		});
 
 		it('"." should end at 1', (): void => {
-			expect(lexify('.')).toMatchTokens([
-				['dot', '.'],
-			]);
+			expect(lexify('.')).toMatchTokens([['dot', '.']]);
 		});
 
 		it('".." should end at 2', (): void => {
-			expect(lexify('..')).toMatchTokens([
-				['dotdot', '..'],
-			]);
+			expect(lexify('..')).toMatchTokens([['dotdot', '..']]);
 		});
 
 		it('"..." should end at 3', (): void => {
-			expect(lexify('...')).toMatchTokens([
-				['dotdotdot', '...'],
-			]);
+			expect(lexify('...')).toMatchTokens([['dotdotdot', '...']]);
 		});
 
 		it('"from @/lexer;" should have the semicolon token', (): void => {

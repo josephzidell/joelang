@@ -1,6 +1,5 @@
-import { Get } from "type-fest";
-import { Token } from "../lexer/types";
-import { Node, NT, UnaryExpressionNode } from "./types";
+import { Token } from '../lexer/types';
+import { Node, NT, UnaryExpressionNode } from './types';
 
 /**
  * Makes a Node
@@ -11,7 +10,7 @@ import { Node, NT, UnaryExpressionNode } from "./types";
  * @param discardValue - Should the value be discarded? Sometimes the value is useless and adds noise
  * @returns A Node
  */
-export function MakeNode (type: NT, token: Token, parent: Node, discardValue = false): Node {
+export function MakeNode(type: NT, token: Token, parent: Node, discardValue = false): Node {
 	const node: Node = {
 		type,
 		value: discardValue ? undefined : token.value,
@@ -23,13 +22,13 @@ export function MakeNode (type: NT, token: Token, parent: Node, discardValue = f
 		},
 		parent,
 		children: [],
-	}
+	};
 
 	return node;
 }
 
 /** Changes the type of a Node */
-export function ChangeNodeType (node: Node, newType: NT): void {
+export function ChangeNodeType(node: Node, newType: NT): void {
 	node.type = newType;
 }
 
@@ -41,7 +40,11 @@ export function ChangeNodeType (node: Node, newType: NT): void {
  * @param parent - The parent Node
  * @returns A UnaryExpression Node
  */
-export function MakeUnaryExpressionNode (token: Token, before: boolean, parent: Node): UnaryExpressionNode {
+export function MakeUnaryExpressionNode(
+	token: Token,
+	before: boolean,
+	parent: Node,
+): UnaryExpressionNode {
 	const node: UnaryExpressionNode = {
 		type: NT.UnaryExpression,
 		value: token.value,
@@ -54,7 +57,7 @@ export function MakeUnaryExpressionNode (token: Token, before: boolean, parent: 
 		},
 		parent,
 		children: [],
-	}
+	};
 
 	return node;
 }

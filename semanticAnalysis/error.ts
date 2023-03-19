@@ -59,7 +59,12 @@ export default class AnalysisError extends TypeError {
 	private node;
 	private context;
 
-	constructor (errorCode: AnalysisErrorCode, message: string, node: Node | undefined, context: ErrorContext) {
+	constructor(
+		errorCode: AnalysisErrorCode,
+		message: string,
+		node: Node | undefined,
+		context: ErrorContext,
+	) {
 		super(message);
 
 		this.errorCode = errorCode;
@@ -67,15 +72,15 @@ export default class AnalysisError extends TypeError {
 		this.context = context;
 	}
 
-	getErrorCode (): AnalysisErrorCode {
+	getErrorCode(): AnalysisErrorCode {
 		return this.errorCode;
 	}
 
-	getNode (): Node | undefined {
+	getNode(): Node | undefined {
 		return this.node;
 	}
 
-	getContext (): ErrorContext {
+	getContext(): ErrorContext {
 		return this.context;
 	}
 }
