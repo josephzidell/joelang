@@ -39,7 +39,8 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.noop(node) as Result<T>,
 	[NT.Comment]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.noop(node) as Result<T>,
-	// [NT.DoneStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitDoneStatement(node) as Result<T>,
+	[NT.DoneStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitDoneStatement(node) as Result<T>,
 	[NT.ElseStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitElseStatement(node) as Result<T>,
 	[NT.ForStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -64,7 +65,8 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 	[NT.JoeDoc]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitJoeDoc(node) as Result<T>,
 	// [NT.Keyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitKeyword(node) as Result<T>,
-	// [NT.Loop]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitLoop(node) as Result<T>,
+	[NT.LoopStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitLoopStatement(node) as Result<T>,
 	[NT.MemberExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitMemberExpression(node) as Result<T>,
 	[NT.MemberList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -75,6 +77,8 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitModifier(node) as Result<T>,
 	[NT.ModifiersList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitModifiersList(node) as Result<T>,
+	[NT.NextStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitNextStatement(node) as Result<T>,
 	[NT.NumberLiteral]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitNumberLiteral(node) as Result<T>,
 	[NT.ObjectExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -103,7 +107,6 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitRangeExpression(node) as Result<T>,
 	[NT.RegularExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitRegularExpression(node) as Result<T>,
-	// [NT.RepeatStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitRepeatStatement(node) as Result<T>,
 	[NT.RestElement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitRestElement(node) as Result<T>,
 	[NT.ReturnStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -150,7 +153,6 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitWhenCaseValues(node) as Result<T>,
 	[NT.WhenExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitWhenExpression(node) as Result<T>,
-	// [NT.WhileStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitWhileStatement(node) as Result<T>,
 };
 
 export default visitorMap;

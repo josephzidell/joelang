@@ -10,6 +10,7 @@ import {
 	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTClassDeclaration,
+	ASTDoneStatement,
 	ASTForStatement,
 	ASTFunctionDeclaration,
 	ASTFunctionSignature,
@@ -17,9 +18,11 @@ import {
 	ASTIfStatement,
 	ASTInterfaceDeclaration,
 	ASTJoeDoc,
+	ASTLoopStatement,
 	ASTMemberExpression,
 	ASTMemberListExpression,
 	ASTModifier,
+	ASTNextStatement,
 	ASTNumberLiteral,
 	ASTObjectExpression,
 	ASTObjectShape,
@@ -4598,91 +4601,51 @@ describe('parser.ts', (): void => {
 		});
 	});
 
-	describe('Loop', (): void => {
+	describe('LoopStatement', (): void => {
 		it('simple loop', () => {
-			expect(parse('loop {}')).toMatchParseTree([[NT.Loop, [[NT.BlockStatement, []]]]]);
+			testParseAndAnalyze(
+				'loop {}',
+				[[NT.LoopStatement, [[NT.BlockStatement, []]]]],
+				[
+					ASTLoopStatement._({
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
 		});
 
-		it('with function call in body and done in a condition', () => {
-			expect(
-				parse(
-					`loop {
-					const response = http.server.listen(3,000);
-
-					if response.status.code > 300 {
-						done;
-					}
-				}`,
-				),
-			).toMatchParseTree([
+		it('with done', () => {
+			testParseAndAnalyze(
+				'loop {\ndone;\n}',
 				[
-					NT.Loop,
 					[
-						[
-							NT.BlockStatement,
-							[
-								[
-									NT.VariableDeclaration,
-									'const',
-									[
-										[NT.Identifier, 'response'],
-										[NT.AssignmentOperator],
-										[
-											NT.CallExpression,
-											[
-												[
-													NT.MemberExpression,
-													[
-														[
-															NT.MemberExpression,
-															[
-																[NT.Identifier, 'http'],
-																[NT.Identifier, 'server'],
-															],
-														],
-														[NT.Identifier, 'listen'],
-													],
-												],
-												[NT.ArgumentsList, [[NT.NumberLiteral, '3,000']]],
-											],
-										],
-									],
-								],
-								[NT.SemicolonSeparator],
-								[
-									NT.IfStatement,
-									[
-										[
-											NT.BinaryExpression,
-											'>',
-											[
-												[
-													NT.MemberExpression,
-													[
-														[
-															NT.MemberExpression,
-															[
-																[NT.Identifier, 'response'],
-																[NT.Identifier, 'status'],
-															],
-														],
-														[NT.Identifier, 'code'],
-													],
-												],
-												[NT.NumberLiteral, '300'],
-											],
-										],
-										[
-											NT.BlockStatement,
-											[[NT.DoneStatement], [NT.SemicolonSeparator]],
-										],
-									],
-								],
-							],
-						],
+						NT.LoopStatement,
+						[[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]],
 					],
 				],
-			]);
+				[
+					ASTLoopStatement._({
+						body: ASTBlockStatement._([ASTDoneStatement._()]),
+					}),
+				],
+			);
+		});
+
+		it('with next', () => {
+			testParseAndAnalyze(
+				'loop {\nnext;\n}',
+				[
+					[
+						NT.LoopStatement,
+						[[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]],
+					],
+				],
+				[
+					ASTLoopStatement._({
+						body: ASTBlockStatement._([ASTNextStatement._()]),
+					}),
+				],
+			);
 		});
 	});
 
@@ -7498,23 +7461,6 @@ describe('parser.ts', (): void => {
 		});
 	});
 
-	describe('RepeatStatement', (): void => {
-		it('simple repeat statement', () => {
-			expect(parse('repeat {}')).toMatchParseTree([
-				[NT.RepeatStatement, [[NT.BlockStatement, []]]],
-			]);
-		});
-
-		it('with done', () => {
-			expect(parse('repeat {\ndone;\n}')).toMatchParseTree([
-				[
-					NT.RepeatStatement,
-					[[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]],
-				],
-			]);
-		});
-	});
-
 	describe('Types', (): void => {
 		describe('should understand primitive types', () => {
 			it.each(primitiveTypes)('%s is recognized as a type', (type) => {
@@ -10143,150 +10089,6 @@ describe('parser.ts', (): void => {
 					}),
 				],
 			);
-		});
-	});
-
-	describe('WhileStatement', (): void => {
-		it('with CallExpression test', () => {
-			expect(parse('while foo() {}')).toMatchParseTree([
-				[
-					NT.WhileStatement,
-					[
-						[
-							NT.CallExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.ArgumentsList, []],
-							],
-						],
-						[NT.BlockStatement, []],
-					],
-				],
-			]);
-		});
-
-		it('with BinaryExpression test', () => {
-			expect(parse('while i < 10 {}')).toMatchParseTree([
-				[
-					NT.WhileStatement,
-					[
-						[
-							NT.BinaryExpression,
-							'<',
-							[
-								[NT.Identifier, 'i'],
-								[NT.NumberLiteral, '10'],
-							],
-						],
-						[NT.BlockStatement, []],
-					],
-				],
-			]);
-		});
-
-		it('with UnaryExpression test', () => {
-			expect(parse('while !i {}')).toMatchParseTree([
-				[
-					NT.WhileStatement,
-					[
-						[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'i']]],
-						[NT.BlockStatement, []],
-					],
-				],
-			]);
-		});
-
-		it('with parens and BinaryExpression', () => {
-			expect(parse('while (this.foo != true) {}')).toMatchParseTree([
-				[
-					NT.WhileStatement,
-					[
-						[
-							NT.Parenthesized,
-							[
-								[
-									NT.BinaryExpression,
-									'!=',
-									[
-										[
-											NT.MemberExpression,
-											[[NT.ThisKeyword], [NT.Identifier, 'foo']],
-										],
-										[NT.BoolLiteral, 'true'],
-									],
-								],
-							],
-						],
-						[NT.BlockStatement, []],
-					],
-				],
-			]);
-		});
-
-		it('with parens and UnaryExpression', () => {
-			expect(parse('while (!this.foo()) {}')).toMatchParseTree([
-				[
-					NT.WhileStatement,
-					[
-						[
-							NT.Parenthesized,
-							[
-								[
-									NT.UnaryExpression,
-									'!',
-									{ before: true },
-									[
-										[
-											NT.CallExpression,
-											[
-												[
-													NT.MemberExpression,
-													[[NT.ThisKeyword], [NT.Identifier, 'foo']],
-												],
-												[NT.ArgumentsList, []],
-											],
-										],
-									],
-								],
-							],
-						],
-						[NT.BlockStatement, []],
-					],
-				],
-			]);
-		});
-
-		it('with contents in body', () => {
-			expect(
-				parse(
-					`while (!foo) {
-					do();
-				}`,
-				),
-			).toMatchParseTree([
-				[
-					NT.WhileStatement,
-					[
-						[
-							NT.Parenthesized,
-							[[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]]],
-						],
-						[
-							NT.BlockStatement,
-							[
-								[
-									NT.CallExpression,
-									[
-										[NT.Identifier, 'do'],
-										[NT.ArgumentsList, []],
-									],
-								],
-								[NT.SemicolonSeparator],
-							],
-						],
-					],
-				],
-			]);
 		});
 	});
 

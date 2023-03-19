@@ -367,7 +367,7 @@ export default class Parser {
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
 
-				this.endExpressionIfIn(NT.Loop);
+				this.endExpressionIfIn(NT.LoopStatement);
 				this.endExpressionIfIn(NT.ForStatement);
 				this.endExpressionIfIn(NT.FunctionDeclaration);
 				this.endExpressionIfIn(NT.FunctionSignature);
@@ -375,7 +375,6 @@ export default class Parser {
 				this.endExpressionIfIn(NT.InterfaceDeclaration);
 				this.endExpressionIfIn(NT.ObjectExpression);
 				this.endExpressionIfIn(NT.ObjectShape);
-				this.endExpressionIfIn(NT.WhileStatement);
 			} else if (token.type === 'bracket_open') {
 				const isNextABracketClose =
 					this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
@@ -1486,7 +1485,12 @@ export default class Parser {
 						}
 						break;
 					case 'loop':
-						this.beginExpressionWith(MakeNode(NT.Loop, token, this.currentRoot, true));
+						this.beginExpressionWith(
+							MakeNode(NT.LoopStatement, token, this.currentRoot, true),
+						);
+						break;
+					case 'next':
+						this.addNode(MakeNode(NT.NextStatement, token, this.currentRoot, true));
 						break;
 					case 'or':
 						{
@@ -1503,11 +1507,6 @@ export default class Parser {
 							MakeNode(NT.PrintStatement, token, this.currentRoot, true),
 						);
 						break;
-					case 'repeat':
-						this.beginExpressionWith(
-							MakeNode(NT.RepeatStatement, token, this.currentRoot, true),
-						);
-						break;
 					case 'return':
 						this.beginExpressionWith(
 							MakeNode(NT.ReturnStatement, token, this.currentRoot, true),
@@ -1516,11 +1515,6 @@ export default class Parser {
 					case 'when':
 						this.beginExpressionWith(
 							MakeNode(NT.WhenExpression, token, this.currentRoot, true),
-						);
-						break;
-					case 'while':
-						this.beginExpressionWith(
-							MakeNode(NT.WhileStatement, token, this.currentRoot, true),
 						);
 						break;
 					default:

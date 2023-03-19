@@ -31,6 +31,7 @@ import {
 	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTClassDeclaration,
+	ASTDoneStatement,
 	ASTForStatement,
 	ASTFunctionDeclaration,
 	ASTFunctionSignature,
@@ -38,9 +39,11 @@ import {
 	ASTIfStatement,
 	ASTInterfaceDeclaration,
 	ASTJoeDoc,
+	ASTLoopStatement,
 	ASTMemberExpression,
 	ASTMemberListExpression,
 	ASTModifier,
+	ASTNextStatement,
 	ASTNumberLiteral,
 	ASTObjectExpression,
 	ASTObjectShape,
@@ -1287,6 +1290,10 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
+	visitDoneStatement(_node: Node): Result<ASTDoneStatement> {
+		return ok(ASTDoneStatement._());
+	}
+
 	visitElseStatement(child: Node): Result<ASTBlockStatement | ASTIfStatement> {
 		return this.nodeToAST<ASTBlockStatement | ASTIfStatement>(child);
 	}
@@ -1737,6 +1744,24 @@ export default class SemanticAnalyzer {
 		);
 	}
 
+	visitLoopStatement(node: Node): Result<ASTLoopStatement> {
+		const ast = new ASTLoopStatement();
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// TODO add the guard
+
+			// the body
+			this.getChildHandlerForRequiredBody(ast),
+		]);
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
 	visitMemberExpression(node: Node): Result<ASTMemberExpression> {
 		const ast = new ASTMemberExpression();
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
@@ -1914,6 +1939,10 @@ export default class SemanticAnalyzer {
 			AnalysisErrorCode.ModifierExpected,
 			() => 'Modifier Expected',
 		);
+	}
+
+	visitNextStatement(_node: Node): Result<ASTNextStatement> {
+		return ok(ASTNextStatement._());
 	}
 
 	visitNumberLiteral(node: Node): Result<ASTNumberLiteral> {

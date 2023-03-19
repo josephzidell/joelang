@@ -32,12 +32,13 @@ export enum NT {
 	InterfaceExtensionsList = 'InterfaceExtensionsList',
 	JoeDoc = 'JoeDoc', // for Class, Function, Interface, or Variable
 	Keyword = 'Keyword',
-	Loop = 'Loop',
+	LoopStatement = 'LoopStatement',
 	MemberExpression = 'MemberExpression',
 	MemberList = 'MemberList',
 	MemberListExpression = 'MemberListExpression',
 	Modifier = 'Modifier', // for Class, Function, Interface, or Variable
 	ModifiersList = 'ModifiersList', // for Class, Function, Interface, or Variable
+	NextStatement = 'NextStatement',
 	NumberLiteral = 'NumberLiteral',
 	ObjectExpression = 'ObjectExpression',
 	ObjectShape = 'ObjectShape',
@@ -52,7 +53,6 @@ export enum NT {
 	PropertyShape = 'PropertyShape',
 	RangeExpression = 'RangeExpression',
 	RegularExpression = 'RegularExpression',
-	RepeatStatement = 'RepeatStatement',
 	RestElement = 'RestElement',
 	ReturnStatement = 'ReturnStatement',
 	RightArrowOperator = 'RightArrowOperator',
@@ -77,7 +77,6 @@ export enum NT {
 	WhenCase = 'WhenCase',
 	WhenCaseValues = 'WhenCaseValues',
 	WhenCaseConsequent = 'WhenCaseConsequent',
-	WhileStatement = 'WhileStatement',
 }
 
 export const LiteralTypes: NT[] = [

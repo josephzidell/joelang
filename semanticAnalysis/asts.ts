@@ -228,6 +228,15 @@ export class ASTClassDeclaration
 	}
 }
 
+export class ASTDoneStatement extends AST {
+	kind = 'DoneStatement';
+
+	// factory function
+	static _(): ASTDoneStatement {
+		return new ASTDoneStatement();
+	}
+}
+
 export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
 	kind = 'ForStatement';
 	initializer!: ASTIdentifier | ASTVariableDeclaration;
@@ -421,6 +430,18 @@ export class ASTJoeDoc extends AST {
 	}
 }
 
+export class ASTLoopStatement extends AST {
+	kind = 'LoopStatement';
+	body!: ASTBlockStatement;
+
+	// factory function
+	static _({ body }: { body: ASTBlockStatement }): ASTLoopStatement {
+		const ast = new ASTLoopStatement();
+		ast.body = body;
+		return ast;
+	}
+}
+
 export class ASTMemberExpression extends AST {
 	kind = 'MemberExpression';
 	object!: MemberExpressionObjectASTs;
@@ -470,6 +491,15 @@ export class ASTModifier extends AST {
 		const ast = new ASTModifier();
 		ast.keyword = keyword;
 		return ast;
+	}
+}
+
+export class ASTNextStatement extends AST {
+	kind = 'NextStatement';
+
+	// factory function
+	static _(): ASTNextStatement {
+		return new ASTNextStatement();
 	}
 }
 

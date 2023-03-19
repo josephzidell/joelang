@@ -105,11 +105,9 @@ export const keywords = [
 	'print',
 	'private',
 	'public',
-	'repeat',
 	'return',
 	'static',
 	'when',
-	'while',
 ] as const;
 
 // types
