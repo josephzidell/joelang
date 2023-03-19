@@ -1,0 +1,19 @@
+/**
+ * used for storing a value that may be present
+ *
+ * Example:
+ *
+ * ```
+ * let someValue = Is(15); // store a value, type is determined automatically
+ * let someValue: Maybe<number> = IsNot; // no value (currently)
+ * // to extract the value
+ * when someValue {
+ * 	Is(val) -> ...
+ * 	IsNot -> ...
+ * }
+ * ```
+ */
+enum Maybe<|T|> {
+	Is(T),
+	IsNot,
+}

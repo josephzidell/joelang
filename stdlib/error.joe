@@ -1,0 +1,4 @@
+/**
+ * Main parent class for errors
+ */
+abstract class Error {}

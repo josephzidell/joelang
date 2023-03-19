@@ -1,0 +1,19 @@
+/**
+ * used for returning a value or an error
+ *
+ * Example:
+ *
+ * ```
+ * let result = Ok("myStuff");
+ * result = Error(MySpecialError.create('Whoops')) if something == 'bad';
+ *
+ * when result {
+ * 	Ok(val: string)              -> print val,
+ * 	Error(error: MySpecialError) -> log(error),
+ * }
+ * ```
+ */
+enum Result<|T, E extends Error|> {
+	Ok(T),
+	Error(E),
+}
