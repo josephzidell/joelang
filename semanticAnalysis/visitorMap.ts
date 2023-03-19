@@ -55,7 +55,8 @@ const visitorMap: Partial<Record<NT, visitor>> = {
 		analyzer.visitIdentifier(node) as Result<T>,
 	[NT.IfStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitIfStatement(node) as Result<T>,
-	// [NT.ImportDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitImportDeclaration(node) as Result<T>,
+	[NT.ImportDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitImportDeclaration(node) as Result<T>,
 	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitInterfaceDeclaration(node) as Result<T>,
 	[NT.InterfaceExtension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>

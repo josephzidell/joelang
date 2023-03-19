@@ -37,6 +37,7 @@ import {
 	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTIfStatement,
+	ASTImportDeclaration,
 	ASTInterfaceDeclaration,
 	ASTJoeDoc,
 	ASTLoopStatement,
@@ -1639,6 +1640,71 @@ export default class SemanticAnalyzer {
 							break;
 					}
 				},
+			},
+		]);
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	visitImportDeclaration(node: Node): Result<ASTImportDeclaration> {
+		const ast = new ASTImportDeclaration();
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the identifier
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitIdentifier(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.identifier = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting an Identifier, but found "${child?.type}"`,
+			},
+
+			// second child: the "from" keyword
+			{
+				type: NT.FromKeyword,
+				required: true,
+				callback: skipThisChild,
+				errorCode: AnalysisErrorCode.FromKeywordExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a "from" keyword, but found "${child?.type}"`,
+			},
+
+			// third child: the path
+			{
+				type: NT.Path,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitPath(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.source = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+				},
+				errorCode: AnalysisErrorCode.PathExpected,
+				errorMessage: (child: Node | undefined) =>
+					`We were expecting a Path, but found "${child?.type}"`,
 			},
 		]);
 		if (handlingResult.outcome === 'error') {

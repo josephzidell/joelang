@@ -374,6 +374,26 @@ export class ASTIfStatement extends AST {
 	}
 }
 
+export class ASTImportDeclaration extends AST {
+	kind = 'ImportDeclaration';
+	identifier!: ASTIdentifier;
+	source!: ASTPath;
+
+	// factory function
+	static _({
+		identifier,
+		source,
+	}: {
+		identifier: ASTIdentifier;
+		source: ASTPath;
+	}): ASTImportDeclaration {
+		const ast = new ASTImportDeclaration();
+		ast.identifier = identifier;
+		ast.source = source;
+		return ast;
+	}
+}
+
 export class ASTInterfaceDeclaration
 	extends AST
 	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams

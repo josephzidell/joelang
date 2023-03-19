@@ -1373,6 +1373,9 @@ export default class Parser {
 							}
 						}
 						break;
+					case 'from':
+						this.addNode(MakeNode(NT.FromKeyword, token, this.currentRoot, true));
+						break;
 					case 'for':
 						this.beginExpressionWith(
 							MakeNode(NT.ForStatement, token, this.currentRoot, true),

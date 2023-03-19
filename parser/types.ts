@@ -19,6 +19,7 @@ export enum NT {
 	Comment = 'Comment',
 	DoneStatement = 'DoneStatement',
 	ElseStatement = 'ElseStatement',
+	FromKeyword = 'FromKeyword',
 	ForStatement = 'ForStatement',
 	FunctionDeclaration = 'FunctionDeclaration',
 	FunctionSignature = 'FunctionSignature',

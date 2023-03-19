@@ -16,6 +16,7 @@ import {
 	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTIfStatement,
+	ASTImportDeclaration,
 	ASTInterfaceDeclaration,
 	ASTJoeDoc,
 	ASTLoopStatement,
@@ -4139,39 +4140,47 @@ describe('parser.ts', (): void => {
 	describe('ImportDeclaration', (): void => {
 		describe('imports', (): void => {
 			it('single, default import', (): void => {
-				expect(
-					parse(
-						'import lexer from ./lexer;import lexer2 from @/lexer;import lexer3 from @/lexer.joe;',
-					),
-				).toMatchParseTree([
+				testParseAndAnalyze(
+					'import mainJoeFile from ./some/dir/;import another from @/lexer.joe;',
 					[
-						NT.ImportDeclaration,
 						[
-							[NT.Identifier, 'lexer'],
-							[NT.Keyword, 'from'],
-							[NT.Path, './lexer'],
+							NT.ImportDeclaration,
+							[
+								[NT.Identifier, 'mainJoeFile'],
+								[NT.FromKeyword],
+								[NT.Path, './some/dir/'],
+							],
 						],
+						[NT.SemicolonSeparator],
+						[
+							NT.ImportDeclaration,
+							[
+								[NT.Identifier, 'another'],
+								[NT.FromKeyword],
+								[NT.Path, '@/lexer.joe'],
+							],
+						],
+						[NT.SemicolonSeparator],
 					],
-					[NT.SemicolonSeparator],
 					[
-						NT.ImportDeclaration,
-						[
-							[NT.Identifier, 'lexer2'],
-							[NT.Keyword, 'from'],
-							[NT.Path, '@/lexer'],
-						],
+						ASTImportDeclaration._({
+							identifier: ASTIdentifier._('mainJoeFile'),
+							source: ASTPath._({
+								absolute: false,
+								path: './some/dir/',
+								isDir: true,
+							}),
+						}),
+						ASTImportDeclaration._({
+							identifier: ASTIdentifier._('another'),
+							source: ASTPath._({
+								absolute: true,
+								path: '@/lexer.joe',
+								isDir: false,
+							}),
+						}),
 					],
-					[NT.SemicolonSeparator],
-					[
-						NT.ImportDeclaration,
-						[
-							[NT.Identifier, 'lexer3'],
-							[NT.Keyword, 'from'],
-							[NT.Path, '@/lexer.joe'],
-						],
-					],
-					[NT.SemicolonSeparator],
-				]);
+				);
 			});
 		});
 	});

@@ -1,6 +1,8 @@
 # This is sample .joe file to prove the lexer and parser works.
 # Note this file may not necessarily be syntatically correct.
 
+import someFile from ./some_file.joe;
+
 f main {
 	// instantiate and call a method
 	const myFoo = Foo.create();
@@ -45,6 +47,11 @@ class Foo<|A|> extends Bar<|A|>, Baz implements AbstractFooBar<|A|>, AnotherAbst
 			b: 'coat',
 			c: cond ? true : false, // regular ternary - property will always be there, value differs
 		};
+
+		loop {
+			next;
+			done;
+		}
 
 		const myTuple = <1, true, 'string', @/foo>;
 

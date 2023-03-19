@@ -2,6 +2,19 @@
 	"kind": "Program",
 	"declarations": [
 		{
+			"kind": "ImportDeclaration",
+			"identifier": {
+				"kind": "Identifier",
+				"name": "someFile"
+			},
+			"source": {
+				"kind": "Path",
+				"absolute": false,
+				"path": "./some_file.joe",
+				"isDir": false
+			}
+		},
+		{
 			"kind": "FunctionDeclaration",
 			"modifiers": [],
 			"name": {
@@ -626,6 +639,20 @@
 													"kind": "TypePrimitive",
 													"type": "bool"
 												}
+											}
+										]
+									}
+								},
+								{
+									"kind": "LoopStatement",
+									"body": {
+										"kind": "BlockStatement",
+										"expressions": [
+											{
+												"kind": "NextStatement"
+											},
+											{
+												"kind": "DoneStatement"
 											}
 										]
 									}

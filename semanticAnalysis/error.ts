@@ -48,6 +48,8 @@ export enum AnalysisErrorCode {
 	IterableExpected = 'S038',
 	InKeywordExpected = 'S039',
 	JoeDocExpected = 'S040', // TBD if this will ever actually be used / enforced
+	PathExpected = 'S041',
+	FromKeywordExpected = 'S042',
 }
 
 /**

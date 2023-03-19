@@ -11,6 +11,15 @@
         '# Note this file may not necessarily be syntatically correct.'
       ],
       [
+        'ImportDeclaration',
+        [
+          [ 'Identifier', 'someFile' ],
+          [ 'FromKeyword' ],
+          [ 'Path', './some_file.joe' ]
+        ]
+      ],
+      [ 'SemicolonSeparator' ],
+      [
         'FunctionDeclaration',
         [
           [ 'Identifier', 'main' ],
@@ -554,6 +563,20 @@
                         ]
                       ],
                       [ 'SemicolonSeparator' ],
+                      [
+                        'LoopStatement',
+                        [
+                          [
+                            'BlockStatement',
+                            [
+                              [ 'NextStatement' ],
+                              [ 'SemicolonSeparator' ],
+                              [ 'DoneStatement' ],
+                              [ 'SemicolonSeparator' ]
+                            ]
+                          ]
+                        ]
+                      ],
                       [
                         'VariableDeclaration',
                         'const',
