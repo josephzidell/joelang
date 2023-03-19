@@ -1898,7 +1898,7 @@ describe('parser.ts', (): void => {
 	describe('ForStatement', (): void => {
 		it('simple for statement with range', () => {
 			testParseAndAnalyze(
-				'for let i in 0..9 {}',
+				'for let i in 0 .. 9 {}',
 				[
 					[
 						NT.ForStatement,
@@ -1935,7 +1935,7 @@ describe('parser.ts', (): void => {
 
 		it('with range in parens', () => {
 			testParseAndAnalyze(
-				'for (let i in 0..9) {}',
+				'for (let i in 0 .. 9) {}',
 				[
 					[
 						NT.ForStatement,
