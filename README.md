@@ -15,6 +15,11 @@ A scripting language focused on easy reading. [Read the docs](https://joelang.de
 ./joec -i '...' -p # parse only, do not analyze; will output the Parse Tree
 ./joec -i '...' -l # (that's the lowercase L, not the number 1) lexify only, do not parse; will console.table()'s the Tokens
 
+# run the transpiler
+npm run --silent transpile -- <lang> 'your expression' # transpile an expression
+npm run --silent transpile -- <lang> "$(cat path/to/file.joe)" # transpile a .joe file
+npm run --silent transpile -- <lang> '...' file.<ext> # send the new code to a file
+
 # run the tests
 npm test
 ```
