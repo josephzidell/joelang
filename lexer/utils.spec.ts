@@ -1,4 +1,4 @@
-import { standardizeLineEndings } from "./util";
+import { standardizeLineEndings } from './util';
 
 describe('utils.ts', (): void => {
 	describe('standardizeLineEndings', (): void => {

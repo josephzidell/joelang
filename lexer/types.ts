@@ -1,58 +1,65 @@
 // token types
 export const tokenTypesUsingSymbols = {
-	'and': '&&',
-	'assign': '=',
-	'asterisk_equals': '*=',
-	'asterisk': '*',
-	'bang': '!',
-	'brace_close': '}',
-	'brace_open': '{',
-	'bracket_close': ']',
-	'bracket_open': '[',
-	'caret': '^',
-	'colon': ':',
-	'comma': ',',
-	'compare': '<=>',
-	'dot': '.',
-	'dotdot': '..',
-	'dotdotdot': '...',
-	'equals': '==',
-	'exponent': '^e',
-	'forward_slash_equals': '/=',
-	'forward_slash': '/',
-	'greater_than_equals': '>=',
-	'greater_than': '>',
-	'less_than_equals': '<=',
-	'less_than': '<',
-	'minus_equals': '-=',
-	'minus_minus': '--',
-	'minus': '-',
-	'mod_equals': '%=',
-	'mod': '%',
-	'not_equals': '!=',
-	'or': '||',
-	'paren_close': ')',
-	'paren_open': '(',
-	'plus': '+',
-	'plus_equals': '+=',
-	'plus_plus': '++',
-	'question': '?',
-	'right_arrow': '->',
-	'semicolon': ';',
+	and: '&&',
+	assign: '=',
+	asterisk_equals: '*=',
+	asterisk: '*',
+	bang: '!',
+	brace_close: '}',
+	brace_open: '{',
+	bracket_close: ']',
+	bracket_open: '[',
+	caret: '^',
+	colon: ':',
+	comma: ',',
+	compare: '<=>',
+	dot: '.',
+	dotdot: '..',
+	dotdotdot: '...',
+	equals: '==',
+	exponent: '^e',
+	forward_slash_equals: '/=',
+	forward_slash: '/',
+	less_than_equals: '<=',
+	less_than: '<',
+	minus_equals: '-=',
+	minus_minus: '--',
+	minus: '-',
+	mod_equals: '%=',
+	mod: '%',
+	more_than_equals: '>=',
+	more_than: '>',
+	not_equals: '!=',
+	or: '||',
+	paren_close: ')',
+	paren_open: '(',
+	plus: '+',
+	plus_equals: '+=',
+	plus_plus: '++',
+	question: '?',
+	right_arrow: '->',
+	semicolon: ';',
+	triangle_open: '<|',
+	triangle_close: '|>',
 };
+
+export const primitiveTypes = ['bool', 'number', 'path', 'regex', 'string'] as const;
+export type PrimitiveType = (typeof primitiveTypes)[number];
+
 const otherTokenTypes = [
 	'bool',
 	'comment',
+	'eof',
 	'identifier',
 	'keyword',
-	'nil',
 	'number',
 	'path',
 	'regex',
 	'string',
+	'this',
 	'type',
 ] as const;
-export type TokenType = keyof typeof tokenTypesUsingSymbols | typeof otherTokenTypes[number];
+export type TokenType = keyof typeof tokenTypesUsingSymbols | (typeof otherTokenTypes)[number];
 
 // info about a token
 export type Token = {
@@ -77,8 +84,11 @@ export type Token = {
 
 // reserved keywords
 export const keywords = [
+	'abstract',
 	'class',
 	'const',
+	'done', // aka break
+	'else',
 	'extends',
 	'f',
 	'for',
@@ -87,37 +97,25 @@ export const keywords = [
 	'implements',
 	'import',
 	'in',
-	'is',
+	'interface',
 	'let',
-	'new',
+	'loop',
+	'next', // aka continue
 	'print',
-	'private',
-	'public',
 	'return',
 	'static',
-	'switch',
-	'this',
 	'when',
 ] as const;
-type Keyword = typeof keywords[number];
 
 // types
-export const types = [
-	'bool',
-	'number',
-	'path',
-	'regex',
-	'string',
-] as const;
-type Type = typeof types[number];
+export const types = ['bool', 'number', 'path', 'range', 'regex', 'string'] as const;
 
 // special Values
-const specialValues = ['true', 'false', 'nil'] as const;
-type SpecialValue = typeof specialValues[number];
+const specialValues = ['true', 'false'] as const;
+type SpecialValue = (typeof specialValues)[number];
 export const specialValueTypes: Record<SpecialValue, TokenType> = {
 	true: 'bool',
 	false: 'bool',
-	nil: 'nil',
 };
 
 // syntax patterns
@@ -134,11 +132,11 @@ export const patterns = {
 	EQUALS: '=',
 	ESCAPE: '\\',
 	FORWARD_SLASH: '/',
-	GREATER_THAN: '>',
 	HASH: '#',
 	LESS_THAN: '<',
 	MINUS: '-',
 	MOD: '%',
+	MORE_THAN: '>',
 	PERIOD: '.',
 	PIPE: '|',
 	PLUS: '+',
@@ -152,5 +150,7 @@ export const patterns = {
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
 	PATH: /[a-zA-Z0-9-_./]/, // characters in path, excluding the front: @ or .
+	// eslint-disable-next-line no-control-regex
+	UNICODE: /[^\x00-\x7F]/, // characters above ASCII and in the Unicode standard, see https://stackoverflow.com/a/72733569
 	WHITESPACE: /\s/,
 };

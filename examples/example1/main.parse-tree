@@ -4,47 +4,61 @@
     [
       [
         'Comment',
-        '# This is sample .joe file to prove the lexer and parser works.',
-        [length]: 2
+        '# This is sample .joe file to prove the lexer and parser works.'
       ],
       [
         'Comment',
-        '# Note this file may not necessarily be syntatically correct.',
-        [length]: 2
+        '# Note this file may not necessarily be syntatically correct.'
       ],
+      [
+        'ImportDeclaration',
+        [
+          [ 'Identifier', 'someFile' ],
+          [ 'FromKeyword' ],
+          [ 'Path', './some_file.joe' ]
+        ]
+      ],
+      [ 'SemicolonSeparator' ],
       [
         'FunctionDeclaration',
         [
-          [ 'Identifier', 'main', [length]: 2 ],
+          [ 'Identifier', 'main' ],
           [
             'BlockStatement',
             [
-              [
-                'Comment',
-                '// instantiate and call a method',
-                [length]: 2
-              ],
+              [ 'Comment', '// instantiate and call a method' ],
               [
                 'VariableDeclaration',
                 'const',
                 [
-                  [ 'Identifier', 'myFoo', [length]: 2 ],
-                  [ 'AssignmentOperator', '=', [length]: 2 ],
-                  [ 'Keyword', 'new', [length]: 2 ],
                   [
-                    'CallExpression',
+                    'AssigneesList',
                     [
-                      [ 'Identifier', 'Foo', [length]: 2 ],
-                      [ 'ArgumentsList', [ [length]: 0 ], [length]: 2 ],
-                      [length]: 2
-                    ],
-                    [length]: 2
+                      [ 'Identifier', 'myFoo' ]
+                    ]
                   ],
-                  [length]: 4
-                ],
-                [length]: 3
+                  [ 'AssignmentOperator' ],
+                  [
+                    'AssignablesList',
+                    [
+                      [
+                        'CallExpression',
+                        [
+                          [
+                            'MemberExpression',
+                            [
+                              [ 'Identifier', 'Foo' ],
+                              [ 'Identifier', 'create' ]
+                            ]
+                          ],
+                          [ 'ArgumentsList', [] ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'SemicolonSeparator', [length]: 1 ],
+              [ 'SemicolonSeparator' ],
               [
                 'PrintStatement',
                 [
@@ -54,71 +68,96 @@
                       [
                         'MemberExpression',
                         [
-                          [ 'Identifier', 'myFoo', [length]: 2 ],
-                          [ 'Identifier', 'foo', [length]: 2 ],
-                          [length]: 2
-                        ],
-                        [length]: 2
+                          [ 'Identifier', 'myFoo' ],
+                          [ 'Identifier', 'foo' ]
+                        ]
                       ],
-                      [ 'ArgumentsList', [ [length]: 0 ], [length]: 2 ],
-                      [length]: 2
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 1
-                ],
-                [length]: 2
+                      [ 'ArgumentsList', [] ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'SemicolonSeparator', [length]: 1 ],
-              [ 'Comment', '// static', [length]: 2 ],
+              [ 'SemicolonSeparator' ],
+              [ 'Comment', '// static' ],
               [
                 'PrintStatement',
                 [
                   [
                     'MemberExpression',
                     [
-                      [ 'Identifier', 'Foo', [length]: 2 ],
-                      [ 'Identifier', 'bar', [length]: 2 ],
-                      [length]: 2
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 1
-                ],
-                [length]: 2
+                      [ 'Identifier', 'Foo' ],
+                      [ 'Identifier', 'bar' ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'SemicolonSeparator', [length]: 1 ],
-              [length]: 8
-            ],
-            [length]: 2
-          ],
-          [length]: 2
-        ],
-        [length]: 2
+              [ 'SemicolonSeparator' ]
+            ]
+          ]
+        ]
       ],
       [
         'ClassDeclaration',
         [
-          [ 'Identifier', 'Foo', [length]: 2 ],
+          [ 'Identifier', 'Foo' ],
+          [
+            'TypeParametersList',
+            [
+              [
+                'TypeParameter',
+                [
+                  [ 'Identifier', 'A' ]
+                ]
+              ]
+            ]
+          ],
           [
             'ClassExtensionsList',
             [
-              [ 'Identifier', 'Bar', [length]: 2 ],
-              [ 'CommaSeparator', [length]: 1 ],
-              [ 'Identifier', 'Baz', [length]: 2 ],
-              [length]: 3
-            ],
-            [length]: 2
+              [
+                'ClassExtension',
+                [
+                  [ 'Identifier', 'Bar' ],
+                  [
+                    'TypeArgumentsList',
+                    [
+                      [ 'Identifier', 'A' ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'CommaSeparator' ],
+              [
+                'ClassExtension',
+                [
+                  [ 'Identifier', 'Baz' ]
+                ]
+              ]
+            ]
           ],
           [
             'ClassImplementsList',
             [
-              [ 'Identifier', 'AbstractFooBar', [length]: 2 ],
-              [ 'CommaSeparator', [length]: 1 ],
-              [ 'Identifier', 'AnotherAbstractClass', [length]: 2 ],
-              [length]: 3
-            ],
-            [length]: 2
+              [
+                'ClassImplement',
+                [
+                  [ 'Identifier', 'AbstractFooBar' ],
+                  [
+                    'TypeArgumentsList',
+                    [
+                      [ 'Identifier', 'A' ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'CommaSeparator' ],
+              [
+                'ClassImplement',
+                [
+                  [ 'Identifier', 'AnotherAbstractClass' ]
+                ]
+              ]
+            ]
           ],
           [
             'BlockStatement',
@@ -127,41 +166,54 @@
                 'VariableDeclaration',
                 'let',
                 [
-                  [ 'Identifier', 'bar', [length]: 2 ],
-                  [ 'AssignmentOperator', '=', [length]: 2 ],
-                  [ 'StringLiteral', 'baz', [length]: 2 ],
-                  [length]: 3
-                ],
-                [length]: 3
+                  [
+                    'AssigneesList',
+                    [
+                      [ 'Identifier', 'bar' ]
+                    ]
+                  ],
+                  [ 'AssignmentOperator' ],
+                  [
+                    'AssignablesList',
+                    [
+                      [ 'StringLiteral', 'baz' ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'SemicolonSeparator', [length]: 1 ],
-              [ 'Comment', '// let', [length]: 2 ],
+              [ 'SemicolonSeparator' ],
+              [ 'Comment', '// let' ],
               [
                 'VariableDeclaration',
                 'const',
                 [
-                  [ 'Identifier', 'isDone?', [length]: 2 ],
-                  [ 'AssignmentOperator', '=', [length]: 2 ],
-                  [ 'BoolLiteral', 'true', [length]: 2 ],
-                  [length]: 3
-                ],
-                [length]: 3
+                  [
+                    'AssigneesList',
+                    [
+                      [ 'Identifier', 'isDone?' ]
+                    ]
+                  ],
+                  [ 'AssignmentOperator' ],
+                  [
+                    'AssignablesList',
+                    [
+                      [ 'BoolLiteral', 'true' ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'SemicolonSeparator', [length]: 1 ],
-              [ 'Comment', '// const', [length]: 2 ],
-              [
-                'Comment',
-                '/** method with no args and no return */',
-                [length]: 2
-              ],
+              [ 'SemicolonSeparator' ],
+              [ 'Comment', '// const' ],
               [
                 'FunctionDeclaration',
                 [
-                  [ 'Identifier', 'foo', [length]: 2 ],
+                  [ 'JoeDoc', '/** method with no args */' ],
+                  [ 'Identifier', 'foo' ],
                   [
                     'FunctionReturns',
-                    [ [ 'Type', 'number', [length]: 2 ], [length]: 1 ],
-                    [length]: 2
+                    [
+                      [ 'Type', 'number' ]
+                    ]
                   ],
                   [
                     'BlockStatement',
@@ -170,674 +222,684 @@
                         'VariableDeclaration',
                         'const',
                         [
-                          [ 'Identifier', 'size', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
                           [
-                            'WhenExpression',
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'size' ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
                             [
                               [
-                                'Identifier',
-                                'someNumber',
-                                [length]: 2
-                              ],
+                                'WhenExpression',
+                                [
+                                  [ 'Identifier', 'someNumber' ],
+                                  [
+                                    'BlockStatement',
+                                    [
+                                      [
+                                        'WhenCase',
+                                        [
+                                          [
+                                            'WhenCaseValues',
+                                            [
+                                              [ 'NumberLiteral', '1' ],
+                                              [ 'CommaSeparator' ],
+                                              [ 'NumberLiteral', '2' ]
+                                            ]
+                                          ],
+                                          [
+                                            'WhenCaseConsequent',
+                                            [
+                                              [
+                                                'StringLiteral',
+                                                'small'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ],
+                                      [ 'CommaSeparator' ],
+                                      [
+                                        'WhenCase',
+                                        [
+                                          [
+                                            'WhenCaseValues',
+                                            [
+                                              [
+                                                'RangeExpression',
+                                                [
+                                                  [
+                                                    'NumberLiteral',
+                                                    '3'
+                                                  ],
+                                                  [
+                                                    'NumberLiteral',
+                                                    '10'
+                                                  ]
+                                                ]
+                                              ]
+                                            ]
+                                          ],
+                                          [
+                                            'WhenCaseConsequent',
+                                            [
+                                              [
+                                                'StringLiteral',
+                                                'medium'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ],
+                                      [ 'CommaSeparator' ],
+                                      [
+                                        'WhenCase',
+                                        [
+                                          [
+                                            'WhenCaseValues',
+                                            [
+                                              [ 'NumberLiteral', '11' ]
+                                            ]
+                                          ],
+                                          [
+                                            'WhenCaseConsequent',
+                                            [
+                                              [
+                                                'StringLiteral',
+                                                'large'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ],
+                                      [ 'CommaSeparator' ],
+                                      [
+                                        'WhenCase',
+                                        [
+                                          [
+                                            'WhenCaseValues',
+                                            [
+                                              [ 'RestElement', '...' ]
+                                            ]
+                                          ],
+                                          [
+                                            'WhenCaseConsequent',
+                                            [
+                                              [
+                                                'StringLiteral',
+                                                'off the charts'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ],
+                                      [ 'CommaSeparator' ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'VariableDeclaration',
+                        'let',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'myArray' ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
                               [
-                                'BlockStatement',
+                                'ArrayExpression',
+                                [
+                                  [ 'NumberLiteral', '1' ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'PostfixIfStatement',
+                                    [
+                                      [ 'NumberLiteral', '10' ],
+                                      [
+                                        'MemberExpression',
+                                        [
+                                          [ 'ThisKeyword' ],
+                                          [ 'Identifier', 'isDone?' ]
+                                        ]
+                                      ]
+                                    ]
+                                  ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'Comment',
+                                    '// if false, element will not be in array'
+                                  ],
+                                  [ 'NumberLiteral', '3' ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'Comment',
+                        '// two new arrays [1, 2, 3] and [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]'
+                      ],
+                      [
+                        'VariableDeclaration',
+                        'let',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'count' ],
+                              [ 'CommaSeparator' ],
+                              [ 'Identifier', 'countDown' ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [
+                                'RangeExpression',
+                                [
+                                  [ 'NumberLiteral', '1' ],
+                                  [
+                                    'MemberExpression',
+                                    [
+                                      [ 'Identifier', 'myArray' ],
+                                      [ 'NumberLiteral', '2' ]
+                                    ]
+                                  ]
+                                ]
+                              ],
+                              [ 'CommaSeparator' ],
+                              [
+                                'RangeExpression',
                                 [
                                   [
-                                    'WhenCase',
+                                    'MemberExpression',
                                     [
-                                      [
-                                        'WhenCaseTests',
-                                        [
-                                          [
-                                            'NumberLiteral',
-                                            '1',
-                                            [length]: 2
-                                          ],
-                                          [
-                                            'CommaSeparator',
-                                            [length]: 1
-                                          ],
-                                          [
-                                            'NumberLiteral',
-                                            '2',
-                                            [length]: 2
-                                          ],
-                                          [length]: 3
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [
-                                        'WhenCaseConsequent',
-                                        [
-                                          [
-                                            'StringLiteral',
-                                            'small',
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [length]: 2
-                                    ],
-                                    [length]: 2
+                                      [ 'Identifier', 'myArray' ],
+                                      [ 'NumberLiteral', '1' ]
+                                    ]
                                   ],
-                                  [ 'CommaSeparator', [length]: 1 ],
+                                  [ 'NumberLiteral', '0' ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'VariableDeclaration',
+                        'let',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'partitionedArray' ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [
+                                'ArrayExpression',
+                                [
                                   [
-                                    'WhenCase',
+                                    'MemberListExpression',
                                     [
+                                      [ 'Identifier', 'countDown' ],
                                       [
-                                        'WhenCaseTests',
+                                        'MemberList',
                                         [
                                           [
                                             'RangeExpression',
                                             [
+                                              [ 'NumberLiteral', '0' ],
+                                              [ 'NumberLiteral', '1' ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'MemberListExpression',
+                                    [
+                                      [ 'Identifier', 'countDown' ],
+                                      [
+                                        'MemberList',
+                                        [
+                                          [
+                                            'RangeExpression',
+                                            [
+                                              [ 'NumberLiteral', '2' ],
+                                              [ 'NumberLiteral', '6' ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'MemberListExpression',
+                                    [
+                                      [ 'Identifier', 'countDown' ],
+                                      [
+                                        'MemberList',
+                                        [
+                                          [
+                                            'RangeExpression',
+                                            [
+                                              [ 'NumberLiteral', '7' ],
                                               [
-                                                'NumberLiteral',
-                                                '3',
-                                                [length]: 2
-                                              ],
-                                              [
-                                                'NumberLiteral',
-                                                '10',
-                                                [length]: 2
-                                              ],
-                                              [length]: 2
-                                            ],
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [
-                                        'WhenCaseConsequent',
-                                        [
-                                          [
-                                            'StringLiteral',
-                                            'medium',
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [length]: 2
-                                    ],
-                                    [length]: 2
+                                                'UnaryExpression',
+                                                '-',
+                                                { before: true },
+                                                [
+                                                  [
+                                                    'NumberLiteral',
+                                                    '1'
+                                                  ]
+                                                ]
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
                                   ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [
-                                    'WhenCase',
-                                    [
-                                      [
-                                        'WhenCaseTests',
-                                        [
-                                          [
-                                            'NumberLiteral',
-                                            '11',
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [
-                                        'WhenCaseConsequent',
-                                        [
-                                          [
-                                            'StringLiteral',
-                                            'large',
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [length]: 2
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [
-                                    'WhenCase',
-                                    [
-                                      [
-                                        'WhenCaseTests',
-                                        [
-                                          [
-                                            'RestElement',
-                                            '...',
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [
-                                        'WhenCaseConsequent',
-                                        [
-                                          [
-                                            'StringLiteral',
-                                            'off the charts',
-                                            [length]: 2
-                                          ],
-                                          [length]: 1
-                                        ],
-                                        [length]: 2
-                                      ],
-                                      [length]: 2
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [length]: 8
-                                ],
-                                [length]: 2
-                              ],
-                              [length]: 2
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 3
-                        ],
-                        [length]: 3
+                                  [ 'CommaSeparator' ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [
-                        'VariableDeclaration',
-                        'let',
-                        [
-                          [ 'Identifier', 'myArray', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
-                          [
-                            'ArrayExpression',
-                            [
-                              [ 'NumberLiteral', '1', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [ 'NumberLiteral', '10', [length]: 2 ],
-                              [ 'Keyword', 'if', [length]: 2 ],
-                              [ 'Keyword', 'this', [length]: 2 ],
-                              [ 'Identifier', 'isDone?', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [
-                                'Comment',
-                                '// if false, element will not be in array',
-                                [length]: 2
-                              ],
-                              [ 'NumberLiteral', '3', [length]: 2 ],
-                              [length]: 9
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 3
-                        ],
-                        [length]: 3
-                      ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [
-                        'VariableDeclaration',
-                        'let',
-                        [
-                          [ 'Identifier', 'count', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
-                          [
-                            'RangeExpression',
-                            [
-                              [ 'NumberLiteral', '1', [length]: 2 ],
-                              [
-                                'MemberExpression',
-                                [
-                                  [
-                                    'Identifier',
-                                    'myArray',
-                                    [length]: 2
-                                  ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [
-                                        'NumberLiteral',
-                                        '2',
-                                        [length]: 2
-                                      ],
-                                      [length]: 1
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [length]: 2
-                                ],
-                                [length]: 2
-                              ],
-                              [length]: 2
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 3
-                        ],
-                        [length]: 3
-                      ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
+                      [ 'SemicolonSeparator' ],
                       [
                         'Comment',
-                        '// new array [1, 2, 3]',
-                        [length]: 2
+                        '// new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]'
                       ],
                       [
-                        'VariableDeclaration',
-                        'let',
+                        'ForStatement',
                         [
-                          [ 'Identifier', 'countDown', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
                           [
-                            'RangeExpression',
+                            'VariableDeclaration',
+                            'const',
                             [
                               [
-                                'MemberExpression',
+                                'AssigneesList',
                                 [
-                                  [
-                                    'Identifier',
-                                    'myArray',
-                                    [length]: 2
-                                  ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [
-                                        'NumberLiteral',
-                                        '1',
-                                        [length]: 2
-                                      ],
-                                      [length]: 1
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [length]: 2
-                                ],
-                                [length]: 2
-                              ],
-                              [ 'NumberLiteral', '0', [length]: 2 ],
-                              [length]: 2
-                            ],
-                            [length]: 2
+                                  [ 'Identifier', 'num' ]
+                                ]
+                              ]
+                            ]
                           ],
-                          [length]: 3
-                        ],
-                        [length]: 3
-                      ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [
-                        'Comment',
-                        '// new array [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]',
-                        [length]: 2
-                      ],
-                      [
-                        'VariableDeclaration',
-                        'let',
-                        [
+                          [ 'InKeyword' ],
                           [
-                            'Identifier',
-                            'partitionedArray',
-                            [length]: 2
-                          ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
-                          [
-                            'ArrayExpression',
+                            'MemberListExpression',
                             [
+                              [ 'Identifier', 'countDown' ],
                               [
-                                'MemberExpression',
+                                'MemberList',
                                 [
-                                  [
-                                    'Identifier',
-                                    'countDown',
-                                    [length]: 2
-                                  ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [ 'ColonSeparator', [length]: 1 ],
-                                      [
-                                        'NumberLiteral',
-                                        '1',
-                                        [length]: 2
-                                      ],
-                                      [length]: 2
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [length]: 2
-                                ],
-                                [length]: 2
-                              ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [
-                                'MemberExpression',
-                                [
-                                  [
-                                    'Identifier',
-                                    'countDown',
-                                    [length]: 2
-                                  ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [
-                                        'NumberLiteral',
-                                        '2',
-                                        [length]: 2
-                                      ],
-                                      [ 'ColonSeparator', [length]: 1 ],
-                                      [
-                                        'NumberLiteral',
-                                        '6',
-                                        [length]: 2
-                                      ],
-                                      [length]: 3
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [length]: 2
-                                ],
-                                [length]: 2
-                              ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [
-                                'MemberExpression',
-                                [
-                                  [
-                                    'Identifier',
-                                    'countDown',
-                                    [length]: 2
-                                  ],
-                                  [
-                                    'MembersList',
-                                    [
-                                      [
-                                        'NumberLiteral',
-                                        '7',
-                                        [length]: 2
-                                      ],
-                                      [ 'ColonSeparator', [length]: 1 ],
-                                      [length]: 2
-                                    ],
-                                    [length]: 2
-                                  ],
-                                  [length]: 2
-                                ],
-                                [length]: 2
-                              ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [length]: 6
-                            ],
-                            [length]: 2
+                                  [ 'NumberLiteral', '1' ],
+                                  [ 'CommaSeparator' ],
+                                  [ 'NumberLiteral', '4' ],
+                                  [ 'CommaSeparator' ],
+                                  [ 'NumberLiteral', '9' ]
+                                ]
+                              ]
+                            ]
                           ],
-                          [length]: 3
-                        ],
-                        [length]: 3
-                      ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [
-                        'Comment',
-                        '// new nested Arrays [[10, 9], [8, 7, 6, 5, 4], [3, 2, 1, 0]]',
-                        [length]: 2
-                      ],
-                      [
-                        'VariableDeclaration',
-                        'let',
-                        [
-                          [
-                            'Identifier',
-                            'selectedArrayItems',
-                            [length]: 2
-                          ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
-                          [
-                            'MemberExpression',
-                            [
-                              [
-                                'Identifier',
-                                'countDown',
-                                [length]: 2
-                              ],
-                              [
-                                'MembersList',
-                                [
-                                  [ 'NumberLiteral', '1', [length]: 2 ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [ 'NumberLiteral', '4', [length]: 2 ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [ 'NumberLiteral', '9', [length]: 2 ],
-                                  [length]: 5
-                                ],
-                                [length]: 2
-                              ],
-                              [length]: 2
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 3
-                        ],
-                        [length]: 3
-                      ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [
-                        'Comment',
-                        '// new array [9, 6, 1]',
-                        [length]: 2
-                      ],
-                      [
-                        'VariableDeclaration',
-                        'let',
-                        [
-                          [ 'Identifier', 'myObject', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
                           [
                             'BlockStatement',
                             [
-                              [ 'Identifier', 'a', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'NumberLiteral', '1', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [ 'Identifier', 'b', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'StringLiteral', 'coat', [length]: 2 ],
-                              [ 'Keyword', 'if', [length]: 2 ],
-                              [ 'Keyword', 'this', [length]: 2 ],
-                              [ 'Identifier', 'isDone?', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
+                              [ 'Comment', '// new array [9, 6, 1]' ],
                               [
-                                'Comment',
-                                '// if false, property will not be in object',
-                                [length]: 2
+                                'PrintStatement',
+                                [
+                                  [ 'Identifier', 'num' ]
+                                ]
                               ],
-                              [ 'Identifier', 'c', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'Identifier', 'cond', [length]: 2 ],
-                              [ 'Unknown', '?', [length]: 2 ],
-                              [ 'BoolLiteral', 'true', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'BoolLiteral', 'false', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [
-                                'Comment',
-                                '// regular ternary - property will always be there, value differs',
-                                [length]: 2
-                              ],
-                              [ 'Identifier', 'd', [length]: 2 ],
-                              [ 'ColonSeparator', [length]: 1 ],
-                              [ 'Nil', 'nil', [length]: 2 ],
-                              [ 'CommaSeparator', [length]: 1 ],
-                              [length]: 25
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 3
-                        ],
-                        [length]: 3
+                              [ 'SemicolonSeparator' ]
+                            ]
+                          ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
                       [
                         'VariableDeclaration',
                         'let',
                         [
-                          [ 'Identifier', 'partialObj', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
                           [
-                            'MemberExpression',
+                            'AssigneesList',
                             [
-                              [ 'Identifier', 'myObject', [length]: 2 ],
-                              [
-                                'MembersList',
-                                [
-                                  [ 'Identifier', 'a', [length]: 2 ],
-                                  [ 'CommaSeparator', [length]: 1 ],
-                                  [ 'Identifier', 'd', [length]: 2 ],
-                                  [length]: 3
-                                ],
-                                [length]: 2
-                              ],
-                              [length]: 2
-                            ],
-                            [length]: 2
+                              [ 'Identifier', 'myObject' ]
+                            ]
                           ],
-                          [length]: 3
-                        ],
-                        [length]: 3
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [
+                                'ObjectExpression',
+                                [
+                                  [
+                                    'Property',
+                                    [
+                                      [ 'Identifier', 'a' ],
+                                      [ 'NumberLiteral', '1' ]
+                                    ]
+                                  ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'Property',
+                                    [
+                                      [ 'Identifier', 'b' ],
+                                      [ 'StringLiteral', 'coat' ]
+                                    ]
+                                  ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'Property',
+                                    [
+                                      [ 'Identifier', 'c' ],
+                                      [
+                                        'TernaryExpression',
+                                        [
+                                          [
+                                            'TernaryCondition',
+                                            [
+                                              [ 'Identifier', 'cond' ]
+                                            ]
+                                          ],
+                                          [
+                                            'TernaryConsequent',
+                                            [
+                                              [ 'BoolLiteral', 'true' ]
+                                            ]
+                                          ],
+                                          [
+                                            'TernaryAlternate',
+                                            [
+                                              [
+                                                'BoolLiteral',
+                                                'false'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ],
+                                  [ 'CommaSeparator' ],
+                                  [
+                                    'Comment',
+                                    '// regular ternary - property will always be there, value differs'
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
+                      [ 'SemicolonSeparator' ],
                       [
-                        'Comment',
-                        '// new object {a: 1, d: nil}',
-                        [length]: 2
+                        'LoopStatement',
+                        [
+                          [
+                            'BlockStatement',
+                            [
+                              [ 'NextStatement' ],
+                              [ 'SemicolonSeparator' ],
+                              [ 'DoneStatement' ],
+                              [ 'SemicolonSeparator' ]
+                            ]
+                          ]
+                        ]
                       ],
+                      [ 'Comment', '// assign multiple variables' ],
                       [
                         'VariableDeclaration',
                         'const',
                         [
                           [
-                            'Identifier',
-                            'initializeAndAssignLater',
-                            [length]: 2
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'myBool' ],
+                              [ 'CommaSeparator' ],
+                              [ 'Identifier', 'myNumber' ],
+                              [ 'CommaSeparator' ],
+                              [ 'Identifier', 'myThing' ]
+                            ]
                           ],
-                          [ 'ColonSeparator', [length]: 1 ],
-                          [ 'Type', 'number', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
-                          [ 'NumberLiteral', '5', [length]: 2 ],
-                          [length]: 5
-                        ],
-                        [length]: 3
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [
+                                'CallExpression',
+                                [
+                                  [
+                                    'Identifier',
+                                    'methodThatReturnsBool?'
+                                  ],
+                                  [ 'ArgumentsList', [] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'VariableDeclaration',
+                        'const',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'myTuple' ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [
+                                'TupleExpression',
+                                [
+                                  [ 'NumberLiteral', '1' ],
+                                  [ 'CommaSeparator' ],
+                                  [ 'BoolLiteral', 'true' ],
+                                  [ 'CommaSeparator' ],
+                                  [ 'StringLiteral', 'string' ],
+                                  [ 'CommaSeparator' ],
+                                  [ 'Path', '@/foo' ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'VariableDeclaration',
+                        'let',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [ 'Identifier', 'partialObj' ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [
+                                'MemberListExpression',
+                                [
+                                  [ 'Identifier', 'myObject' ],
+                                  [
+                                    'MemberList',
+                                    [
+                                      [ 'Identifier', 'a' ],
+                                      [ 'CommaSeparator' ],
+                                      [ 'Identifier', 'd' ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [ 'Comment', "// new object {a: 1, d: 'foo'}" ],
+                      [
+                        'VariableDeclaration',
+                        'let',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [
+                                'Identifier',
+                                'initializeAndAssignLater'
+                              ]
+                            ]
+                          ],
+                          [ 'ColonSeparator' ],
+                          [
+                            'TypeArgumentsList',
+                            [
+                              [ 'Type', 'number' ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
+                      [
+                        'AssignmentExpression',
+                        [
+                          [
+                            'AssigneesList',
+                            [
+                              [
+                                'Identifier',
+                                'initializeAndAssignLater'
+                              ]
+                            ]
+                          ],
+                          [ 'AssignmentOperator' ],
+                          [
+                            'AssignablesList',
+                            [
+                              [ 'NumberLiteral', '5' ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [ 'SemicolonSeparator' ],
                       [
                         'ReturnStatement',
                         [
-                          [
-                            'Identifier',
-                            'initializeAndAssignLater',
-                            [length]: 2
-                          ],
-                          [length]: 1
-                        ],
-                        [length]: 2
+                          [ 'Identifier', 'initializeAndAssignLater' ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [length]: 25
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 3
-                ],
-                [length]: 2
+                      [ 'SemicolonSeparator' ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'Comment', '/** with args */', [length]: 2 ],
               [
                 'FunctionDeclaration',
                 [
-                  [ 'Identifier', 'methodWithArgs', [length]: 2 ],
+                  [ 'JoeDoc', '/** with args */' ],
+                  [ 'Identifier', 'methodWithArgs' ],
                   [
                     'ParametersList',
                     [
                       [
                         'Parameter',
                         [
-                          [ 'Identifier', 'arg1', [length]: 2 ],
-                          [ 'ColonSeparator', [length]: 1 ],
-                          [ 'Type', 'bool', [length]: 2 ],
-                          [length]: 3
-                        ],
-                        [length]: 2
+                          [ 'Identifier', 'arg1' ],
+                          [ 'ColonSeparator' ],
+                          [ 'Type', 'bool' ]
+                        ]
                       ],
-                      [ 'CommaSeparator', [length]: 1 ],
+                      [ 'CommaSeparator' ],
                       [
                         'Parameter',
                         [
-                          [ 'Identifier', 'arg2', [length]: 2 ],
-                          [ 'ColonSeparator', [length]: 1 ],
-                          [ 'Identifier', 'Tuple', [length]: 2 ],
-                          [length]: 3
-                        ],
-                        [length]: 2
+                          [ 'Identifier', 'arg2' ],
+                          [ 'ColonSeparator' ],
+                          [ 'Identifier', 'Tuple' ]
+                        ]
                       ],
-                      [ 'CommaSeparator', [length]: 1 ],
+                      [ 'CommaSeparator' ],
                       [
                         'Parameter',
                         [
-                          [ 'Identifier', 'arg3', [length]: 2 ],
-                          [ 'AssignmentOperator', '=', [length]: 2 ],
-                          [ 'BoolLiteral', 'true', [length]: 2 ],
-                          [length]: 3
-                        ],
-                        [length]: 2
+                          [ 'Identifier', 'arg3' ],
+                          [ 'AssignmentOperator' ],
+                          [ 'BoolLiteral', 'true' ]
+                        ]
                       ],
-                      [ 'CommaSeparator', [length]: 1 ],
+                      [ 'CommaSeparator' ],
                       [
                         'Parameter',
                         [
-                          [ 'RestElement', '...', [length]: 2 ],
-                          [ 'Identifier', 'otherStuff', [length]: 2 ],
-                          [ 'ColonSeparator', [length]: 1 ],
+                          [ 'RestElement', '...' ],
+                          [ 'Identifier', 'otherStuff' ],
+                          [ 'ColonSeparator' ],
                           [
-                            'ArrayType',
+                            'ArrayOf',
                             [
-                              [ 'Identifier', 'Thing', [length]: 2 ],
-                              [length]: 1
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 4
-                        ],
-                        [length]: 2
-                      ],
-                      [length]: 7
-                    ],
-                    [length]: 2
+                              [ 'Identifier', 'Thing' ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
                   ],
                   [
                     'BlockStatement',
                     [
-                      [ 'Comment', '/* ... */', [length]: 2 ],
-                      [length]: 1
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 3
-                ],
-                [length]: 2
+                      [ 'Comment', '/* ... */' ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'Comment', '/** with one return val */', [length]: 2 ],
               [
                 'FunctionDeclaration',
                 [
-                  [
-                    'Identifier',
-                    'methodThatReturnsBool?',
-                    [length]: 2
-                  ],
+                  [ 'JoeDoc', '/** with one return val */' ],
+                  [ 'Identifier', 'methodThatReturnsBool?' ],
                   [
                     'FunctionReturns',
-                    [ [ 'Type', 'bool', [length]: 2 ], [length]: 1 ],
-                    [length]: 2
+                    [
+                      [ 'Type', 'bool' ]
+                    ]
                   ],
                   [
                     'BlockStatement',
@@ -845,40 +907,28 @@
                       [
                         'ReturnStatement',
                         [
-                          [ 'BoolLiteral', 'true', [length]: 2 ],
-                          [length]: 1
-                        ],
-                        [length]: 2
+                          [ 'BoolLiteral', 'true' ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [length]: 2
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 3
-                ],
-                [length]: 2
+                      [ 'SemicolonSeparator' ]
+                    ]
+                  ]
+                ]
               ],
-              [ 'Comment', '/** multiple return vals */', [length]: 2 ],
               [
                 'FunctionDeclaration',
                 [
-                  [
-                    'Identifier',
-                    'methodThatReturnsBool?',
-                    [length]: 2
-                  ],
+                  [ 'JoeDoc', '/** multiple return vals */' ],
+                  [ 'Identifier', 'methodThatReturnsBool?' ],
                   [
                     'FunctionReturns',
                     [
-                      [ 'Type', 'bool', [length]: 2 ],
-                      [ 'CommaSeparator', [length]: 1 ],
-                      [ 'Type', 'number', [length]: 2 ],
-                      [ 'CommaSeparator', [length]: 1 ],
-                      [ 'Identifier', 'Thing', [length]: 2 ],
-                      [length]: 5
-                    ],
-                    [length]: 2
+                      [ 'Type', 'bool' ],
+                      [ 'CommaSeparator' ],
+                      [ 'Type', 'number' ],
+                      [ 'CommaSeparator' ],
+                      [ 'Identifier', 'Thing' ]
+                    ]
                   ],
                   [
                     'BlockStatement',
@@ -886,95 +936,34 @@
                       [
                         'ReturnStatement',
                         [
-                          [ 'BoolLiteral', 'false', [length]: 2 ],
-                          [ 'CommaSeparator', [length]: 1 ],
-                          [ 'NumberLiteral', '5', [length]: 2 ],
-                          [ 'CommaSeparator', [length]: 1 ],
-                          [ 'Keyword', 'new', [length]: 2 ],
+                          [ 'BoolLiteral', 'false' ],
+                          [ 'CommaSeparator' ],
+                          [ 'NumberLiteral', '5' ],
+                          [ 'CommaSeparator' ],
                           [
                             'CallExpression',
                             [
-                              [ 'Identifier', 'Thing', [length]: 2 ],
                               [
-                                'ArgumentsList',
-                                [ [length]: 0 ],
-                                [length]: 2
+                                'MemberExpression',
+                                [
+                                  [ 'Identifier', 'Thing' ],
+                                  [ 'Identifier', 'create' ]
+                                ]
                               ],
-                              [length]: 2
-                            ],
-                            [length]: 2
-                          ],
-                          [length]: 6
-                        ],
-                        [length]: 2
+                              [ 'ArgumentsList', [] ]
+                            ]
+                          ]
+                        ]
                       ],
-                      [ 'SemicolonSeparator', [length]: 1 ],
-                      [length]: 2
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 3
-                ],
-                [length]: 2
-              ],
-              [
-                'Comment',
-                '/** method that throws error */',
-                [length]: 2
-              ],
-              [
-                'FunctionDeclaration',
-                [
-                  [ 'Identifier', 'careful!', [length]: 2 ],
-                  [
-                    'BlockStatement',
-                    [
-                      [ 'Comment', '/* ... */', [length]: 2 ],
-                      [length]: 1
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 2
-                ],
-                [length]: 2
-              ],
-              [
-                'Comment',
-                '/** method with bool return that throws error */',
-                [length]: 2
-              ],
-              [
-                'FunctionDeclaration',
-                [
-                  [ 'Identifier', 'careful?!', [length]: 2 ],
-                  [
-                    'FunctionReturns',
-                    [ [ 'Type', 'bool', [length]: 2 ], [length]: 1 ],
-                    [length]: 2
-                  ],
-                  [
-                    'BlockStatement',
-                    [
-                      [ 'Comment', '/* ... */', [length]: 2 ],
-                      [length]: 1
-                    ],
-                    [length]: 2
-                  ],
-                  [length]: 3
-                ],
-                [length]: 2
-              ],
-              [length]: 18
-            ],
-            [length]: 2
-          ],
-          [length]: 4
-        ],
-        [length]: 2
-      ],
-      [length]: 4
-    ],
-    [length]: 2
-  ],
-  [length]: 1
+                      [ 'SemicolonSeparator' ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
 ]

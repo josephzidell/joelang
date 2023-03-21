@@ -1,18 +1,19 @@
 # joelang
-A scripting language focused on easy reading
+A scripting language focused on easy reading. [Read the docs](https://joelang.dev)
 
 ## Quick Start
 
 ```bash
-# run the lexer
-npm run --silent lexify -- 'your expression' # lexify an expression
-npm run --silent lexify -- "$(cat path/to/file.joe)" # lexify a .joe file
-npm run --silent lexify -- '...' file.tokens # send the tokens output to a file
+# compile a .joe file (ATM only analyzes)
+./joec main.joe # outputs 3 files [main.tokens, main.parse-tree, main.ast.json]
 
-# run the parser
-npm run --silent parse -- 'your expression' # parse an expression
-npm run --silent parse -- "$(cat path/to/file.joe)" # parse a .joe file
-npm run --silent parse -- '...' file.parse-tree # send the Parse Tree output to a file
+# There is an example .joe file at examples/example1/main.joe
+
+# play with the compiler, parser, or lexer
+./joec -i '...' # run the compiler; will output the AST as objects
+./joec -i '...' --json # run the compiler; will output the AST as JSON
+./joec -i '...' -p # parse only, do not analyze; will output the Parse Tree
+./joec -i '...' -l # (that's the lowercase L, not the number 1) lexify only, do not parse; will console.table()'s the Tokens
 
 # run the transpiler
 npm run --silent transpile -- <lang> 'your expression' # transpile an expression
@@ -21,15 +22,6 @@ npm run --silent transpile -- <lang> '...' file.<ext> # send the new code to a f
 
 # run the tests
 npm test
-
-# run lexer example1
-npm run --silent lexify -- "$(cat examples/example1/main.joe)" examples/example1/main.tokens
-# run parser example1
-npm run --silent parse -- "$(cat examples/example1/main.joe)" examples/example1/main.parse-tree
-# transpile example1 to Golang
-npm run --silent transpile -- go "$(cat examples/example1/main.joe)" examples/example1/main.go
-# transpile example1 to Typescript
-npm run --silent transpile -- ts "$(cat examples/example1/main.joe)" examples/example1/main.ts
 ```
 
 ## Challenge
@@ -42,7 +34,7 @@ Let's establish a few ground truths, which I think we can agree on:
 
 
 ## Solution
-[KISS](https://en.wikipedia.org/wiki/KISS_principle). Keep the syntax concise, simlar to ruby, but without the magic.
+[KISS](https://en.wikipedia.org/wiki/KISS_principle). Keep the syntax simple, and easy to read and understand.
 
 In reality, simplicity is hard. But we do the hard work so you can do the easy work.
 
