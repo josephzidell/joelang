@@ -11,6 +11,10 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitArrayExpression(node) as Result<T>,
 	[NT.ArrayOf]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitArrayOf(node) as Result<T>,
+	[NT.AssignablesList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitAssignablesList(node) as Result<T>,
+	[NT.AssigneesList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitAssigneesList(node) as Result<T>,
 	[NT.AssignmentExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitAssignmentExpression(node) as Result<T>,
 	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>

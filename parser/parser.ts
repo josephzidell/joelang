@@ -27,6 +27,7 @@ export default class Parser {
 	// node types that when faced with a semicolon, will be ended
 	nodeTypesThatASemicolonEnds: NT[] = [
 		NT.ArrayExpression,
+		NT.AssignablesList,
 		NT.AssignmentExpression,
 		NT.BinaryExpression,
 		NT.FunctionDeclaration, // for abstract functions
@@ -43,6 +44,7 @@ export default class Parser {
 		NT.ReturnStatement,
 		NT.TernaryAlternate,
 		NT.TernaryExpression,
+		NT.TypeArgumentsList,
 		NT.UnaryExpression,
 		NT.VariableDeclaration,
 		NT.WhenExpression,
@@ -320,15 +322,32 @@ export default class Parser {
 				// this could be a BlockStatement or an ObjectExpression
 				const [, prevType] = this.prev();
 				const nodeTypesThatPrecedeAnObjectExpression: NT[] = [
-					NT.AssignmentOperator,
+					NT.AssignablesList,
 					NT.ArgumentsList,
 					NT.TypeArgumentsList,
 				];
+				const nodeTypesThatParentAnObjectExpression: NT[] = [NT.AssignablesList];
 				const nodeTypesThatParentAnObjectShape: NT[] = [
-					NT.VariableDeclaration,
 					NT.ArgumentsList,
+					NT.TypeArgumentsList,
 				];
-				if (typeof prevType === 'undefined') {
+				if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
+					if (this.debug) {
+						console.debug('Beginning an ObjectShape');
+					}
+
+					this.beginExpressionWith(
+						MakeNode(NT.ObjectShape, token, this.currentRoot, true),
+					);
+				} else if (nodeTypesThatParentAnObjectExpression.includes(this.currentRoot.type)) {
+					if (this.debug) {
+						console.debug('Beginning an ObjectExpression');
+					}
+
+					this.beginExpressionWith(
+						MakeNode(NT.ObjectExpression, token, this.currentRoot, true),
+					);
+				} else if (typeof prevType === 'undefined') {
 					if (this.debug) {
 						console.debug('Beginning a BlockStatement');
 					}
@@ -346,14 +365,6 @@ export default class Parser {
 
 					this.beginExpressionWith(
 						MakeNode(NT.ObjectExpression, token, this.currentRoot, true),
-					);
-				} else if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
-					if (this.debug) {
-						console.debug('Beginning an ObjectShape');
-					}
-
-					this.beginExpressionWith(
-						MakeNode(NT.ObjectShape, token, this.currentRoot, true),
 					);
 				} else {
 					if (this.debug) {
@@ -581,6 +592,20 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
 				}
 
+				// if we're in a VariableDeclaration, we begin an AssigneesList
+				if (this.currentRoot.type === NT.VariableDeclaration) {
+					if (this.debug) {
+						console.debug(
+							`Creating an AssigneesList Node in ${this.currentRoot.type} for "${token.value}"`,
+						);
+					}
+
+					// begin an AssigneesList node
+					this.beginExpressionWith(
+						MakeNode(NT.AssigneesList, token, this.currentRoot, true),
+					);
+				}
+
 				if (this.debug) {
 					console.debug(
 						`Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`,
@@ -604,20 +629,84 @@ export default class Parser {
 					this.addNode(MakeNode(NT.Comment, token, this.currentRoot));
 				}
 			} else if (token.type === 'assign') {
+				// end an AssigneesList if we're in one
+				this.endExpressionIfIn(NT.AssigneesList);
+
+				// end a TypeArgumentsList if we're in one
+				this.endExpressionIfIn(NT.TypeArgumentsList);
+
 				if (
 					!([NT.Parameter, NT.VariableDeclaration] as NT[]).includes(
 						this.currentRoot.type,
 					)
 				) {
-					const result = this.beginExpressionWithAdoptingPreviousNode(
-						MakeNode(NT.AssignmentExpression, token, this.currentRoot, true),
-					);
-					if (result.outcome === 'error') {
-						return result;
+					// create an AssigneesList node taking the previous node as its child
+					{
+						const result = this.beginExpressionWithAdoptingPreviousNode(
+							MakeNode(NT.AssigneesList, token, this.currentRoot, true),
+						);
+						if (result.outcome === 'error') {
+							return result;
+						}
+					}
+
+					// then create an AssignmentExpression node taking the AssigneesList as its child
+					{
+						const result = this.beginExpressionWithAdoptingCurrentRoot(
+							MakeNode(NT.AssignmentExpression, token, this.currentRoot, true),
+						);
+						if (result.outcome === 'error') {
+							return result;
+						}
+					}
+
+					// the currentRoot is now the AssignmentExpression and its child is the AssigneesList
+
+					// Check backwards for other identifiers as this may be assigning
+					// multiple variables. Get this.currentRoot's previous siblings
+					// in pairs of two and check if they're an identifier and a comma
+					let oneSiblingBack = this.currentRoot.parent?.children.at(-2);
+					let twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
+					while (
+						oneSiblingBack?.type === NT.CommaSeparator &&
+						twoSiblingsBack?.type === NT.Identifier
+					) {
+						// adopt the CommaSeparator and place it as the currentRoot's first grandchild
+						this.adoptNode(
+							this.currentRoot.parent,
+							oneSiblingBack,
+							this.currentRoot.children[0],
+							false,
+						);
+
+						// adopt the Identifier and place it as the currentRoot's first grandchild
+						this.adoptNode(
+							this.currentRoot.parent,
+							twoSiblingsBack,
+							this.currentRoot.children[0],
+							false,
+						);
+
+						// keep on going back and checking for more identifiers and commas
+						// we don't have to decrement the index because each time a node
+						// is adopted, it is removed from the parent's children array
+						// This cycle continues in pairs of two.
+						oneSiblingBack = this.currentRoot.parent?.children.at(-2);
+						twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
 					}
 				}
 
 				this.addNode(MakeNode(NT.AssignmentOperator, token, this.currentRoot, true));
+
+				if (
+					this.currentRoot.type === NT.VariableDeclaration ||
+					this.currentRoot.type === NT.AssignmentExpression
+				) {
+					// now begin an NT.AssignablesList node
+					this.beginExpressionWith(
+						MakeNode(NT.AssignablesList, token, this.currentRoot, true),
+					);
+				}
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn(NT.UnaryExpression);
 				const result = this.handleBinaryExpression(token);
@@ -814,7 +903,15 @@ export default class Parser {
 							return result;
 						}
 					} else {
+						this.endExpressionIfIn(NT.AssigneesList);
+
 						this.addNode(MakeNode(NT.ColonSeparator, token, this.currentRoot));
+
+						if (this.currentRoot.type === NT.VariableDeclaration) {
+							this.beginExpressionWith(
+								MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true),
+							);
+						}
 					}
 				}
 			} else if (token.type === 'comma') {
@@ -1071,7 +1168,10 @@ export default class Parser {
 					NT.UnaryExpression,
 				];
 
-				if (this.currentRoot.type === NT.FunctionReturns) {
+				if (
+					this.currentRoot.type === NT.FunctionReturns ||
+					this.currentRoot.type === NT.TypeArgumentsList
+				) {
 					this.beginExpressionWith(
 						MakeNode(NT.TupleShape, token, this.currentRoot, true),
 					);
@@ -1441,6 +1541,7 @@ export default class Parser {
 					case 'in':
 						{
 							// eg. for const i in ary {}, so we end the VariableDeclaration
+							this.endExpressionIfIn(NT.AssigneesList);
 							this.endExpressionIfIn(NT.VariableDeclaration);
 
 							// check the previous node, which should be either a VariableDeclaration or an Identifier
@@ -1875,11 +1976,13 @@ export default class Parser {
 	 * @param adopteesParent - Parent node
 	 * @param childIndex - Of the child up for adoption
 	 * @param adopter - The adopter
+	 * @param addToEnd - Whether to add to the end of the adopter's children. Default is true. If false, it will add to the beginning of the adopter's children.
 	 */
 	private adoptNode(
 		adopteesParent: Node | undefined,
 		adoptee: Node,
 		adopter: Node,
+		addToEnd = true,
 	): Result<undefined> {
 		if (typeof adopteesParent === 'undefined') {
 			return error(
@@ -1905,7 +2008,14 @@ export default class Parser {
 		// console.debug(adopteesParent.children);
 
 		// (b) Attach currentRoot to newKid's children
-		adopter.children.push(copy);
+		if (addToEnd) {
+			// at the end
+			adopter.children.push(copy);
+		} else {
+			// at the beginning
+			adopter.children.unshift(copy);
+		}
+
 		copy.parent = adopter;
 
 		return ok(undefined);

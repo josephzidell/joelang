@@ -3,6 +3,8 @@ export enum NT {
 	ArgumentsList = 'ArgumentsList',
 	ArrayExpression = 'ArrayExpression',
 	ArrayOf = 'ArrayOf',
+	AssignablesList = 'AssignablesList',
+	AssigneesList = 'AssigneesList',
 	AssignmentExpression = 'AssignmentExpression',
 	AssignmentOperator = 'AssignmentOperator',
 	BinaryExpression = 'BinaryExpression',

@@ -86,16 +86,16 @@ export class ASTArrayOf extends AST {
 
 export class ASTAssignmentExpression extends AST {
 	kind = 'AssignmentExpression';
-	left!: ASTIdentifier | ASTMemberExpression;
-	right!: AssignableASTs;
+	left: Array<ASTIdentifier | ASTMemberExpression> = [];
+	right: AssignableASTs[] = [];
 
 	// factory function
 	static _({
 		left,
 		right,
 	}: {
-		left: ASTIdentifier | ASTMemberExpression;
-		right: AssignableASTs;
+		left: Array<ASTIdentifier | ASTMemberExpression>;
+		right: AssignableASTs[];
 	}): ASTAssignmentExpression {
 		const ast = new ASTAssignmentExpression();
 		ast.left = left;
@@ -967,33 +967,33 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	mutable!: boolean;
-	identifier!: ASTIdentifier;
+	identifiersList!: ASTIdentifier[];
 
-	/** The type declared by the source code, if any */
-	declaredType?: ASTType;
+	/** The types declared by the source code, if any */
+	declaredTypes: ASTType[] = [];
 
-	initialValue?: AssignableASTs;
+	initialValues: AssignableASTs[] = [];
 
-	/** The type inferred from the initial value, if any */
-	inferredType?: ASTType;
+	/** The types inferred from the initial value, if any */
+	inferredTypes: ASTType[] = [];
 
 	// factory function
 	static _({
 		joeDoc,
 		modifiers,
 		mutable,
-		identifier,
-		declaredType,
-		initialValue,
-		inferredType,
+		identifiersList,
+		declaredTypes,
+		initialValues,
+		inferredTypes,
 	}: {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		mutable: boolean;
-		identifier: ASTIdentifier;
-		declaredType?: ASTType;
-		initialValue?: AssignableASTs;
-		inferredType?: ASTType;
+		identifiersList: ASTIdentifier[];
+		declaredTypes: ASTType[];
+		initialValues: AssignableASTs[];
+		inferredTypes: ASTType[];
 	}): ASTVariableDeclaration {
 		const ast = new ASTVariableDeclaration();
 
@@ -1004,22 +1004,10 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 		ast.modifiers = modifiers;
 		ast.mutable = mutable;
-		ast.identifier = identifier;
-
-		// only set if it's not undefined
-		if (typeof declaredType !== 'undefined') {
-			ast.declaredType = declaredType;
-		}
-
-		// only set if it's not undefined
-		if (typeof initialValue !== 'undefined') {
-			ast.initialValue = initialValue;
-		}
-
-		// only set if it's not undefined
-		if (typeof inferredType !== 'undefined') {
-			ast.inferredType = inferredType;
-		}
+		ast.identifiersList = identifiersList;
+		ast.declaredTypes = declaredTypes;
+		ast.initialValues = initialValues;
+		ast.inferredTypes = inferredTypes;
 
 		return ast;
 	}
