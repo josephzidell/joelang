@@ -26,7 +26,7 @@ export default class {
 		this.currentParseTreeRoot = this.parseTreeRoot;
 
 		this.syntaxTreeRoot = {
-			type: 'Program',
+			type: Parse.NT.Program,
 			pos: {
 				start: 0,
 				end: 0, // this will be updated
@@ -48,7 +48,7 @@ export default class {
 				throw new SyntaxError(`TBH, we were not expecting a ${child.type}. Instead we were hoping for one of these (${allowedChildren.join(', ')})`, this.syntaxTreeRoot);
 			}
 
-			if (this.currentSyntaxTreeRoot.type === 'Program') {
+			if (this.currentSyntaxTreeRoot.type === Parse.NT.Program) {
 				(this.currentSyntaxTreeRoot as Syntax.ProgramNode).children.push(this.convert(child));
 			}
 		});
@@ -60,57 +60,82 @@ export default class {
 		return this.syntaxTreeRoot;
 	}
 
-	private getAllowedChildrenFor (node: Parse.NodeType) {
-		const hasNoChildren: Parse.NodeType[] = [];
+	private getAllowedChildrenFor (node: Parse.NT) {
+		const hasNoChildren: Parse.NT[] = [];
 
-		const hasValue: Parse.NodeType[] = ['ArrayExpression', 'BoolLiteral', 'CallExpression', 'Identifier', 'NumberLiteral', 'RegularExpression', 'StringLiteral', 'WhenExpression']; // TODO add Tuple, POJO
+		const hasValue: Parse.NT[] = [Parse.NT.ArrayExpression, Parse.NT.BoolLiteral, Parse.NT.CallExpression, Parse.NT.Identifier, Parse.NT.NumberLiteral, Parse.NT.RegularExpression, Parse.NT.StringLiteral, Parse.NT.WhenExpression]; // TODO add Tuple, POJO
 
-		const map: { [key in Parse.NodeType]: Parse.NodeType[] } = {
-			'AdditionOperator': hasNoChildren,
-			'ArgumentsList': hasValue,
-			'ArrayExpression': hasValue,
-			'AssignmentOperator': hasNoChildren,
-			'BinaryExpression': ['BoolLiteral', 'NumberLiteral'],
-			'BlockStatement': ['CallExpression', 'ReturnStatement', 'VariableDeclaration', 'WhenExpression'], // TODO add if, loop
-			'BoolLiteral': hasNoChildren,
-			'CallExpression': ['Identifier', 'GenericTypesList', 'ArgumentsList'],
-			'ColonSeparator': hasNoChildren,
-			'CommaSeparator': hasNoChildren,
-			'Comment': hasNoChildren,
-			'DivisionOperator': hasNoChildren,
-			'FunctionDeclaration': ['Identifier', 'GenericTypesList', 'ParametersList', 'FunctionReturns', 'BlockStatement'],
-			'FunctionReturns': ['Identifier', 'Type'],
-			'GenericTypesList': ['Identifier', 'Type'],
-			'Identifier': hasNoChildren,
-			'ImportDeclaration': ['Identifier', 'Path'],
-			'Keyword': hasNoChildren,
-			'MemberExpression': ['Identifier', 'NumberLiteral'], // TODO make this work with symbols instead?
-			'MembersList': ['Identifier', 'NumberLiteral', 'StringLiteral'],
-			'ModOperator': hasNoChildren,
-			'MultiplicationOperator': hasNoChildren,
-			'Nil': hasNoChildren,
-			'NumberLiteral': hasNoChildren,
-			'ParametersList': ['Identifier', 'ColonSeparator', 'Type', 'AssignmentOperator', 'ArrayExpression', 'BoolLiteral', 'NumberLiteral', 'RegularExpression', 'RestElement', 'StringLiteral'], // TODO add Tuple, POJO
-			'Parenthesized': hasNoChildren,
-			'Path': hasNoChildren,
-			'PrintStatement': hasValue,
-			'Program': ['FunctionDeclaration'],
-			'RangeExpression': ['NumberLiteral', 'CallExpression', 'MemberExpression'],
-			'RegularExpression': hasNoChildren,
-			'RestElement': ['Type'],
-			'ReturnStatement': hasValue,
-			'RightArrowOperator': hasNoChildren,
-			'SemicolonSeparator': hasNoChildren,
-			'StringLiteral': hasNoChildren,
-			'SubtractionOperator': hasNoChildren,
-			'Type': hasNoChildren,
-			'UnaryExpression': ['BoolLiteral', 'NumberLiteral', 'CallExpression', 'MemberExpression'],
-			'Unknown': hasNoChildren, // lol
-			'VariableDeclaration': ['Identifier', 'ColonSeparator', 'Type', 'AssignmentOperator', ...hasValue],
-			'WhenCase': ['WhenCaseTests', 'WhenCaseConsequent'],
-			'WhenCaseConsequent': ['BlockStatement', ...hasValue],
-			'WhenCaseTests': ['BoolLiteral', 'NumberLiteral', 'StringLiteral', 'RestElement'],
-			'WhenExpression': ['Identifier', 'CallExpression', 'MemberExpression', 'WhenCase'],
+		const map: { [key in Parse.NT]: Parse.NT[] } = {
+			[Parse.NT.ArgumentsList]: hasValue,
+			[Parse.NT.ArrayExpression]: hasValue,
+			[Parse.NT.AssignmentOperator]: hasNoChildren,
+			[Parse.NT.BinaryExpression]: [Parse.NT.BoolLiteral, Parse.NT.NumberLiteral],
+			[Parse.NT.BlockStatement]: [Parse.NT.CallExpression, Parse.NT.ReturnStatement, Parse.NT.VariableDeclaration, Parse.NT.WhenExpression],
+			[Parse.NT.BoolLiteral]: hasNoChildren,
+			[Parse.NT.CallExpression]: [Parse.NT.Identifier, Parse.NT.TypeArgumentsList, Parse.NT.ArgumentsList],
+			[Parse.NT.ColonSeparator]: hasNoChildren,
+			[Parse.NT.CommaSeparator]: hasNoChildren,
+			[Parse.NT.Comment]: hasNoChildren,
+			[Parse.NT.FunctionDeclaration]: [Parse.NT.Identifier, Parse.NT.TypeParametersList, Parse.NT.ParametersList, Parse.NT.FunctionReturns, Parse.NT.BlockStatement],
+			[Parse.NT.FunctionReturns]: [Parse.NT.Identifier, Parse.NT.Type],
+			[Parse.NT.TypeArgumentsList]: [Parse.NT.Identifier, Parse.NT.Type],
+			[Parse.NT.Identifier]: hasNoChildren,
+			[Parse.NT.ImportDeclaration]: [Parse.NT.Identifier, Parse.NT.Path],
+			[Parse.NT.Keyword]: hasNoChildren,
+			[Parse.NT.MemberExpression]: [Parse.NT.Identifier, Parse.NT.NumberLiteral],
+			[Parse.NT.MembersList]: [Parse.NT.Identifier, Parse.NT.NumberLiteral, Parse.NT.StringLiteral],
+			[Parse.NT.NumberLiteral]: hasNoChildren,
+			[Parse.NT.ParametersList]: [Parse.NT.Identifier, Parse.NT.ColonSeparator, Parse.NT.Type, Parse.NT.AssignmentOperator, Parse.NT.ArrayExpression, Parse.NT.BoolLiteral, Parse.NT.NumberLiteral, Parse.NT.RegularExpression, Parse.NT.RestElement, Parse.NT.StringLiteral],
+			[Parse.NT.Parenthesized]: hasNoChildren,
+			[Parse.NT.Path]: hasNoChildren,
+			[Parse.NT.PrintStatement]: hasValue,
+			[Parse.NT.Program]: [Parse.NT.FunctionDeclaration],
+			[Parse.NT.RangeExpression]: [Parse.NT.NumberLiteral, Parse.NT.CallExpression, Parse.NT.MemberExpression],
+			[Parse.NT.RegularExpression]: hasNoChildren,
+			[Parse.NT.RestElement]: [Parse.NT.Type],
+			[Parse.NT.ReturnStatement]: hasValue,
+			[Parse.NT.RightArrowOperator]: hasNoChildren,
+			[Parse.NT.SemicolonSeparator]: hasNoChildren,
+			[Parse.NT.StringLiteral]: hasNoChildren,
+			[Parse.NT.Type]: hasNoChildren,
+			[Parse.NT.UnaryExpression]: [Parse.NT.BoolLiteral, Parse.NT.NumberLiteral, Parse.NT.CallExpression, Parse.NT.MemberExpression],
+			[Parse.NT.Unknown]: hasNoChildren,
+			[Parse.NT.VariableDeclaration]: [Parse.NT.Identifier, Parse.NT.ColonSeparator, Parse.NT.Type, Parse.NT.AssignmentOperator, ...hasValue],
+			[Parse.NT.WhenCase]: [Parse.NT.WhenCaseTests, Parse.NT.WhenCaseConsequent],
+			[Parse.NT.WhenCaseConsequent]: [Parse.NT.BlockStatement, ...hasValue],
+			[Parse.NT.WhenCaseTests]: [Parse.NT.BoolLiteral, Parse.NT.NumberLiteral, Parse.NT.StringLiteral, Parse.NT.RestElement],
+			[Parse.NT.WhenExpression]: [Parse.NT.Identifier, Parse.NT.CallExpression, Parse.NT.MemberExpression, Parse.NT.WhenCase],
+			
+			// TODO
+			[Parse.NT.ArrayType]: [],
+			[Parse.NT.BreakStatement]: [],
+			[Parse.NT.ClassDeclaration]: [],
+			[Parse.NT.ClassExtensionsList]: [],
+			[Parse.NT.ClassImplementsList]: [],
+			[Parse.NT.ElseStatement]: [],
+			[Parse.NT.ForStatement]: [],
+			[Parse.NT.IfStatement]: [],
+			[Parse.NT.InterfaceDeclaration]: [],
+			[Parse.NT.InterfaceExtensionsList]: [],
+			[Parse.NT.JoeDoc]: [],
+			[Parse.NT.Loop]: [],
+			[Parse.NT.Modifier]: [],
+			[Parse.NT.ModifiersList]: [],
+			[Parse.NT.ObjectExpression]: [],
+			[Parse.NT.ObjectType]: [],
+			[Parse.NT.Parameter]: [],
+			[Parse.NT.Property]: [],
+			[Parse.NT.RepeatStatement]: [],
+			[Parse.NT.TernaryCondition]: [],
+			[Parse.NT.TernaryElse]: [],
+			[Parse.NT.TernaryExpression]: [],
+			[Parse.NT.TernaryThen]: [],
+			[Parse.NT.TupleExpression]: [],
+			[Parse.NT.TupleType]: [],
+			[Parse.NT.Typed]: [],
+			[Parse.NT.TypeParameter]: [],
+			[Parse.NT.TypeParametersList]: [],
+			[Parse.NT.WhileStatement]: []
 		};
 
 		return map[node];
@@ -160,7 +185,7 @@ export default class {
 	/**
 	 * check if currentRoot is of the desired type, if so, it's finished
 	 */
-	private endExpressionIfIn (type: Parse.NodeType) {
+	private endExpressionIfIn (type: Parse.NT) {
 		if (this.currentParseTreeRoot.type === type) {
 			this.endExpression();
 		}

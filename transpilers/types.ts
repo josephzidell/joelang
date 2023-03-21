@@ -1,4 +1,4 @@
-import { AdditionOperatorNode, MultiplicationOperatorNode, nodes } from "../syntax/types";
+import { nodes } from "../syntax/types";
 
 export type VisitorSet = { [ key in keyof nodes ] : (node: nodes[key]) => string };
 
