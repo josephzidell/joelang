@@ -7799,6 +7799,87 @@ describe('parser.ts', (): void => {
 				],
 			);
 		});
+
+		it('.. with two in a row', () => {
+			testParseAndAnalyze(
+				'let count, countDown = 1 .. myArray[2], myArray[1] .. 0;',
+				[
+					[
+						NT.VariableDeclaration,
+						'let',
+						[
+							[
+								NT.AssigneesList,
+								[
+									[NT.Identifier, 'count'],
+									[NT.CommaSeparator],
+									[NT.Identifier, 'countDown'],
+								],
+							],
+							[NT.AssignmentOperator],
+							[
+								NT.AssignablesList,
+								[
+									[
+										NT.RangeExpression,
+										[
+											[NT.NumberLiteral, '1'],
+											[
+												NT.MemberExpression,
+												[
+													[NT.Identifier, 'myArray'],
+													[NT.NumberLiteral, '2'],
+												],
+											],
+										],
+									],
+									[NT.CommaSeparator],
+									[
+										NT.RangeExpression,
+										[
+											[
+												NT.MemberExpression,
+												[
+													[NT.Identifier, 'myArray'],
+													[NT.NumberLiteral, '1'],
+												],
+											],
+											[NT.NumberLiteral, '0'],
+										],
+									],
+								],
+							],
+						],
+					],
+					[NT.SemicolonSeparator],
+				],
+				[
+					ASTVariableDeclaration._({
+						modifiers: [],
+						mutable: true,
+						identifiersList: [ASTIdentifier._('count'), ASTIdentifier._('countDown')],
+						declaredTypes: [],
+						initialValues: [
+							ASTRangeExpression._({
+								lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
+								upper: ASTMemberExpression._({
+									object: ASTIdentifier._('myArray'),
+									property: ASTNumberLiteral._({ format: 'int', value: 2 }),
+								}),
+							}),
+							ASTRangeExpression._({
+								lower: ASTMemberExpression._({
+									object: ASTIdentifier._('myArray'),
+									property: ASTNumberLiteral._({ format: 'int', value: 1 }),
+								}),
+								upper: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							}),
+						],
+						inferredTypes: [ASTTypeRange._(), ASTTypeRange._()],
+					}),
+				],
+			);
+		});
 	});
 
 	describe('Types', (): void => {

@@ -949,6 +949,8 @@ export default class Parser {
 					this.currentRoot.type === NT.PropertyShape
 				) {
 					this.endExpression();
+				} else if (this.currentRoot.type === NT.RangeExpression) {
+					this.endExpression();
 				}
 
 				// postfix `if` in an array
