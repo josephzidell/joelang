@@ -9,11 +9,11 @@ digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 
 hexDigit = digit | "a" | "A" | "b" | "B" | "c" | "C" | "d" | "D" | "e" | "E" | "f" | "F" ;
 
-hexadecimal = "0" ( "x" | "X" ) hexDigit { hexDigit } ;
+hexadecimal = "0" , ( "x" | "X" ) , hexDigit , { hexDigit } ;
 
 integer = digit , { digit } ;
 
-decimal = integer , ".", integer ;
+decimal = integer , "." , integer ;
 
 number = [ "-" ] , ( integer | decimal | exponent ) ;
 
@@ -36,29 +36,29 @@ identifierStartChar = letter | '_' ;
 
 identifierChar = letter | digit | '_' ;
 
-identifier = identifierStartChar , { identifierChar }
+identifier = identifierStartChar , { identifierChar } ;
 
 genericTypes = "<|" , identifierWithPossibleGenericTypes , { "," , identifierWithPossibleGenericTypes } , "|>" ;
 
 identifierWithPossibleGenericTypes = identifier , [ genericTypes ] ;
 
-possibleBoolIdentifier = identifier , [ "?" ]
+possibleBoolIdentifier = identifier , [ "?" ] ;
 
 possibleBoolIdentifierWithPossibleGenericTypes = possibleBoolIdentifier , [ genericTypes ] ;
 
-memberObject = identifierWithPossibleGenericTypes | memberExpressionUsingDotNotation | memberExpressionUsingBracketNotation ;
+memberObject = ( identifierWithPossibleGenericTypes | memberExpressionUsingDotNotation | memberExpressionUsingBracketNotation ) ;
 
 memberExpressionUsingDotNotation = memberObject , "." , possibleBoolIdentifierWithPossibleGenericTypes ;
 
 memberExpressionUsingBracketNotation = memberObject , "[" , expression , "]" ;
 
-memberExpression = memberExpressionUsingDotNotation | memberExpressionUsingBracketNotation ;
+memberExpression = ( memberExpressionUsingDotNotation | memberExpressionUsingBracketNotation ) ;
 
-doubleQuotedString = '"' , (~'"' | '\\"')* , '"' ;
+doubleQuotedString = '"' , { ( ~'"' | '\\"' ) } , '"' ;
 
-singleQuotedString = "'" , (~"'" | "\\'")* , "'" ;
+singleQuotedString = "'" , { ( ~"'" | "\\'" ) } , "'" ;
 
-string = doubleQuotedString | singleQuotedString ;
+string = ( doubleQuotedString | singleQuotedString ) ;
 
 escapedChar = "\\" , ( "'" | '"' | "\\" | "n" | "t" | "r" | "b" | "f" ) ;
 
@@ -67,15 +67,17 @@ escapedChar = "\\" , ( "'" | '"' | "\\" | "n" | "t" | "r" | "b" | "f" ) ;
 
 path = ( "@" | "." ) , "/" , identifier , { "/" , identifier } , ( ("." , identifier ) | "/" ) ;
 
-type = identifierWithPossibleGenericTypes | arrayShape | functionSignature | objectShape | tupleShape ;
+type = ( identifierWithPossibleGenericTypes | arrayShape | functionSignature | objectShape | tupleShape ) ;
 
 types = type , { "," , type } ;
 
-typeAnnotation = ":" , types ;
+typeAnnotation = ":" , type ;
+
+typeAnnotations = ":" , types ;
 
 arrayShape = type , "[]" ;
 
-functionSignature = "f" , [ genericTypes ] , [ functionParams ] , [ returnTypes ] ;
+functionSignature = [ modifiers ] , "f" , [ genericTypes ] , [ functionParams ] , [ returnTypes ] ;
 
 tupleShape = "<" , [ type , { "," , type } ] , ">" ;
 
@@ -93,43 +95,45 @@ functionParams = "(" , [ param , { "," , param } ] , ")" ;
 
 (* statements *)
 
-import = "import" , identifier , "from" , path , ";" ;
+import = "import" , identifier , "from" , path ;
 
 extends = "extends" , identifierWithPossibleGenericTypes , { "," ,  identifierWithPossibleGenericTypes } ;
 
 implements = "implements" , identifierWithPossibleGenericTypes , { "," , identifierWithPossibleGenericTypes } ;
 
-modifier = "public" | "static" | "abstract" ;
+modifier = ( "public" | "static" | "abstract" ) ;
 
 modifiers = { modifier , { " " , modifier } };
 
 
 (* declarations *)
 
-class = { modifiers } , "class" , identifier , [ genericTypes ] , [ extends ] , [ implements ] , "{" , { variableDeclaration } , { namedFunction } , "}" ;
+class = [ modifiers ] , "class" , identifier , [ genericTypes ] , [ extends ] , [ implements ] , "{" , { variableDeclaration } , { namedFunction } , "}" ;
 
-program = { import } , { class } ;
+interface = [ modifiers ] , "interface" , identifier , [ genericTypes ] , [ extends ] , "{" , { variableDeclaration } , { functionSignature } , "}" ;
 
-shortVariableDeclaration = { modifiers } , ( "const" | "let" ) , possibleBoolIdentifier , { "," , possibleBoolIdentifier } ;
+program = { import } , { ( namedFunction | class | interface ) } ;
 
-variableDeclaration = shortVariableDeclaration , [ typeAnnotation ] , [ "=" , expression, { "," , expression } ] , ";" ;
+shortVariableDeclaration = [ modifiers ] , ( "const" | "let" ) , possibleBoolIdentifier , { "," , possibleBoolIdentifier } ;
+
+variableDeclaration = shortVariableDeclaration , [ typeAnnotations ] , [ "=" , expression, { "," , expression } ] ;
 
 
 (* functions *)
 
 returnTypes = "->" , [ "(" ] , types , [ ")" ] ;
 
-namedFunction = "f" , possibleBoolIdentifierWithPossibleGenericTypes , [ functionParams ] , [ returnTypes ], "{" , { statement } , "}" ;
+namedFunction = [ modifiers ] , "f" , possibleBoolIdentifierWithPossibleGenericTypes , [ functionParams ] , [ returnTypes ], "{" , { statement } , "}" ;
 
-anonymousFunction = "f" , [ genericTypes ] , [ functionParams ] , [ returnTypes ], "{" , { statement } , "}" ;
+anonymousFunction = [ modifiers ] , "f" , [ genericTypes ] , [ functionParams ] , [ returnTypes ], "{" , { statement } , "}" ;
 
-returnStatement = "return" , { expression , { "," , expression } , ";" ;
+returnStatement = "return" , [ expression , { "," , expression } ] ;
 
-nextStatement = "next" , ";" ;
+nextStatement = "next" ;
 
-doneStatement = "done" , ";" ;
+doneStatement = "done" ;
 
-statement = variableDeclaration | ifStatement | forStatement | loopStatement | returnStatement | expressionStatement | printStatement | doneStatement | nextStatement ;
+statement = ( variableDeclaration | ifStatement | forStatement | loopStatement | returnStatement | expression | printStatement | doneStatement | nextStatement ) ;
 
 ifStatement = "if" , expression , "{" , { statement } , "}" , [ elseIfStatement ] , [ elseStatement ] ;
 
@@ -144,15 +148,13 @@ loopStatement = "loop" , "{" , { statement } , "}" ;
 
 (* expressions *)
 
-expression = assignment | ternary | range | array | object | functionCall | anonymousFunction | identifier | literal | tuple | unaryExpression | binaryExpression | parenthesizedExpression ;
+expression = ( assignment | ternary | range | array | object | functionCall | anonymousFunction | identifier | literal | tuple | unaryExpression | binaryExpression | parenthesizedExpression ) ;
 
 parenthesizedExpression = "(" , expression , ")" ;
 
-expressionStatement = expression , ";" ;
-
 assignment = ( possibleBoolIdentifier | memberExpression ) , "=" , expression ;
 
-ternary = expression , "?" , expression , ":" , expression;
+ternary = expression , "?" , expression , ":" , expression ;
 
 range = expression , ".." , expression ;
 
@@ -166,15 +168,26 @@ functionCall = ( possibleBoolIdentifier | memberExpression ) , "(" , [ expressio
 
 expressions = [ expression , { "," , expression } ] ;
 
-printStatement = "print" , expressions , ";" ;
+printStatement = "print" , expressions ;
 
-literal = string | number | bool | <regexp> | path ;
+literal = ( string | number | bool | regex | path ) ;
+
+regex = "/" , { ( ~"/" | "\\/" ) } , "/", [ regexFlags ] ;
+
+regexFlags = { ( "g" | "i" | "m" | "s" ) } ;
 
 
 (* binary expressions *)
 
-binaryOperator = "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||" ;
+binaryOperator = ( "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||" ) ;
 
 binaryExpression = expression , binaryOperator , expression ;
 
-unaryExpression = [ ( "++" | "--" | "!" ) ] , expression , [ ( "++" | "--" ) ] ;
+
+(* unary expressions *)
+
+unaryPrefixExpression = ( "++" | "--" | "!" ) , expression ;
+
+unaryPostfixExpression = expression , ( "++" | "--" ) ;
+
+unaryExpression = ( unaryPrefixExpression | unaryPostfixExpression ) ;
