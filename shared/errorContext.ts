@@ -50,9 +50,7 @@ export default class ErrorContext {
 				  }
 				: undefined;
 
-		const prefix = `${' '.repeat(
-			(nextLine?.number ?? currentLine.number).toString().length,
-		)} |`;
+		const prefix = `${' '.repeat((nextLine?.number ?? currentLine.number).toString().length)} |`;
 
 		const lineToString = (line: Line): string => `${line.number} | ${line.content}`;
 

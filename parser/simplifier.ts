@@ -11,12 +11,7 @@ type SParseNodeWithValueAndWithoutChildren = [NT, string]; // eg [NodeType.Numbe
 type SParseNodeWithoutValueWithChildren = [NT, SParseTree]; // eg ['ArgumentList', [...]]
 type SParseNodeWithoutValueWithChildrenWithExtraInformation = [NT, extraInformation, SParseTree]; // eg [NodeType.IfStatement, {before}, [...]]
 type SParseNodeWithValueWithChildren = [NT, string, SParseTree]; // eg [NodeType.BinaryExpression, '==', [...]]
-type SParseNodeWithValueWithChildrenWithExtraInformation = [
-	NT,
-	string,
-	extraInformation,
-	SParseTree,
-]; // eg [NodeType.UnaryExpression, '++', {before}, [...]]
+type SParseNodeWithValueWithChildrenWithExtraInformation = [NT, string, extraInformation, SParseTree]; // eg [NodeType.UnaryExpression, '++', {before}, [...]]
 type SParseNode =
 	| SParseNodeWithoutValueAndWithoutChildren
 	| SParseNodeWithValueAndWithoutChildren
@@ -33,11 +28,7 @@ export const simplifyTree = (nodes: Node[]): SParseTree => {
 		// a node will have either a value, or children, or both, or neither
 		let hasValue = typeof node.value !== 'undefined';
 		// in a few cases, we really don't need the value
-		if (
-			node.type === NT.ColonSeparator ||
-			node.type === NT.CommaSeparator ||
-			node.type === NT.SemicolonSeparator
-		) {
+		if (node.type === NT.ColonSeparator || node.type === NT.CommaSeparator || node.type === NT.SemicolonSeparator) {
 			hasValue = false;
 		}
 

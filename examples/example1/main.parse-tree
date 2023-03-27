@@ -212,7 +212,7 @@
                   [
                     'FunctionReturns',
                     [
-                      [ 'Type', 'number' ]
+                      [ 'Type', 'uint64' ]
                     ]
                   ],
                   [
@@ -792,7 +792,7 @@
                           [
                             'TypeArgumentsList',
                             [
-                              [ 'Type', 'number' ]
+                              [ 'Type', 'int32' ]
                             ]
                           ]
                         ]
@@ -925,7 +925,7 @@
                     [
                       [ 'Type', 'bool' ],
                       [ 'CommaSeparator' ],
-                      [ 'Type', 'number' ],
+                      [ 'Type', 'dec32' ],
                       [ 'CommaSeparator' ],
                       [ 'Identifier', 'Thing' ]
                     ]
@@ -938,7 +938,7 @@
                         [
                           [ 'BoolLiteral', 'false' ],
                           [ 'CommaSeparator' ],
-                          [ 'NumberLiteral', '5' ],
+                          [ 'NumberLiteral', '5.0' ],
                           [ 'CommaSeparator' ],
                           [
                             'CallExpression',

@@ -1,7 +1,9 @@
 import ErrorContext from '../shared/errorContext';
+import { has, hasNot, Maybe } from '../shared/maybe';
+import { NumberSize, numberSizesAll } from '../shared/numbers/sizes';
 import { error, ok, Result } from '../shared/result';
 import LexerError from './error';
-import { keywords, patterns, specialValueTypes, Token, TokenType, types } from './types';
+import { declarableTypes, keywords, patterns, specialValueTypes, Token, TokenType } from './types';
 import { regexFlags, standardizeLineEndings } from './util';
 
 export default class Lexer {
@@ -100,14 +102,11 @@ export default class Lexer {
 			return this.peekAndHandle(
 				{
 					[patterns.EQUALS]: 'forward_slash_equals',
-					[patterns.FORWARD_SLASH]: (): Result<Token> =>
-						ok(this.processSingleLineComment()),
+					[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processSingleLineComment()),
 					[patterns.ASTERISK]: (): Result<Token> => {
 						// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
 						const value = this.gobbleUntil(
-							() =>
-								this.char === patterns.ASTERISK &&
-								this.peek() === patterns.FORWARD_SLASH,
+							() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH,
 						);
 
 						// skip the trailing asterisk and slash
@@ -138,8 +137,7 @@ export default class Lexer {
 					const prevToken = this.prevToken();
 					const nextChar = this.peek();
 					if (
-						(typeof prevToken !== 'undefined' &&
-							tokensThatPrecedeForwardSlash.includes(prevToken.type)) ||
+						(typeof prevToken !== 'undefined' && tokensThatPrecedeForwardSlash.includes(prevToken.type)) ||
 						typeof nextChar === 'undefined' ||
 						this.matchesRegex(patterns.WHITESPACE, nextChar)
 					) {
@@ -165,9 +163,7 @@ export default class Lexer {
 						// everything until the trailing slash
 						// continue as long there are no more chars, and the current char isn't a / and the previous char isn't whitespace
 						this.gobbleUntil(
-							() =>
-								this.char === patterns.FORWARD_SLASH &&
-								this.prevChar() !== patterns.ESCAPE,
+							() => this.char === patterns.FORWARD_SLASH && this.prevChar() !== patterns.ESCAPE,
 						) +
 						// the trailing slash itself
 						(this.getChar() ?? '') + // this is needed in case of a partial regex at the end of the code
@@ -327,7 +323,7 @@ export default class Lexer {
 
 		/** Numbers */
 		if (this.matchesRegex(patterns.DIGITS, this.char)) {
-			return ok(this.processNumbers());
+			return this.processNumbers();
 		}
 
 		/**
@@ -435,10 +431,7 @@ export default class Lexer {
 		}
 
 		/** Letters or unicode */
-		if (
-			this.matchesRegex(patterns.LETTERS, this.char) ||
-			this.matchesRegex(patterns.UNICODE, this.char)
-		) {
+		if (this.matchesRegex(patterns.LETTERS, this.char) || this.matchesRegex(patterns.UNICODE, this.char)) {
 			let value = this.gobbleAsLongAs(
 				() =>
 					this.matchesRegex(patterns.LETTERS, this.char) ||
@@ -459,11 +452,10 @@ export default class Lexer {
 				token = { type: 'this', start, end: this.cursorPosition, value, line, col };
 			} else if ((keywords as unknown as string[]).includes(value)) {
 				token = { type: 'keyword', start, end: this.cursorPosition, value, line, col };
-			} else if ((types as unknown as string[]).includes(value)) {
+			} else if ((declarableTypes as unknown as string[]).includes(value)) {
 				token = { type: 'type', start, end: this.cursorPosition, value, line, col };
 			} else {
-				const type: TokenType =
-					(specialValueTypes as Record<string, TokenType>)[value] || 'identifier';
+				const type: TokenType = (specialValueTypes as Record<string, TokenType>)[value] || 'identifier';
 
 				token = { type, start, end: this.cursorPosition, value, line, col };
 			}
@@ -763,47 +755,52 @@ export default class Lexer {
 		return token;
 	}
 
-	processNumbers(): Token {
+	processNumbers(): Result<Token> {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
 		let value = '';
 		while (
-			(this.cursorPosition < this.code.length &&
-				this.matchesRegex(patterns.DIGITS, this.char)) ||
-			this.char === patterns.COMMA ||
+			(this.cursorPosition < this.code.length && this.matchesRegex(patterns.DIGITS, this.char)) ||
+			this.char === patterns.UNDERSCORE ||
 			this.char === patterns.PERIOD
 		) {
 			/**
-			 * Commas and Periods
+			 * Underscores and Periods
 			 *
-			 * For a comma to be part of the number, the chars immediately before and after must also be numbers
-			 * valid number: 1,234
-			 * valid number: 123,356
-			 * invalid number: 123,,456
-			 * invalid number: ,123
-			 * invalid number: 123, // this is a number following by a comma token
+			 * For an underscore to be part of the number, the chars immediately before and after must also be numbers
+			 * valid number: 1_234
+			 * valid number: 123_356
+			 * invalid number: 123__456
+			 * invalid number: _123
+			 * invalid number: 123_ // this is a number following by an underscore token
 			 *
-			 * if it's a comma or period, we check the previous and next chars
+			 * if it's an underscore or period, we check the previous and next chars
 			 */
-			if (this.char === patterns.COMMA || this.char === patterns.PERIOD) {
+			if (this.char === patterns.UNDERSCORE || this.char === patterns.PERIOD) {
 				/**
-				 * Even though a comma must be preceded by a number, we don't need to check.
+				 * Even though an underscore must be preceded by a number, we don't need to check.
 				 *
-				 * Take this case '1,,2':
+				 * Take this case '1__2':
 				 *
 				 * The first character is a number: good.
-				 * The second character is a comma: check the next one. Since it's a comma,
-				 * even this first comma isn't part of the number, and we exit this loop
+				 * The second character is an underscore: check the next one. Since it's an underscore,
+				 * even this first underscore isn't part of the number, and we exit this loop
 				 */
 				const nextChar = this.peek();
-				if (
-					typeof nextChar === 'undefined' ||
-					!this.matchesRegex(patterns.DIGITS, nextChar)
-				) {
-					// if the next char doesn't exist, it's a trailing comma, and is not part of the number
-					// or it does exist but isn't a number, the number is finished
-					// This takes care of cases such as '1,a', '1,.', '1,,', etc.
+				if (typeof nextChar === 'undefined' || !this.matchesRegex(patterns.DIGITS, nextChar)) {
+					// - if the next char doesn't exist, this is a trailing underscore, and is not part of the number
+					// - if the next char does exist but isn't a number or the begininng of a number size, the number is finished
+					// This takes care of cases such as '1_a', '1_.', '1__', etc.
+
+					// if this char is an underscore, we need to gobble the following chars if it's a number size
+					if (this.char === patterns.UNDERSCORE) {
+						const maybeNumberSize = this.gobbleNumberSizeIfPresent();
+						if (maybeNumberSize.has()) {
+							value += `_${maybeNumberSize.value}`;
+						}
+					}
+
 					const token: Token = {
 						type: 'number',
 						start,
@@ -814,17 +811,49 @@ export default class Lexer {
 					};
 					this.tokens.push(token);
 
-					return token;
+					return ok(token);
 				}
 			}
 
 			value += this.getChar();
 		}
 
-		const token: Token = { type: 'number', start, end: this.cursorPosition, value, line, col };
+		const token: Token = {
+			type: 'number',
+			start,
+			end: this.cursorPosition,
+			value,
+			line,
+			col,
+		};
+
 		this.tokens.push(token);
 
-		return token;
+		return ok(token);
+	}
+
+	/**
+	 * Check if next few chars is a number size
+	 * If so, gobble and return it
+	 */
+	gobbleNumberSizeIfPresent(): Maybe<NumberSize> {
+		const upToNextSixChars = this.code.slice(this.cursorPosition + 1, this.cursorPosition + 7);
+
+		let size: NumberSize | undefined;
+		numberSizesAll.forEach((numberSize) => {
+			if (upToNextSixChars.startsWith(numberSize)) {
+				size = numberSize;
+			}
+		});
+
+		if (size) {
+			this.cursorPosition += size.length + 1;
+			this.col += size.length + 1;
+
+			return has(size);
+		}
+
+		return hasNot();
 	}
 
 	processSingleLineComment(): Token {

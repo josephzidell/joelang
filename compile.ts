@@ -34,9 +34,7 @@ void (async (): Promise<void> => {
 	// if we're analyzing an inline string, we allow all ASTs in an ASTProgram
 	const isThisAnInlineAnalysis = args.includes('-i');
 
-	const options = isThisAnInlineAnalysis
-		? getOptionsForInlineAnalysis(args)
-		: await getOptionsForFileAnalysis(args);
+	const options = isThisAnInlineAnalysis ? getOptionsForInlineAnalysis(args) : await getOptionsForFileAnalysis(args);
 
 	// if the user only wants to lexify, we don't need to do anything else
 	// this only applies for inline analyses
@@ -60,10 +58,7 @@ void (async (): Promise<void> => {
 					try {
 						await fsPromises.writeFile(outfile, output);
 					} catch (err) {
-						console.error(
-							`%cError writing Tokens to ${outfile}: ${(err as Error).message}`,
-							'color: red',
-						);
+						console.error(`%cError writing Tokens to ${outfile}: ${(err as Error).message}`, 'color: red');
 						process.exit(1);
 					}
 				}
@@ -114,9 +109,7 @@ void (async (): Promise<void> => {
 					{
 						const parserError = parserResult.error as ParserError;
 
-						console.groupCollapsed(
-							`Error[${parserError.getErrorCode()}]: ${parserError.message}`,
-						);
+						console.groupCollapsed(`Error[${parserError.getErrorCode()}]: ${parserError.message}`);
 						parserError
 							.getContext()
 							.toStringArray(parserError.message)
@@ -165,10 +158,7 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 					try {
 						await fsPromises.writeFile(outfile, output);
 					} catch (err) {
-						console.error(
-							`%cError writing AST to ${outfile}: ${(err as Error).message}`,
-							'color: red',
-						);
+						console.error(`%cError writing AST to ${outfile}: ${(err as Error).message}`, 'color: red');
 						return 1;
 					}
 				}

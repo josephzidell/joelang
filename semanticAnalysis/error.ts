@@ -11,7 +11,7 @@ export enum AnalysisErrorCode {
 	MissingPreviousNode = 'S001',
 	MissingParentNode = 'S002',
 	ExtraNodesFound = 'S003',
-	MissingVisitee = 'S004',
+	MissingVisitee = 'S004', // TODO remove this
 	IdentifierExpected = 'S005',
 	KeywordExpected = 'S006',
 	ExpressionExpected = 'S007',
@@ -61,12 +61,7 @@ export default class AnalysisError extends TypeError {
 	private node;
 	private context;
 
-	constructor(
-		errorCode: AnalysisErrorCode,
-		message: string,
-		node: Node | undefined,
-		context: ErrorContext,
-	) {
+	constructor(errorCode: AnalysisErrorCode, message: string, node: Node | undefined, context: ErrorContext) {
 		super(message);
 
 		this.errorCode = errorCode;

@@ -1,5 +1,5 @@
 import { Result } from '../shared/result';
-import { keywords, Token, TokenType, tokenTypesUsingSymbols, types } from './types';
+import { keywords, Token, TokenType, tokenTypesUsingSymbols, declarableTypes } from './types';
 import { lexify } from './util';
 
 const unicodeIdentifiers = [
@@ -73,9 +73,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('multiline', (): void => {
-			expect(lexify('/* foo \n * bar\n */')).toMatchTokens([
-				['comment', '/* foo \n * bar\n */'],
-			]);
+			expect(lexify('/* foo \n * bar\n */')).toMatchTokens([['comment', '/* foo \n * bar\n */']]);
 		});
 	});
 
@@ -138,13 +136,13 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('params but no return types', (): void => {
-			expect(lexify('f foo (a: number) {}')).toMatchTokens([
+			expect(lexify('f foo (a: int8) {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['paren_open', '('],
 				['identifier', 'a'],
 				['colon', ':'],
-				['type', 'number'],
+				['type', 'int8'],
 				['paren_close', ')'],
 				['brace_open', '{'],
 				['brace_close', '}'],
@@ -152,13 +150,13 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('params but no return types', (): void => {
-			expect(lexify('f foo (a: number) -> bool {}')).toMatchTokens([
+			expect(lexify('f foo (a: int8) -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['paren_open', '('],
 				['identifier', 'a'],
 				['colon', ':'],
-				['type', 'number'],
+				['type', 'int8'],
 				['paren_close', ')'],
 				['right_arrow', '->'],
 				['type', 'bool'],
@@ -185,17 +183,14 @@ describe('lexer.ts', (): void => {
 		});
 
 		describe('unicode', () => {
-			it.each(unicodeIdentifiers)(
-				'%s is recognized as an identifier in a function name',
-				(identifier) => {
-					expect(lexify(`f ${identifier} {}`)).toMatchTokens([
-						['keyword', 'f'],
-						['identifier', identifier],
-						['brace_open', '{'],
-						['brace_close', '}'],
-					]);
-				},
-			);
+			it.each(unicodeIdentifiers)('%s is recognized as an identifier in a function name', (identifier) => {
+				expect(lexify(`f ${identifier} {}`)).toMatchTokens([
+					['keyword', 'f'],
+					['identifier', identifier],
+					['brace_open', '{'],
+					['brace_close', '}'],
+				]);
+			});
 		});
 	});
 
@@ -231,8 +226,8 @@ describe('lexer.ts', (): void => {
 			expect(lexify('51')).toMatchTokens([['number', '51']]);
 		});
 
-		it('number with comma', (): void => {
-			expect(lexify('51,000')).toMatchTokens([['number', '51,000']]);
+		it('number with underscore', (): void => {
+			expect(lexify('51_000')).toMatchTokens([['number', '51_000']]);
 		});
 
 		it('number with a decimal', (): void => {
@@ -707,12 +702,9 @@ describe('lexer.ts', (): void => {
 			});
 
 			describe('unicode', () => {
-				it.each(unicodeIdentifiers)(
-					'%s is recognized in a double-quoted string',
-					(identifier) => {
-						expect(lexify(`"${identifier}"`)).toMatchTokens([['string', identifier]]);
-					},
-				);
+				it.each(unicodeIdentifiers)('%s is recognized in a double-quoted string', (identifier) => {
+					expect(lexify(`"${identifier}"`)).toMatchTokens([['string', identifier]]);
+				});
 			});
 		});
 
@@ -745,17 +737,14 @@ describe('lexer.ts', (): void => {
 			});
 
 			describe('unicode', () => {
-				it.each(unicodeIdentifiers)(
-					'%s is recognized in a single-quoted string',
-					(identifier) => {
-						expect(lexify(`const foo = '${identifier}'`)).toMatchTokens([
-							['keyword', 'const'],
-							['identifier', 'foo'],
-							['assign', '='],
-							['string', identifier],
-						]);
-					},
-				);
+				it.each(unicodeIdentifiers)('%s is recognized in a single-quoted string', (identifier) => {
+					expect(lexify(`const foo = '${identifier}'`)).toMatchTokens([
+						['keyword', 'const'],
+						['identifier', 'foo'],
+						['assign', '='],
+						['string', identifier],
+					]);
+				});
 			});
 
 			it('keeps escaped quotes', (): void => {
@@ -766,7 +755,7 @@ describe('lexer.ts', (): void => {
 
 	describe('types', (): void => {
 		describe('each', (): void => {
-			for (const type of types) {
+			for (const type of declarableTypes) {
 				it(`${type} is recognized as a type`, () => {
 					expect(lexify(type)).toMatchTokens([['type', type]]);
 				});
@@ -774,13 +763,11 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('works in a variable definition', (): void => {
-			expect(
-				lexify('let initializeAndAssignLater: number;\ninitializeAndAssignLater = 5;	'),
-			).toMatchTokens([
+			expect(lexify('let initializeAndAssignLater: int8;\ninitializeAndAssignLater = 5;	')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'initializeAndAssignLater'],
 				['colon', ':'],
-				['type', 'number'],
+				['type', 'int8'],
 				['semicolon', ';'],
 				['identifier', 'initializeAndAssignLater'],
 				['assign', '='],
@@ -790,11 +777,11 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('works in a variable assignment', (): void => {
-			expect(lexify('let initializeAndAssignLater: number = 5;	')).toMatchTokens([
+			expect(lexify('let initializeAndAssignLater: int8 = 5;	')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'initializeAndAssignLater'],
 				['colon', ':'],
-				['type', 'number'],
+				['type', 'int8'],
 				['assign', '='],
 				['number', '5'],
 				['semicolon', ';'],
