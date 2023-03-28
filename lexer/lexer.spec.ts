@@ -1,6 +1,6 @@
 import { Result } from '../shared/result';
 import { keywords, Token, TokenType, tokenTypesUsingSymbols, declarableTypes } from './types';
-import { lexify } from './util';
+import { lex } from './util';
 
 const unicodeIdentifiers = [
 	'ሀሎ', // amharic
@@ -25,7 +25,7 @@ const unicodeIdentifiers = [
 describe('lexer.ts', (): void => {
 	describe('keywords', (): void => {
 		it.each(keywords)('%s is recognized as a keyword - simplified', (keyword) => {
-			expect(lexify(keyword)).toMatchTokens([['keyword', keyword]]);
+			expect(lex(keyword)).toMatchTokens([['keyword', keyword]]);
 		});
 	});
 
@@ -37,7 +37,7 @@ describe('lexer.ts', (): void => {
 					['a', 'e', 'i', 'o', 'u'].includes(type.at(0) ?? '') ? 'an' : 'a'
 				} ${type} symbol`;
 				it(testName, () => {
-					expect(lexify(symbol)).toMatchTokens([[type as TokenType, symbol]]);
+					expect(lex(symbol)).toMatchTokens([[type as TokenType, symbol]]);
 				});
 			}
 		}
@@ -45,7 +45,7 @@ describe('lexer.ts', (): void => {
 
 	describe('bools', (): void => {
 		it('true', (): void => {
-			expect(lexify('let foo = true')).toMatchTokens([
+			expect(lex('let foo = true')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'foo'],
 				['assign', '='],
@@ -54,7 +54,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('false', (): void => {
-			expect(lexify('let foo = false')).toMatchTokens([
+			expect(lex('let foo = false')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'foo'],
 				['assign', '='],
@@ -65,21 +65,21 @@ describe('lexer.ts', (): void => {
 
 	describe('comments', (): void => {
 		it('single-line with hash', (): void => {
-			expect(lexify('# foo')).toMatchTokens([['comment', '# foo']]);
+			expect(lex('# foo')).toMatchTokens([['comment', '# foo']]);
 		});
 
 		it('single-line with slash', (): void => {
-			expect(lexify('// foo')).toMatchTokens([['comment', '// foo']]);
+			expect(lex('// foo')).toMatchTokens([['comment', '// foo']]);
 		});
 
 		it('multiline', (): void => {
-			expect(lexify('/* foo \n * bar\n */')).toMatchTokens([['comment', '/* foo \n * bar\n */']]);
+			expect(lex('/* foo \n * bar\n */')).toMatchTokens([['comment', '/* foo \n * bar\n */']]);
 		});
 	});
 
 	describe('functions', (): void => {
 		it('no params or return types', (): void => {
-			expect(lexify('f foo {}')).toMatchTokens([
+			expect(lex('f foo {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['brace_open', '{'],
@@ -88,7 +88,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('no params with single return type', (): void => {
-			expect(lexify('f foo -> bool {}')).toMatchTokens([
+			expect(lex('f foo -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['right_arrow', '->'],
@@ -99,7 +99,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('no params with multiple return types', (): void => {
-			expect(lexify('f foo -> bool, string {}')).toMatchTokens([
+			expect(lex('f foo -> bool, string {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['right_arrow', '->'],
@@ -112,7 +112,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('param parens but no return types', (): void => {
-			expect(lexify('f foo () {}')).toMatchTokens([
+			expect(lex('f foo () {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['paren_open', '('],
@@ -123,7 +123,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('param parens with return types', (): void => {
-			expect(lexify('f foo () -> bool {}')).toMatchTokens([
+			expect(lex('f foo () -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['paren_open', '('],
@@ -136,7 +136,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('params but no return types', (): void => {
-			expect(lexify('f foo (a: int8) {}')).toMatchTokens([
+			expect(lex('f foo (a: int8) {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['paren_open', '('],
@@ -150,7 +150,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('params but no return types', (): void => {
-			expect(lexify('f foo (a: int8) -> bool {}')).toMatchTokens([
+			expect(lex('f foo (a: int8) -> bool {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['paren_open', '('],
@@ -166,7 +166,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('generics', (): void => {
-			expect(lexify('f foo<T> (a: T) {}')).toMatchTokens([
+			expect(lex('f foo<T> (a: T) {}')).toMatchTokens([
 				['keyword', 'f'],
 				['identifier', 'foo'],
 				['less_than', '<'],
@@ -184,7 +184,7 @@ describe('lexer.ts', (): void => {
 
 		describe('unicode', () => {
 			it.each(unicodeIdentifiers)('%s is recognized as an identifier in a function name', (identifier) => {
-				expect(lexify(`f ${identifier} {}`)).toMatchTokens([
+				expect(lex(`f ${identifier} {}`)).toMatchTokens([
 					['keyword', 'f'],
 					['identifier', identifier],
 					['brace_open', '{'],
@@ -196,18 +196,18 @@ describe('lexer.ts', (): void => {
 
 	describe('identifiers', (): void => {
 		it('should work with lower case letters, upper case letters, and numbers', (): void => {
-			expect(lexify('aR_g1')).toMatchTokens([['identifier', 'aR_g1']]);
+			expect(lex('aR_g1')).toMatchTokens([['identifier', 'aR_g1']]);
 		});
 
 		it.each(unicodeIdentifiers)('%s is recognized as a general identifier', (identifier) => {
-			expect(lexify(identifier)).toMatchTokens([['identifier', identifier]]);
+			expect(lex(identifier)).toMatchTokens([['identifier', identifier]]);
 		});
 	});
 
 	describe('line and col counts', (): void => {
 		it('works as it should', (): void => {
 			// this uses toStrictEqual() rather than toMatchTokens() in order to check the counts
-			expect(lexify(" foo ? \n''\n   23^e5")).toStrictEqual({
+			expect(lex(" foo ? \n''\n   23^e5")).toStrictEqual({
 				outcome: 'ok',
 				value: [
 					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
@@ -223,19 +223,19 @@ describe('lexer.ts', (): void => {
 
 	describe('numbers', (): void => {
 		it('small number', (): void => {
-			expect(lexify('51')).toMatchTokens([['number', '51']]);
+			expect(lex('51')).toMatchTokens([['number', '51']]);
 		});
 
 		it('number with underscore', (): void => {
-			expect(lexify('51_000')).toMatchTokens([['number', '51_000']]);
+			expect(lex('51_000')).toMatchTokens([['number', '51_000']]);
 		});
 
 		it('number with a decimal', (): void => {
-			expect(lexify('100001.0002')).toMatchTokens([['number', '100001.0002']]);
+			expect(lex('100001.0002')).toMatchTokens([['number', '100001.0002']]);
 		});
 
 		it('number with exponent', (): void => {
-			expect(lexify('100001^e23')).toMatchTokens([
+			expect(lex('100001^e23')).toMatchTokens([
 				['number', '100001'],
 				['exponent', '^e'],
 				['number', '23'],
@@ -243,7 +243,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('number with negative exponent', (): void => {
-			expect(lexify('100001^e-23')).toMatchTokens([
+			expect(lex('100001^e-23')).toMatchTokens([
 				['number', '100001'],
 				['exponent', '^e'],
 				['minus', '-'],
@@ -252,20 +252,20 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('number with broken exponent', (): void => {
-			expect(lexify('100001^23')).toMatchTokens([
+			expect(lex('100001^23')).toMatchTokens([
 				['number', '100001'],
 				['caret', '^'],
 				['number', '23'],
 			]);
 
-			expect(lexify('100001e23')).toMatchTokens([
+			expect(lex('100001e23')).toMatchTokens([
 				['number', '100001'],
 				['identifier', 'e23'],
 			]);
 		});
 
 		it('assigning small number', (): void => {
-			expect(lexify('let foo = 51')).toMatchTokens([
+			expect(lex('let foo = 51')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'foo'],
 				['assign', '='],
@@ -274,7 +274,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('assigning const', (): void => {
-			expect(lexify('const foo = 51')).toMatchTokens([
+			expect(lex('const foo = 51')).toMatchTokens([
 				['keyword', 'const'],
 				['identifier', 'foo'],
 				['assign', '='],
@@ -286,14 +286,14 @@ describe('lexer.ts', (): void => {
 	describe('operators', (): void => {
 		describe('unary expressions', (): void => {
 			it('negative number', (): void => {
-				expect(lexify('-1')).toMatchTokens([
+				expect(lex('-1')).toMatchTokens([
 					['minus', '-'],
 					['number', '1'],
 				]);
 			});
 
 			it('negative number with parens', (): void => {
-				expect(lexify('(-1)')).toMatchTokens([
+				expect(lex('(-1)')).toMatchTokens([
 					['paren_open', '('],
 					['minus', '-'],
 					['number', '1'],
@@ -302,28 +302,28 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('pre-decrement', (): void => {
-				expect(lexify('--foo')).toMatchTokens([
+				expect(lex('--foo')).toMatchTokens([
 					['minus_minus', '--'],
 					['identifier', 'foo'],
 				]);
 			});
 
 			it('post-decrement', (): void => {
-				expect(lexify('foo--')).toMatchTokens([
+				expect(lex('foo--')).toMatchTokens([
 					['identifier', 'foo'],
 					['minus_minus', '--'],
 				]);
 			});
 
 			it('pre-increment', (): void => {
-				expect(lexify('++foo')).toMatchTokens([
+				expect(lex('++foo')).toMatchTokens([
 					['plus_plus', '++'],
 					['identifier', 'foo'],
 				]);
 			});
 
 			it('post-increment', (): void => {
-				expect(lexify('foo++')).toMatchTokens([
+				expect(lex('foo++')).toMatchTokens([
 					['identifier', 'foo'],
 					['plus_plus', '++'],
 				]);
@@ -333,9 +333,9 @@ describe('lexer.ts', (): void => {
 		describe('binary expressions', (): void => {
 			describe('with bools', (): void => {
 				it('double pipe', (): void => {
-					expect(lexify('||')).toMatchTokens([['or', '||']]);
+					expect(lex('||')).toMatchTokens([['or', '||']]);
 
-					expect(lexify('a || true')).toMatchTokens([
+					expect(lex('a || true')).toMatchTokens([
 						['identifier', 'a'],
 						['or', '||'],
 						['bool', 'true'],
@@ -343,9 +343,9 @@ describe('lexer.ts', (): void => {
 				});
 
 				it('double ampersand', (): void => {
-					expect(lexify('&&')).toMatchTokens([['and', '&&']]);
+					expect(lex('&&')).toMatchTokens([['and', '&&']]);
 
-					expect(lexify('a && true')).toMatchTokens([
+					expect(lex('a && true')).toMatchTokens([
 						['identifier', 'a'],
 						['and', '&&'],
 						['bool', 'true'],
@@ -357,7 +357,7 @@ describe('lexer.ts', (): void => {
 				const binaryExpressionScenarios = (tokenType: TokenType, operator: string) => {
 					// 2 numbers
 					it(`${operator} with 2 number literals`, (): void => {
-						expect(lexify(`1 ${operator} 2;`)).toMatchTokens([
+						expect(lex(`1 ${operator} 2;`)).toMatchTokens([
 							['number', '1'],
 							[tokenType, operator],
 							['number', '2'],
@@ -367,7 +367,7 @@ describe('lexer.ts', (): void => {
 
 					// identifier and number
 					it(`${operator} with identifier and number literal`, (): void => {
-						expect(lexify(`foo ${operator} 2;`)).toMatchTokens([
+						expect(lex(`foo ${operator} 2;`)).toMatchTokens([
 							['identifier', 'foo'],
 							[tokenType, operator],
 							['number', '2'],
@@ -375,7 +375,7 @@ describe('lexer.ts', (): void => {
 						]);
 					});
 					it(`${operator} with number literal and identifier`, (): void => {
-						expect(lexify(`1 ${operator} foo;`)).toMatchTokens([
+						expect(lex(`1 ${operator} foo;`)).toMatchTokens([
 							['number', '1'],
 							[tokenType, operator],
 							['identifier', 'foo'],
@@ -385,7 +385,7 @@ describe('lexer.ts', (): void => {
 
 					// element access and number
 					it(`${operator} with element access and number literal`, (): void => {
-						expect(lexify(`foo['a'] ${operator} 2;`)).toMatchTokens([
+						expect(lex(`foo['a'] ${operator} 2;`)).toMatchTokens([
 							['identifier', 'foo'],
 							['bracket_open', '['],
 							['string', 'a'],
@@ -396,7 +396,7 @@ describe('lexer.ts', (): void => {
 						]);
 					});
 					it(`${operator} with number literal and element access`, (): void => {
-						expect(lexify(`1 ${operator} foo['a'];`)).toMatchTokens([
+						expect(lex(`1 ${operator} foo['a'];`)).toMatchTokens([
 							['number', '1'],
 							[tokenType, operator],
 							['identifier', 'foo'],
@@ -409,7 +409,7 @@ describe('lexer.ts', (): void => {
 
 					// method call and number
 					it(`${operator} with method call and number literal`, (): void => {
-						expect(lexify(`foo('a') ${operator} 2;`)).toMatchTokens([
+						expect(lex(`foo('a') ${operator} 2;`)).toMatchTokens([
 							['identifier', 'foo'],
 							['paren_open', '('],
 							['string', 'a'],
@@ -420,7 +420,7 @@ describe('lexer.ts', (): void => {
 						]);
 					});
 					it(`${operator} with number literal and method call`, (): void => {
-						expect(lexify(`1 ${operator} foo('a');`)).toMatchTokens([
+						expect(lex(`1 ${operator} foo('a');`)).toMatchTokens([
 							['number', '1'],
 							[tokenType, operator],
 							['identifier', 'foo'],
@@ -433,7 +433,7 @@ describe('lexer.ts', (): void => {
 
 					// element access and method call
 					it(`${operator} with element access and method call`, (): void => {
-						expect(lexify(`foo['a'] ${operator} bar('b');`)).toMatchTokens([
+						expect(lex(`foo['a'] ${operator} bar('b');`)).toMatchTokens([
 							['identifier', 'foo'],
 							['bracket_open', '['],
 							['string', 'a'],
@@ -447,7 +447,7 @@ describe('lexer.ts', (): void => {
 						]);
 					});
 					it(`${operator} with method call and element access`, (): void => {
-						expect(lexify(`foo('a') ${operator} bar['b'];`)).toMatchTokens([
+						expect(lex(`foo('a') ${operator} bar['b'];`)).toMatchTokens([
 							['identifier', 'foo'],
 							['paren_open', '('],
 							['string', 'a'],
@@ -496,40 +496,40 @@ describe('lexer.ts', (): void => {
 	describe('regex', (): void => {
 		describe('valid scenarios', (): void => {
 			it('without flags', (): void => {
-				expect(lexify('/[a-z]/')).toMatchTokens([['regex', '/[a-z]/']]);
+				expect(lex('/[a-z]/')).toMatchTokens([['regex', '/[a-z]/']]);
 			});
 
 			it('with flags', (): void => {
-				expect(lexify('/[a-z]/ig')).toMatchTokens([['regex', '/[a-z]/ig']]);
+				expect(lex('/[a-z]/ig')).toMatchTokens([['regex', '/[a-z]/ig']]);
 			});
 
 			it('identifier after', (): void => {
-				expect(lexify('/[a-z]/igq')).toMatchTokens([
+				expect(lex('/[a-z]/igq')).toMatchTokens([
 					['regex', '/[a-z]/ig'],
 					['identifier', 'q'],
 				]);
 			});
 
 			it('dot after', (): void => {
-				expect(lexify('/[a-z]/.')).toMatchTokens([
+				expect(lex('/[a-z]/.')).toMatchTokens([
 					['regex', '/[a-z]/'],
 					['dot', '.'],
 				]);
 
-				expect(lexify('/[a-z]/i.')).toMatchTokens([
+				expect(lex('/[a-z]/i.')).toMatchTokens([
 					['regex', '/[a-z]/i'],
 					['dot', '.'],
 				]);
 			});
 
 			it('incomplete', (): void => {
-				expect(lexify('/[a-z]')).toMatchTokens([['regex', '/[a-z]']]);
+				expect(lex('/[a-z]')).toMatchTokens([['regex', '/[a-z]']]);
 			});
 		});
 
 		describe('invalid scenarios', (): void => {
 			it('identifier before', (): void => {
-				expect(lexify('k/a/')).toMatchTokens([
+				expect(lex('k/a/')).toMatchTokens([
 					['identifier', 'k'],
 					['forward_slash', '/'],
 					['identifier', 'a'],
@@ -538,7 +538,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('space after opening slash', (): void => {
-				expect(lexify('/ a/')).toMatchTokens([
+				expect(lex('/ a/')).toMatchTokens([
 					['forward_slash', '/'],
 					['identifier', 'a'],
 					['forward_slash', '/'],
@@ -550,14 +550,14 @@ describe('lexer.ts', (): void => {
 	describe('surrounding characters', (): void => {
 		describe('brackets', (): void => {
 			it('with nothing between', (): void => {
-				expect(lexify('[]')).toMatchTokens([
+				expect(lex('[]')).toMatchTokens([
 					['bracket_open', '['],
 					['bracket_close', ']'],
 				]);
 			});
 
 			it('with something between', (): void => {
-				expect(lexify('[foo]')).toMatchTokens([
+				expect(lex('[foo]')).toMatchTokens([
 					['bracket_open', '['],
 					['identifier', 'foo'],
 					['bracket_close', ']'],
@@ -565,7 +565,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('two sets with nested', (): void => {
-				expect(lexify('[[]][]')).toMatchTokens([
+				expect(lex('[[]][]')).toMatchTokens([
 					['bracket_open', '['],
 					['bracket_open', '['],
 					['bracket_close', ']'],
@@ -578,14 +578,14 @@ describe('lexer.ts', (): void => {
 
 		describe('braces', (): void => {
 			it('with nothing between', (): void => {
-				expect(lexify('{}')).toMatchTokens([
+				expect(lex('{}')).toMatchTokens([
 					['brace_open', '{'],
 					['brace_close', '}'],
 				]);
 			});
 
 			it('with something between', (): void => {
-				expect(lexify('{foo}')).toMatchTokens([
+				expect(lex('{foo}')).toMatchTokens([
 					['brace_open', '{'],
 					['identifier', 'foo'],
 					['brace_close', '}'],
@@ -593,7 +593,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('two sets with nested', (): void => {
-				expect(lexify('{{}}{}')).toMatchTokens([
+				expect(lex('{{}}{}')).toMatchTokens([
 					['brace_open', '{'],
 					['brace_open', '{'],
 					['brace_close', '}'],
@@ -606,14 +606,14 @@ describe('lexer.ts', (): void => {
 
 		describe('parens', (): void => {
 			it('with nothing between', (): void => {
-				expect(lexify('()')).toMatchTokens([
+				expect(lex('()')).toMatchTokens([
 					['paren_open', '('],
 					['paren_close', ')'],
 				]);
 			});
 
 			it('with something between', (): void => {
-				expect(lexify('(foo)')).toMatchTokens([
+				expect(lex('(foo)')).toMatchTokens([
 					['paren_open', '('],
 					['identifier', 'foo'],
 					['paren_close', ')'],
@@ -621,7 +621,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('two sets with nested', (): void => {
-				expect(lexify('(())()')).toMatchTokens([
+				expect(lex('(())()')).toMatchTokens([
 					['paren_open', '('],
 					['paren_open', '('],
 					['paren_close', ')'],
@@ -634,21 +634,21 @@ describe('lexer.ts', (): void => {
 
 		describe('mixtures', (): void => {
 			it('works', (): void => {
-				expect(lexify('([])')).toMatchTokens([
+				expect(lex('([])')).toMatchTokens([
 					['paren_open', '('],
 					['bracket_open', '['],
 					['bracket_close', ']'],
 					['paren_close', ')'],
 				]);
 
-				expect(lexify('[()]')).toMatchTokens([
+				expect(lex('[()]')).toMatchTokens([
 					['bracket_open', '['],
 					['paren_open', '('],
 					['paren_close', ')'],
 					['bracket_close', ']'],
 				]);
 
-				expect(lexify('{[]}')).toMatchTokens([
+				expect(lex('{[]}')).toMatchTokens([
 					['brace_open', '{'],
 					['bracket_open', '['],
 					['bracket_close', ']'],
@@ -656,7 +656,7 @@ describe('lexer.ts', (): void => {
 				]);
 
 				// invalid syntax, but the lexer should report accurately
-				expect(lexify('[({])}')).toMatchTokens([
+				expect(lex('[({])}')).toMatchTokens([
 					['bracket_open', '['],
 					['paren_open', '('],
 					['brace_open', '{'],
@@ -671,7 +671,7 @@ describe('lexer.ts', (): void => {
 	describe('strings', (): void => {
 		describe('double-quoted', (): void => {
 			it('simple', (): void => {
-				expect(lexify('let foo = "51"')).toMatchTokens([
+				expect(lex('let foo = "51"')).toMatchTokens([
 					['keyword', 'let'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -680,7 +680,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('empty string', (): void => {
-				expect(lexify('const foo = ""')).toMatchTokens([
+				expect(lex('const foo = ""')).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -689,7 +689,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('utf-8', (): void => {
-				expect(lexify('const foo = "大"')).toMatchTokens([
+				expect(lex('const foo = "大"')).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -698,19 +698,19 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('keeps escaped quotes', (): void => {
-				expect(lexify("'a\\'b'")).toMatchTokens([['string', "a\\'b"]]);
+				expect(lex("'a\\'b'")).toMatchTokens([['string', "a\\'b"]]);
 			});
 
 			describe('unicode', () => {
 				it.each(unicodeIdentifiers)('%s is recognized in a double-quoted string', (identifier) => {
-					expect(lexify(`"${identifier}"`)).toMatchTokens([['string', identifier]]);
+					expect(lex(`"${identifier}"`)).toMatchTokens([['string', identifier]]);
 				});
 			});
 		});
 
 		describe('single-quoted', (): void => {
 			it('simple', (): void => {
-				expect(lexify("let foo = 'bar'")).toMatchTokens([
+				expect(lex("let foo = 'bar'")).toMatchTokens([
 					['keyword', 'let'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -719,7 +719,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('empty string', (): void => {
-				expect(lexify("const foo = ''")).toMatchTokens([
+				expect(lex("const foo = ''")).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -728,7 +728,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('containing parens', (): void => {
-				expect(lexify("const foo = '()'")).toMatchTokens([
+				expect(lex("const foo = '()'")).toMatchTokens([
 					['keyword', 'const'],
 					['identifier', 'foo'],
 					['assign', '='],
@@ -738,7 +738,7 @@ describe('lexer.ts', (): void => {
 
 			describe('unicode', () => {
 				it.each(unicodeIdentifiers)('%s is recognized in a single-quoted string', (identifier) => {
-					expect(lexify(`const foo = '${identifier}'`)).toMatchTokens([
+					expect(lex(`const foo = '${identifier}'`)).toMatchTokens([
 						['keyword', 'const'],
 						['identifier', 'foo'],
 						['assign', '='],
@@ -748,7 +748,7 @@ describe('lexer.ts', (): void => {
 			});
 
 			it('keeps escaped quotes', (): void => {
-				expect(lexify('"a\\"b"')).toMatchTokens([['string', 'a\\"b']]);
+				expect(lex('"a\\"b"')).toMatchTokens([['string', 'a\\"b']]);
 			});
 		});
 	});
@@ -757,13 +757,13 @@ describe('lexer.ts', (): void => {
 		describe('each', (): void => {
 			for (const type of declarableTypes) {
 				it(`${type} is recognized as a type`, () => {
-					expect(lexify(type)).toMatchTokens([['type', type]]);
+					expect(lex(type)).toMatchTokens([['type', type]]);
 				});
 			}
 		});
 
 		it('works in a variable definition', (): void => {
-			expect(lexify('let initializeAndAssignLater: int8;\ninitializeAndAssignLater = 5;	')).toMatchTokens([
+			expect(lex('let initializeAndAssignLater: int8;\ninitializeAndAssignLater = 5;	')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'initializeAndAssignLater'],
 				['colon', ':'],
@@ -777,7 +777,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('works in a variable assignment', (): void => {
-			expect(lexify('let initializeAndAssignLater: int8 = 5;	')).toMatchTokens([
+			expect(lex('let initializeAndAssignLater: int8 = 5;	')).toMatchTokens([
 				['keyword', 'let'],
 				['identifier', 'initializeAndAssignLater'],
 				['colon', ':'],
@@ -792,7 +792,7 @@ describe('lexer.ts', (): void => {
 	describe('when', (): void => {
 		it('works with single values, multiple values, ranges, and ...', (): void => {
 			expect(
-				lexify(`const size = when someNumber {
+				lex(`const size = when someNumber {
 					1, 2 -> 'small',
 					3 .. 10 -> 'medium',
 					11 -> {
@@ -856,14 +856,14 @@ describe('lexer.ts', (): void => {
 
 	describe('bugs fixed', (): void => {
 		it('"1," should not be empty', (): void => {
-			expect(lexify('1,')).toMatchTokens([
+			expect(lex('1,')).toMatchTokens([
 				['number', '1'],
 				['comma', ','],
 			]);
 		});
 
 		it('"3 .. 10" should have dotdot token', (): void => {
-			expect(lexify('3 .. 10')).toMatchTokens([
+			expect(lex('3 .. 10')).toMatchTokens([
 				['number', '3'],
 				['dotdot', '..'],
 				['number', '10'],
@@ -871,23 +871,23 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('". " should have dot token', (): void => {
-			expect(lexify('. ')).toMatchTokens([['dot', '.']]);
+			expect(lex('. ')).toMatchTokens([['dot', '.']]);
 		});
 
 		it('"." should end at 1', (): void => {
-			expect(lexify('.')).toMatchTokens([['dot', '.']]);
+			expect(lex('.')).toMatchTokens([['dot', '.']]);
 		});
 
 		it('".." should end at 2', (): void => {
-			expect(lexify('..')).toMatchTokens([['dotdot', '..']]);
+			expect(lex('..')).toMatchTokens([['dotdot', '..']]);
 		});
 
 		it('"..." should end at 3', (): void => {
-			expect(lexify('...')).toMatchTokens([['dotdotdot', '...']]);
+			expect(lex('...')).toMatchTokens([['dotdotdot', '...']]);
 		});
 
 		it('"from @/lexer;" should have the semicolon token', (): void => {
-			expect(lexify('from @/lexer;')).toMatchTokens([
+			expect(lex('from @/lexer;')).toMatchTokens([
 				['keyword', 'from'],
 				['path', '@/lexer'],
 				['semicolon', ';'],
@@ -895,7 +895,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('"from ./lexer;" should have the semicolon token', (): void => {
-			expect(lexify('from ./lexer;')).toMatchTokens([
+			expect(lex('from ./lexer;')).toMatchTokens([
 				['keyword', 'from'],
 				['path', './lexer'],
 				['semicolon', ';'],
@@ -903,7 +903,7 @@ describe('lexer.ts', (): void => {
 		});
 
 		it('should handle nested calls to peekAndHandle correctly', (): void => {
-			expect(lexify('1.2;1..2;1...3;1<2;1<=2;1<=>2;./foo;@/foo;')).toMatchTokens([
+			expect(lex('1.2;1..2;1...3;1<2;1<=2;1<=>2;./foo;@/foo;')).toMatchTokens([
 				['number', '1.2'],
 				['semicolon', ';'],
 

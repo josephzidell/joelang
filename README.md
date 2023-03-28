@@ -13,7 +13,7 @@ A scripting language focused on easy reading. [Read the docs](https://joelang.de
 ./joec -i '...' # run the compiler; will output the AST as objects
 ./joec -i '...' --json # run the compiler; will output the AST as JSON
 ./joec -i '...' -p # parse only, do not analyze; will output the Parse Tree
-./joec -i '...' -l # (that's the lowercase L, not the number 1) lexify only, do not parse; will console.table()'s the Tokens
+./joec -i '...' -l # (that's the lowercase L, not the number 1) lex only, do not parse; will console.table()'s the Tokens
 
 # run the tests
 npm test
@@ -24,7 +24,7 @@ Many languages are verbose and difficult to read. The goal of joelang is for the
 
 Let's establish a few ground truths, which I think we can agree on:
 - Code is read far more often than it is written
-- Code maintenace is longer than the time it took to write the original version
+- Code maintenance is longer than the time it took to write the original version
 - Computing power is now cheaper than human time
 
 

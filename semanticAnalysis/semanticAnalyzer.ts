@@ -2678,7 +2678,7 @@ export default class SemanticAnalyzer {
 			{
 				const flags = node.value.slice(lastSlashStringIndex + 1).split('');
 
-				// check for unidentified flags. this probably isn't neessary since the lexer does this, but it's a double check
+				// check for unidentified flags. this probably isn't necessary since the lexer does this, but it's a double check
 				const unidentifiedFlags = flags.filter((f) => !regexFlags.includes(f));
 				if (unidentifiedFlags.length > 0) {
 					return error(
@@ -3366,7 +3366,7 @@ export default class SemanticAnalyzer {
 						case 'ok':
 							ast.identifiersList = visitResult.value;
 
-							// if the identifer ends with a '?', that _is_ declaring the type as bool
+							// if the identifier ends with a '?', that _is_ declaring the type as bool
 							ast.identifiersList.forEach((identifier, index) => {
 								if (identifier.name.at(-1) === '?') {
 									ast.declaredTypes[index] = ASTTypePrimitiveBool;
@@ -3394,7 +3394,7 @@ export default class SemanticAnalyzer {
 				callback: skipThisChild,
 			},
 
-			// the types (requied if there was a colon separator)
+			// the types (required if there was a colon separator)
 			{
 				type: NT.TypeArgumentsList,
 				required: (child, childIndex, allChildren) => {

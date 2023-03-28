@@ -13,7 +13,7 @@ import SemanticAnalyzer from './semanticAnalysis/semanticAnalyzer';
 const args = process.argv.slice(2);
 // let input: string;
 let pathSansExt = '';
-const outfiles = {
+const outFiles = {
 	tokens: (pathSansExt: string) => `${pathSansExt}.tokens`,
 	parseTree: (pathSansExt: string) => `${pathSansExt}.parse-tree`,
 	ast: (pathSansExt: string) => `${pathSansExt}.ast.json`,
@@ -22,7 +22,7 @@ const outfiles = {
 interface Options {
 	input: string;
 	debug: boolean;
-	only?: 'lexify' | 'parse';
+	only?: 'lex' | 'parse';
 }
 
 void (async (): Promise<void> => {
@@ -36,10 +36,10 @@ void (async (): Promise<void> => {
 
 	const options = isThisAnInlineAnalysis ? getOptionsForInlineAnalysis(args) : await getOptionsForFileAnalysis(args);
 
-	// if the user only wants to lexify, we don't need to do anything else
+	// if the user only wants to lex, we don't need to do anything else
 	// this only applies for inline analyses
-	if (options.only === 'lexify') {
-		const exitCode = handleLexifyOnly(options);
+	if (options.only === 'lex') {
+		const exitCode = handleLexOnly(options);
 
 		process.exit(exitCode);
 	}
@@ -53,12 +53,12 @@ void (async (): Promise<void> => {
 				// first output tokens
 				if (!isThisAnInlineAnalysis) {
 					const output = JSON.stringify(parser.lexer.tokens, null, '\t');
-					const outfile = outfiles.tokens(pathSansExt);
+					const outFile = outFiles.tokens(pathSansExt);
 
 					try {
-						await fsPromises.writeFile(outfile, output);
+						await fsPromises.writeFile(outFile, output);
 					} catch (err) {
-						console.error(`%cError writing Tokens to ${outfile}: ${(err as Error).message}`, 'color: red');
+						console.error(`%cError writing Tokens to ${outFile}: ${(err as Error).message}`, 'color: red');
 						process.exit(1);
 					}
 				}
@@ -68,13 +68,13 @@ void (async (): Promise<void> => {
 				const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
 				if (!isThisAnInlineAnalysis) {
-					const outfile = outfiles.parseTree(pathSansExt);
+					const outFile = outFiles.parseTree(pathSansExt);
 
 					try {
-						await fsPromises.writeFile(outfile, output);
+						await fsPromises.writeFile(outFile, output);
 					} catch (err) {
 						console.error(
-							`%cError writing Parse Tree to ${outfile}: ${(err as Error).message}`,
+							`%cError writing Parse Tree to ${outFile}: ${(err as Error).message}`,
 							'color: red',
 						);
 						process.exit(1);
@@ -153,12 +153,12 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 					}
 				} else {
 					const output = JSON.stringify(analysisResult.value, null, '\t');
-					const outfile = outfiles.ast(pathSansExt);
+					const outFile = outFiles.ast(pathSansExt);
 
 					try {
-						await fsPromises.writeFile(outfile, output);
+						await fsPromises.writeFile(outFile, output);
 					} catch (err) {
-						console.error(`%cError writing AST to ${outfile}: ${(err as Error).message}`, 'color: red');
+						console.error(`%cError writing AST to ${outFile}: ${(err as Error).message}`, 'color: red');
 						return 1;
 					}
 				}
@@ -194,11 +194,11 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 }
 
 /**
- * For lexify only, we run just the lexer. Otherwise, the parser calls the lexer itself and streams.
+ * For lexing only, we run just the lexer. Otherwise, the parser calls the lexer itself and streams.
  *
  * @returns {number} The exit code
  */
-function handleLexifyOnly(options: Options): number {
+function handleLexOnly(options: Options): number {
 	const tokensResult = new Lexer(options.input).getAllTokens();
 
 	switch (tokensResult.outcome) {
@@ -243,15 +243,15 @@ function getOptionsForInlineAnalysis(args: string[]): Options {
 
 	const inputIndex = args.indexOf('-i') + 1;
 
-	const onlyLexify = args.includes('-l');
-	if (onlyLexify && args.includes('-p')) {
+	const onlyLex = args.includes('-l');
+	if (onlyLex && args.includes('-p')) {
 		console.error('The -l and -p options are mutually exclusive and may not be used together.');
 		process.exit(1);
 	}
 
 	const onlyParse = args.includes('-p');
 
-	if ((onlyLexify || onlyParse) && args.includes('--json')) {
+	if ((onlyLex || onlyParse) && args.includes('--json')) {
 		console.error('The --json option is not supported with the -l or -p options.');
 		process.exit(1);
 	}
@@ -263,7 +263,7 @@ function getOptionsForInlineAnalysis(args: string[]): Options {
 		debug: args.includes('-d'),
 
 		// these options are only supported for inline analyses
-		only: onlyLexify ? 'lexify' : onlyParse ? 'parse' : undefined,
+		only: onlyLex ? 'lex' : onlyParse ? 'parse' : undefined,
 	};
 }
 

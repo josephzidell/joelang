@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import LexerError from './error';
-import { lexify } from './util';
+import { lex } from './util';
 
 describe('lexer/error.ts', (): void => {
 	it('should render a syntax error', () => {
 		// arrange / act
-		const result = lexify('|%');
+		const result = lex('|%');
 
 		// assert
 		assert(result.outcome === 'error');

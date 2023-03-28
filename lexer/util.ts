@@ -6,4 +6,4 @@ export const standardizeLineEndings = (code: string): string => code.replace(/\r
 export const regexFlags = ['g', 'i', 'm', 's'];
 
 /** Shortcut method to `new Lexer(code).getAllTokens()` */
-export const lexify = (code: string): Result<Token[]> => new Lexer(code).getAllTokens();
+export const lex = (code: string): Result<Token[]> => new Lexer(code).getAllTokens();
