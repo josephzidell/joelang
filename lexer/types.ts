@@ -1,3 +1,5 @@
+import { numberSizesAll } from '../shared/numbers/sizes';
+
 // token types
 export const tokenTypesUsingSymbols = {
 	and: '&&',
@@ -43,8 +45,23 @@ export const tokenTypesUsingSymbols = {
 	triangle_close: '|>',
 };
 
-export const primitiveTypes = ['bool', 'number', 'path', 'regex', 'string'] as const;
+// Primitive Types
+
+// Most types are both delcaraable and will be the type of the value.
+// However, 'number' is different in that it itself is not declarable
+// since you cannot do `let x: number = 5`, but you must use one of
+// the number sizes, like `let x: int8 = 5`.
+//
+// However, the type of the value is still 'number', so we need to
+// include it in the list of "otherTokenTypes". This holds true
+// even if the size is specified, like `let x = 5_int8`. The
+// parser will take care of converting the value to the size.
+
+export const primitiveTypes = ['bool', 'path', 'regex', 'string'] as const;
 export type PrimitiveType = (typeof primitiveTypes)[number];
+
+// declarable types
+export const declarableTypes = ['bool', ...numberSizesAll, 'path', 'range', 'regex', 'string'] as const;
 
 const otherTokenTypes = [
 	'bool',
@@ -52,7 +69,7 @@ const otherTokenTypes = [
 	'eof',
 	'identifier',
 	'keyword',
-	'number',
+	'number', // this is considered an "other" type because it is not declarable, but it is the type of the value
 	'path',
 	'regex',
 	'string',
@@ -107,9 +124,6 @@ export const keywords = [
 	'when',
 ] as const;
 
-// types
-export const types = ['bool', 'number', 'path', 'range', 'regex', 'string'] as const;
-
 // special Values
 const specialValues = ['true', 'false'] as const;
 type SpecialValue = (typeof specialValues)[number];
@@ -149,6 +163,7 @@ export const patterns = {
 	DIGITS: /[0-9]/,
 	LETTERS: /[a-z]/i,
 	NEWLINE: /\n/,
+	NUMBER_TYPE_SUFFIXES: new RegExp(`_(${numberSizesAll.join('|')})`),
 	PATH: /[a-zA-Z0-9-_./]/, // characters in path, excluding the front: @ or .
 	// eslint-disable-next-line no-control-regex
 	UNICODE: /[^\x00-\x7F]/, // characters above ASCII and in the Unicode standard, see https://stackoverflow.com/a/72733569

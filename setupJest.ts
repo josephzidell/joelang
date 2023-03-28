@@ -52,10 +52,7 @@ export type SToken = [
 	value: string,
 ];
 
-function matchTokens(
-	tokensResult: Result<Token[]>,
-	simplifiedVersion: SToken[],
-): CustomMatcherResult {
+function matchTokens(tokensResult: Result<Token[]>, simplifiedVersion: SToken[]): CustomMatcherResult {
 	switch (tokensResult.outcome) {
 		case 'ok':
 			{
@@ -76,9 +73,7 @@ function matchTokens(
 				}
 
 				// first convert tokens to simplified tokens, where we only need the type and value
-				const simplifiedTokens = tokensResult.value.map(
-					(token: Token): SToken => [token.type, token.value],
-				);
+				const simplifiedTokens = tokensResult.value.map((token: Token): SToken => [token.type, token.value]);
 
 				try {
 					expect(simplifiedTokens).toStrictEqual(simplifiedVersion);
@@ -88,9 +83,9 @@ function matchTokens(
 					return {
 						pass: false,
 						message: () =>
-							`they do not match. Expected: ${JSON.stringify(
-								simplifiedVersion,
-							)}, Got: ${JSON.stringify(simplifiedTokens)}`,
+							`they do not match. Expected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(
+								simplifiedTokens,
+							)}`,
 					};
 				}
 			}
@@ -108,10 +103,7 @@ expect.extend({
 // Parser Stuff
 ////////////////////////////////////////////////////////////
 
-export function matchParseTree(
-	treeResult: Result<Node>,
-	simplifiedVersion: SParseTree,
-): CustomMatcherResult {
+export function matchParseTree(treeResult: Result<Node>, simplifiedVersion: SParseTree): CustomMatcherResult {
 	switch (treeResult.outcome) {
 		case 'ok':
 			{
@@ -142,7 +134,7 @@ export function matchParseTree(
 					return {
 						pass: false,
 						message: () =>
-							`the parse trees do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`,
+							`the parse trees do not match. (Plus in green is what was received, minus in red is what was expected). Diff:\n${diff}`,
 					};
 				}
 			}
@@ -189,7 +181,7 @@ export function matchAST(
 					return {
 						pass: false,
 						message: () =>
-							`the ASTs do not match. (Minus in red is what what expected, plus in green is what was received). Diff:\n${diff}`,
+							`the ASTs do not match. (Plus in green is what was received, minus in red is what was expected). Diff:\n${diff}`,
 					};
 				}
 			}
@@ -213,9 +205,7 @@ function diffObjects(expected: any, received: any, path = ''): string {
 	const receivedKeys = Object.keys(received);
 	const addedKeys = receivedKeys.filter((key) => !expectedKeys.includes(key));
 	const removedKeys = expectedKeys.filter((key) => !receivedKeys.includes(key));
-	const changedKeys = expectedKeys.filter(
-		(key) => receivedKeys.includes(key) && expected[key] !== received[key],
-	);
+	const changedKeys = expectedKeys.filter((key) => receivedKeys.includes(key) && expected[key] !== received[key]);
 
 	let output = '';
 
@@ -278,12 +268,7 @@ function diffArrays(expected: any[], received: any[], path = ''): string {
 function stringify(obj: any): string {
 	if (typeof obj === 'string') {
 		return `"${obj}"`;
-	} else if (
-		typeof obj === 'number' ||
-		typeof obj === 'boolean' ||
-		obj === null ||
-		obj === undefined
-	) {
+	} else if (typeof obj === 'number' || typeof obj === 'boolean' || obj === null || obj === undefined) {
 		return String(obj);
 	} else if (Array.isArray(obj)) {
 		const elements = obj.map((element) => stringify(element)).join(', ');

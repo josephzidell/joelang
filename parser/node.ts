@@ -40,11 +40,7 @@ export function ChangeNodeType(node: Node, newType: NT): void {
  * @param parent - The parent Node
  * @returns A UnaryExpression Node
  */
-export function MakeUnaryExpressionNode(
-	token: Token,
-	before: boolean,
-	parent: Node,
-): UnaryExpressionNode {
+export function MakeUnaryExpressionNode(token: Token, before: boolean, parent: Node): UnaryExpressionNode {
 	const node: UnaryExpressionNode = {
 		type: NT.UnaryExpression,
 		value: token.value,

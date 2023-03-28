@@ -1,5 +1,6 @@
 /* eslint-disable no-useless-escape */
 import assert from 'node:assert/strict';
+import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
 import { primitiveTypes } from '../lexer/types';
 import {
 	ASTArrayExpression,
@@ -47,12 +48,15 @@ import {
 	ASTTupleShape,
 	ASTType,
 	ASTTypeInstantiationExpression,
+	ASTTypeNumber,
 	ASTTypePrimitive,
 	ASTTypeRange,
 	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	ASTWhenCase,
 	ASTWhenExpression,
+	NumberSizesDecimalASTs,
+	NumberSizesIntASTs,
 } from '../semanticAnalysis/asts';
 import '../setupJest'; // for the types
 import { NT } from './types';
@@ -72,14 +76,14 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 	// 2 numbers
 	it(`${operator} with 2 number literals`, (): void => {
 		testParseAndAnalyze(
-			`1 ${operator} 2,000;`,
+			`1 ${operator} 2_000;`,
 			[
 				[
 					NT.BinaryExpression,
 					operator,
 					[
 						[NT.NumberLiteral, '1'],
-						[NT.NumberLiteral, '2,000'],
+						[NT.NumberLiteral, '2_000'],
 					],
 				],
 				[NT.SemicolonSeparator],
@@ -87,20 +91,27 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 			[
 				ASTBinaryExpression._({
 					operator,
-					left: ASTNumberLiteral._({ format: 'int', value: 1 }),
-					right: ASTNumberLiteral._({ format: 'int', value: 2000 }),
+					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+					right: ASTNumberLiteral._(2000, undefined, [
+						'int16',
+						'int32',
+						'int64',
+						'uint16',
+						'uint32',
+						'uint64',
+					]),
 				}),
 			],
 		);
 
 		testParseAndAnalyze(
-			`-1,000 ${operator} 2;`,
+			`-1_000 ${operator} 2;`,
 			[
 				[
 					NT.BinaryExpression,
 					operator,
 					[
-						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1,000']]],
+						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1_000']]],
 						[NT.NumberLiteral, '2'],
 					],
 				],
@@ -112,9 +123,9 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 					left: ASTUnaryExpression._({
 						before: true,
 						operator: '-',
-						operand: ASTNumberLiteral._({ format: 'int', value: 1000 }),
+						operand: ASTNumberLiteral._(1000, undefined, ['int16', 'int32', 'int64']),
 					}),
-					right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 				}),
 			],
 		);
@@ -135,11 +146,11 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 			[
 				ASTBinaryExpression._({
 					operator,
-					left: ASTNumberLiteral._({ format: 'int', value: 1 }),
+					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 					right: ASTUnaryExpression._({
 						before: true,
 						operator: '-',
-						operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
 					}),
 				}),
 			],
@@ -164,12 +175,12 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 					left: ASTUnaryExpression._({
 						before: true,
 						operator: '-',
-						operand: ASTNumberLiteral._({ format: 'int', value: 1 }),
+						operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
 					}),
 					right: ASTUnaryExpression._({
 						before: true,
 						operator: '-',
-						operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
 					}),
 				}),
 			],
@@ -195,7 +206,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				ASTBinaryExpression._({
 					operator,
 					left: ASTIdentifier._('foo'),
-					right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 				}),
 			],
 		);
@@ -218,7 +229,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 			[
 				ASTBinaryExpression._({
 					operator,
-					left: ASTNumberLiteral._({ format: 'int', value: 1 }),
+					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 					right: ASTIdentifier._('foo'),
 				}),
 			],
@@ -253,7 +264,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 						object: ASTIdentifier._('foo'),
 						property: ASTStringLiteral._('a'),
 					}),
-					right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 				}),
 			],
 		);
@@ -284,7 +295,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 						object: ASTIdentifier._('foo'),
 						property: ASTIdentifier._('a'),
 					}),
-					right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 				}),
 			],
 		);
@@ -324,7 +335,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 						}),
 						property: ASTIdentifier._('b'),
 					}),
-					right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 				}),
 			],
 		);
@@ -346,10 +357,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 										[
 											NT.MemberExpression,
 											[
-												[
-													NT.MemberExpression,
-													[[NT.ThisKeyword], [NT.Identifier, 'foo']],
-												],
+												[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
 												[NT.StringLiteral, 'a'],
 											],
 										],
@@ -366,7 +374,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 			[
 				ASTBinaryExpression._({
 					operator,
-					left: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					left: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 					right: ASTMemberExpression._({
 						object: ASTMemberExpression._({
 							object: ASTMemberExpression._({
@@ -409,7 +417,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 			[
 				ASTBinaryExpression._({
 					operator,
-					left: ASTNumberLiteral._({ format: 'int', value: 1 }),
+					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 					right: ASTMemberExpression._({
 						object: ASTIdentifier._('foo'),
 						property: ASTStringLiteral._('a'),
@@ -448,7 +456,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 						callee: ASTIdentifier._('foo'),
 						args: [ASTStringLiteral._('a')],
 					}),
-					right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 				}),
 			],
 		);
@@ -477,7 +485,7 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 			[
 				ASTBinaryExpression._({
 					operator,
-					left: ASTNumberLiteral._({ format: 'int', value: 1 }),
+					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 					right: ASTCallExpression._({
 						callee: ASTIdentifier._('foo'),
 						args: [ASTStringLiteral._('a')],
@@ -592,7 +600,7 @@ describe('parser.ts', (): void => {
 				[
 					ASTAssignmentExpression._({
 						left: [ASTIdentifier._('foo')],
-						right: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+						right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 					}),
 				],
 			);
@@ -605,10 +613,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.AssignmentExpression,
 						[
-							[
-								NT.AssigneesList,
-								[[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]],
-							],
+							[NT.AssigneesList, [[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]]],
 							[NT.AssignmentOperator],
 							[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
 						],
@@ -623,7 +628,7 @@ describe('parser.ts', (): void => {
 								property: ASTIdentifier._('foo'),
 							}),
 						],
-						right: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+						right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 					}),
 				],
 			);
@@ -653,11 +658,7 @@ describe('parser.ts', (): void => {
 							[NT.AssignmentOperator],
 							[
 								NT.AssignablesList,
-								[
-									[NT.NumberLiteral, '0'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '1'],
-								],
+								[[NT.NumberLiteral, '0'], [NT.CommaSeparator], [NT.NumberLiteral, '1']],
 							],
 						],
 					],
@@ -673,8 +674,8 @@ describe('parser.ts', (): void => {
 							}),
 						],
 						right: [
-							ASTNumberLiteral._({ format: 'int', value: 0 }),
-							ASTNumberLiteral._({ format: 'int', value: 1 }),
+							ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
+							ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 						],
 					}),
 				],
@@ -706,10 +707,7 @@ describe('parser.ts', (): void => {
 									[NT.SemicolonSeparator],
 									[
 										NT.BlockStatement,
-										[
-											[NT.PrintStatement, [[NT.StringLiteral, 'world']]],
-											[NT.SemicolonSeparator],
-										],
+										[[NT.PrintStatement, [[NT.StringLiteral, 'world']]], [NT.SemicolonSeparator]],
 									],
 									[NT.PrintStatement, [[NT.StringLiteral, '!']]],
 									[NT.SemicolonSeparator],
@@ -727,9 +725,7 @@ describe('parser.ts', (): void => {
 						returnTypes: [],
 						body: ASTBlockStatement._([
 							ASTPrintStatement._([ASTStringLiteral._('hello')]),
-							ASTBlockStatement._([
-								ASTPrintStatement._([ASTStringLiteral._('world')]),
-							]),
+							ASTBlockStatement._([ASTPrintStatement._([ASTStringLiteral._('world')])]),
 							ASTPrintStatement._([ASTStringLiteral._('!')]),
 						]),
 					}),
@@ -778,15 +774,9 @@ describe('parser.ts', (): void => {
 														NT.VariableDeclaration,
 														'const',
 														[
-															[
-																NT.AssigneesList,
-																[[NT.Identifier, 'x']],
-															],
+															[NT.AssigneesList, [[NT.Identifier, 'x']]],
 															[NT.AssignmentOperator],
-															[
-																NT.AssignablesList,
-																[[NT.NumberLiteral, '4']],
-															],
+															[NT.AssignablesList, [[NT.NumberLiteral, '4']]],
 														],
 													],
 													[NT.SemicolonSeparator],
@@ -826,13 +816,8 @@ describe('parser.ts', (): void => {
 										mutable: false,
 										identifiersList: [ASTIdentifier._('x')],
 										declaredTypes: [],
-										initialValues: [
-											ASTNumberLiteral._({
-												format: 'int',
-												value: 4,
-											}),
-										],
-										inferredTypes: [ASTTypePrimitive._('number')],
+										initialValues: [ASTNumberLiteral._(4, undefined, [...numberSizesInts])],
+										inferredPossibleTypes: [[...NumberSizesIntASTs]],
 									}),
 								]),
 								ASTBlockStatement._([ASTPrintStatement._([ASTIdentifier._('x')])]),
@@ -856,10 +841,7 @@ describe('parser.ts', (): void => {
 						NT.FunctionDeclaration,
 						[
 							[NT.Identifier, 'doSomething'],
-							[
-								NT.FunctionReturns,
-								[[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']],
-							],
+							[NT.FunctionReturns, [[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -870,11 +852,7 @@ describe('parser.ts', (): void => {
 						[
 							[
 								NT.AssigneesList,
-								[
-									[NT.Identifier, 'goLangStyle'],
-									[NT.CommaSeparator],
-									[NT.Identifier, 'ok'],
-								],
+								[[NT.Identifier, 'goLangStyle'], [NT.CommaSeparator], [NT.Identifier, 'ok']],
 							],
 							[NT.AssignmentOperator],
 							[
@@ -913,7 +891,7 @@ describe('parser.ts', (): void => {
 								args: [],
 							}),
 						],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -962,7 +940,7 @@ describe('parser.ts', (): void => {
 							}),
 							property: ASTIdentifier._('d'),
 						}),
-						args: [ASTNumberLiteral._({ format: 'int', value: 4 })],
+						args: [ASTNumberLiteral._(4, undefined, [...numberSizesInts])],
 					}),
 				],
 			);
@@ -990,7 +968,7 @@ describe('parser.ts', (): void => {
 					ASTMemberExpression._({
 						object: ASTCallExpression._({
 							callee: ASTIdentifier._('a'),
-							args: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+							args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 						}),
 						property: ASTIdentifier._('b'),
 					}),
@@ -1027,11 +1005,11 @@ describe('parser.ts', (): void => {
 						callee: ASTMemberExpression._({
 							object: ASTCallExpression._({
 								callee: ASTIdentifier._('a'),
-								args: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+								args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 							}),
 							property: ASTIdentifier._('b'),
 						}),
-						args: [ASTNumberLiteral._({ format: 'int', value: 2 })],
+						args: [ASTNumberLiteral._(2, undefined, [...numberSizesInts])],
 					}),
 				],
 			);
@@ -1140,14 +1118,11 @@ describe('parser.ts', (): void => {
 						initialValues: [
 							ASTCallExpression._({
 								callee: ASTIdentifier._('Foo'),
-								typeArgs: [
-									ASTIdentifier._('T'),
-									ASTArrayOf._(ASTIdentifier._('T')),
-								],
+								typeArgs: [ASTIdentifier._('T'), ASTArrayOf._(ASTIdentifier._('T'))],
 								args: [],
 							}),
 						],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -1196,24 +1171,14 @@ describe('parser.ts', (): void => {
 																			[
 																				NT.MemberExpression,
 																				[
-																					[
-																						NT.ThisKeyword,
-																					],
+																					[NT.ThisKeyword],
 																					[
 																						NT.TypeInstantiationExpression,
 																						[
-																							[
-																								NT.Identifier,
-																								'parent',
-																							],
+																							[NT.Identifier, 'parent'],
 																							[
 																								NT.TypeArgumentsList,
-																								[
-																									[
-																										NT.Identifier,
-																										'B',
-																									],
-																								],
+																								[[NT.Identifier, 'B']],
 																							],
 																						],
 																					],
@@ -1400,11 +1365,7 @@ describe('parser.ts', (): void => {
 												[NT.Identifier, 'A'],
 												[
 													NT.TypeArgumentsList,
-													[
-														[NT.Identifier, 'T'],
-														[NT.CommaSeparator],
-														[NT.Identifier, 'U'],
-													],
+													[[NT.Identifier, 'T'], [NT.CommaSeparator], [NT.Identifier, 'U']],
 												],
 											],
 										],
@@ -1691,7 +1652,7 @@ describe('parser.ts', (): void => {
 								identifiersList: [ASTIdentifier._('foo')],
 								declaredTypes: [],
 								initialValues: [ASTStringLiteral._('bar')],
-								inferredTypes: [ASTTypePrimitive._('string')],
+								inferredPossibleTypes: [[ASTTypePrimitive._('string')]],
 							}),
 							ASTFunctionDeclaration._({
 								modifiers: [],
@@ -1741,10 +1702,7 @@ describe('parser.ts', (): void => {
 						name: ASTIdentifier._('Foo'),
 						typeParams: [],
 						extends: [ASTIdentifier._('Bar'), ASTIdentifier._('Baz')],
-						implements: [
-							ASTIdentifier._('AbstractFooBar'),
-							ASTIdentifier._('AnotherAbstractClass'),
-						],
+						implements: [ASTIdentifier._('AbstractFooBar'), ASTIdentifier._('AnotherAbstractClass')],
 						body: ASTBlockStatement._([]),
 					}),
 				],
@@ -1781,10 +1739,7 @@ describe('parser.ts', (): void => {
 														NT.TypeInstantiationExpression,
 														[
 															[NT.Identifier, 'T'],
-															[
-																NT.TypeArgumentsList,
-																[[NT.Identifier, 'RE']],
-															],
+															[NT.TypeArgumentsList, [[NT.Identifier, 'RE']]],
 														],
 													],
 													[NT.CommaSeparator],
@@ -1898,7 +1853,7 @@ describe('parser.ts', (): void => {
 
 			testParseAndAnalyze(
 				`abstract class Foo {
-					abstract const baz: number;
+					abstract const baz: int8;
 
 					abstract static f hello<|T|> (name = 'World') -> Greeting, T;
 
@@ -1920,7 +1875,7 @@ describe('parser.ts', (): void => {
 											[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
 											[NT.AssigneesList, [[NT.Identifier, 'baz']]],
 											[NT.ColonSeparator],
-											[NT.TypeArgumentsList, [[NT.Type, 'number']]],
+											[NT.TypeArgumentsList, [[NT.Type, 'int8']]],
 										],
 									],
 									[NT.SemicolonSeparator],
@@ -1935,10 +1890,7 @@ describe('parser.ts', (): void => {
 												],
 											],
 											[NT.Identifier, 'hello'],
-											[
-												NT.TypeParametersList,
-												[[NT.TypeParameter, [[NT.Identifier, 'T']]]],
-											],
+											[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 											[
 												NT.ParametersList,
 												[
@@ -2001,9 +1953,9 @@ describe('parser.ts', (): void => {
 								modifiers: [ASTModifier._('abstract')],
 								mutable: false,
 								identifiersList: [ASTIdentifier._('baz')],
-								declaredTypes: [ASTTypePrimitive._('number')],
+								declaredTypes: [ASTTypeNumber._('int8')],
 								initialValues: [],
-								inferredTypes: [],
+								inferredPossibleTypes: [],
 							}),
 							ASTFunctionDeclaration._({
 								modifiers: [ASTModifier._('abstract'), ASTModifier._('static')],
@@ -2015,7 +1967,7 @@ describe('parser.ts', (): void => {
 										isRest: false,
 										name: ASTIdentifier._('name'),
 										defaultValue: ASTStringLiteral._('World'),
-										inferredType: ASTTypePrimitive._('string'),
+										inferredPossibleTypes: [ASTTypePrimitive._('string')],
 									}),
 								],
 								returnTypes: [ASTIdentifier._('Greeting'), ASTIdentifier._('T')],
@@ -2031,7 +1983,7 @@ describe('parser.ts', (): void => {
 										isRest: false,
 										name: ASTIdentifier._('name'),
 										defaultValue: ASTStringLiteral._('Earth'),
-										inferredType: ASTTypePrimitive._('string'),
+										inferredPossibleTypes: [ASTTypePrimitive._('string')],
 									}),
 								],
 								returnTypes: [],
@@ -2057,10 +2009,7 @@ describe('parser.ts', (): void => {
 						NT.ClassDeclaration,
 						[
 							[NT.Identifier, 'Bar'],
-							[
-								NT.ClassExtensionsList,
-								[[NT.ClassExtension, [[NT.Identifier, 'Foo']]]],
-							],
+							[NT.ClassExtensionsList, [[NT.ClassExtension, [[NT.Identifier, 'Foo']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -2113,11 +2062,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[
 								NT.RangeExpression,
@@ -2138,11 +2083,11 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTRangeExpression._({
-							lower: ASTNumberLiteral._({ format: 'int', value: 0 }),
-							upper: ASTNumberLiteral._({ format: 'int', value: 9 }),
+							lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
+							upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
 						}),
 						body: ASTBlockStatement._([]),
 					}),
@@ -2160,11 +2105,7 @@ describe('parser.ts', (): void => {
 							[
 								NT.Parenthesized,
 								[
-									[
-										NT.VariableDeclaration,
-										'let',
-										[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-									],
+									[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 									[NT.InKeyword],
 									[
 										NT.RangeExpression,
@@ -2187,11 +2128,11 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTRangeExpression._({
-							lower: ASTNumberLiteral._({ format: 'int', value: 0 }),
-							upper: ASTNumberLiteral._({ format: 'int', value: 9 }),
+							lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
+							upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
 						}),
 						body: ASTBlockStatement._([]),
 					}),
@@ -2230,11 +2171,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[NT.Identifier, 'foo'],
 							[NT.BlockStatement, []],
@@ -2249,15 +2186,15 @@ describe('parser.ts', (): void => {
 						declaredTypes: [],
 						initialValues: [
 							ASTArrayExpression._({
-								type: ASTTypePrimitive._('number'),
 								items: [
-									ASTNumberLiteral._({ format: 'int', value: 1 }),
-									ASTNumberLiteral._({ format: 'int', value: 2 }),
-									ASTNumberLiteral._({ format: 'int', value: 3 }),
+									ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+									ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
+									ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 								],
+								possibleTypes: [...NumberSizesIntASTs],
 							}),
 						],
-						inferredTypes: [ASTArrayOf._(ASTTypePrimitive._('number'))],
+						inferredPossibleTypes: [NumberSizesIntASTs.map(ASTArrayOf._)],
 					}),
 					ASTForStatement._({
 						initializer: ASTVariableDeclaration._({
@@ -2266,7 +2203,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTIdentifier._('foo'),
 						body: ASTBlockStatement._([]),
@@ -2285,16 +2222,7 @@ describe('parser.ts', (): void => {
 							[
 								NT.VariableDeclaration,
 								'let',
-								[
-									[
-										NT.AssigneesList,
-										[
-											[NT.Identifier, 'n'],
-											[NT.CommaSeparator],
-											[NT.Identifier, 'i'],
-										],
-									],
-								],
+								[[NT.AssigneesList, [[NT.Identifier, 'n'], [NT.CommaSeparator], [NT.Identifier, 'i']]]],
 							],
 							[NT.InKeyword],
 							[
@@ -2319,15 +2247,15 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('n'), ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
 							items: [
-								ASTNumberLiteral._({ format: 'int', value: 1 }),
-								ASTNumberLiteral._({ format: 'int', value: 2 }),
-								ASTNumberLiteral._({ format: 'int', value: 3 }),
+								ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+								ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
+								ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							],
+							possibleTypes: [...NumberSizesIntASTs],
 						}),
 						body: ASTBlockStatement._([]),
 					}),
@@ -2342,11 +2270,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[
 								NT.CallExpression,
@@ -2367,7 +2291,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTCallExpression._({
 							callee: ASTIdentifier._('foo'),
@@ -2386,11 +2310,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[
 								NT.MemberExpression,
@@ -2411,7 +2331,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTMemberExpression._({
 							object: ASTIdentifier._('foo'),
@@ -2430,11 +2350,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[
 								NT.MemberListExpression,
@@ -2464,14 +2380,14 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTMemberListExpression._({
 							object: ASTIdentifier._('foo'),
 							properties: [
-								ASTNumberLiteral._({ format: 'int', value: 0 }),
-								ASTNumberLiteral._({ format: 'int', value: 2 }),
-								ASTNumberLiteral._({ format: 'int', value: 4 }),
+								ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
+								ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
+								ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 							],
 						}),
 						body: ASTBlockStatement._([]),
@@ -2487,11 +2403,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[
 								NT.MemberListExpression,
@@ -2523,14 +2435,14 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTMemberListExpression._({
 							object: ASTIdentifier._('foo'),
 							properties: [
 								ASTRangeExpression._({
-									lower: ASTNumberLiteral._({ format: 'int', value: 0 }),
-									upper: ASTNumberLiteral._({ format: 'int', value: 4 }),
+									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
+									upper: ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 								}),
 							],
 						}),
@@ -2547,11 +2459,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[NT.Identifier, 'foo'],
 							[NT.BlockStatement, []],
@@ -2568,7 +2476,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTIdentifier._('foo'),
 						body: ASTBlockStatement._([]),
@@ -2585,11 +2493,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'i']]]],
-							],
+							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
 							[NT.InKeyword],
 							[NT.Identifier, 'foo'],
 							[
@@ -2621,7 +2525,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('i')],
 							declaredTypes: [],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 						iterable: ASTIdentifier._('foo'),
 						body: ASTBlockStatement._([
@@ -2632,7 +2536,7 @@ describe('parser.ts', (): void => {
 									identifiersList: [ASTIdentifier._('j')],
 									declaredTypes: [],
 									initialValues: [],
-									inferredTypes: [],
+									inferredPossibleTypes: [],
 								}),
 								iterable: ASTIdentifier._('bar'),
 								body: ASTBlockStatement._([]),
@@ -2694,7 +2598,7 @@ describe('parser.ts', (): void => {
 						returnTypes: [ASTTypePrimitive._('bool')],
 						body: ASTBlockStatement._([]),
 					}),
-					ASTNumberLiteral._({ format: 'int', value: 5 }),
+					ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
 				],
 			);
 		});
@@ -2709,20 +2613,13 @@ describe('parser.ts', (): void => {
 						NT.FunctionDeclaration,
 						[
 							[NT.Identifier, 'foo'],
-							[
-								NT.FunctionReturns,
-								[[NT.Type, 'bool'], [NT.CommaSeparator], [NT.Type, 'string']],
-							],
+							[NT.FunctionReturns, [[NT.Type, 'bool'], [NT.CommaSeparator], [NT.Type, 'string']]],
 							[
 								NT.BlockStatement,
 								[
 									[
 										NT.ReturnStatement,
-										[
-											[NT.BoolLiteral, 'true'],
-											[NT.CommaSeparator],
-											[NT.StringLiteral, 'hey'],
-										],
+										[[NT.BoolLiteral, 'true'], [NT.CommaSeparator], [NT.StringLiteral, 'hey']],
 									],
 									[NT.SemicolonSeparator],
 								],
@@ -2738,10 +2635,7 @@ describe('parser.ts', (): void => {
 						params: [],
 						returnTypes: [ASTTypePrimitive._('bool'), ASTTypePrimitive._('string')],
 						body: ASTBlockStatement._([
-							ASTReturnStatement._([
-								ASTBoolLiteral._(true),
-								ASTStringLiteral._('hey'),
-							]),
+							ASTReturnStatement._([ASTBoolLiteral._(true), ASTStringLiteral._('hey')]),
 						]),
 					}),
 				],
@@ -2803,7 +2697,7 @@ describe('parser.ts', (): void => {
 
 		it('params but no return types', (): void => {
 			testParseAndAnalyze(
-				'f foo (a: number, callback: f (a: number) -> string, bool) {}',
+				'f foo (a: int8, callback: f (a: int8) -> string, bool) {}',
 				[
 					[
 						NT.FunctionDeclaration,
@@ -2812,14 +2706,7 @@ describe('parser.ts', (): void => {
 							[
 								NT.ParametersList,
 								[
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.Type, 'number'],
-										],
-									],
+									[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]],
 									[NT.CommaSeparator],
 									[
 										NT.Parameter,
@@ -2837,18 +2724,14 @@ describe('parser.ts', (): void => {
 																[
 																	[NT.Identifier, 'a'],
 																	[NT.ColonSeparator],
-																	[NT.Type, 'number'],
+																	[NT.Type, 'int8'],
 																],
 															],
 														],
 													],
 													[
 														NT.FunctionReturns,
-														[
-															[NT.Type, 'string'],
-															[NT.CommaSeparator],
-															[NT.Type, 'bool'],
-														],
+														[[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']],
 													],
 												],
 											],
@@ -2870,7 +2753,8 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('a'),
-								declaredType: ASTTypePrimitive._('number'),
+								declaredType: ASTTypeNumber._('int8'),
+								inferredPossibleTypes: [],
 							}),
 							ASTParameter._({
 								modifiers: [],
@@ -2883,14 +2767,13 @@ describe('parser.ts', (): void => {
 											modifiers: [],
 											isRest: false,
 											name: ASTIdentifier._('a'),
-											declaredType: ASTTypePrimitive._('number'),
+											declaredType: ASTTypeNumber._('int8'),
+											inferredPossibleTypes: [],
 										}),
 									],
-									returnTypes: [
-										ASTTypePrimitive._('string'),
-										ASTTypePrimitive._('bool'),
-									],
+									returnTypes: [ASTTypePrimitive._('string'), ASTTypePrimitive._('bool')],
 								}),
+								inferredPossibleTypes: [],
 							}),
 						],
 						returnTypes: [],
@@ -2902,7 +2785,7 @@ describe('parser.ts', (): void => {
 
 		it('params and return types', (): void => {
 			testParseAndAnalyze(
-				'f foo (a: number, r: regex) -> regex, bool {}',
+				'f foo (a: int8, r: regex) -> regex, bool {}',
 				[
 					[
 						NT.FunctionDeclaration,
@@ -2911,29 +2794,12 @@ describe('parser.ts', (): void => {
 							[
 								NT.ParametersList,
 								[
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.Type, 'number'],
-										],
-									],
+									[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]],
 									[NT.CommaSeparator],
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'r'],
-											[NT.ColonSeparator],
-											[NT.Type, 'regex'],
-										],
-									],
+									[NT.Parameter, [[NT.Identifier, 'r'], [NT.ColonSeparator], [NT.Type, 'regex']]],
 								],
 							],
-							[
-								NT.FunctionReturns,
-								[[NT.Type, 'regex'], [NT.CommaSeparator], [NT.Type, 'bool']],
-							],
+							[NT.FunctionReturns, [[NT.Type, 'regex'], [NT.CommaSeparator], [NT.Type, 'bool']]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -2948,13 +2814,15 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('a'),
-								declaredType: ASTTypePrimitive._('number'),
+								declaredType: ASTTypeNumber._('int8'),
+								inferredPossibleTypes: [],
 							}),
 							ASTParameter._({
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('r'),
 								declaredType: ASTTypePrimitive._('regex'),
+								inferredPossibleTypes: [],
 							}),
 						],
 						returnTypes: [ASTTypePrimitive._('regex'), ASTTypePrimitive._('bool')],
@@ -2981,10 +2849,7 @@ describe('parser.ts', (): void => {
 										[
 											[NT.Identifier, 'a'],
 											[NT.ColonSeparator],
-											[
-												NT.FunctionSignature,
-												[[NT.FunctionReturns, [[NT.Identifier, 'T']]]],
-											],
+											[NT.FunctionSignature, [[NT.FunctionReturns, [[NT.Identifier, 'T']]]]],
 										],
 									],
 								],
@@ -3008,18 +2873,10 @@ describe('parser.ts', (): void => {
 																	[
 																		NT.TypeInstantiationExpression,
 																		[
-																			[
-																				NT.Identifier,
-																				'Maybe',
-																			],
+																			[NT.Identifier, 'Maybe'],
 																			[
 																				NT.TypeArgumentsList,
-																				[
-																					[
-																						NT.Identifier,
-																						'T',
-																					],
-																				],
+																				[[NT.Identifier, 'T']],
 																			],
 																		],
 																	],
@@ -3052,6 +2909,7 @@ describe('parser.ts', (): void => {
 									params: [],
 									returnTypes: [ASTIdentifier._('T')],
 								}),
+								inferredPossibleTypes: [],
 							}),
 						],
 						returnTypes: [
@@ -3079,7 +2937,7 @@ describe('parser.ts', (): void => {
 
 		it('params and return types using tuples', (): void => {
 			testParseAndAnalyze(
-				'f foo (a: <bool>) -> <number> {}',
+				'f foo (a: <bool>) -> <dec64> {}',
 				[
 					[
 						NT.FunctionDeclaration,
@@ -3098,7 +2956,7 @@ describe('parser.ts', (): void => {
 									],
 								],
 							],
-							[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'number']]]]],
+							[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'dec64']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -3113,10 +2971,11 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('a'),
-								declaredType: ASTTupleShape._([ASTTypePrimitive._('bool')]),
+								declaredType: ASTTupleShape._([[ASTTypePrimitive._('bool')]]),
+								inferredPossibleTypes: [],
 							}),
 						],
-						returnTypes: [ASTTupleShape._([ASTTypePrimitive._('number')])],
+						returnTypes: [ASTTupleShape._([[ASTTypeNumber._('dec64')]])],
 						body: ASTBlockStatement._([]),
 					}),
 				],
@@ -3125,7 +2984,7 @@ describe('parser.ts', (): void => {
 
 		it('params and return types using tuples and arrays', (): void => {
 			testParseAndAnalyze(
-				'f foo (a: <bool[]>[]) -> <number> {}',
+				'f foo (a: <bool[]>[]) -> <int32> {}',
 				[
 					[
 						NT.FunctionDeclaration,
@@ -3139,20 +2998,12 @@ describe('parser.ts', (): void => {
 										[
 											[NT.Identifier, 'a'],
 											[NT.ColonSeparator],
-											[
-												NT.ArrayOf,
-												[
-													[
-														NT.TupleShape,
-														[[NT.ArrayOf, [[NT.Type, 'bool']]]],
-													],
-												],
-											],
+											[NT.ArrayOf, [[NT.TupleShape, [[NT.ArrayOf, [[NT.Type, 'bool']]]]]]],
 										],
 									],
 								],
 							],
-							[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'number']]]]],
+							[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'int32']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -3168,11 +3019,12 @@ describe('parser.ts', (): void => {
 								isRest: false,
 								name: ASTIdentifier._('a'),
 								declaredType: ASTArrayOf._(
-									ASTTupleShape._([ASTArrayOf._(ASTTypePrimitive._('bool'))]),
+									ASTTupleShape._([[ASTArrayOf._(ASTTypePrimitive._('bool'))]]),
 								),
+								inferredPossibleTypes: [],
 							}),
 						],
-						returnTypes: [ASTTupleShape._([ASTTypePrimitive._('number')])],
+						returnTypes: [ASTTupleShape._([[ASTTypeNumber._('int32')]])],
 						body: ASTBlockStatement._([]),
 					}),
 				],
@@ -3181,7 +3033,7 @@ describe('parser.ts', (): void => {
 
 		it('with arrays', (): void => {
 			testParseAndAnalyze(
-				'f foo(a: number[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}',
+				'f foo(a: int8[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}',
 				[
 					[
 						NT.FunctionDeclaration,
@@ -3195,7 +3047,7 @@ describe('parser.ts', (): void => {
 										[
 											[NT.Identifier, 'a'],
 											[NT.ColonSeparator],
-											[NT.ArrayOf, [[NT.Type, 'number']]],
+											[NT.ArrayOf, [[NT.Type, 'int8']]],
 											[NT.AssignmentOperator],
 											[NT.ArrayExpression, [[NT.NumberLiteral, '5']]],
 										],
@@ -3226,10 +3078,7 @@ describe('parser.ts', (): void => {
 								[
 									[NT.Type, 'regex'],
 									[NT.CommaSeparator],
-									[
-										NT.ArrayOf,
-										[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'path']]]]]],
-									],
+									[NT.ArrayOf, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'path']]]]]]],
 								],
 							],
 							[NT.BlockStatement, []],
@@ -3246,26 +3095,26 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('a'),
-								declaredType: ASTArrayOf._(ASTTypePrimitive._('number')),
+								declaredType: ASTArrayOf._(ASTTypeNumber._('int8')),
 								defaultValue: ASTArrayExpression._({
-									type: ASTTypePrimitive._('number'),
-									items: [ASTNumberLiteral._({ format: 'int', value: 5 })],
+									items: [ASTNumberLiteral._(5, undefined, [...numberSizesInts])],
+									possibleTypes: [...NumberSizesIntASTs],
 								}),
-								inferredType: ASTArrayOf._(ASTTypePrimitive._('number')),
+								inferredPossibleTypes: [...NumberSizesIntASTs.map(ASTArrayOf._)],
 							}),
 							ASTParameter._({
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('b'),
-								declaredType: ASTArrayOf._(
-									ASTArrayOf._(ASTTypePrimitive._('string')),
-								),
+								declaredType: ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('string'))),
+								inferredPossibleTypes: [],
 							}),
 							ASTParameter._({
 								modifiers: [],
 								isRest: true,
 								name: ASTIdentifier._('c'),
 								declaredType: ASTArrayOf._(ASTIdentifier._('Foo')),
+								inferredPossibleTypes: [],
 							}),
 						],
 						returnTypes: [
@@ -3280,7 +3129,7 @@ describe('parser.ts', (): void => {
 
 		it('return when', () => {
 			testParseAndAnalyze(
-				`f school (age: number) -> string {
+				`f school (age: int8) -> string {
 					return when age {
 						11 -> 'Hogwarts First Year',
 						12 .. 17 -> 'Another Year at Hogwarts',
@@ -3295,16 +3144,7 @@ describe('parser.ts', (): void => {
 							[NT.Identifier, 'school'],
 							[
 								NT.ParametersList,
-								[
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'age'],
-											[NT.ColonSeparator],
-											[NT.Type, 'number'],
-										],
-									],
-								],
+								[[NT.Parameter, [[NT.Identifier, 'age'], [NT.ColonSeparator], [NT.Type, 'int8']]]],
 							],
 							[NT.FunctionReturns, [[NT.Type, 'string']]],
 							[
@@ -3323,18 +3163,10 @@ describe('parser.ts', (): void => {
 															[
 																NT.WhenCase,
 																[
-																	[
-																		NT.WhenCaseValues,
-																		[[NT.NumberLiteral, '11']],
-																	],
+																	[NT.WhenCaseValues, [[NT.NumberLiteral, '11']]],
 																	[
 																		NT.WhenCaseConsequent,
-																		[
-																			[
-																				NT.StringLiteral,
-																				'Hogwarts First Year',
-																			],
-																		],
+																		[[NT.StringLiteral, 'Hogwarts First Year']],
 																	],
 																],
 															],
@@ -3348,14 +3180,8 @@ describe('parser.ts', (): void => {
 																			[
 																				NT.RangeExpression,
 																				[
-																					[
-																						NT.NumberLiteral,
-																						'12',
-																					],
-																					[
-																						NT.NumberLiteral,
-																						'17',
-																					],
+																					[NT.NumberLiteral, '12'],
+																					[NT.NumberLiteral, '17'],
 																				],
 																			],
 																		],
@@ -3378,25 +3204,14 @@ describe('parser.ts', (): void => {
 																	[
 																		NT.WhenCaseValues,
 																		[
-																			[
-																				NT.NumberLiteral,
-																				'18',
-																			],
+																			[NT.NumberLiteral, '18'],
 																			[NT.CommaSeparator],
-																			[
-																				NT.NumberLiteral,
-																				'19',
-																			],
+																			[NT.NumberLiteral, '19'],
 																		],
 																	],
 																	[
 																		NT.WhenCaseConsequent,
-																		[
-																			[
-																				NT.StringLiteral,
-																				'Auror Training',
-																			],
-																		],
+																		[[NT.StringLiteral, 'Auror Training']],
 																	],
 																],
 															],
@@ -3404,18 +3219,10 @@ describe('parser.ts', (): void => {
 															[
 																NT.WhenCase,
 																[
-																	[
-																		NT.WhenCaseValues,
-																		[[NT.RestElement, '...']],
-																	],
+																	[NT.WhenCaseValues, [[NT.RestElement, '...']]],
 																	[
 																		NT.WhenCaseConsequent,
-																		[
-																			[
-																				NT.StringLiteral,
-																				'Auror',
-																			],
-																		],
+																		[[NT.StringLiteral, 'Auror']],
 																	],
 																],
 															],
@@ -3442,7 +3249,8 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('age'),
-								declaredType: ASTTypePrimitive._('number'),
+								declaredType: ASTTypeNumber._('int8'),
+								inferredPossibleTypes: [],
 							}),
 						],
 						returnTypes: [ASTTypePrimitive._('string')],
@@ -3452,32 +3260,22 @@ describe('parser.ts', (): void => {
 									expression: ASTIdentifier._('age'),
 									cases: [
 										ASTWhenCase._({
-											values: [
-												ASTNumberLiteral._({ format: 'int', value: 11 }),
-											],
+											values: [ASTNumberLiteral._(11, undefined, [...numberSizesInts])],
 											consequent: ASTStringLiteral._('Hogwarts First Year'),
 										}),
 										ASTWhenCase._({
 											values: [
 												ASTRangeExpression._({
-													lower: ASTNumberLiteral._({
-														format: 'int',
-														value: 12,
-													}),
-													upper: ASTNumberLiteral._({
-														format: 'int',
-														value: 17,
-													}),
+													lower: ASTNumberLiteral._(12, undefined, [...numberSizesInts]),
+													upper: ASTNumberLiteral._(17, undefined, [...numberSizesInts]),
 												}),
 											],
-											consequent: ASTStringLiteral._(
-												'Another Year at Hogwarts',
-											),
+											consequent: ASTStringLiteral._('Another Year at Hogwarts'),
 										}),
 										ASTWhenCase._({
 											values: [
-												ASTNumberLiteral._({ format: 'int', value: 18 }),
-												ASTNumberLiteral._({ format: 'int', value: 19 }),
+												ASTNumberLiteral._(18, undefined, [...numberSizesInts]),
+												ASTNumberLiteral._(19, undefined, [...numberSizesInts]),
 											],
 											consequent: ASTStringLiteral._('Auror Training'),
 										}),
@@ -3496,7 +3294,7 @@ describe('parser.ts', (): void => {
 
 		it('multiple returns with when', () => {
 			testParseAndAnalyze(
-				`f foo (age: number) -> number, string {
+				`f foo (age: uint16) -> uint16, string {
 					return 5, when age {... -> 'No more foos',};
 				}`,
 				[
@@ -3506,21 +3304,9 @@ describe('parser.ts', (): void => {
 							[NT.Identifier, 'foo'],
 							[
 								NT.ParametersList,
-								[
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'age'],
-											[NT.ColonSeparator],
-											[NT.Type, 'number'],
-										],
-									],
-								],
+								[[NT.Parameter, [[NT.Identifier, 'age'], [NT.ColonSeparator], [NT.Type, 'uint16']]]],
 							],
-							[
-								NT.FunctionReturns,
-								[[NT.Type, 'number'], [NT.CommaSeparator], [NT.Type, 'string']],
-							],
+							[NT.FunctionReturns, [[NT.Type, 'uint16'], [NT.CommaSeparator], [NT.Type, 'string']]],
 							[
 								NT.BlockStatement,
 								[
@@ -3539,18 +3325,10 @@ describe('parser.ts', (): void => {
 															[
 																NT.WhenCase,
 																[
-																	[
-																		NT.WhenCaseValues,
-																		[[NT.RestElement, '...']],
-																	],
+																	[NT.WhenCaseValues, [[NT.RestElement, '...']]],
 																	[
 																		NT.WhenCaseConsequent,
-																		[
-																			[
-																				NT.StringLiteral,
-																				'No more foos',
-																			],
-																		],
+																		[[NT.StringLiteral, 'No more foos']],
 																	],
 																],
 															],
@@ -3577,13 +3355,14 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('age'),
-								declaredType: ASTTypePrimitive._('number'),
+								declaredType: ASTTypeNumber._('uint16'),
+								inferredPossibleTypes: [],
 							}),
 						],
-						returnTypes: [ASTTypePrimitive._('number'), ASTTypePrimitive._('string')],
+						returnTypes: [ASTTypeNumber._('uint16'), ASTTypePrimitive._('string')],
 						body: ASTBlockStatement._([
 							ASTReturnStatement._([
-								ASTNumberLiteral._({ format: 'int', value: 5 }),
+								ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
 								ASTWhenExpression._({
 									expression: ASTIdentifier._('age'),
 									cases: [
@@ -3611,16 +3390,7 @@ describe('parser.ts', (): void => {
 							[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 							[
 								NT.ParametersList,
-								[
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.Identifier, 'T'],
-										],
-									],
-								],
+								[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']]]],
 							],
 							[NT.FunctionReturns, [[NT.Identifier, 'T']]],
 							[NT.BlockStatement, []],
@@ -3638,6 +3408,7 @@ describe('parser.ts', (): void => {
 								isRest: false,
 								name: ASTIdentifier._('a'),
 								declaredType: ASTIdentifier._('T'),
+								inferredPossibleTypes: [],
 							}),
 						],
 						returnTypes: [ASTIdentifier._('T')],
@@ -3651,9 +3422,9 @@ describe('parser.ts', (): void => {
 			testParseAndAnalyze(
 				`abstract class A {
 					abstract f foo1;
-					abstract f foo2 (arg: number);
+					abstract f foo2 (arg: int64);
 					abstract f foo3<| T |> -> bool;
-					abstract f foo4 (arg: number) -> bool;
+					abstract f foo4 (arg: dec32) -> bool;
 				}`,
 				[
 					[
@@ -3687,7 +3458,7 @@ describe('parser.ts', (): void => {
 														[
 															[NT.Identifier, 'arg'],
 															[NT.ColonSeparator],
-															[NT.Type, 'number'],
+															[NT.Type, 'int64'],
 														],
 													],
 												],
@@ -3701,10 +3472,7 @@ describe('parser.ts', (): void => {
 										[
 											[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
 											[NT.Identifier, 'foo3'],
-											[
-												NT.TypeParametersList,
-												[[NT.TypeParameter, [[NT.Identifier, 'T']]]],
-											],
+											[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 											[NT.FunctionReturns, [[NT.Type, 'bool']]],
 										],
 									],
@@ -3723,7 +3491,7 @@ describe('parser.ts', (): void => {
 														[
 															[NT.Identifier, 'arg'],
 															[NT.ColonSeparator],
-															[NT.Type, 'number'],
+															[NT.Type, 'dec32'],
 														],
 													],
 												],
@@ -3762,7 +3530,8 @@ describe('parser.ts', (): void => {
 										modifiers: [],
 										name: ASTIdentifier._('arg'),
 										isRest: false,
-										declaredType: ASTTypePrimitive._('number'),
+										declaredType: ASTTypeNumber._('int64'),
+										inferredPossibleTypes: [],
 									}),
 								],
 								returnTypes: [],
@@ -3785,7 +3554,8 @@ describe('parser.ts', (): void => {
 										modifiers: [],
 										isRest: false,
 										name: ASTIdentifier._('arg'),
-										declaredType: ASTTypePrimitive._('number'),
+										declaredType: ASTTypeNumber._('dec32'),
+										inferredPossibleTypes: [],
 									}),
 								],
 								returnTypes: [ASTTypePrimitive._('bool')],
@@ -3807,10 +3577,7 @@ describe('parser.ts', (): void => {
 						[
 							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
 							[NT.AssignmentOperator],
-							[
-								NT.AssignablesList,
-								[[NT.FunctionDeclaration, [[NT.BlockStatement, []]]]],
-							],
+							[NT.AssignablesList, [[NT.FunctionDeclaration, [[NT.BlockStatement, []]]]]],
 						],
 					],
 					[NT.SemicolonSeparator],
@@ -3831,7 +3598,7 @@ describe('parser.ts', (): void => {
 								body: ASTBlockStatement._([]),
 							}),
 						],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -3853,10 +3620,7 @@ describe('parser.ts', (): void => {
 									[
 										NT.FunctionDeclaration,
 										[
-											[
-												NT.TypeParametersList,
-												[[NT.TypeParameter, [[NT.Identifier, 'T']]]],
-											],
+											[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 											[
 												NT.ParametersList,
 												[
@@ -3909,6 +3673,7 @@ describe('parser.ts', (): void => {
 										isRest: false,
 										name: ASTIdentifier._('a'),
 										declaredType: ASTIdentifier._('T'),
+										inferredPossibleTypes: [],
 									}),
 								],
 								returnTypes: [ASTIdentifier._('T')],
@@ -3920,7 +3685,7 @@ describe('parser.ts', (): void => {
 								]),
 							}),
 						],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -3958,7 +3723,7 @@ describe('parser.ts', (): void => {
 								body: undefined,
 							}),
 						],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -3977,10 +3742,7 @@ describe('parser.ts', (): void => {
 							[NT.FunctionReturns, [[NT.Type, 'bool']]],
 							[
 								NT.BlockStatement,
-								[
-									[NT.ReturnStatement, [[NT.BoolLiteral, 'true']]],
-									[NT.SemicolonSeparator],
-								],
+								[[NT.ReturnStatement, [[NT.BoolLiteral, 'true']]], [NT.SemicolonSeparator]],
 							],
 						],
 					],
@@ -4005,10 +3767,7 @@ describe('parser.ts', (): void => {
 					const result = parse('f <=> {}');
 
 					// use assert instead of expect, since we need TS to narrow the type
-					assert(
-						result.outcome === 'error',
-						`Expected: "error", Received: "${result.outcome}"`,
-					);
+					assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
 					expect(result.error.message).toBe(
 						'"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!',
 					);
@@ -4108,8 +3867,8 @@ describe('parser.ts', (): void => {
 					ASTIfStatement._({
 						test: ASTBinaryExpression._({
 							operator: '<',
-							left: ASTNumberLiteral._({ format: 'int', value: 1 }),
-							right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+							left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 						}),
 						consequent: ASTBlockStatement._([]),
 					}),
@@ -4141,7 +3900,7 @@ describe('parser.ts', (): void => {
 						test: ASTBinaryExpression._({
 							operator: '==',
 							left: ASTIdentifier._('foo'),
-							right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 						}),
 						consequent: ASTBlockStatement._([]),
 					}),
@@ -4182,7 +3941,7 @@ describe('parser.ts', (): void => {
 								callee: ASTIdentifier._('foo'),
 								args: [],
 							}),
-							right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 						}),
 						consequent: ASTBlockStatement._([]),
 					}),
@@ -4239,12 +3998,12 @@ describe('parser.ts', (): void => {
 									callee: ASTIdentifier._('foo'),
 									args: [],
 								}),
-								right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 							}),
 							right: ASTBinaryExpression._({
 								operator: '<',
 								left: ASTIdentifier._('a'),
-								right: ASTNumberLiteral._({ format: 'int', value: 3 }),
+								right: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							}),
 						}),
 						consequent: ASTBlockStatement._([]),
@@ -4292,7 +4051,7 @@ describe('parser.ts', (): void => {
 									callee: ASTIdentifier._('foo'),
 									args: [],
 								}),
-								right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 							}),
 							consequent: ASTBlockStatement._([]),
 						}),
@@ -4354,12 +4113,12 @@ describe('parser.ts', (): void => {
 										callee: ASTIdentifier._('foo'),
 										args: [],
 									}),
-									right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 								}),
 								right: ASTBinaryExpression._({
 									operator: '<',
 									left: ASTIdentifier._('a'),
-									right: ASTNumberLiteral._({ format: 'int', value: 3 }),
+									right: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 								}),
 							}),
 							consequent: ASTBlockStatement._([]),
@@ -4465,20 +4224,12 @@ describe('parser.ts', (): void => {
 					[
 						[
 							NT.ImportDeclaration,
-							[
-								[NT.Identifier, 'mainJoeFile'],
-								[NT.FromKeyword],
-								[NT.Path, './some/dir/'],
-							],
+							[[NT.Identifier, 'mainJoeFile'], [NT.FromKeyword], [NT.Path, './some/dir/']],
 						],
 						[NT.SemicolonSeparator],
 						[
 							NT.ImportDeclaration,
-							[
-								[NT.Identifier, 'another'],
-								[NT.FromKeyword],
-								[NT.Path, '@/lexer.joe'],
-							],
+							[[NT.Identifier, 'another'], [NT.FromKeyword], [NT.Path, '@/lexer.joe']],
 						],
 						[NT.SemicolonSeparator],
 					],
@@ -4575,10 +4326,7 @@ describe('parser.ts', (): void => {
 						NT.InterfaceDeclaration,
 						[
 							[NT.Identifier, 'Bar'],
-							[
-								NT.InterfaceExtensionsList,
-								[[NT.InterfaceExtension, [[NT.Identifier, 'Foo']]]],
-							],
+							[NT.InterfaceExtensionsList, [[NT.InterfaceExtension, [[NT.Identifier, 'Foo']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -4893,8 +4641,8 @@ describe('parser.ts', (): void => {
 							mutable: false,
 							identifiersList: [ASTIdentifier._('foo')],
 							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._({ format: 'int', value: 1 })],
-							inferredTypes: [ASTTypePrimitive._('number')],
+							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
+							inferredPossibleTypes: [[...NumberSizesIntASTs]],
 						}),
 					],
 				);
@@ -4923,8 +4671,8 @@ describe('parser.ts', (): void => {
 							mutable: false,
 							identifiersList: [ASTIdentifier._('foo')],
 							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._({ format: 'int', value: 1 })],
-							inferredTypes: [ASTTypePrimitive._('number')],
+							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
+							inferredPossibleTypes: [[...NumberSizesIntASTs]],
 						}),
 					],
 				);
@@ -4948,12 +4696,7 @@ describe('parser.ts', (): void => {
 		it('with done', () => {
 			testParseAndAnalyze(
 				'loop {\ndone;\n}',
-				[
-					[
-						NT.LoopStatement,
-						[[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]],
-					],
-				],
+				[[NT.LoopStatement, [[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]]]],
 				[
 					ASTLoopStatement._({
 						body: ASTBlockStatement._([ASTDoneStatement._()]),
@@ -4965,12 +4708,7 @@ describe('parser.ts', (): void => {
 		it('with next', () => {
 			testParseAndAnalyze(
 				'loop {\nnext;\n}',
-				[
-					[
-						NT.LoopStatement,
-						[[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]],
-					],
-				],
+				[[NT.LoopStatement, [[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]]]],
 				[
 					ASTLoopStatement._({
 						body: ASTBlockStatement._([ASTNextStatement._()]),
@@ -5191,7 +4929,7 @@ describe('parser.ts', (): void => {
 				[
 					ASTMemberExpression._({
 						object: ASTIdentifier._('foo'),
-						property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+						property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -5288,12 +5026,7 @@ describe('parser.ts', (): void => {
 							NT.MemberExpression,
 							[
 								[NT.Identifier, 'foo'],
-								[
-									NT.UnaryExpression,
-									operator,
-									{ before },
-									[[NT.Identifier, 'bar']],
-								],
+								[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
 							],
 						],
 					],
@@ -5338,7 +5071,7 @@ describe('parser.ts', (): void => {
 							property: ASTBinaryExpression._({
 								operator,
 								left: ASTIdentifier._('index'),
-								right: ASTNumberLiteral._({ format: 'int', value: 1 }),
+								right: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 							}),
 						}),
 					],
@@ -5370,12 +5103,8 @@ describe('parser.ts', (): void => {
 						object: ASTIdentifier._('foo'),
 						property: ASTTernaryExpression._({
 							test: ASTTernaryCondition._(ASTIdentifier._('bar')),
-							consequent: ASTTernaryConsequent._(
-								ASTNumberLiteral._({ format: 'int', value: 0 }),
-							),
-							alternate: ASTTernaryAlternate._(
-								ASTNumberLiteral._({ format: 'int', value: 1 }),
-							),
+							consequent: ASTTernaryConsequent._(ASTNumberLiteral._(0, undefined, [...numberSizesInts])),
+							alternate: ASTTernaryAlternate._(ASTNumberLiteral._(1, undefined, [...numberSizesInts])),
 						}),
 					}),
 				],
@@ -5392,11 +5121,7 @@ describe('parser.ts', (): void => {
 							[
 								[
 									NT.ArrayExpression,
-									[
-										[NT.StringLiteral, 'A'],
-										[NT.CommaSeparator],
-										[NT.StringLiteral, 'B'],
-									],
+									[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
 								],
 								[NT.NumberLiteral, '0'],
 							],
@@ -5405,10 +5130,10 @@ describe('parser.ts', (): void => {
 					[
 						ASTMemberExpression._({
 							object: ASTArrayExpression._({
-								type: ASTTypePrimitive._('string'),
 								items: [ASTStringLiteral._('A'), ASTStringLiteral._('B')],
+								possibleTypes: [ASTTypePrimitive._('string')],
 							}),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5429,7 +5154,7 @@ describe('parser.ts', (): void => {
 					[
 						ASTMemberExpression._({
 							object: ASTStringLiteral._('A'),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5444,11 +5169,7 @@ describe('parser.ts', (): void => {
 							[
 								[
 									NT.TupleExpression,
-									[
-										[NT.NumberLiteral, '4'],
-										[NT.CommaSeparator],
-										[NT.StringLiteral, 'B'],
-									],
+									[[NT.NumberLiteral, '4'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
 								],
 								[NT.NumberLiteral, '0'],
 							],
@@ -5457,10 +5178,10 @@ describe('parser.ts', (): void => {
 					[
 						ASTMemberExpression._({
 							object: ASTTupleExpression._([
-								ASTNumberLiteral._({ format: 'int', value: 4 }),
+								ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 								ASTStringLiteral._('B'),
 							]),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5490,7 +5211,7 @@ describe('parser.ts', (): void => {
 								callee: ASTIdentifier._('foo'),
 								args: [],
 							}),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5510,11 +5231,7 @@ describe('parser.ts', (): void => {
 									[
 										[
 											NT.ArrayExpression,
-											[
-												[NT.StringLiteral, 'A'],
-												[NT.CommaSeparator],
-												[NT.StringLiteral, 'B'],
-											],
+											[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
 										],
 									],
 								],
@@ -5525,10 +5242,10 @@ describe('parser.ts', (): void => {
 					[
 						ASTMemberExpression._({
 							object: ASTArrayExpression._({
-								type: ASTTypePrimitive._('string'),
 								items: [ASTStringLiteral._('A'), ASTStringLiteral._('B')],
+								possibleTypes: [ASTTypePrimitive._('string')],
 							}),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5549,7 +5266,7 @@ describe('parser.ts', (): void => {
 					[
 						ASTMemberExpression._({
 							object: ASTStringLiteral._('A'),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5580,15 +5297,9 @@ describe('parser.ts', (): void => {
 																		[
 																			NT.TupleExpression,
 																			[
-																				[
-																					NT.NumberLiteral,
-																					'4',
-																				],
+																				[NT.NumberLiteral, '4'],
 																				[NT.CommaSeparator],
-																				[
-																					NT.StringLiteral,
-																					'B',
-																				],
+																				[NT.StringLiteral, 'B'],
 																			],
 																		],
 																	],
@@ -5608,10 +5319,10 @@ describe('parser.ts', (): void => {
 					[
 						ASTMemberExpression._({
 							object: ASTTupleExpression._([
-								ASTNumberLiteral._({ format: 'int', value: 4 }),
+								ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 								ASTStringLiteral._('B'),
 							]),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5646,7 +5357,7 @@ describe('parser.ts', (): void => {
 								callee: ASTIdentifier._('foo'),
 								args: [],
 							}),
-							property: ASTNumberLiteral._({ format: 'int', value: 0 }),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 						}),
 					],
 				);
@@ -5663,14 +5374,7 @@ describe('parser.ts', (): void => {
 						NT.MemberListExpression,
 						[
 							[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
-							[
-								NT.MemberList,
-								[
-									[NT.StringLiteral, 'a'],
-									[NT.CommaSeparator],
-									[NT.StringLiteral, 'b'],
-								],
-							],
+							[NT.MemberList, [[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']]],
 						],
 					],
 					[NT.SemicolonSeparator],
@@ -5695,14 +5399,7 @@ describe('parser.ts', (): void => {
 						NT.MemberListExpression,
 						[
 							[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
-							[
-								NT.MemberList,
-								[
-									[NT.NumberLiteral, '1'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '3'],
-								],
-							],
+							[NT.MemberList, [[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '3']]],
 						],
 					],
 					[NT.SemicolonSeparator],
@@ -5714,8 +5411,8 @@ describe('parser.ts', (): void => {
 							property: ASTIdentifier._('foo'),
 						}),
 						properties: [
-							ASTNumberLiteral._({ format: 'int', value: 1 }),
-							ASTNumberLiteral._({ format: 'int', value: 3 }),
+							ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+							ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 						],
 					}),
 				],
@@ -5730,10 +5427,7 @@ describe('parser.ts', (): void => {
 						NT.MemberListExpression,
 						[
 							[NT.Identifier, 'foo'],
-							[
-								NT.MemberList,
-								[[NT.Identifier, 'a'], [NT.CommaSeparator], [NT.Identifier, 'b']],
-							],
+							[NT.MemberList, [[NT.Identifier, 'a'], [NT.CommaSeparator], [NT.Identifier, 'b']]],
 						],
 					],
 					[NT.SemicolonSeparator],
@@ -5761,21 +5455,13 @@ describe('parser.ts', (): void => {
 										[NT.Identifier, 'foo'],
 										[
 											NT.TypeArgumentsList,
-											[
-												[NT.Identifier, 'bar'],
-												[NT.CommaSeparator],
-												[NT.Identifier, 'baz'],
-											],
+											[[NT.Identifier, 'bar'], [NT.CommaSeparator], [NT.Identifier, 'baz']],
 										],
 									],
 								],
 								[
 									NT.MemberList,
-									[
-										[NT.StringLiteral, 'a'],
-										[NT.CommaSeparator],
-										[NT.StringLiteral, 'b'],
-									],
+									[[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']],
 								],
 							],
 						],
@@ -5822,8 +5508,8 @@ describe('parser.ts', (): void => {
 						object: ASTIdentifier._('foo'),
 						properties: [
 							ASTRangeExpression._({
-								lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
-								upper: ASTNumberLiteral._({ format: 'int', value: 3 }),
+								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+								upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							}),
 						],
 					}),
@@ -5867,12 +5553,12 @@ describe('parser.ts', (): void => {
 						object: ASTIdentifier._('foo'),
 						properties: [
 							ASTRangeExpression._({
-								lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
-								upper: ASTNumberLiteral._({ format: 'int', value: 3 }),
+								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+								upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							}),
 							ASTRangeExpression._({
-								lower: ASTNumberLiteral._({ format: 'int', value: 5 }),
-								upper: ASTNumberLiteral._({ format: 'int', value: 7 }),
+								lower: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
+								upper: ASTNumberLiteral._(7, undefined, [...numberSizesInts]),
 							}),
 						],
 					}),
@@ -5888,17 +5574,7 @@ describe('parser.ts', (): void => {
 						NT.MemberListExpression,
 						[
 							[NT.Identifier, 'foo'],
-							[
-								NT.MemberList,
-								[
-									[
-										NT.UnaryExpression,
-										'!',
-										{ before: true },
-										[[NT.Identifier, 'bar']],
-									],
-								],
-							],
+							[NT.MemberList, [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'bar']]]]],
 						],
 					],
 				],
@@ -5930,19 +5606,9 @@ describe('parser.ts', (): void => {
 								[
 									NT.MemberList,
 									[
-										[
-											NT.UnaryExpression,
-											operator,
-											{ before },
-											[[NT.Identifier, 'bar']],
-										],
+										[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
 										[NT.CommaSeparator],
-										[
-											NT.UnaryExpression,
-											operator,
-											{ before },
-											[[NT.Identifier, 'bar']],
-										],
+										[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
 									],
 								],
 							],
@@ -6002,7 +5668,7 @@ describe('parser.ts', (): void => {
 								ASTBinaryExpression._({
 									operator,
 									left: ASTIdentifier._('index'),
-									right: ASTNumberLiteral._({ format: 'int', value: 1 }),
+									right: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 								}),
 							],
 						}),
@@ -6053,12 +5719,12 @@ describe('parser.ts', (): void => {
 								ASTBinaryExpression._({
 									operator,
 									left: ASTIdentifier._('index'),
-									right: ASTNumberLiteral._({ format: 'int', value: 1 }),
+									right: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 								}),
 								ASTBinaryExpression._({
 									operator,
 									left: ASTIdentifier._('index'),
-									right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 								}),
 							],
 						}),
@@ -6092,17 +5758,7 @@ describe('parser.ts', (): void => {
 					testParseAndAnalyze(
 						'(!foo);',
 						[
-							[
-								NT.Parenthesized,
-								[
-									[
-										NT.UnaryExpression,
-										'!',
-										{ before: true },
-										[[NT.Identifier, 'foo']],
-									],
-								],
-							],
+							[NT.Parenthesized, [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]]]],
 							[NT.SemicolonSeparator],
 						],
 						[
@@ -6200,7 +5856,7 @@ describe('parser.ts', (): void => {
 							ASTUnaryExpression._({
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._({ format: 'int', value: 1 }),
+								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
 							}),
 						],
 					);
@@ -6209,24 +5865,12 @@ describe('parser.ts', (): void => {
 				it('with parens', (): void => {
 					testParseAndAnalyze(
 						'(-1)',
-						[
-							[
-								NT.Parenthesized,
-								[
-									[
-										NT.UnaryExpression,
-										'-',
-										{ before: true },
-										[[NT.NumberLiteral, '1']],
-									],
-								],
-							],
-						],
+						[[NT.Parenthesized, [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]]],
 						[
 							ASTUnaryExpression._({
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._({ format: 'int', value: 1 }),
+								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
 							}),
 						],
 					);
@@ -6254,12 +5898,7 @@ describe('parser.ts', (): void => {
 								NT.MemberExpression,
 								[
 									[NT.Identifier, 'foo'],
-									[
-										NT.UnaryExpression,
-										'--',
-										{ before: true },
-										[[NT.Identifier, 'i']],
-									],
+									[NT.UnaryExpression, '--', { before: true }, [[NT.Identifier, 'i']]],
 								],
 							],
 						],
@@ -6298,12 +5937,7 @@ describe('parser.ts', (): void => {
 								NT.MemberExpression,
 								[
 									[NT.Identifier, 'foo'],
-									[
-										NT.UnaryExpression,
-										'--',
-										{ before: false },
-										[[NT.Identifier, 'i']],
-									],
+									[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'i']]],
 								],
 							],
 						],
@@ -6340,12 +5974,7 @@ describe('parser.ts', (): void => {
 								NT.MemberExpression,
 								[
 									[NT.Identifier, 'foo'],
-									[
-										NT.UnaryExpression,
-										'++',
-										{ before: true },
-										[[NT.Identifier, 'i']],
-									],
+									[NT.UnaryExpression, '++', { before: true }, [[NT.Identifier, 'i']]],
 								],
 							],
 						],
@@ -6382,12 +6011,7 @@ describe('parser.ts', (): void => {
 								NT.MemberExpression,
 								[
 									[NT.Identifier, 'foo'],
-									[
-										NT.UnaryExpression,
-										'++',
-										{ before: false },
-										[[NT.Identifier, 'i']],
-									],
+									[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'i']]],
 								],
 							],
 						],
@@ -6410,27 +6034,15 @@ describe('parser.ts', (): void => {
 							[
 								NT.BinaryExpression,
 								'-',
-								[
-									[
-										NT.UnaryExpression,
-										'--',
-										{ before: false },
-										[[NT.Identifier, 'foo']],
-									],
-								],
+								[[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]],
 							],
 						]);
 
 						const result = analyze('foo---', true);
 
 						// use assert instead of expect, since we need TS to narrow the type
-						assert(
-							result.outcome === 'error',
-							`Expected: "error", Received: "${result.outcome}"`,
-						);
-						expect(result.error.message).toBe(
-							'We were expecting an Expression, but found "undefined"',
-						);
+						assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+						expect(result.error.message).toBe('We were expecting an Expression, but found "undefined"');
 					});
 
 					it('pre-increment invalid syntax', (): void => {
@@ -6438,27 +6050,15 @@ describe('parser.ts', (): void => {
 							[
 								NT.BinaryExpression,
 								'+',
-								[
-									[
-										NT.UnaryExpression,
-										'++',
-										{ before: false },
-										[[NT.Identifier, 'foo']],
-									],
-								],
+								[[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]],
 							],
 						]);
 
 						const result = analyze('foo+++', true);
 
 						// use assert instead of expect, since we need TS to narrow the type
-						assert(
-							result.outcome === 'error',
-							`Expected: "error", Received: "${result.outcome}"`,
-						);
-						expect(result.error.message).toBe(
-							'We were expecting an Expression, but found "undefined"',
-						);
+						assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+						expect(result.error.message).toBe('We were expecting an Expression, but found "undefined"');
 					});
 				});
 			});
@@ -6597,12 +6197,12 @@ describe('parser.ts', (): void => {
 								left: ASTBinaryExpression._({
 									operator: '>=',
 									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 								}),
 								right: ASTBinaryExpression._({
 									operator: '<=',
 									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._({ format: 'int', value: 5 }),
+									right: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
 								}),
 							}),
 						],
@@ -6642,12 +6242,12 @@ describe('parser.ts', (): void => {
 								left: ASTBinaryExpression._({
 									operator: '>',
 									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 								}),
 								right: ASTBinaryExpression._({
 									operator: '<',
 									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._({ format: 'int', value: 5 }),
+									right: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
 								}),
 							}),
 						],
@@ -6883,14 +6483,8 @@ describe('parser.ts', (): void => {
 																						NT.BinaryExpression,
 																						'-',
 																						[
-																							[
-																								NT.NumberLiteral,
-																								'2.3',
-																							],
-																							[
-																								NT.NumberLiteral,
-																								'4',
-																							],
+																							[NT.NumberLiteral, '2.3'],
+																							[NT.NumberLiteral, '4'],
 																						],
 																					],
 																				],
@@ -6935,14 +6529,7 @@ describe('parser.ts', (): void => {
 								[NT.AssignmentOperator],
 								[
 									NT.AssignablesList,
-									[
-										[
-											NT.UnaryExpression,
-											'-',
-											{ before: true },
-											[[NT.Identifier, 'foo']],
-										],
-									],
+									[[NT.UnaryExpression, '-', { before: true }, [[NT.Identifier, 'foo']]]],
 								],
 							],
 						],
@@ -6954,8 +6541,8 @@ describe('parser.ts', (): void => {
 							mutable: false,
 							identifiersList: [ASTIdentifier._('foo')],
 							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._({ format: 'int', value: 1 })],
-							inferredTypes: [ASTTypePrimitive._('number')],
+							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
+							inferredPossibleTypes: [[...NumberSizesIntASTs]],
 						}),
 						ASTVariableDeclaration._({
 							modifiers: [],
@@ -6969,7 +6556,7 @@ describe('parser.ts', (): void => {
 									operand: ASTIdentifier._('foo'),
 								}),
 							],
-							inferredTypes: [ASTTypePrimitive._('number')], // since there's a negation operator
+							inferredPossibleTypes: [[]],
 						}),
 					],
 				);
@@ -7008,12 +6595,12 @@ describe('parser.ts', (): void => {
 					ASTPostfixIfStatement._({
 						expression: ASTCallExpression._({
 							callee: ASTIdentifier._('do'),
-							args: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+							args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 						}),
 						test: ASTBinaryExpression._({
 							operator: '==',
 							left: ASTIdentifier._('foo'),
-							right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 						}),
 					}),
 				],
@@ -7043,7 +6630,6 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: undefined,
 							items: [
 								ASTPostfixIfStatement._({
 									expression: ASTIdentifier._('foo'),
@@ -7051,6 +6637,7 @@ describe('parser.ts', (): void => {
 								}),
 								ASTIdentifier._('bar'),
 							],
+							possibleTypes: [],
 						}),
 					],
 				);
@@ -7080,15 +6667,15 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
 							items: [
-								ASTNumberLiteral._({ format: 'int', value: 9 }),
+								ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
 								ASTPostfixIfStatement._({
-									expression: ASTNumberLiteral._({ format: 'int', value: 10 }),
+									expression: ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
 									test: ASTIdentifier._('isDone?'),
 								}),
-								ASTNumberLiteral._({ format: 'int', value: 11 }),
+								ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
 							],
+							possibleTypes: [...NumberSizesIntASTs],
 						}),
 					],
 				);
@@ -7109,10 +6696,7 @@ describe('parser.ts', (): void => {
 									NT.PostfixIfStatement,
 									[
 										[NT.NumberLiteral, '9'],
-										[
-											NT.MemberExpression,
-											[[NT.ThisKeyword], [NT.Identifier, 'isDone?']],
-										],
+										[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'isDone?']]],
 									],
 								],
 								[NT.CommaSeparator],
@@ -7127,18 +6711,18 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
 							items: [
 								ASTPostfixIfStatement._({
-									expression: ASTNumberLiteral._({ format: 'int', value: 9 }),
+									expression: ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
 									test: ASTMemberExpression._({
 										object: ASTThisKeyword._(),
 										property: ASTIdentifier._('isDone?'),
 									}),
 								}),
-								ASTNumberLiteral._({ format: 'int', value: 10 }),
-								ASTNumberLiteral._({ format: 'int', value: 11 }),
+								ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
+								ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
 							],
+							possibleTypes: [...NumberSizesIntASTs],
 						}),
 					],
 				);
@@ -7160,10 +6744,7 @@ describe('parser.ts', (): void => {
 										[
 											NT.CallExpression,
 											[
-												[
-													NT.MemberExpression,
-													[[NT.ThisKeyword], [NT.Identifier, 'isDone?']],
-												],
+												[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'isDone?']]],
 												[
 													NT.ArgumentsList,
 													[
@@ -7193,11 +6774,10 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
 							items: [
-								ASTNumberLiteral._({ format: 'int', value: 9 }),
+								ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
 								ASTPostfixIfStatement._({
-									expression: ASTNumberLiteral._({ format: 'int', value: 10 }),
+									expression: ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
 									test: ASTCallExpression._({
 										callee: ASTMemberExpression._({
 											object: ASTThisKeyword._(),
@@ -7205,19 +6785,20 @@ describe('parser.ts', (): void => {
 										}),
 										args: [
 											ASTArrayExpression._({
-												type: ASTTypePrimitive._('bool'),
 												items: [
 													ASTPostfixIfStatement._({
 														expression: ASTBoolLiteral._(true),
 														test: ASTBoolLiteral._(true),
 													}),
 												],
+												possibleTypes: [ASTTypePrimitive._('bool')],
 											}),
 										],
 									}),
 								}),
-								ASTNumberLiteral._({ format: 'int', value: 11 }),
+								ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
 							],
+							possibleTypes: [...NumberSizesIntASTs],
 						}),
 					],
 				);
@@ -7252,18 +6833,18 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('string'),
 							items: [
 								ASTStringLiteral._('foo'),
 								ASTPostfixIfStatement._({
 									expression: ASTStringLiteral._('bar'),
 									test: ASTBinaryExpression._({
 										operator: '<',
-										left: ASTNumberLiteral._({ format: 'int', value: 1 }),
-										right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+										left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 									}),
 								}),
 							],
+							possibleTypes: [ASTTypePrimitive._('string')],
 						}),
 					],
 				);
@@ -7308,7 +6889,6 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('bool'),
 							items: [
 								ASTBoolLiteral._(true),
 								ASTBoolLiteral._(true),
@@ -7318,13 +6898,14 @@ describe('parser.ts', (): void => {
 									test: ASTBinaryExpression._({
 										operator: '==',
 										left: ASTIdentifier._('foo'),
-										right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 									}),
 								}),
 								ASTBoolLiteral._(true),
 								ASTBoolLiteral._(false),
 								ASTBoolLiteral._(true),
 							],
+							possibleTypes: [ASTTypePrimitive._('bool')],
 						}),
 					],
 				);
@@ -7357,10 +6938,10 @@ describe('parser.ts', (): void => {
 					ASTPrintStatement._([
 						ASTMemberExpression._({
 							object: ASTIdentifier._('foo'),
-							property: ASTNumberLiteral._({ format: 'int', value: 5 }),
+							property: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
 						}),
 					]),
-					ASTPrintStatement._([ASTNumberLiteral._({ format: 'int', value: 5 })]),
+					ASTPrintStatement._([ASTNumberLiteral._(5, undefined, [...numberSizesInts])]),
 				],
 			);
 		});
@@ -7418,11 +6999,7 @@ describe('parser.ts', (): void => {
 							[NT.CommaSeparator],
 							[
 								NT.TupleExpression,
-								[
-									[NT.StringLiteral, 'high'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '5'],
-								],
+								[[NT.StringLiteral, 'high'], [NT.CommaSeparator], [NT.NumberLiteral, '5']],
 							],
 						],
 					],
@@ -7430,15 +7007,15 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTPrintStatement._([
-						ASTNumberLiteral._({ format: 'int', value: 1 }),
+						ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 						ASTStringLiteral._('a'),
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('bool'),
 							items: [ASTBoolLiteral._(true)],
+							possibleTypes: [ASTTypePrimitive._('bool')],
 						}),
 						ASTTupleExpression._([
 							ASTStringLiteral._('high'),
-							ASTNumberLiteral._({ format: 'int', value: 5 }),
+							ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
 						]),
 					]),
 				],
@@ -7463,8 +7040,8 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTRangeExpression._({
-						lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
-						upper: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -7486,9 +7063,9 @@ describe('parser.ts', (): void => {
 						lower: ASTUnaryExpression._({
 							before: true,
 							operator: '-',
-							operand: ASTNumberLiteral._({ format: 'int', value: 1 }),
+							operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
 						}),
-						upper: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -7507,11 +7084,11 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTRangeExpression._({
-						lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
+						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 						upper: ASTUnaryExpression._({
 							before: true,
 							operator: '-',
-							operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+							operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
 						}),
 					}),
 				],
@@ -7534,12 +7111,12 @@ describe('parser.ts', (): void => {
 						lower: ASTUnaryExpression._({
 							before: true,
 							operator: '-',
-							operand: ASTNumberLiteral._({ format: 'int', value: 1 }),
+							operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
 						}),
 						upper: ASTUnaryExpression._({
 							before: true,
 							operator: '-',
-							operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+							operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
 						}),
 					}),
 				],
@@ -7563,7 +7140,7 @@ describe('parser.ts', (): void => {
 				[
 					ASTRangeExpression._({
 						lower: ASTIdentifier._('foo'),
-						upper: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -7584,7 +7161,7 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTRangeExpression._({
-						lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
+						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 						upper: ASTIdentifier._('foo'),
 					}),
 				],
@@ -7617,7 +7194,7 @@ describe('parser.ts', (): void => {
 							object: ASTIdentifier._('foo'),
 							property: ASTStringLiteral._('a'),
 						}),
-						upper: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -7645,7 +7222,7 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTRangeExpression._({
-						lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
+						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 						upper: ASTMemberExpression._({
 							object: ASTIdentifier._('foo'),
 							property: ASTStringLiteral._('a'),
@@ -7682,7 +7259,7 @@ describe('parser.ts', (): void => {
 							callee: ASTIdentifier._('foo'),
 							args: [ASTStringLiteral._('a')],
 						}),
-						upper: ASTNumberLiteral._({ format: 'int', value: 2 }),
+						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -7709,7 +7286,7 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTRangeExpression._({
-						lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
+						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 						upper: ASTCallExpression._({
 							callee: ASTIdentifier._('foo'),
 							args: [ASTStringLiteral._('a')],
@@ -7810,11 +7387,7 @@ describe('parser.ts', (): void => {
 						[
 							[
 								NT.AssigneesList,
-								[
-									[NT.Identifier, 'count'],
-									[NT.CommaSeparator],
-									[NT.Identifier, 'countDown'],
-								],
+								[[NT.Identifier, 'count'], [NT.CommaSeparator], [NT.Identifier, 'countDown']],
 							],
 							[NT.AssignmentOperator],
 							[
@@ -7861,21 +7434,21 @@ describe('parser.ts', (): void => {
 						declaredTypes: [],
 						initialValues: [
 							ASTRangeExpression._({
-								lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
+								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 								upper: ASTMemberExpression._({
 									object: ASTIdentifier._('myArray'),
-									property: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									property: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 								}),
 							}),
 							ASTRangeExpression._({
 								lower: ASTMemberExpression._({
 									object: ASTIdentifier._('myArray'),
-									property: ASTNumberLiteral._({ format: 'int', value: 1 }),
+									property: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 								}),
-								upper: ASTNumberLiteral._({ format: 'int', value: 0 }),
+								upper: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
 							}),
 						],
-						inferredTypes: [ASTTypeRange._(), ASTTypeRange._()],
+						inferredPossibleTypes: [[ASTTypeRange._()], [ASTTypeRange._()]],
 					}),
 				],
 			);
@@ -7884,43 +7457,53 @@ describe('parser.ts', (): void => {
 
 	describe('Types', (): void => {
 		describe('should understand primitive types', () => {
-			it.each(primitiveTypes)('%s is recognized as a type', (type) => {
+			it.each(primitiveTypes)('%s is recognized as its own primitive type', (type) => {
 				testParseAndAnalyze(type, [[NT.Type, type]], [ASTTypePrimitive._(type)]);
+			});
+
+			it.each(numberSizesAll)('%s is recognized as a number type', (size) => {
+				testParseAndAnalyze(size, [[NT.Type, size]], [ASTTypeNumber._(size)]);
 			});
 
 			it('range is recognized as a type', () => {
 				testParseAndAnalyze('range', [[NT.Type, 'range']], [ASTTypeRange._()]);
 			});
 
-			it.each(primitiveTypes)(
-				'%s[] is recognized as a one-dimensional array of type',
-				(type) => {
-					testParseAndAnalyze(
-						`${type}[]`,
-						[[NT.ArrayOf, [[NT.Type, type]]]],
-						[ASTArrayOf._(ASTTypePrimitive._(type))],
-					);
-				},
-			);
-
-			it('range[] is recognized as a one-dimensional array of type', () => {
+			it.each(primitiveTypes)('%s[] is recognized as a one-dimensional array of type', (type) => {
 				testParseAndAnalyze(
-					'range[]',
-					[[NT.ArrayOf, [[NT.Type, 'range']]]],
-					[ASTArrayOf._(ASTTypeRange._())],
+					`${type}[]`,
+					[[NT.ArrayOf, [[NT.Type, type]]]],
+					[ASTArrayOf._(ASTTypePrimitive._(type))],
 				);
 			});
 
-			it.each(primitiveTypes)(
-				'%s[][] is recognized as a two-dimensional array of type',
-				(type) => {
-					testParseAndAnalyze(
-						`${type}[][]`,
-						[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, type]]]]]],
-						[ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type)))],
-					);
-				},
-			);
+			it.each(numberSizesAll)('%s[] is recognized as a one-dimensional array of type', (size) => {
+				testParseAndAnalyze(
+					`${size}[]`,
+					[[NT.ArrayOf, [[NT.Type, size]]]],
+					[ASTArrayOf._(ASTTypeNumber._(size))],
+				);
+			});
+
+			it('range[] is recognized as a one-dimensional array of type', () => {
+				testParseAndAnalyze('range[]', [[NT.ArrayOf, [[NT.Type, 'range']]]], [ASTArrayOf._(ASTTypeRange._())]);
+			});
+
+			it.each(primitiveTypes)('%s[][] is recognized as a two-dimensional array of primitive type', (type) => {
+				testParseAndAnalyze(
+					`${type}[][]`,
+					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, type]]]]]],
+					[ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type)))],
+				);
+			});
+
+			it.each(numberSizesAll)('%s[][] is recognized as a two-dimensional array of number type', (size) => {
+				testParseAndAnalyze(
+					`${size}[][]`,
+					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, size]]]]]],
+					[ASTArrayOf._(ASTArrayOf._(ASTTypeNumber._(size)))],
+				);
+			});
 		});
 
 		describe('arrays', () => {
@@ -7962,7 +7545,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('x')],
 							declaredTypes: [ASTTypeRange._()],
 							initialValues: [],
-							inferredTypes: [],
+							inferredPossibleTypes: [],
 						}),
 					],
 				);
@@ -8002,11 +7585,11 @@ describe('parser.ts', (): void => {
 							declaredTypes: [],
 							initialValues: [
 								ASTRangeExpression._({
-									lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
-									upper: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+									upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 								}),
 							],
-							inferredTypes: [ASTTypeRange._()],
+							inferredPossibleTypes: [[ASTTypeRange._()]],
 						}),
 					],
 				);
@@ -8022,16 +7605,7 @@ describe('parser.ts', (): void => {
 								[NT.Identifier, 'foo'],
 								[
 									NT.ParametersList,
-									[
-										[
-											NT.Parameter,
-											[
-												[NT.Identifier, 'x'],
-												[NT.ColonSeparator],
-												[NT.Type, 'range'],
-											],
-										],
-									],
+									[[NT.Parameter, [[NT.Identifier, 'x'], [NT.ColonSeparator], [NT.Type, 'range']]]],
 								],
 								[NT.FunctionReturns, [[NT.Type, 'range']]],
 								[NT.BlockStatement, []],
@@ -8049,6 +7623,7 @@ describe('parser.ts', (): void => {
 									isRest: false,
 									name: ASTIdentifier._('x'),
 									declaredType: ASTTypeRange._(),
+									inferredPossibleTypes: [],
 								}),
 							],
 							returnTypes: [ASTTypeRange._()],
@@ -8082,7 +7657,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [],
 						initialValues: [ASTBoolLiteral._(false)],
-						inferredTypes: [ASTTypePrimitive._('bool')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('bool')]],
 					}),
 				],
 			);
@@ -8094,18 +7669,11 @@ describe('parser.ts', (): void => {
 						NT.VariableDeclaration,
 						'let',
 						[
-							[
-								NT.AssigneesList,
-								[[NT.Identifier, 'x?'], [NT.CommaSeparator], [NT.Identifier, 'y']],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'x?'], [NT.CommaSeparator], [NT.Identifier, 'y']]],
 							[NT.AssignmentOperator],
 							[
 								NT.AssignablesList,
-								[
-									[NT.BoolLiteral, 'false'],
-									[NT.CommaSeparator],
-									[NT.BoolLiteral, 'true'],
-								],
+								[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
 							],
 						],
 					],
@@ -8117,7 +7685,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x?'), ASTIdentifier._('y')],
 						declaredTypes: [ASTTypePrimitive._('bool')],
 						initialValues: [ASTBoolLiteral._(false), ASTBoolLiteral._(true)],
-						inferredTypes: [ASTTypePrimitive._('bool'), ASTTypePrimitive._('bool')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('bool')], [ASTTypePrimitive._('bool')]],
 					}),
 				],
 			);
@@ -8134,18 +7702,11 @@ describe('parser.ts', (): void => {
 						NT.VariableDeclaration,
 						'let',
 						[
-							[
-								NT.AssigneesList,
-								[[NT.Identifier, 'x'], [NT.CommaSeparator], [NT.Identifier, 'y?']],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'x'], [NT.CommaSeparator], [NT.Identifier, 'y?']]],
 							[NT.AssignmentOperator],
 							[
 								NT.AssignablesList,
-								[
-									[NT.BoolLiteral, 'false'],
-									[NT.CommaSeparator],
-									[NT.BoolLiteral, 'true'],
-								],
+								[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
 							],
 						],
 					],
@@ -8157,7 +7718,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x'), ASTIdentifier._('y?')],
 						declaredTypes: declaredTypes,
 						initialValues: [ASTBoolLiteral._(false), ASTBoolLiteral._(true)],
-						inferredTypes: [ASTTypePrimitive._('bool'), ASTTypePrimitive._('bool')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('bool')], [ASTTypePrimitive._('bool')]],
 					}),
 				],
 			);
@@ -8183,94 +7744,145 @@ describe('parser.ts', (): void => {
 						mutable: true,
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [],
-						initialValues: [ASTNumberLiteral._({ format: 'int', value: 1 })],
-						inferredTypes: [ASTTypePrimitive._('number')],
+						initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
+						inferredPossibleTypes: [[...NumberSizesIntASTs]],
 					}),
 				],
 			);
+		});
 
-			testParseAndAnalyze(
-				'const x = -2,300.006^e-2,000; const y = 5;',
-				[
+		describe('a let assignment with exponents', () => {
+			it('works with negative exponents', (): void => {
+				testParseAndAnalyze(
+					'const x = -2_300.006^e-2_000; const y = 5;',
 					[
-						NT.VariableDeclaration,
-						'const',
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.AssignmentOperator],
+							NT.VariableDeclaration,
+							'const',
 							[
-								NT.AssignablesList,
+								[NT.AssigneesList, [[NT.Identifier, 'x']]],
+								[NT.AssignmentOperator],
 								[
+									NT.AssignablesList,
 									[
-										NT.BinaryExpression,
-										'^e',
 										[
+											NT.BinaryExpression,
+											'^e',
 											[
-												NT.UnaryExpression,
-												'-',
-												{ before: true },
-												[[NT.NumberLiteral, '2,300.006']],
-											],
-											[
-												NT.UnaryExpression,
-												'-',
-												{ before: true },
-												[[NT.NumberLiteral, '2,000']],
+												[
+													NT.UnaryExpression,
+													'-',
+													{ before: true },
+													[[NT.NumberLiteral, '2_300.006']],
+												],
+												[
+													NT.UnaryExpression,
+													'-',
+													{ before: true },
+													[[NT.NumberLiteral, '2_000']],
+												],
 											],
 										],
 									],
 								],
 							],
 						],
-					],
-					[NT.SemicolonSeparator],
-					[
-						NT.VariableDeclaration,
-						'const',
+						[NT.SemicolonSeparator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'y']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.NumberLiteral, '5']]],
+							NT.VariableDeclaration,
+							'const',
+							[
+								[NT.AssigneesList, [[NT.Identifier, 'y']]],
+								[NT.AssignmentOperator],
+								[NT.AssignablesList, [[NT.NumberLiteral, '5']]],
+							],
 						],
+						[NT.SemicolonSeparator],
 					],
-					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [],
-						initialValues: [
-							ASTBinaryExpression._({
-								operator: '^e',
-								left: ASTUnaryExpression._({
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._({
-										format: 'decimal',
-										value: 2300.006,
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('x')],
+							declaredTypes: [],
+							initialValues: [
+								ASTBinaryExpression._({
+									operator: '^e',
+									left: ASTUnaryExpression._({
+										before: true,
+										operator: '-',
+										operand: ASTNumberLiteral._(2300.006, undefined, [...numberSizesDecimals]),
+									}),
+									right: ASTUnaryExpression._({
+										before: true,
+										operator: '-',
+										operand: ASTNumberLiteral._(2000, undefined, ['int16', 'int32', 'int64']),
 									}),
 								}),
-								right: ASTUnaryExpression._({
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._({ format: 'int', value: 2000 }),
-								}),
-							}),
+							],
+							inferredPossibleTypes: [[...NumberSizesDecimalASTs]], // all possible decimal number sizes
+						}),
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('y')],
+							declaredTypes: [],
+							initialValues: [ASTNumberLiteral._(5, undefined, [...numberSizesInts])],
+							inferredPossibleTypes: [[...NumberSizesIntASTs]],
+						}),
+					],
+				);
+			});
+
+			it('a 64-bit main number and a negative exponent should infer the possible types as dec64 and higher only', (): void => {
+				testParseAndAnalyze(
+					'const x = 214748364723^e-2;',
+					[
+						[
+							NT.VariableDeclaration,
+							'const',
+							[
+								[NT.AssigneesList, [[NT.Identifier, 'x']]],
+								[NT.AssignmentOperator],
+								[
+									NT.AssignablesList,
+									[
+										[
+											NT.BinaryExpression,
+											'^e',
+											[
+												[NT.NumberLiteral, '214748364723'],
+												[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
+											],
+										],
+									],
+								],
+							],
 						],
-						inferredTypes: [ASTTypePrimitive._('number')],
-					}),
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('y')],
-						declaredTypes: [],
-						initialValues: [ASTNumberLiteral._({ format: 'int', value: 5 })],
-						inferredTypes: [ASTTypePrimitive._('number')],
-					}),
-				],
-			);
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTVariableDeclaration._({
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('x')],
+							declaredTypes: [],
+							initialValues: [
+								ASTBinaryExpression._({
+									operator: '^e',
+									left: ASTNumberLiteral._(214748364723, undefined, ['int64', 'uint64']),
+									right: ASTUnaryExpression._({
+										before: true,
+										operator: '-',
+										operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
+									}),
+								}),
+							],
+							inferredPossibleTypes: [[ASTTypeNumber._('dec64')]], // only 64 bit decimal number sizes or higher
+						}),
+					],
+				);
+			});
 		});
 
 		it('a let assignment with a string literal', (): void => {
@@ -8294,7 +7906,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [],
 						initialValues: [ASTStringLiteral._('foo')],
-						inferredTypes: [ASTTypePrimitive._('string')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('string')]],
 					}),
 				],
 			);
@@ -8322,7 +7934,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [ASTTypePrimitive._('string')],
 						initialValues: [],
-						inferredTypes: [],
+						inferredPossibleTypes: [],
 					}),
 				],
 			);
@@ -8348,7 +7960,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x?')],
 						declaredTypes: [ASTTypePrimitive._('bool')],
 						initialValues: [],
-						inferredTypes: [],
+						inferredPossibleTypes: [],
 					}),
 				],
 			);
@@ -8377,7 +7989,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [ASTTypePrimitive._('string')],
 						initialValues: [ASTStringLiteral._('foo')],
-						inferredTypes: [ASTTypePrimitive._('string')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('string')]],
 					}),
 				],
 			);
@@ -8405,7 +8017,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [],
 						initialValues: [ASTRegularExpression._({ pattern: '/[a-z]/', flags: [] })],
-						inferredTypes: [ASTTypePrimitive._('regex')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('regex')]],
 					}),
 				],
 			);
@@ -8432,10 +8044,8 @@ describe('parser.ts', (): void => {
 						mutable: false,
 						identifiersList: [ASTIdentifier._('x')],
 						declaredTypes: [ASTTypePrimitive._('regex')],
-						initialValues: [
-							ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] }),
-						],
-						inferredTypes: [ASTTypePrimitive._('regex')],
+						initialValues: [ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] })],
+						inferredPossibleTypes: [[ASTTypePrimitive._('regex')]],
 					}),
 				],
 			);
@@ -8469,7 +8079,7 @@ describe('parser.ts', (): void => {
 								isDir: true,
 							}),
 						],
-						inferredTypes: [ASTTypePrimitive._('path')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('path')]],
 					}),
 				],
 			);
@@ -8494,10 +8104,8 @@ describe('parser.ts', (): void => {
 						mutable: false,
 						identifiersList: [ASTIdentifier._('dir')],
 						declaredTypes: [],
-						initialValues: [
-							ASTPath._({ absolute: false, path: './myDir/', isDir: true }),
-						],
-						inferredTypes: [ASTTypePrimitive._('path')],
+						initialValues: [ASTPath._({ absolute: false, path: './myDir/', isDir: true })],
+						inferredPossibleTypes: [[ASTTypePrimitive._('path')]],
 					}),
 				],
 			);
@@ -8531,7 +8139,7 @@ describe('parser.ts', (): void => {
 								isDir: false,
 							}),
 						],
-						inferredTypes: [ASTTypePrimitive._('path')],
+						inferredPossibleTypes: [[ASTTypePrimitive._('path')]],
 					}),
 				],
 			);
@@ -8559,7 +8167,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('dir')],
 						declaredTypes: [],
 						initialValues: [ASTIdentifier._('foo')],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -8615,7 +8223,7 @@ describe('parser.ts', (): void => {
 									args: [],
 								}),
 							],
-							inferredTypes: [],
+							inferredPossibleTypes: [[]],
 						}),
 					],
 				);
@@ -8686,7 +8294,7 @@ describe('parser.ts', (): void => {
 									args: [],
 								}),
 							],
-							inferredTypes: [],
+							inferredPossibleTypes: [[]],
 						}),
 					],
 				);
@@ -8731,17 +8339,19 @@ describe('parser.ts', (): void => {
 							declaredTypes: [],
 							initialValues: [
 								ASTTupleExpression._([
-									ASTNumberLiteral._({ format: 'int', value: 1 }),
+									ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 									ASTStringLiteral._('pizza'),
-									ASTNumberLiteral._({ format: 'decimal', value: 3.14 }),
+									ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
 								]),
 							],
-							inferredTypes: [
-								ASTTupleShape._([
-									ASTTypePrimitive._('number'),
-									ASTTypePrimitive._('string'),
-									ASTTypePrimitive._('number'),
-								]),
+							inferredPossibleTypes: [
+								[
+									ASTTupleShape._([
+										[...NumberSizesIntASTs],
+										[ASTTypePrimitive._('string')],
+										[...NumberSizesDecimalASTs],
+									]),
+								],
 							],
 						}),
 					],
@@ -8770,7 +8380,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('foo')],
 							declaredTypes: [],
 							initialValues: [ASTTupleExpression._([])],
-							inferredTypes: [ASTTupleShape._([])],
+							inferredPossibleTypes: [[ASTTupleShape._([])]],
 						}),
 					],
 				);
@@ -8852,9 +8462,9 @@ describe('parser.ts', (): void => {
 							initialValues: [
 								ASTTupleExpression._([
 									ASTTupleExpression._([
-										ASTNumberLiteral._({ format: 'int', value: 1 }),
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 										ASTStringLiteral._('pizza'),
-										ASTNumberLiteral._({ format: 'decimal', value: 3.14 }),
+										ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
 									]),
 									ASTBoolLiteral._(true),
 									ASTPath._({
@@ -8863,36 +8473,42 @@ describe('parser.ts', (): void => {
 										isDir: false,
 									}),
 									ASTRangeExpression._({
-										lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
-										upper: ASTNumberLiteral._({ format: 'int', value: 3 }),
+										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 									}),
 									ASTTupleExpression._([
-										ASTNumberLiteral._({ format: 'int', value: 1 }),
-										ASTNumberLiteral._({ format: 'int', value: 2 }),
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 										ASTStringLiteral._('fizz'),
-										ASTNumberLiteral._({ format: 'int', value: 4 }),
+										ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 										ASTStringLiteral._('buzz'),
 									]),
 								]),
 							],
-							inferredTypes: [
-								ASTTupleShape._([
+							inferredPossibleTypes: [
+								[
 									ASTTupleShape._([
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('string'),
-										ASTTypePrimitive._('number'),
+										[
+											ASTTupleShape._([
+												[...NumberSizesIntASTs],
+												[ASTTypePrimitive._('string')],
+												[...NumberSizesDecimalASTs],
+											]),
+										],
+										[ASTTypePrimitive._('bool')],
+										[ASTTypePrimitive._('path')],
+										[ASTTypeRange._()],
+										[
+											ASTTupleShape._([
+												[...NumberSizesIntASTs],
+												[...NumberSizesIntASTs],
+												[ASTTypePrimitive._('string')],
+												[...NumberSizesIntASTs],
+												[ASTTypePrimitive._('string')],
+											]),
+										],
 									]),
-									ASTTypePrimitive._('bool'),
-									ASTTypePrimitive._('path'),
-									ASTTypeRange._(),
-									ASTTupleShape._([
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('string'),
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('string'),
-									]),
-								]),
+								],
 							],
 						}),
 					],
@@ -8916,10 +8532,7 @@ describe('parser.ts', (): void => {
 									NT.TernaryExpression,
 									[
 										[NT.TernaryCondition, [[NT.Identifier, 'someCondition']]],
-										[
-											NT.TernaryConsequent,
-											[[NT.StringLiteral, 'burnt-orange']],
-										],
+										[NT.TernaryConsequent, [[NT.StringLiteral, 'burnt-orange']]],
 										[NT.TernaryAlternate, [[NT.StringLiteral, '']]],
 									],
 								],
@@ -8931,12 +8544,10 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTTupleExpression._([
-							ASTNumberLiteral._({ format: 'int', value: 1 }),
+							ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 							ASTTernaryExpression._({
 								test: ASTTernaryCondition._(ASTIdentifier._('someCondition')),
-								consequent: ASTTernaryConsequent._(
-									ASTStringLiteral._('burnt-orange'),
-								),
+								consequent: ASTTernaryConsequent._(ASTStringLiteral._('burnt-orange')),
 								alternate: ASTTernaryAlternate._(ASTStringLiteral._('')),
 							}),
 							ASTBoolLiteral._(true),
@@ -8965,10 +8576,7 @@ describe('parser.ts', (): void => {
 													NT.Property,
 													[
 														[NT.Identifier, 'tpl'],
-														[
-															NT.TupleExpression,
-															[[NT.NumberLiteral, '1']],
-														],
+														[NT.TupleExpression, [[NT.NumberLiteral, '1']]],
 													],
 												],
 											],
@@ -8989,19 +8597,18 @@ describe('parser.ts', (): void => {
 								ASTObjectExpression._([
 									ASTProperty._(
 										ASTIdentifier._('tpl'),
-										ASTTupleExpression._([
-											ASTNumberLiteral._({ format: 'int', value: 1 }),
-										]),
+										ASTTupleExpression._([ASTNumberLiteral._(1, undefined, [...numberSizesInts])]),
 									),
 								]),
 							],
-							inferredTypes: [
-								ASTObjectShape._([
-									ASTPropertyShape._(
-										ASTIdentifier._('tpl'),
-										ASTTupleShape._([ASTTypePrimitive._('number')]),
-									),
-								]),
+							inferredPossibleTypes: [
+								[
+									ASTObjectShape._([
+										ASTPropertyShape._(ASTIdentifier._('tpl'), [
+											ASTTupleShape._([[...NumberSizesIntASTs]]),
+										]),
+									]),
+								],
 							],
 						}),
 					],
@@ -9029,13 +8636,13 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('bool'),
 							items: [
 								ASTBoolLiteral._(false),
 								ASTBoolLiteral._(true),
 								ASTBoolLiteral._(true),
 								ASTBoolLiteral._(false),
 							],
+							possibleTypes: [ASTTypePrimitive._('bool')],
 						}),
 					],
 				);
@@ -9043,65 +8650,62 @@ describe('parser.ts', (): void => {
 
 			it('numbers', () => {
 				testParseAndAnalyze(
-					'[1, -2, 3,456, 3^e-2, 3.14, 1,2,3]',
+					'[1, -2, 3_456, 3^e-2, 3.14, 1_2_3]',
 					[
 						[
 							NT.ArrayExpression,
 							[
 								[NT.NumberLiteral, '1'],
 								[NT.CommaSeparator],
-								[
-									NT.UnaryExpression,
-									'-',
-									{ before: true },
-									[[NT.NumberLiteral, '2']],
-								],
+								[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3,456'],
+								[NT.NumberLiteral, '3_456'],
 								[NT.CommaSeparator],
 								[
 									NT.BinaryExpression,
 									'^e',
 									[
 										[NT.NumberLiteral, '3'],
-										[
-											NT.UnaryExpression,
-											'-',
-											{ before: true },
-											[[NT.NumberLiteral, '2']],
-										],
+										[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 									],
 								],
 								[NT.CommaSeparator],
 								[NT.NumberLiteral, '3.14'],
 								[NT.CommaSeparator],
-								[NT.NumberLiteral, '1,2,3'], // weird but legal
+								[NT.NumberLiteral, '1_2_3'], // weird but legal
 							],
 						],
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
 							items: [
-								ASTNumberLiteral._({ format: 'int', value: 1 }),
+								ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 								ASTUnaryExpression._({
 									before: true,
 									operator: '-',
-									operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+									operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
 								}),
-								ASTNumberLiteral._({ format: 'int', value: 3456 }),
+								ASTNumberLiteral._(3456, undefined, [
+									'int16',
+									'int32',
+									'int64',
+									'uint16',
+									'uint32',
+									'uint64',
+								]),
 								ASTBinaryExpression._({
 									operator: '^e',
-									left: ASTNumberLiteral._({ format: 'int', value: 3 }),
+									left: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 									right: ASTUnaryExpression._({
 										before: true,
 										operator: '-',
-										operand: ASTNumberLiteral._({ format: 'int', value: 2 }),
+										operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
 									}),
 								}),
-								ASTNumberLiteral._({ format: 'decimal', value: 3.14 }),
-								ASTNumberLiteral._({ format: 'int', value: 123 }),
+								ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
+								ASTNumberLiteral._(123, undefined, [...numberSizesInts]),
 							],
+							possibleTypes: [...NumberSizesIntASTs],
 						}),
 					],
 				);
@@ -9113,16 +8717,11 @@ describe('parser.ts', (): void => {
 					[
 						[
 							NT.ArrayExpression,
-							[
-								[NT.Path, '@/file.joe'],
-								[NT.CommaSeparator],
-								[NT.Path, '@/another/file.joe'],
-							],
+							[[NT.Path, '@/file.joe'], [NT.CommaSeparator], [NT.Path, '@/another/file.joe']],
 						],
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('path'),
 							items: [
 								ASTPath._({
 									absolute: true,
@@ -9135,6 +8734,7 @@ describe('parser.ts', (): void => {
 									isDir: false,
 								}),
 							],
+							possibleTypes: [ASTTypePrimitive._('path')],
 						}),
 					],
 				);
@@ -9157,7 +8757,6 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('regex'),
 							items: [
 								ASTRegularExpression._({
 									pattern: '/[a-z]/',
@@ -9172,6 +8771,7 @@ describe('parser.ts', (): void => {
 									flags: [],
 								}),
 							],
+							possibleTypes: [ASTTypePrimitive._('regex')],
 						}),
 					],
 				);
@@ -9180,20 +8780,11 @@ describe('parser.ts', (): void => {
 			it('strings', (): void => {
 				testParseAndAnalyze(
 					'[\'foo\', "bar"]',
-					[
-						[
-							NT.ArrayExpression,
-							[
-								[NT.StringLiteral, 'foo'],
-								[NT.CommaSeparator],
-								[NT.StringLiteral, 'bar'],
-							],
-						],
-					],
+					[[NT.ArrayExpression, [[NT.StringLiteral, 'foo'], [NT.CommaSeparator], [NT.StringLiteral, 'bar']]]],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('string'),
 							items: [ASTStringLiteral._('foo'), ASTStringLiteral._('bar')],
+							possibleTypes: [ASTTypePrimitive._('string')],
 						}),
 					],
 				);
@@ -9201,7 +8792,7 @@ describe('parser.ts', (): void => {
 
 			it('tuples', () => {
 				testParseAndAnalyze(
-					"const foo: <string, number, bool>[] = [<'foo', 3.14, false>, <'bar', 900, true>];",
+					"const foo: <string, uint64, bool>[] = [<'foo', 314, false>, <'bar', 900, true>];",
 					[
 						[
 							NT.VariableDeclaration,
@@ -9220,7 +8811,7 @@ describe('parser.ts', (): void => {
 													[
 														[NT.Type, 'string'],
 														[NT.CommaSeparator],
-														[NT.Type, 'number'],
+														[NT.Type, 'uint64'],
 														[NT.CommaSeparator],
 														[NT.Type, 'bool'],
 													],
@@ -9241,7 +8832,7 @@ describe('parser.ts', (): void => {
 													[
 														[NT.StringLiteral, 'foo'],
 														[NT.CommaSeparator],
-														[NT.NumberLiteral, '3.14'],
+														[NT.NumberLiteral, '314'],
 														[NT.CommaSeparator],
 														[NT.BoolLiteral, 'false'],
 													],
@@ -9273,41 +8864,73 @@ describe('parser.ts', (): void => {
 							declaredTypes: [
 								ASTArrayOf._(
 									ASTTupleShape._([
-										ASTTypePrimitive._('string'),
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('bool'),
-									]),
-								),
-							],
-							inferredTypes: [
-								ASTArrayOf._(
-									ASTTupleShape._([
-										ASTTypePrimitive._('string'),
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('bool'),
+										[ASTTypePrimitive._('string')],
+										[ASTTypeNumber._('uint64')],
+										[ASTTypePrimitive._('bool')],
 									]),
 								),
 							],
 							initialValues: [
 								ASTArrayExpression._({
-									type: ASTTupleShape._([
-										ASTTypePrimitive._('string'),
-										ASTTypePrimitive._('number'),
-										ASTTypePrimitive._('bool'),
-									]),
 									items: [
 										ASTTupleExpression._([
 											ASTStringLiteral._('foo'),
-											ASTNumberLiteral._({ format: 'decimal', value: 3.14 }),
+											ASTNumberLiteral._(314, undefined, [
+												'int16',
+												'int32',
+												'int64',
+												'uint16',
+												'uint32',
+												'uint64',
+											]),
 											ASTBoolLiteral._(false),
 										]),
 										ASTTupleExpression._([
 											ASTStringLiteral._('bar'),
-											ASTNumberLiteral._({ format: 'int', value: 900 }),
+											ASTNumberLiteral._(900, undefined, [
+												'int16',
+												'int32',
+												'int64',
+												'uint16',
+												'uint32',
+												'uint64',
+											]),
 											ASTBoolLiteral._(true),
 										]),
 									],
+									possibleTypes: [
+										ASTTupleShape._([
+											[ASTTypePrimitive._('string')],
+											[
+												ASTTypeNumber._('int16'),
+												ASTTypeNumber._('int32'),
+												ASTTypeNumber._('int64'),
+												ASTTypeNumber._('uint16'),
+												ASTTypeNumber._('uint32'),
+												ASTTypeNumber._('uint64'),
+											],
+											[ASTTypePrimitive._('bool')],
+										]),
+									],
 								}),
+							],
+							inferredPossibleTypes: [
+								[
+									ASTArrayOf._(
+										ASTTupleShape._([
+											[ASTTypePrimitive._('string')],
+											[
+												ASTTypeNumber._('int16'),
+												ASTTypeNumber._('int32'),
+												ASTTypeNumber._('int64'),
+												ASTTypeNumber._('uint16'),
+												ASTTypeNumber._('uint32'),
+												ASTTypeNumber._('uint64'),
+											],
+											[ASTTypePrimitive._('bool')],
+										]),
+									),
+								],
 							],
 						}),
 					],
@@ -9316,7 +8939,7 @@ describe('parser.ts', (): void => {
 
 			it('pojos', () => {
 				testParseAndAnalyze(
-					"const foo: {a: number, b: string}[] = [{a: 4, b: 'c'}];",
+					"const foo: {a: uint32, b: string}[] = [{a: 4, b: 'c'}];",
 					[
 						[
 							NT.VariableDeclaration,
@@ -9337,7 +8960,7 @@ describe('parser.ts', (): void => {
 															NT.PropertyShape,
 															[
 																[NT.Identifier, 'a'],
-																[NT.Type, 'number'],
+																[NT.Type, 'uint32'],
 															],
 														],
 														[NT.CommaSeparator],
@@ -9397,56 +9020,39 @@ describe('parser.ts', (): void => {
 							declaredTypes: [
 								ASTArrayOf._(
 									ASTObjectShape._([
-										ASTPropertyShape._(
-											ASTIdentifier._('a'),
-											ASTTypePrimitive._('number'),
-										),
-										ASTPropertyShape._(
-											ASTIdentifier._('b'),
-											ASTTypePrimitive._('string'),
-										),
+										ASTPropertyShape._(ASTIdentifier._('a'), [ASTTypeNumber._('uint32')]),
+										ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
 									]),
 								),
 							],
 							initialValues: [
 								ASTArrayExpression._({
-									type: ASTObjectShape._([
-										ASTPropertyShape._(
-											ASTIdentifier._('a'),
-											ASTTypePrimitive._('number'),
-										),
-										ASTPropertyShape._(
-											ASTIdentifier._('b'),
-											ASTTypePrimitive._('string'),
-										),
-									]),
 									items: [
 										ASTObjectExpression._([
 											ASTProperty._(
 												ASTIdentifier._('a'),
-												ASTNumberLiteral._({ format: 'int', value: 4 }),
+												ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 											),
-											ASTProperty._(
-												ASTIdentifier._('b'),
-												ASTStringLiteral._('c'),
-											),
+											ASTProperty._(ASTIdentifier._('b'), ASTStringLiteral._('c')),
+										]),
+									],
+									possibleTypes: [
+										ASTObjectShape._([
+											ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
+											ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
 										]),
 									],
 								}),
 							],
-							inferredTypes: [
-								ASTArrayOf._(
-									ASTObjectShape._([
-										ASTPropertyShape._(
-											ASTIdentifier._('a'),
-											ASTTypePrimitive._('number'),
-										),
-										ASTPropertyShape._(
-											ASTIdentifier._('b'),
-											ASTTypePrimitive._('string'),
-										),
-									]),
-								),
+							inferredPossibleTypes: [
+								[
+									ASTArrayOf._(
+										ASTObjectShape._([
+											ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
+											ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
+										]),
+									),
+								],
 							],
 						}),
 					],
@@ -9455,24 +9061,20 @@ describe('parser.ts', (): void => {
 
 			it('assignments', () => {
 				testParseAndAnalyze(
-					'const numbers = [1, 2];',
+					'const int32s = [1, 2];',
 					[
 						[
 							NT.VariableDeclaration,
 							'const',
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'numbers']]],
+								[NT.AssigneesList, [[NT.Identifier, 'int32s']]],
 								[NT.AssignmentOperator],
 								[
 									NT.AssignablesList,
 									[
 										[
 											NT.ArrayExpression,
-											[
-												[NT.NumberLiteral, '1'],
-												[NT.CommaSeparator],
-												[NT.NumberLiteral, '2'],
-											],
+											[[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '2']],
 										],
 									],
 								],
@@ -9484,18 +9086,29 @@ describe('parser.ts', (): void => {
 						ASTVariableDeclaration._({
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('numbers')],
+							identifiersList: [ASTIdentifier._('int32s')],
 							declaredTypes: [],
 							initialValues: [
 								ASTArrayExpression._({
-									type: ASTTypePrimitive._('number'),
 									items: [
-										ASTNumberLiteral._({ format: 'int', value: 1 }),
-										ASTNumberLiteral._({ format: 'int', value: 2 }),
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 									],
+									possibleTypes: [...NumberSizesIntASTs],
 								}),
 							],
-							inferredTypes: [ASTArrayOf._(ASTTypePrimitive._('number'))],
+							inferredPossibleTypes: [
+								[
+									ASTArrayOf._(ASTTypeNumber._('int8')),
+									ASTArrayOf._(ASTTypeNumber._('int16')),
+									ASTArrayOf._(ASTTypeNumber._('int32')),
+									ASTArrayOf._(ASTTypeNumber._('int64')),
+									ASTArrayOf._(ASTTypeNumber._('uint8')),
+									ASTArrayOf._(ASTTypeNumber._('uint16')),
+									ASTArrayOf._(ASTTypeNumber._('uint32')),
+									ASTArrayOf._(ASTTypeNumber._('uint64')),
+								],
+							],
 						}),
 					],
 				);
@@ -9524,11 +9137,11 @@ describe('parser.ts', (): void => {
 							declaredTypes: [ASTArrayOf._(ASTTypePrimitive._('bool'))],
 							initialValues: [
 								ASTArrayExpression._({
-									type: undefined,
 									items: [],
+									possibleTypes: [],
 								}),
 							],
-							inferredTypes: [],
+							inferredPossibleTypes: [[]],
 						}),
 					],
 				);
@@ -9573,14 +9186,25 @@ describe('parser.ts', (): void => {
 								ASTTernaryExpression._({
 									test: ASTTernaryCondition._(ASTIdentifier._('bar')),
 									consequent: ASTTernaryConsequent._(
-										ASTNumberLiteral._({ format: 'int', value: 1 }),
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 									),
 									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._({ format: 'int', value: 2 }),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 									),
 								}),
 							],
-							inferredTypes: [ASTTypePrimitive._('number')],
+							inferredPossibleTypes: [
+								[
+									ASTTypeNumber._('int8'),
+									ASTTypeNumber._('int16'),
+									ASTTypeNumber._('int32'),
+									ASTTypeNumber._('int64'),
+									ASTTypeNumber._('uint8'),
+									ASTTypeNumber._('uint16'),
+									ASTTypeNumber._('uint32'),
+									ASTTypeNumber._('uint64'),
+								],
+							],
 						}),
 					],
 				);
@@ -9612,32 +9236,14 @@ describe('parser.ts', (): void => {
 																[
 																	NT.TernaryExpression,
 																	[
-																		[
-																			NT.TernaryCondition,
-																			[
-																				[
-																					NT.Identifier,
-																					'baz',
-																				],
-																			],
-																		],
+																		[NT.TernaryCondition, [[NT.Identifier, 'baz']]],
 																		[
 																			NT.TernaryConsequent,
-																			[
-																				[
-																					NT.NumberLiteral,
-																					'3',
-																				],
-																			],
+																			[[NT.NumberLiteral, '3']],
 																		],
 																		[
 																			NT.TernaryAlternate,
-																			[
-																				[
-																					NT.NumberLiteral,
-																					'4',
-																				],
-																			],
+																			[[NT.NumberLiteral, '4']],
 																		],
 																	],
 																],
@@ -9667,19 +9273,19 @@ describe('parser.ts', (): void => {
 										ASTTernaryExpression._({
 											test: ASTTernaryCondition._(ASTIdentifier._('baz')),
 											consequent: ASTTernaryConsequent._(
-												ASTNumberLiteral._({ format: 'int', value: 3 }),
+												ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 											),
 											alternate: ASTTernaryAlternate._(
-												ASTNumberLiteral._({ format: 'int', value: 4 }),
+												ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 											),
 										}),
 									),
 									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._({ format: 'int', value: 2 }),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 									),
 								}),
 							],
-							inferredTypes: [ASTTypePrimitive._('number')],
+							inferredPossibleTypes: [[...NumberSizesIntASTs]],
 						}),
 					],
 				);
@@ -9707,19 +9313,19 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTArrayExpression._({
-							type: ASTTypePrimitive._('number'),
 							items: [
 								ASTTernaryExpression._({
 									test: ASTTernaryCondition._(ASTIdentifier._('foo')),
 									consequent: ASTTernaryConsequent._(
-										ASTNumberLiteral._({ format: 'int', value: 1 }),
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 									),
 									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._({ format: 'int', value: 2 }),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 									),
 								}),
-								ASTNumberLiteral._({ format: 'int', value: 3 }),
+								ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							],
+							possibleTypes: [...NumberSizesIntASTs],
 						}),
 					],
 				);
@@ -9727,7 +9333,7 @@ describe('parser.ts', (): void => {
 
 			it('should work in a return', () => {
 				testParseAndAnalyze(
-					`f foo -> bool, number {
+					`f foo -> bool, uint64 {
 						return bar ? true : false, 3;
 					}`,
 					[
@@ -9735,10 +9341,7 @@ describe('parser.ts', (): void => {
 							NT.FunctionDeclaration,
 							[
 								[NT.Identifier, 'foo'],
-								[
-									NT.FunctionReturns,
-									[[NT.Type, 'bool'], [NT.CommaSeparator], [NT.Type, 'number']],
-								],
+								[NT.FunctionReturns, [[NT.Type, 'bool'], [NT.CommaSeparator], [NT.Type, 'uint64']]],
 								[
 									NT.BlockStatement,
 									[
@@ -9748,18 +9351,9 @@ describe('parser.ts', (): void => {
 												[
 													NT.TernaryExpression,
 													[
-														[
-															NT.TernaryCondition,
-															[[NT.Identifier, 'bar']],
-														],
-														[
-															NT.TernaryConsequent,
-															[[NT.BoolLiteral, 'true']],
-														],
-														[
-															NT.TernaryAlternate,
-															[[NT.BoolLiteral, 'false']],
-														],
+														[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
+														[NT.TernaryConsequent, [[NT.BoolLiteral, 'true']]],
+														[NT.TernaryAlternate, [[NT.BoolLiteral, 'false']]],
 													],
 												],
 												[NT.CommaSeparator],
@@ -9778,7 +9372,7 @@ describe('parser.ts', (): void => {
 							name: ASTIdentifier._('foo'),
 							typeParams: [],
 							params: [],
-							returnTypes: [ASTTypePrimitive._('bool'), ASTTypePrimitive._('number')],
+							returnTypes: [ASTTypePrimitive._('bool'), ASTTypeNumber._('uint64')],
 							body: ASTBlockStatement._([
 								ASTReturnStatement._([
 									ASTTernaryExpression._({
@@ -9786,7 +9380,7 @@ describe('parser.ts', (): void => {
 										consequent: ASTTernaryConsequent._(ASTBoolLiteral._(true)),
 										alternate: ASTTernaryAlternate._(ASTBoolLiteral._(false)),
 									}),
-									ASTNumberLiteral._({ format: 'int', value: 3 }),
+									ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 								]),
 							]),
 						}),
@@ -9868,47 +9462,34 @@ describe('parser.ts', (): void => {
 								ASTObjectExpression._([
 									ASTProperty._(
 										ASTIdentifier._('a'),
-										ASTNumberLiteral._({ format: 'int', value: 1 }),
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 									),
-									ASTProperty._(
-										ASTIdentifier._('b'),
-										ASTStringLiteral._('pizza'),
-									),
+									ASTProperty._(ASTIdentifier._('b'), ASTStringLiteral._('pizza')),
 									ASTProperty._(
 										ASTIdentifier._('c'),
-										ASTNumberLiteral._({ format: 'decimal', value: 3.14 }),
+										ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
 									),
 									ASTProperty._(
 										ASTIdentifier._('d'),
 										ASTArrayExpression._({
-											type: ASTTypePrimitive._('number'),
 											items: [
-												ASTNumberLiteral._({ format: 'int', value: 10 }),
-												ASTNumberLiteral._({ format: 'int', value: 11 }),
+												ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
+												ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
 											],
+											possibleTypes: [...NumberSizesIntASTs],
 										}),
 									),
 								]),
 							],
-							inferredTypes: [
-								ASTObjectShape._([
-									ASTPropertyShape._(
-										ASTIdentifier._('a'),
-										ASTTypePrimitive._('number'),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('b'),
-										ASTTypePrimitive._('string'),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('c'),
-										ASTTypePrimitive._('number'),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('d'),
-										ASTArrayOf._(ASTTypePrimitive._('number')),
-									),
-								]),
+							inferredPossibleTypes: [
+								[
+									ASTObjectShape._([
+										ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
+										ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
+										ASTPropertyShape._(ASTIdentifier._('c'), [...NumberSizesDecimalASTs]),
+										ASTPropertyShape._(ASTIdentifier._('d'), NumberSizesIntASTs.map(ASTArrayOf._)),
+									]),
+								],
 							],
 						}),
 					],
@@ -9937,7 +9518,7 @@ describe('parser.ts', (): void => {
 							identifiersList: [ASTIdentifier._('foo')],
 							declaredTypes: [],
 							initialValues: [ASTObjectExpression._([])],
-							inferredTypes: [ASTObjectShape._([])],
+							inferredPossibleTypes: [[ASTObjectShape._([])]],
 						}),
 					],
 				);
@@ -9998,14 +9579,8 @@ describe('parser.ts', (): void => {
 																				[
 																					NT.Property,
 																					[
-																						[
-																							NT.Identifier,
-																							'two_digits',
-																						],
-																						[
-																							NT.NumberLiteral,
-																							'3.14',
-																						],
+																						[NT.Identifier, 'two_digits'],
+																						[NT.NumberLiteral, '3.14'],
 																					],
 																				],
 																			],
@@ -10047,14 +9622,8 @@ describe('parser.ts', (): void => {
 																		[
 																			NT.RangeExpression,
 																			[
-																				[
-																					NT.NumberLiteral,
-																					'1',
-																				],
-																				[
-																					NT.NumberLiteral,
-																					'3',
-																				],
+																				[NT.NumberLiteral, '1'],
+																				[NT.NumberLiteral, '3'],
 																			],
 																		],
 																	],
@@ -10105,21 +9674,15 @@ describe('parser.ts', (): void => {
 										ASTObjectExpression._([
 											ASTProperty._(
 												ASTIdentifier._('a'),
-												ASTNumberLiteral._({ format: 'int', value: 1 }),
+												ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 											),
-											ASTProperty._(
-												ASTIdentifier._('b'),
-												ASTStringLiteral._('pizza'),
-											),
+											ASTProperty._(ASTIdentifier._('b'), ASTStringLiteral._('pizza')),
 											ASTProperty._(
 												ASTIdentifier._('pi'),
 												ASTObjectExpression._([
 													ASTProperty._(
 														ASTIdentifier._('two_digits'),
-														ASTNumberLiteral._({
-															format: 'decimal',
-															value: 3.14,
-														}),
+														ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
 													),
 												]),
 											),
@@ -10140,14 +9703,8 @@ describe('parser.ts', (): void => {
 											ASTProperty._(
 												ASTIdentifier._('rng'),
 												ASTRangeExpression._({
-													lower: ASTNumberLiteral._({
-														format: 'int',
-														value: 1,
-													}),
-													upper: ASTNumberLiteral._({
-														format: 'int',
-														value: 3,
-													}),
+													lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+													upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 												}),
 											),
 										]),
@@ -10155,67 +9712,51 @@ describe('parser.ts', (): void => {
 									ASTProperty._(
 										ASTIdentifier._('tpl'),
 										ASTTupleExpression._([
-											ASTNumberLiteral._({ format: 'int', value: 1 }),
-											ASTNumberLiteral._({ format: 'int', value: 2 }),
+											ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+											ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 											ASTStringLiteral._('fizz'),
-											ASTNumberLiteral._({ format: 'int', value: 4 }),
+											ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
 											ASTStringLiteral._('buzz'),
 										]),
 									),
 								]),
 							],
-							inferredTypes: [
-								ASTObjectShape._([
-									ASTPropertyShape._(
-										ASTIdentifier._('obj'),
-										ASTObjectShape._([
-											ASTPropertyShape._(
-												ASTIdentifier._('a'),
-												ASTTypePrimitive._('number'),
-											),
-											ASTPropertyShape._(
-												ASTIdentifier._('b'),
-												ASTTypePrimitive._('string'),
-											),
-											ASTPropertyShape._(
-												ASTIdentifier._('pi'),
-												ASTObjectShape._([
-													ASTPropertyShape._(
-														ASTIdentifier._('two_digits'),
-														ASTTypePrimitive._('number'),
-													),
+							inferredPossibleTypes: [
+								[
+									ASTObjectShape._([
+										ASTPropertyShape._(ASTIdentifier._('obj'), [
+											ASTObjectShape._([
+												ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
+												ASTPropertyShape._(ASTIdentifier._('b'), [
+													ASTTypePrimitive._('string'),
 												]),
-											),
+												ASTPropertyShape._(ASTIdentifier._('pi'), [
+													ASTObjectShape._([
+														ASTPropertyShape._(ASTIdentifier._('two_digits'), [
+															...NumberSizesDecimalASTs,
+														]),
+													]),
+												]),
+											]),
 										]),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('bol'),
-										ASTTypePrimitive._('bool'),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('pth'),
-										ASTTypePrimitive._('path'),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('rng'),
-										ASTObjectShape._([
-											ASTPropertyShape._(
-												ASTIdentifier._('rng'),
-												ASTTypeRange._(),
-											),
+										ASTPropertyShape._(ASTIdentifier._('bol'), [ASTTypePrimitive._('bool')]),
+										ASTPropertyShape._(ASTIdentifier._('pth'), [ASTTypePrimitive._('path')]),
+										ASTPropertyShape._(ASTIdentifier._('rng'), [
+											ASTObjectShape._([
+												ASTPropertyShape._(ASTIdentifier._('rng'), [ASTTypeRange._()]),
+											]),
 										]),
-									),
-									ASTPropertyShape._(
-										ASTIdentifier._('tpl'),
-										ASTTupleShape._([
-											ASTTypePrimitive._('number'),
-											ASTTypePrimitive._('number'),
-											ASTTypePrimitive._('string'),
-											ASTTypePrimitive._('number'),
-											ASTTypePrimitive._('string'),
+										ASTPropertyShape._(ASTIdentifier._('tpl'), [
+											ASTTupleShape._([
+												[...NumberSizesIntASTs],
+												[...NumberSizesIntASTs],
+												[ASTTypePrimitive._('string')],
+												[...NumberSizesIntASTs],
+												[ASTTypePrimitive._('string')],
+											]),
 										]),
-									),
-								]),
+									]),
+								],
 							],
 						}),
 					],
@@ -10248,14 +9789,8 @@ describe('parser.ts', (): void => {
 										[
 											NT.TernaryExpression,
 											[
-												[
-													NT.TernaryCondition,
-													[[NT.Identifier, 'someCondition']],
-												],
-												[
-													NT.TernaryConsequent,
-													[[NT.StringLiteral, 'burnt-orange']],
-												],
+												[NT.TernaryCondition, [[NT.Identifier, 'someCondition']]],
+												[NT.TernaryConsequent, [[NT.StringLiteral, 'burnt-orange']]],
 												[NT.TernaryAlternate, [[NT.StringLiteral, '']]],
 											],
 										],
@@ -10275,17 +9810,12 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTObjectExpression._([
-							ASTProperty._(
-								ASTIdentifier._('a'),
-								ASTNumberLiteral._({ format: 'int', value: 1 }),
-							),
+							ASTProperty._(ASTIdentifier._('a'), ASTNumberLiteral._(1, undefined, [...numberSizesInts])),
 							ASTProperty._(
 								ASTIdentifier._('b'),
 								ASTTernaryExpression._({
 									test: ASTTernaryCondition._(ASTIdentifier._('someCondition')),
-									consequent: ASTTernaryConsequent._(
-										ASTStringLiteral._('burnt-orange'),
-									),
+									consequent: ASTTernaryConsequent._(ASTStringLiteral._('burnt-orange')),
 									alternate: ASTTernaryAlternate._(ASTStringLiteral._('')),
 								}),
 							),
@@ -10319,8 +9849,8 @@ describe('parser.ts', (): void => {
 							ASTProperty._(
 								ASTIdentifier._('a'),
 								ASTArrayExpression._({
-									type: ASTTypePrimitive._('number'),
-									items: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+									items: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
+									possibleTypes: [...NumberSizesIntASTs],
 								}),
 							),
 						]),
@@ -10363,16 +9893,13 @@ describe('parser.ts', (): void => {
 							ASTProperty._(
 								ASTIdentifier._('a'),
 								ASTArrayExpression._({
-									type: undefined,
 									items: [
 										ASTMemberExpression._({
 											object: ASTIdentifier._('foo'),
-											property: ASTNumberLiteral._({
-												format: 'int',
-												value: 1,
-											}),
+											property: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
 										}),
 									],
+									possibleTypes: [],
 								}),
 							),
 						]),
@@ -10403,7 +9930,7 @@ describe('parser.ts', (): void => {
 						identifiersList: [ASTIdentifier._('foo')],
 						declaredTypes: [],
 						initialValues: [ASTThisKeyword._()],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -10443,11 +9970,11 @@ describe('parser.ts', (): void => {
 						declaredTypes: [],
 						initialValues: [
 							ASTRangeExpression._({
-								lower: ASTNumberLiteral._({ format: 'int', value: 1 }),
-								upper: ASTNumberLiteral._({ format: 'int', value: 3 }),
+								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+								upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							}),
 						],
-						inferredTypes: [ASTTypeRange._()],
+						inferredPossibleTypes: [[ASTTypeRange._()]],
 					}),
 				],
 			);
@@ -10486,7 +10013,7 @@ describe('parser.ts', (): void => {
 						expression: ASTIdentifier._('someNumber'),
 						cases: [
 							ASTWhenCase._({
-								values: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+								values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 								consequent: ASTStringLiteral._('small'),
 							}),
 						],
@@ -10539,10 +10066,7 @@ describe('parser.ts', (): void => {
 																],
 															],
 															[NT.SemicolonSeparator],
-															[
-																NT.ReturnStatement,
-																[[NT.StringLiteral, 'large']],
-															],
+															[NT.ReturnStatement, [[NT.StringLiteral, 'large']]],
 															[NT.SemicolonSeparator],
 														],
 													],
@@ -10561,7 +10085,7 @@ describe('parser.ts', (): void => {
 						expression: ASTIdentifier._('someNumber'),
 						cases: [
 							ASTWhenCase._({
-								values: [ASTNumberLiteral._({ format: 'int', value: 1 })],
+								values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
 								consequent: ASTBlockStatement._([
 									ASTCallExpression._({
 										callee: ASTIdentifier._('doThing1'),
@@ -10622,10 +10146,7 @@ describe('parser.ts', (): void => {
 																	[NT.NumberLiteral, '2'],
 																],
 															],
-															[
-																NT.WhenCaseConsequent,
-																[[NT.StringLiteral, 'small']],
-															],
+															[NT.WhenCaseConsequent, [[NT.StringLiteral, 'small']]],
 														],
 													],
 													[NT.CommaSeparator],
@@ -10639,28 +10160,19 @@ describe('parser.ts', (): void => {
 																		NT.RangeExpression,
 																		[
 																			[NT.NumberLiteral, '3'],
-																			[
-																				NT.NumberLiteral,
-																				'10',
-																			],
+																			[NT.NumberLiteral, '10'],
 																		],
 																	],
 																],
 															],
-															[
-																NT.WhenCaseConsequent,
-																[[NT.StringLiteral, 'medium']],
-															],
+															[NT.WhenCaseConsequent, [[NT.StringLiteral, 'medium']]],
 														],
 													],
 													[NT.CommaSeparator],
 													[
 														NT.WhenCase,
 														[
-															[
-																NT.WhenCaseValues,
-																[[NT.NumberLiteral, '11']],
-															],
+															[NT.WhenCaseValues, [[NT.NumberLiteral, '11']]],
 															[
 																NT.WhenCaseConsequent,
 																[
@@ -10670,39 +10182,22 @@ describe('parser.ts', (): void => {
 																			[
 																				NT.CallExpression,
 																				[
-																					[
-																						NT.Identifier,
-																						'doThing1',
-																					],
-																					[
-																						NT.ArgumentsList,
-																						[],
-																					],
+																					[NT.Identifier, 'doThing1'],
+																					[NT.ArgumentsList, []],
 																				],
 																			],
 																			[NT.SemicolonSeparator],
 																			[
 																				NT.CallExpression,
 																				[
-																					[
-																						NT.Identifier,
-																						'doThing2',
-																					],
-																					[
-																						NT.ArgumentsList,
-																						[],
-																					],
+																					[NT.Identifier, 'doThing2'],
+																					[NT.ArgumentsList, []],
 																				],
 																			],
 																			[NT.SemicolonSeparator],
 																			[
 																				NT.ReturnStatement,
-																				[
-																					[
-																						NT.StringLiteral,
-																						'large',
-																					],
-																				],
+																				[[NT.StringLiteral, 'large']],
 																			],
 																			[NT.SemicolonSeparator],
 																		],
@@ -10715,20 +10210,14 @@ describe('parser.ts', (): void => {
 													[
 														NT.WhenCase,
 														[
-															[
-																NT.WhenCaseValues,
-																[[NT.NumberLiteral, '12']],
-															],
+															[NT.WhenCaseValues, [[NT.NumberLiteral, '12']]],
 															[
 																NT.WhenCaseConsequent,
 																[
 																	[
 																		NT.CallExpression,
 																		[
-																			[
-																				NT.Identifier,
-																				'doSomethingElse',
-																			],
+																			[NT.Identifier, 'doSomethingElse'],
 																			[NT.ArgumentsList, []],
 																		],
 																	],
@@ -10740,18 +10229,10 @@ describe('parser.ts', (): void => {
 													[
 														NT.WhenCase,
 														[
-															[
-																NT.WhenCaseValues,
-																[[NT.RestElement, '...']],
-															],
+															[NT.WhenCaseValues, [[NT.RestElement, '...']]],
 															[
 																NT.WhenCaseConsequent,
-																[
-																	[
-																		NT.StringLiteral,
-																		'off the charts',
-																	],
-																],
+																[[NT.StringLiteral, 'off the charts']],
 															],
 														],
 													],
@@ -10777,28 +10258,22 @@ describe('parser.ts', (): void => {
 								cases: [
 									ASTWhenCase._({
 										values: [
-											ASTNumberLiteral._({ format: 'int', value: 1 }),
-											ASTNumberLiteral._({ format: 'int', value: 2 }),
+											ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+											ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 										],
 										consequent: ASTStringLiteral._('small'),
 									}),
 									ASTWhenCase._({
 										values: [
 											ASTRangeExpression._({
-												lower: ASTNumberLiteral._({
-													format: 'int',
-													value: 3,
-												}),
-												upper: ASTNumberLiteral._({
-													format: 'int',
-													value: 10,
-												}),
+												lower: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
+												upper: ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
 											}),
 										],
 										consequent: ASTStringLiteral._('medium'),
 									}),
 									ASTWhenCase._({
-										values: [ASTNumberLiteral._({ format: 'int', value: 11 })],
+										values: [ASTNumberLiteral._(11, undefined, [...numberSizesInts])],
 										consequent: ASTBlockStatement._([
 											ASTCallExpression._({
 												callee: ASTIdentifier._('doThing1'),
@@ -10812,7 +10287,7 @@ describe('parser.ts', (): void => {
 										]),
 									}),
 									ASTWhenCase._({
-										values: [ASTNumberLiteral._({ format: 'int', value: 12 })],
+										values: [ASTNumberLiteral._(12, undefined, [...numberSizesInts])],
 										consequent: ASTCallExpression._({
 											callee: ASTIdentifier._('doSomethingElse'),
 											args: [],
@@ -10825,7 +10300,7 @@ describe('parser.ts', (): void => {
 								],
 							}),
 						],
-						inferredTypes: [],
+						inferredPossibleTypes: [[]],
 					}),
 				],
 			);
@@ -10857,7 +10332,7 @@ describe('parser.ts', (): void => {
 							callee: ASTIdentifier._('foo'),
 							args: [],
 						}),
-						upper: ASTNumberLiteral._({ format: 'int', value: 3 }),
+						upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 					}),
 				],
 			);
@@ -10893,27 +10368,27 @@ describe('parser.ts', (): void => {
 				],
 				[
 					ASTArrayExpression._({
-						type: ASTTypePrimitive._('bool'),
 						items: [
 							ASTBinaryExpression._({
 								operator: '<',
-								left: ASTNumberLiteral._({ format: 'int', value: 1 }),
-								right: ASTNumberLiteral._({ format: 'int', value: 2 }),
+								left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
 							}),
 							ASTBinaryExpression._({
 								operator: '>',
-								left: ASTNumberLiteral._({ format: 'int', value: 4 }),
-								right: ASTNumberLiteral._({ format: 'int', value: 3 }),
+								left: ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
+								right: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
 							}),
 						],
+						possibleTypes: [ASTTypePrimitive._('bool')],
 					}),
 				],
 			);
 		});
 
-		it('"f foo(a: number = 1,234, b = true) -> bool {}" should correctly see the comma as a separator', () => {
+		it('"f foo(a: int16 = 1_234, b = true) -> bool {}" should correctly see the underscore as a separator', () => {
 			testParseAndAnalyze(
-				'f foo(a: number = 1,234, b = true) -> bool {}',
+				'f foo(a: int16 = 1_234, b = true) -> bool {}',
 				[
 					[
 						NT.FunctionDeclaration,
@@ -10927,19 +10402,15 @@ describe('parser.ts', (): void => {
 										[
 											[NT.Identifier, 'a'],
 											[NT.ColonSeparator],
-											[NT.Type, 'number'],
+											[NT.Type, 'int16'],
 											[NT.AssignmentOperator],
-											[NT.NumberLiteral, '1,234'],
+											[NT.NumberLiteral, '1_234'],
 										],
 									],
 									[NT.CommaSeparator],
 									[
 										NT.Parameter,
-										[
-											[NT.Identifier, 'b'],
-											[NT.AssignmentOperator],
-											[NT.BoolLiteral, 'true'],
-										],
+										[[NT.Identifier, 'b'], [NT.AssignmentOperator], [NT.BoolLiteral, 'true']],
 									],
 								],
 							],
@@ -10958,16 +10429,30 @@ describe('parser.ts', (): void => {
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('a'),
-								declaredType: ASTTypePrimitive._('number'),
-								defaultValue: ASTNumberLiteral._({ format: 'int', value: 1234 }),
-								inferredType: ASTTypePrimitive._('number'),
+								declaredType: ASTTypeNumber._('int16'),
+								defaultValue: ASTNumberLiteral._(1234, undefined, [
+									'int16',
+									'int32',
+									'int64',
+									'uint16',
+									'uint32',
+									'uint64',
+								]),
+								inferredPossibleTypes: [
+									ASTTypeNumber._('int16'),
+									ASTTypeNumber._('int32'),
+									ASTTypeNumber._('int64'),
+									ASTTypeNumber._('uint16'),
+									ASTTypeNumber._('uint32'),
+									ASTTypeNumber._('uint64'),
+								],
 							}),
 							ASTParameter._({
 								modifiers: [],
 								isRest: false,
 								name: ASTIdentifier._('b'),
 								defaultValue: ASTBoolLiteral._(true),
-								inferredType: ASTTypePrimitive._('bool'),
+								inferredPossibleTypes: [ASTTypePrimitive._('bool')],
 							}),
 						],
 						returnTypes: [ASTTypePrimitive._('bool')],

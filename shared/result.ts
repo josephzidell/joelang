@@ -20,10 +20,7 @@ export function ok<T>(value: T): Result<T> {
 }
 
 /** Shortcut to create an error Result */
-export function error<T, E extends Error = Error, ED = unknown>(
-	error: E,
-	data?: ED,
-): Result<T, E, ED> {
+export function error<T, E extends Error = Error, ED = unknown>(error: E, data?: ED): Result<T, E, ED> {
 	return { outcome: 'error', error, data };
 }
 

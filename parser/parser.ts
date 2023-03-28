@@ -113,8 +113,7 @@ export default class Parser {
 	public parse(): Result<Node> {
 		do {
 			// before going on to the next token, update this.prevToken
-			this.prevToken =
-				this.currentToken.outcome === 'ok' ? this.currentToken.value : undefined;
+			this.prevToken = this.currentToken.outcome === 'ok' ? this.currentToken.value : undefined;
 
 			// get the next token
 			this.currentToken = this.getNextToken();
@@ -140,9 +139,7 @@ export default class Parser {
 							this.currentRoot.type === NT.FunctionDeclaration ||
 							this.currentRoot.type === NT.FunctionSignature
 						) {
-							this.beginExpressionWith(
-								MakeNode(NT.ParametersList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 
 							// next case:
 							// the only way this could be a CallExpression is if the previous token was an identifier or close of generic type list
@@ -162,13 +159,9 @@ export default class Parser {
 								return result;
 							}
 
-							this.beginExpressionWith(
-								MakeNode(NT.ArgumentsList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWith(
-								MakeNode(NT.Parenthesized, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
 						}
 						break;
 					case NT.MemberExpression:
@@ -178,10 +171,7 @@ export default class Parser {
 						// is that left-hand side rather than the operator. And we cannot check whether we're _in_ a BinaryExpression since
 						// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a.b && (c)` and `a.b && c()` both
 						// have the same previous Node and the same currentRoot.
-						if (
-							this.prevToken?.type &&
-							['identifier', 'triangle_close'].includes(this.prevToken.type)
-						) {
+						if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
 							const result = this.beginExpressionWithAdoptingPreviousNode(
 								MakeNode(NT.CallExpression, token, this.currentRoot, true),
 							);
@@ -189,13 +179,9 @@ export default class Parser {
 								return result;
 							}
 
-							this.beginExpressionWith(
-								MakeNode(NT.ArgumentsList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWith(
-								MakeNode(NT.Parenthesized, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
 						}
 						break;
 					case NT.TypeArgumentsList:
@@ -204,38 +190,21 @@ export default class Parser {
 
 							if (
 								twoBackType &&
-								(
-									[NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]
-								).includes(twoBackType)
+								([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)
 							) {
 								// we're in a CallExpression after the GenericTypesList
-								const callExpressionNode = MakeNode(
-									NT.CallExpression,
-									token,
-									this.currentRoot,
-									true,
-								);
-								let wasAdopted = this.adoptNode(
-									this.currentRoot,
-									twoBack,
-									callExpressionNode,
-								);
+								const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
+								let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
 								if (wasAdopted.outcome === 'error') {
 									return error(wasAdopted.error);
 								}
 
-								wasAdopted = this.adoptNode(
-									this.currentRoot,
-									prev,
-									callExpressionNode,
-								);
+								wasAdopted = this.adoptNode(this.currentRoot, prev, callExpressionNode);
 								this.beginExpressionWith(callExpressionNode);
 							}
 
 							// begin the ArgumentsList
-							this.beginExpressionWith(
-								MakeNode(NT.ArgumentsList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
 						}
 						break;
 					case NT.TypeParametersList:
@@ -244,9 +213,7 @@ export default class Parser {
 							this.currentRoot.type === NT.FunctionSignature
 						) {
 							// we're in a FunctionDeclaration after the GenericTypesList
-							this.beginExpressionWith(
-								MakeNode(NT.ParametersList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 						}
 						break;
 					default:
@@ -256,13 +223,9 @@ export default class Parser {
 						) {
 							// we're in an anonymous FunctionDeclaration after the `f` keyword
 							// and there is no previous node
-							this.beginExpressionWith(
-								MakeNode(NT.ParametersList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWith(
-								MakeNode(NT.Parenthesized, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
 						}
 						break;
 				}
@@ -287,7 +250,7 @@ export default class Parser {
 				this.endExpressionIfIn(NT.CallExpression);
 
 				// check if we're in a FunctionReturns, if so, it's finished
-				// eg `f foo (bar: number, callback: f -> bool)`
+				// eg `f foo (bar: int64, callback: f -> bool)`
 				this.endExpressionIfIn(NT.FunctionReturns);
 
 				// check if we're in a FunctionSignature, if so, it's finished
@@ -327,34 +290,25 @@ export default class Parser {
 					NT.TypeArgumentsList,
 				];
 				const nodeTypesThatParentAnObjectExpression: NT[] = [NT.AssignablesList];
-				const nodeTypesThatParentAnObjectShape: NT[] = [
-					NT.ArgumentsList,
-					NT.TypeArgumentsList,
-				];
+				const nodeTypesThatParentAnObjectShape: NT[] = [NT.ArgumentsList, NT.TypeArgumentsList];
 				if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
 					if (this.debug) {
 						console.debug('Beginning an ObjectShape');
 					}
 
-					this.beginExpressionWith(
-						MakeNode(NT.ObjectShape, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.ObjectShape, token, this.currentRoot, true));
 				} else if (nodeTypesThatParentAnObjectExpression.includes(this.currentRoot.type)) {
 					if (this.debug) {
 						console.debug('Beginning an ObjectExpression');
 					}
 
-					this.beginExpressionWith(
-						MakeNode(NT.ObjectExpression, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
 				} else if (typeof prevType === 'undefined') {
 					if (this.debug) {
 						console.debug('Beginning a BlockStatement');
 					}
 
-					this.beginExpressionWith(
-						MakeNode(NT.BlockStatement, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
 				} else if (
 					nodeTypesThatPrecedeAnObjectExpression.includes(prevType) ||
 					(this.currentRoot.type === NT.Property && prevType === NT.Identifier)
@@ -363,17 +317,13 @@ export default class Parser {
 						console.debug('Beginning an ObjectExpression');
 					}
 
-					this.beginExpressionWith(
-						MakeNode(NT.ObjectExpression, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
 				} else {
 					if (this.debug) {
 						console.debug('Beginning a BlockStatement');
 					}
 
-					this.beginExpressionWith(
-						MakeNode(NT.BlockStatement, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'brace_close') {
 				this.endExpression();
@@ -387,26 +337,15 @@ export default class Parser {
 				this.endExpressionIfIn(NT.ObjectExpression);
 				this.endExpressionIfIn(NT.ObjectShape);
 			} else if (token.type === 'bracket_open') {
-				const isNextABracketClose =
-					this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
+				const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
 				const [, prevType] = this.prev();
 
 				if (typeof prevType === 'undefined') {
-					this.beginExpressionWith(
-						MakeNode(NT.ArrayExpression, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
 				} else {
 					if (
 						isNextABracketClose &&
-						(
-							[
-								NT.ArrayOf,
-								NT.Identifier,
-								NT.ObjectShape,
-								NT.TupleShape,
-								NT.Type,
-							] as NT[]
-						).includes(prevType)
+						([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType)
 					) {
 						// TODO or member chain
 						// we have an array type
@@ -434,13 +373,9 @@ export default class Parser {
 							return result;
 						}
 
-						this.beginExpressionWith(
-							MakeNode(NT.MemberList, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.MemberList, token, this.currentRoot, true));
 					} else {
-						this.beginExpressionWith(
-							MakeNode(NT.ArrayExpression, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
 					}
 				}
 			} else if (token.type === 'bracket_close') {
@@ -558,9 +493,7 @@ export default class Parser {
 
 				if (this.debug) {
 					console.debug(
-						`Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${
-							token.value
-						}"`,
+						`Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${token.value}"`,
 					);
 				}
 
@@ -601,25 +534,18 @@ export default class Parser {
 					}
 
 					// begin an AssigneesList node
-					this.beginExpressionWith(
-						MakeNode(NT.AssigneesList, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.AssigneesList, token, this.currentRoot, true));
 				}
 
 				if (this.debug) {
-					console.debug(
-						`Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`,
-					);
+					console.debug(`Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`);
 				}
 
 				this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
 
 				// check if currentRoot is a MemberExpression and next token is not a <| (types), and if so, it's finished
 				// since there may not be brackets. eg. `a.b` vs `a['b']`
-				if (
-					`${this.lexer.peek(0)}${this.lexer.peek(1)}` !==
-					tokenTypesUsingSymbols.triangle_open
-				) {
+				if (`${this.lexer.peek(0)}${this.lexer.peek(1)}` !== tokenTypesUsingSymbols.triangle_open) {
 					this.endExpressionIfIn(NT.MemberExpression);
 				}
 			} else if (token.type === 'comment') {
@@ -635,11 +561,7 @@ export default class Parser {
 				// end a TypeArgumentsList if we're in one
 				this.endExpressionIfIn(NT.TypeArgumentsList);
 
-				if (
-					!([NT.Parameter, NT.VariableDeclaration] as NT[]).includes(
-						this.currentRoot.type,
-					)
-				) {
+				if (!([NT.Parameter, NT.VariableDeclaration] as NT[]).includes(this.currentRoot.type)) {
 					// create an AssigneesList node taking the previous node as its child
 					{
 						const result = this.beginExpressionWithAdoptingPreviousNode(
@@ -667,25 +589,12 @@ export default class Parser {
 					// in pairs of two and check if they're an identifier and a comma
 					let oneSiblingBack = this.currentRoot.parent?.children.at(-2);
 					let twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
-					while (
-						oneSiblingBack?.type === NT.CommaSeparator &&
-						twoSiblingsBack?.type === NT.Identifier
-					) {
+					while (oneSiblingBack?.type === NT.CommaSeparator && twoSiblingsBack?.type === NT.Identifier) {
 						// adopt the CommaSeparator and place it as the currentRoot's first grandchild
-						this.adoptNode(
-							this.currentRoot.parent,
-							oneSiblingBack,
-							this.currentRoot.children[0],
-							false,
-						);
+						this.adoptNode(this.currentRoot.parent, oneSiblingBack, this.currentRoot.children[0], false);
 
 						// adopt the Identifier and place it as the currentRoot's first grandchild
-						this.adoptNode(
-							this.currentRoot.parent,
-							twoSiblingsBack,
-							this.currentRoot.children[0],
-							false,
-						);
+						this.adoptNode(this.currentRoot.parent, twoSiblingsBack, this.currentRoot.children[0], false);
 
 						// keep on going back and checking for more identifiers and commas
 						// we don't have to decrement the index because each time a node
@@ -703,9 +612,7 @@ export default class Parser {
 					this.currentRoot.type === NT.AssignmentExpression
 				) {
 					// now begin an NT.AssignablesList node
-					this.beginExpressionWith(
-						MakeNode(NT.AssignablesList, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.AssignablesList, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn(NT.UnaryExpression);
@@ -729,9 +636,7 @@ export default class Parser {
 					}
 				} else {
 					// otherwise this is a unary operator
-					this.beginExpressionWith(
-						MakeUnaryExpressionNode(token, true, this.currentRoot),
-					);
+					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 				}
 			} else if (token.type === 'plus_plus' || token.type === 'minus_minus') {
 				// check token before, then check token after
@@ -747,9 +652,7 @@ export default class Parser {
 					}
 				} else {
 					// this is prefix
-					this.beginExpressionWith(
-						MakeUnaryExpressionNode(token, true, this.currentRoot),
-					);
+					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 				}
 			} else if (token.type === 'asterisk') {
 				const result = this.handleBinaryExpression(token);
@@ -801,9 +704,7 @@ export default class Parser {
 					const [twoBack, twoBackType] = this.prev(2);
 					if (
 						twoBackType &&
-						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(
-							twoBackType,
-						)
+						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)
 					) {
 						// we're in a MemberExpression after the GenericTypesList
 						// eg. `foo<bar>.baz`
@@ -815,20 +716,12 @@ export default class Parser {
 							this.currentRoot,
 							true,
 						);
-						let wasAdopted = this.adoptNode(
-							this.currentRoot,
-							twoBack,
-							typeInstantiationExpressionNode,
-						);
+						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
 						if (wasAdopted.outcome === 'error') {
 							return error(wasAdopted.error);
 						}
 
-						wasAdopted = this.adoptNode(
-							this.currentRoot,
-							prev,
-							typeInstantiationExpressionNode,
-						);
+						wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
 						this.beginExpressionWith(typeInstantiationExpressionNode);
 						this.endExpression(); // end the TypeInstantiationExpression
 
@@ -866,13 +759,8 @@ export default class Parser {
 				if (this.currentRoot.type === NT.TernaryConsequent) {
 					// TernaryExpression
 					this.endExpression(); // end the TernaryConsequent
-					this.beginExpressionWith(
-						MakeNode(NT.TernaryAlternate, token, this.currentRoot, true),
-					);
-				} else if (
-					this.currentRoot.type === NT.ObjectExpression &&
-					this.prev()[1] === NT.Identifier
-				) {
+					this.beginExpressionWith(MakeNode(NT.TernaryAlternate, token, this.currentRoot, true));
+				} else if (this.currentRoot.type === NT.ObjectExpression && this.prev()[1] === NT.Identifier) {
 					// POJOs notation
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.Property, token, this.currentRoot, true),
@@ -880,10 +768,7 @@ export default class Parser {
 					if (result.outcome === 'error') {
 						return result;
 					}
-				} else if (
-					this.currentRoot.type === NT.ObjectShape &&
-					this.prev()[1] === NT.Identifier
-				) {
+				} else if (this.currentRoot.type === NT.ObjectShape && this.prev()[1] === NT.Identifier) {
 					// POJOs notation
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.PropertyShape, token, this.currentRoot, true),
@@ -908,9 +793,7 @@ export default class Parser {
 						this.addNode(MakeNode(NT.ColonSeparator, token, this.currentRoot));
 
 						if (this.currentRoot.type === NT.VariableDeclaration) {
-							this.beginExpressionWith(
-								MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
 						}
 					}
 				}
@@ -933,10 +816,7 @@ export default class Parser {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.UnaryExpression) {
 					this.endExpression();
-				} else if (
-					this.currentRoot.type === NT.Parameter ||
-					this.currentRoot.type === NT.TypeParameter
-				) {
+				} else if (this.currentRoot.type === NT.Parameter || this.currentRoot.type === NT.TypeParameter) {
 					this.endExpression();
 				} else if (
 					this.currentRoot.type === NT.ClassExtension ||
@@ -944,10 +824,7 @@ export default class Parser {
 					this.currentRoot.type === NT.InterfaceExtension
 				) {
 					this.endExpression();
-				} else if (
-					this.currentRoot.type === NT.Property ||
-					this.currentRoot.type === NT.PropertyShape
-				) {
+				} else if (this.currentRoot.type === NT.Property || this.currentRoot.type === NT.PropertyShape) {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.RangeExpression) {
 					this.endExpression();
@@ -1012,16 +889,12 @@ export default class Parser {
 			} else if (token.type === 'right_arrow') {
 				if (this.currentRoot.type === NT.WhenCaseValues) {
 					this.endExpression();
-					this.beginExpressionWith(
-						MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
 				} else if (
 					this.currentRoot.type === NT.FunctionDeclaration ||
 					this.currentRoot.type === NT.FunctionSignature
 				) {
-					this.beginExpressionWith(
-						MakeNode(NT.FunctionReturns, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.FunctionReturns, token, this.currentRoot, true));
 				} else {
 					this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
 				}
@@ -1066,16 +939,13 @@ export default class Parser {
 						] as NT[]
 					).includes(this.currentRoot.type)
 				) {
-					this.beginExpressionWith(
-						MakeNode(NT.TypeParametersList, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 				} else {
 					const [, prevType] = this.prev();
 					if (
 						this.currentRoot.type === NT.ArgumentsList ||
 						// foo.bar<|T|>
-						(this.currentRoot.type === NT.MemberExpression &&
-							prevType === NT.Identifier)
+						(this.currentRoot.type === NT.MemberExpression && prevType === NT.Identifier)
 					) {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true),
@@ -1085,9 +955,7 @@ export default class Parser {
 						}
 					}
 
-					this.beginExpressionWith(
-						MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'triangle_close') {
 				this.endExpressionIfIn(NT.TypeArgumentsList);
@@ -1102,12 +970,10 @@ export default class Parser {
 
 					if (
 						twoBackType &&
-						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(
-							twoBackType,
+						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType) &&
+						!([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(
+							this.currentRoot.type,
 						) &&
-						!(
-							[NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]
-						).includes(this.currentRoot.type) &&
 						this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
 					) {
 						// we're in a MemberExpression after the GenericTypesList
@@ -1120,20 +986,12 @@ export default class Parser {
 							this.currentRoot,
 							true,
 						);
-						let wasAdopted = this.adoptNode(
-							this.currentRoot,
-							twoBack,
-							typeInstantiationExpressionNode,
-						);
+						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
 						if (wasAdopted.outcome === 'error') {
 							return error(wasAdopted.error);
 						}
 
-						wasAdopted = this.adoptNode(
-							this.currentRoot,
-							prev,
-							typeInstantiationExpressionNode,
-						);
+						wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
 						this.beginExpressionWith(typeInstantiationExpressionNode);
 						this.endExpression(); // end the TypeInstantiationExpression
 					}
@@ -1170,31 +1028,17 @@ export default class Parser {
 					NT.UnaryExpression,
 				];
 
-				if (
-					this.currentRoot.type === NT.FunctionReturns ||
-					this.currentRoot.type === NT.TypeArgumentsList
-				) {
-					this.beginExpressionWith(
-						MakeNode(NT.TupleShape, token, this.currentRoot, true),
-					);
+				if (this.currentRoot.type === NT.FunctionReturns || this.currentRoot.type === NT.TypeArgumentsList) {
+					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 				} else if (typeof prevType === 'undefined') {
 					// TupleExpression
-					this.beginExpressionWith(
-						MakeNode(NT.TupleExpression, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
 				} else if (this.currentRoot.type === NT.Property && prevType === NT.Identifier) {
 					// TupleExpression
-					this.beginExpressionWith(
-						MakeNode(NT.TupleExpression, token, this.currentRoot, true),
-					);
-				} else if (
-					this.currentRoot.type === NT.PropertyShape &&
-					prevType === NT.Identifier
-				) {
+					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
+				} else if (this.currentRoot.type === NT.PropertyShape && prevType === NT.Identifier) {
 					// TupleShape
-					this.beginExpressionWith(
-						MakeNode(NT.TupleShape, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 				} else if (nodeTypesThatPrecedeABinaryExpression.includes(prevType)) {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.BinaryExpression, token, this.currentRoot),
@@ -1202,10 +1046,7 @@ export default class Parser {
 					if (result.outcome === 'error') {
 						return result;
 					}
-				} else if (
-					prevType === NT.ArgumentsList &&
-					this.currentRoot.type === NT.CallExpression
-				) {
+				} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
 					// we need to go 2 levels up
 					const result = this.beginExpressionWithAdoptingCurrentRoot(
 						MakeNode(NT.BinaryExpression, token, this.currentRoot),
@@ -1213,17 +1054,10 @@ export default class Parser {
 					if (result.outcome === 'error') {
 						return result;
 					}
-				} else if (
-					prevType === NT.ColonSeparator &&
-					this.currentRoot.type !== NT.ObjectExpression
-				) {
-					this.beginExpressionWith(
-						MakeNode(NT.TupleShape, token, this.currentRoot, true),
-					);
+				} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
+					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
 				} else {
-					this.beginExpressionWith(
-						MakeNode(NT.TupleExpression, token, this.currentRoot, true),
-					);
+					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'more_than') {
 				/**
@@ -1240,10 +1074,7 @@ export default class Parser {
 
 				// then, then other stuff
 
-				if (
-					this.currentRoot.type === NT.TupleExpression ||
-					this.currentRoot.type === NT.TupleShape
-				) {
+				if (this.currentRoot.type === NT.TupleExpression || this.currentRoot.type === NT.TupleShape) {
 					this.endExpression(); // end the TupleExpression or TupleShape
 				} else {
 					// 'more than' BinaryExpression
@@ -1274,16 +1105,12 @@ export default class Parser {
 								console.debug('Beginning a ModifiersList');
 							}
 
-							this.beginExpressionWith(
-								MakeNode(NT.ModifiersList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ModifiersList, token, this.currentRoot, true));
 						}
 
 						if (this.debug) {
 							console.debug(
-								`Creating a Modifier Node in ${this.lineage(
-									this.currentRoot,
-								)} for "${token.value}"`,
+								`Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`,
 							);
 						}
 
@@ -1305,20 +1132,13 @@ export default class Parser {
 								);
 							} else {
 								if (this.debug) {
-									console.debug(
-										'There is no ModifiersList open; now beginning a ClassDeclaration',
-									);
+									console.debug('There is no ModifiersList open; now beginning a ClassDeclaration');
 								}
 
 								// beginExpressionWith doesn't result a Result<>
 								classNode = ok(
 									this.beginExpressionWith(
-										MakeNode(
-											NT.ClassDeclaration,
-											token,
-											this.currentRoot,
-											true,
-										),
+										MakeNode(NT.ClassDeclaration, token, this.currentRoot, true),
 									),
 								);
 							}
@@ -1358,9 +1178,7 @@ export default class Parser {
 								}
 
 								variableNode = ok(
-									this.beginExpressionWith(
-										MakeNode(NT.VariableDeclaration, token, this.currentRoot),
-									),
+									this.beginExpressionWith(MakeNode(NT.VariableDeclaration, token, this.currentRoot)),
 								);
 							}
 
@@ -1396,9 +1214,7 @@ export default class Parser {
 						break;
 					case 'extends':
 						if (this.currentRoot.type === NT.ClassDeclaration) {
-							this.beginExpressionWith(
-								MakeNode(NT.ClassExtensionsList, token, this.currentRoot, true),
-							);
+							this.beginExpressionWith(MakeNode(NT.ClassExtensionsList, token, this.currentRoot, true));
 						} else if (this.currentRoot.type === NT.InterfaceDeclaration) {
 							this.beginExpressionWith(
 								MakeNode(NT.InterfaceExtensionsList, token, this.currentRoot, true),
@@ -1442,23 +1258,13 @@ export default class Parser {
 								) {
 									fNode = ok(
 										this.beginExpressionWith(
-											MakeNode(
-												NT.FunctionSignature,
-												token,
-												this.currentRoot,
-												true,
-											),
+											MakeNode(NT.FunctionSignature, token, this.currentRoot, true),
 										),
 									);
 								} else {
 									fNode = ok(
 										this.beginExpressionWith(
-											MakeNode(
-												NT.FunctionDeclaration,
-												token,
-												this.currentRoot,
-												true,
-											),
+											MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true),
 										),
 									);
 								}
@@ -1479,9 +1285,7 @@ export default class Parser {
 						this.addNode(MakeNode(NT.FromKeyword, token, this.currentRoot, true));
 						break;
 					case 'for':
-						this.beginExpressionWith(
-							MakeNode(NT.ForStatement, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.ForStatement, token, this.currentRoot, true));
 						break;
 					case 'if':
 						{
@@ -1521,9 +1325,7 @@ export default class Parser {
 									this.endExpression(); // end the IfStatement
 								}
 
-								this.beginExpressionWith(
-									MakeNode(NT.IfStatement, token, this.currentRoot, true),
-								);
+								this.beginExpressionWith(MakeNode(NT.IfStatement, token, this.currentRoot, true));
 							}
 						}
 						break;
@@ -1531,14 +1333,10 @@ export default class Parser {
 						this.endExpressionIfIn(NT.ClassExtension);
 						this.endExpressionIfIn(NT.ClassExtensionsList);
 
-						this.beginExpressionWith(
-							MakeNode(NT.ClassImplementsList, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.ClassImplementsList, token, this.currentRoot, true));
 						break;
 					case 'import':
-						this.beginExpressionWith(
-							MakeNode(NT.ImportDeclaration, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.ImportDeclaration, token, this.currentRoot, true));
 						break;
 					case 'in':
 						{
@@ -1591,9 +1389,7 @@ export default class Parser {
 						}
 						break;
 					case 'loop':
-						this.beginExpressionWith(
-							MakeNode(NT.LoopStatement, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.LoopStatement, token, this.currentRoot, true));
 						break;
 					case 'next':
 						this.addNode(MakeNode(NT.NextStatement, token, this.currentRoot, true));
@@ -1609,19 +1405,13 @@ export default class Parser {
 						}
 						break;
 					case 'print':
-						this.beginExpressionWith(
-							MakeNode(NT.PrintStatement, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.PrintStatement, token, this.currentRoot, true));
 						break;
 					case 'return':
-						this.beginExpressionWith(
-							MakeNode(NT.ReturnStatement, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.ReturnStatement, token, this.currentRoot, true));
 						break;
 					case 'when':
-						this.beginExpressionWith(
-							MakeNode(NT.WhenExpression, token, this.currentRoot, true),
-						);
+						this.beginExpressionWith(MakeNode(NT.WhenExpression, token, this.currentRoot, true));
 						break;
 					default:
 						return error(
@@ -1656,9 +1446,7 @@ export default class Parser {
 				}
 
 				this.endExpression(); // end the TernaryCondition
-				this.beginExpressionWith(
-					MakeNode(NT.TernaryConsequent, token, this.currentRoot, true),
-				);
+				this.beginExpressionWith(MakeNode(NT.TernaryConsequent, token, this.currentRoot, true));
 			} else {
 				return error(
 					new ParserError(
@@ -1714,9 +1502,7 @@ export default class Parser {
 
 		if (this.currentRoot.type === NT.BinaryExpression && ['and', 'or'].includes(token.type)) {
 			// && and || have higher order precedence than equality checks
-			return this.beginExpressionWithAdoptingCurrentRoot(
-				MakeNode(NT.BinaryExpression, token, this.currentRoot),
-			);
+			return this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
 		} else {
 			return this.beginExpressionWithAdoptingPreviousNode(
 				MakeNode(NT.BinaryExpression, token, this.currentRoot),
@@ -1734,10 +1520,7 @@ export default class Parser {
 	}
 
 	private ifInWhenExpressionBlockStatementBeginCase(token: Token) {
-		if (
-			this.currentRoot.type === NT.BlockStatement &&
-			this.currentRoot.parent?.type === NT.WhenExpression
-		) {
+		if (this.currentRoot.type === NT.BlockStatement && this.currentRoot.parent?.type === NT.WhenExpression) {
 			this.beginExpressionWith(MakeNode(NT.WhenCase, token, this.currentRoot, true));
 			this.beginExpressionWith(MakeNode(NT.WhenCaseValues, token, this.currentRoot, true));
 		}
@@ -1854,10 +1637,7 @@ export default class Parser {
 	 *
 	 * @returns A response error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingPreviousNode(
-		newKid: Node,
-		whatWeExpectInPrevNode?: string,
-	): Result<Node> {
+	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Result<Node> {
 		return this.beginExpressionWithAdopting(newKid, this.prev()[0], whatWeExpectInPrevNode);
 	}
 
@@ -1957,9 +1737,7 @@ export default class Parser {
 
 				if (this.debug) {
 					console.debug(
-						`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(
-							this.currentRoot,
-						)}`,
+						`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`,
 					);
 				}
 

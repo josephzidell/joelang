@@ -30,6 +30,13 @@
 					{
 						"kind": "VariableDeclaration",
 						"modifiers": [],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "myFoo"
+							}
+						],
 						"declaredTypes": [],
 						"initialValues": [
 							{
@@ -48,13 +55,8 @@
 								"args": []
 							}
 						],
-						"inferredTypes": [],
-						"mutable": false,
-						"identifiersList": [
-							{
-								"kind": "Identifier",
-								"name": "myFoo"
-							}
+						"inferredPossibleTypes": [
+							[]
 						]
 					},
 					{
@@ -99,6 +101,10 @@
 		{
 			"kind": "ClassDeclaration",
 			"modifiers": [],
+			"name": {
+				"kind": "Identifier",
+				"name": "Foo"
+			},
 			"typeParams": [
 				{
 					"kind": "Identifier",
@@ -108,16 +114,16 @@
 			"extends": [
 				{
 					"kind": "TypeInstantiationExpression",
+					"base": {
+						"kind": "Identifier",
+						"name": "Bar"
+					},
 					"typeArgs": [
 						{
 							"kind": "Identifier",
 							"name": "A"
 						}
-					],
-					"base": {
-						"kind": "Identifier",
-						"name": "Bar"
-					}
+					]
 				},
 				{
 					"kind": "Identifier",
@@ -127,32 +133,35 @@
 			"implements": [
 				{
 					"kind": "TypeInstantiationExpression",
+					"base": {
+						"kind": "Identifier",
+						"name": "AbstractFooBar"
+					},
 					"typeArgs": [
 						{
 							"kind": "Identifier",
 							"name": "A"
 						}
-					],
-					"base": {
-						"kind": "Identifier",
-						"name": "AbstractFooBar"
-					}
+					]
 				},
 				{
 					"kind": "Identifier",
 					"name": "AnotherAbstractClass"
 				}
 			],
-			"name": {
-				"kind": "Identifier",
-				"name": "Foo"
-			},
 			"body": {
 				"kind": "BlockStatement",
 				"expressions": [
 					{
 						"kind": "VariableDeclaration",
 						"modifiers": [],
+						"mutable": true,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "bar"
+							}
+						],
 						"declaredTypes": [],
 						"initialValues": [
 							{
@@ -160,23 +169,25 @@
 								"value": "baz"
 							}
 						],
-						"inferredTypes": [
-							{
-								"kind": "TypePrimitive",
-								"type": "string"
-							}
-						],
-						"mutable": true,
-						"identifiersList": [
-							{
-								"kind": "Identifier",
-								"name": "bar"
-							}
+						"inferredPossibleTypes": [
+							[
+								{
+									"kind": "TypePrimitive",
+									"type": "string"
+								}
+							]
 						]
 					},
 					{
 						"kind": "VariableDeclaration",
 						"modifiers": [],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "isDone?"
+							}
+						],
 						"declaredTypes": [
 							{
 								"kind": "TypePrimitive",
@@ -189,22 +200,21 @@
 								"value": true
 							}
 						],
-						"inferredTypes": [
-							{
-								"kind": "TypePrimitive",
-								"type": "bool"
-							}
-						],
-						"mutable": false,
-						"identifiersList": [
-							{
-								"kind": "Identifier",
-								"name": "isDone?"
-							}
+						"inferredPossibleTypes": [
+							[
+								{
+									"kind": "TypePrimitive",
+									"type": "bool"
+								}
+							]
 						]
 					},
 					{
 						"kind": "FunctionDeclaration",
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** method with no args */"
+						},
 						"modifiers": [],
 						"name": {
 							"kind": "Identifier",
@@ -214,8 +224,8 @@
 						"params": [],
 						"returnTypes": [
 							{
-								"kind": "TypePrimitive",
-								"type": "number"
+								"kind": "TypeNumber",
+								"size": "uint64"
 							}
 						],
 						"body": {
@@ -224,23 +234,52 @@
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
+									"mutable": false,
+									"identifiersList": [
+										{
+											"kind": "Identifier",
+											"name": "size"
+										}
+									],
 									"declaredTypes": [],
 									"initialValues": [
 										{
 											"kind": "WhenExpression",
+											"expression": {
+												"kind": "Identifier",
+												"name": "someNumber"
+											},
 											"cases": [
 												{
 													"kind": "WhenCase",
 													"values": [
 														{
 															"kind": "NumberLiteral",
-															"format": "int",
-															"value": 1
+															"value": 1,
+															"possibleSizes": [
+																"int8",
+																"int16",
+																"int32",
+																"int64",
+																"uint8",
+																"uint16",
+																"uint32",
+																"uint64"
+															]
 														},
 														{
 															"kind": "NumberLiteral",
-															"format": "int",
-															"value": 2
+															"value": 2,
+															"possibleSizes": [
+																"int8",
+																"int16",
+																"int32",
+																"int64",
+																"uint8",
+																"uint16",
+																"uint32",
+																"uint64"
+															]
 														}
 													],
 													"consequent": {
@@ -255,13 +294,31 @@
 															"kind": "RangeExpression",
 															"lower": {
 																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 3
+																"value": 3,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
 															},
 															"upper": {
 																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 10
+																"value": 10,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
 															}
 														}
 													],
@@ -275,8 +332,17 @@
 													"values": [
 														{
 															"kind": "NumberLiteral",
-															"format": "int",
-															"value": 11
+															"value": 11,
+															"possibleSizes": [
+																"int8",
+																"int16",
+																"int32",
+																"int64",
+																"uint8",
+																"uint16",
+																"uint32",
+																"uint64"
+															]
 														}
 													],
 													"consequent": {
@@ -296,45 +362,57 @@
 														"value": "off the charts"
 													}
 												}
-											],
-											"expression": {
-												"kind": "Identifier",
-												"name": "someNumber"
-											}
+											]
 										}
 									],
-									"inferredTypes": [],
-									"mutable": false,
-									"identifiersList": [
-										{
-											"kind": "Identifier",
-											"name": "size"
-										}
+									"inferredPossibleTypes": [
+										[]
 									]
 								},
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
+									"mutable": true,
+									"identifiersList": [
+										{
+											"kind": "Identifier",
+											"name": "myArray"
+										}
+									],
 									"declaredTypes": [],
 									"initialValues": [
 										{
 											"kind": "ArrayExpression",
-											"type": {
-												"kind": "TypePrimitive",
-												"type": "number"
-											},
 											"items": [
 												{
 													"kind": "NumberLiteral",
-													"format": "int",
-													"value": 1
+													"value": 1,
+													"possibleSizes": [
+														"int8",
+														"int16",
+														"int32",
+														"int64",
+														"uint8",
+														"uint16",
+														"uint32",
+														"uint64"
+													]
 												},
 												{
 													"kind": "PostfixIfStatement",
 													"expression": {
 														"kind": "NumberLiteral",
-														"format": "int",
-														"value": 10
+														"value": 10,
+														"possibleSizes": [
+															"int8",
+															"int16",
+															"int32",
+															"int64",
+															"uint8",
+															"uint16",
+															"uint32",
+															"uint64"
+														]
 													},
 													"test": {
 														"kind": "MemberExpression",
@@ -349,83 +427,119 @@
 												},
 												{
 													"kind": "NumberLiteral",
-													"format": "int",
-													"value": 3
+													"value": 3,
+													"possibleSizes": [
+														"int8",
+														"int16",
+														"int32",
+														"int64",
+														"uint8",
+														"uint16",
+														"uint32",
+														"uint64"
+													]
+												}
+											],
+											"possibleTypes": [
+												{
+													"kind": "TypeNumber",
+													"size": "int8"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "int16"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "int32"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "int64"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "uint8"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "uint16"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "uint32"
+												},
+												{
+													"kind": "TypeNumber",
+													"size": "uint64"
 												}
 											]
 										}
 									],
-									"inferredTypes": [
-										{
-											"kind": "ArrayOf",
-											"type": {
-												"kind": "TypePrimitive",
-												"type": "number"
+									"inferredPossibleTypes": [
+										[
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "int8"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "int16"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "int32"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "int64"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "uint8"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "uint16"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "uint32"
+												}
+											},
+											{
+												"kind": "ArrayOf",
+												"type": {
+													"kind": "TypeNumber",
+													"size": "uint64"
+												}
 											}
-										}
-									],
-									"mutable": true,
-									"identifiersList": [
-										{
-											"kind": "Identifier",
-											"name": "myArray"
-										}
+										]
 									]
 								},
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
-									"declaredTypes": [],
-									"initialValues": [
-										{
-											"kind": "RangeExpression",
-											"lower": {
-												"kind": "NumberLiteral",
-												"format": "int",
-												"value": 1
-											},
-											"upper": {
-												"kind": "MemberExpression",
-												"object": {
-													"kind": "Identifier",
-													"name": "myArray"
-												},
-												"property": {
-													"kind": "NumberLiteral",
-													"format": "int",
-													"value": 2
-												}
-											}
-										},
-										{
-											"kind": "RangeExpression",
-											"lower": {
-												"kind": "MemberExpression",
-												"object": {
-													"kind": "Identifier",
-													"name": "myArray"
-												},
-												"property": {
-													"kind": "NumberLiteral",
-													"format": "int",
-													"value": 1
-												}
-											},
-											"upper": {
-												"kind": "NumberLiteral",
-												"format": "int",
-												"value": 0
-											}
-										}
-									],
-									"inferredTypes": [
-										{
-											"kind": "TypeRange"
-										},
-										{
-											"kind": "TypeRange"
-										}
-									],
 									"mutable": true,
 									"identifiersList": [
 										{
@@ -436,11 +550,109 @@
 											"kind": "Identifier",
 											"name": "countDown"
 										}
+									],
+									"declaredTypes": [],
+									"initialValues": [
+										{
+											"kind": "RangeExpression",
+											"lower": {
+												"kind": "NumberLiteral",
+												"value": 1,
+												"possibleSizes": [
+													"int8",
+													"int16",
+													"int32",
+													"int64",
+													"uint8",
+													"uint16",
+													"uint32",
+													"uint64"
+												]
+											},
+											"upper": {
+												"kind": "MemberExpression",
+												"object": {
+													"kind": "Identifier",
+													"name": "myArray"
+												},
+												"property": {
+													"kind": "NumberLiteral",
+													"value": 2,
+													"possibleSizes": [
+														"int8",
+														"int16",
+														"int32",
+														"int64",
+														"uint8",
+														"uint16",
+														"uint32",
+														"uint64"
+													]
+												}
+											}
+										},
+										{
+											"kind": "RangeExpression",
+											"lower": {
+												"kind": "MemberExpression",
+												"object": {
+													"kind": "Identifier",
+													"name": "myArray"
+												},
+												"property": {
+													"kind": "NumberLiteral",
+													"value": 1,
+													"possibleSizes": [
+														"int8",
+														"int16",
+														"int32",
+														"int64",
+														"uint8",
+														"uint16",
+														"uint32",
+														"uint64"
+													]
+												}
+											},
+											"upper": {
+												"kind": "NumberLiteral",
+												"value": 0,
+												"possibleSizes": [
+													"int8",
+													"int16",
+													"int32",
+													"int64",
+													"uint8",
+													"uint16",
+													"uint32",
+													"uint64"
+												]
+											}
+										}
+									],
+									"inferredPossibleTypes": [
+										[
+											{
+												"kind": "TypeRange"
+											}
+										],
+										[
+											{
+												"kind": "TypeRange"
+											}
+										]
 									]
 								},
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
+									"mutable": true,
+									"identifiersList": [
+										{
+											"kind": "Identifier",
+											"name": "partitionedArray"
+										}
+									],
 									"declaredTypes": [],
 									"initialValues": [
 										{
@@ -448,57 +660,106 @@
 											"items": [
 												{
 													"kind": "MemberListExpression",
-													"properties": [
-														{
-															"kind": "RangeExpression",
-															"lower": {
-																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 0
-															},
-															"upper": {
-																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 1
-															}
-														}
-													],
 													"object": {
 														"kind": "Identifier",
 														"name": "countDown"
-													}
-												},
-												{
-													"kind": "MemberListExpression",
+													},
 													"properties": [
 														{
 															"kind": "RangeExpression",
 															"lower": {
 																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 2
+																"value": 0,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
 															},
 															"upper": {
 																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 6
+																"value": 1,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
 															}
 														}
-													],
-													"object": {
-														"kind": "Identifier",
-														"name": "countDown"
-													}
+													]
 												},
 												{
 													"kind": "MemberListExpression",
+													"object": {
+														"kind": "Identifier",
+														"name": "countDown"
+													},
 													"properties": [
 														{
 															"kind": "RangeExpression",
 															"lower": {
 																"kind": "NumberLiteral",
-																"format": "int",
-																"value": 7
+																"value": 2,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
+															},
+															"upper": {
+																"kind": "NumberLiteral",
+																"value": 6,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
+															}
+														}
+													]
+												},
+												{
+													"kind": "MemberListExpression",
+													"object": {
+														"kind": "Identifier",
+														"name": "countDown"
+													},
+													"properties": [
+														{
+															"kind": "RangeExpression",
+															"lower": {
+																"kind": "NumberLiteral",
+																"value": 7,
+																"possibleSizes": [
+																	"int8",
+																	"int16",
+																	"int32",
+																	"int64",
+																	"uint8",
+																	"uint16",
+																	"uint32",
+																	"uint64"
+																]
 															},
 															"upper": {
 																"kind": "UnaryExpression",
@@ -506,27 +767,24 @@
 																"operator": "-",
 																"operand": {
 																	"kind": "NumberLiteral",
-																	"format": "int",
-																	"value": 1
+																	"value": 1,
+																	"possibleSizes": [
+																		"int8",
+																		"int16",
+																		"int32",
+																		"int64"
+																	]
 																}
 															}
 														}
-													],
-													"object": {
-														"kind": "Identifier",
-														"name": "countDown"
-													}
+													]
 												}
-											]
+											],
+											"possibleTypes": []
 										}
 									],
-									"inferredTypes": [],
-									"mutable": true,
-									"identifiersList": [
-										{
-											"kind": "Identifier",
-											"name": "partitionedArray"
-										}
+									"inferredPossibleTypes": [
+										[]
 									]
 								},
 								{
@@ -534,40 +792,67 @@
 									"initializer": {
 										"kind": "VariableDeclaration",
 										"modifiers": [],
-										"declaredTypes": [],
-										"initialValues": [],
-										"inferredTypes": [],
 										"mutable": false,
 										"identifiersList": [
 											{
 												"kind": "Identifier",
 												"name": "num"
 											}
-										]
+										],
+										"declaredTypes": [],
+										"initialValues": [],
+										"inferredPossibleTypes": []
 									},
 									"iterable": {
 										"kind": "MemberListExpression",
-										"properties": [
-											{
-												"kind": "NumberLiteral",
-												"format": "int",
-												"value": 1
-											},
-											{
-												"kind": "NumberLiteral",
-												"format": "int",
-												"value": 4
-											},
-											{
-												"kind": "NumberLiteral",
-												"format": "int",
-												"value": 9
-											}
-										],
 										"object": {
 											"kind": "Identifier",
 											"name": "countDown"
-										}
+										},
+										"properties": [
+											{
+												"kind": "NumberLiteral",
+												"value": 1,
+												"possibleSizes": [
+													"int8",
+													"int16",
+													"int32",
+													"int64",
+													"uint8",
+													"uint16",
+													"uint32",
+													"uint64"
+												]
+											},
+											{
+												"kind": "NumberLiteral",
+												"value": 4,
+												"possibleSizes": [
+													"int8",
+													"int16",
+													"int32",
+													"int64",
+													"uint8",
+													"uint16",
+													"uint32",
+													"uint64"
+												]
+											},
+											{
+												"kind": "NumberLiteral",
+												"value": 9,
+												"possibleSizes": [
+													"int8",
+													"int16",
+													"int32",
+													"int64",
+													"uint8",
+													"uint16",
+													"uint32",
+													"uint64"
+												]
+											}
+										]
 									},
 									"body": {
 										"kind": "BlockStatement",
@@ -587,6 +872,13 @@
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
+									"mutable": true,
+									"identifiersList": [
+										{
+											"kind": "Identifier",
+											"name": "myObject"
+										}
+									],
 									"declaredTypes": [],
 									"initialValues": [
 										{
@@ -600,8 +892,17 @@
 													},
 													"value": {
 														"kind": "NumberLiteral",
-														"format": "int",
-														"value": 1
+														"value": 1,
+														"possibleSizes": [
+															"int8",
+															"int16",
+															"int32",
+															"int64",
+															"uint8",
+															"uint16",
+															"uint32",
+															"uint64"
+														]
 													}
 												},
 												{
@@ -649,52 +950,81 @@
 											]
 										}
 									],
-									"inferredTypes": [
-										{
-											"kind": "ObjectShape",
-											"properties": [
-												{
-													"kind": "PropertyShape",
-													"key": {
-														"kind": "Identifier",
-														"name": "a"
+									"inferredPossibleTypes": [
+										[
+											{
+												"kind": "ObjectShape",
+												"properties": [
+													{
+														"kind": "PropertyShape",
+														"key": {
+															"kind": "Identifier",
+															"name": "a"
+														},
+														"possibleTypes": [
+															{
+																"kind": "TypeNumber",
+																"size": "int8"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "int16"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "int32"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "int64"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "uint8"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "uint16"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "uint32"
+															},
+															{
+																"kind": "TypeNumber",
+																"size": "uint64"
+															}
+														]
 													},
-													"type": {
-														"kind": "TypePrimitive",
-														"type": "number"
-													}
-												},
-												{
-													"kind": "PropertyShape",
-													"key": {
-														"kind": "Identifier",
-														"name": "b"
+													{
+														"kind": "PropertyShape",
+														"key": {
+															"kind": "Identifier",
+															"name": "b"
+														},
+														"possibleTypes": [
+															{
+																"kind": "TypePrimitive",
+																"type": "string"
+															}
+														]
 													},
-													"type": {
-														"kind": "TypePrimitive",
-														"type": "string"
+													{
+														"kind": "PropertyShape",
+														"key": {
+															"kind": "Identifier",
+															"name": "c"
+														},
+														"possibleTypes": [
+															{
+																"kind": "TypePrimitive",
+																"type": "bool"
+															}
+														]
 													}
-												},
-												{
-													"kind": "PropertyShape",
-													"key": {
-														"kind": "Identifier",
-														"name": "c"
-													},
-													"type": {
-														"kind": "TypePrimitive",
-														"type": "bool"
-													}
-												}
-											]
-										}
-									],
-									"mutable": true,
-									"identifiersList": [
-										{
-											"kind": "Identifier",
-											"name": "myObject"
-										}
+												]
+											}
+										]
 									]
 								},
 								{
@@ -714,18 +1044,6 @@
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
-									"declaredTypes": [],
-									"initialValues": [
-										{
-											"kind": "CallExpression",
-											"callee": {
-												"kind": "Identifier",
-												"name": "methodThatReturnsBool?"
-											},
-											"args": []
-										}
-									],
-									"inferredTypes": [],
 									"mutable": false,
 									"identifiersList": [
 										{
@@ -740,11 +1058,32 @@
 											"kind": "Identifier",
 											"name": "myThing"
 										}
+									],
+									"declaredTypes": [],
+									"initialValues": [
+										{
+											"kind": "CallExpression",
+											"callee": {
+												"kind": "Identifier",
+												"name": "methodThatReturnsBool?"
+											},
+											"args": []
+										}
+									],
+									"inferredPossibleTypes": [
+										[]
 									]
 								},
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
+									"mutable": false,
+									"identifiersList": [
+										{
+											"kind": "Identifier",
+											"name": "myTuple"
+										}
+									],
 									"declaredTypes": [],
 									"initialValues": [
 										{
@@ -752,8 +1091,17 @@
 											"items": [
 												{
 													"kind": "NumberLiteral",
-													"format": "int",
-													"value": 1
+													"value": 1,
+													"possibleSizes": [
+														"int8",
+														"int16",
+														"int32",
+														"int64",
+														"uint8",
+														"uint16",
+														"uint32",
+														"uint64"
+													]
 												},
 												{
 													"kind": "BoolLiteral",
@@ -772,44 +1120,86 @@
 											]
 										}
 									],
-									"inferredTypes": [
-										{
-											"kind": "TupleShape",
-											"types": [
-												{
-													"kind": "TypePrimitive",
-													"type": "number"
-												},
-												{
-													"kind": "TypePrimitive",
-													"type": "bool"
-												},
-												{
-													"kind": "TypePrimitive",
-													"type": "string"
-												},
-												{
-													"kind": "TypePrimitive",
-													"type": "path"
-												}
-											]
-										}
-									],
-									"mutable": false,
-									"identifiersList": [
-										{
-											"kind": "Identifier",
-											"name": "myTuple"
-										}
+									"inferredPossibleTypes": [
+										[
+											{
+												"kind": "TupleShape",
+												"possibleTypes": [
+													[
+														{
+															"kind": "TypeNumber",
+															"size": "int8"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "int16"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "int32"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "int64"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "uint8"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "uint16"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "uint32"
+														},
+														{
+															"kind": "TypeNumber",
+															"size": "uint64"
+														}
+													],
+													[
+														{
+															"kind": "TypePrimitive",
+															"type": "bool"
+														}
+													],
+													[
+														{
+															"kind": "TypePrimitive",
+															"type": "string"
+														}
+													],
+													[
+														{
+															"kind": "TypePrimitive",
+															"type": "path"
+														}
+													]
+												]
+											}
+										]
 									]
 								},
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
+									"mutable": true,
+									"identifiersList": [
+										{
+											"kind": "Identifier",
+											"name": "partialObj"
+										}
+									],
 									"declaredTypes": [],
 									"initialValues": [
 										{
 											"kind": "MemberListExpression",
+											"object": {
+												"kind": "Identifier",
+												"name": "myObject"
+											},
 											"properties": [
 												{
 													"kind": "Identifier",
@@ -819,40 +1209,31 @@
 													"kind": "Identifier",
 													"name": "d"
 												}
-											],
-											"object": {
-												"kind": "Identifier",
-												"name": "myObject"
-											}
+											]
 										}
 									],
-									"inferredTypes": [],
-									"mutable": true,
-									"identifiersList": [
-										{
-											"kind": "Identifier",
-											"name": "partialObj"
-										}
+									"inferredPossibleTypes": [
+										[]
 									]
 								},
 								{
 									"kind": "VariableDeclaration",
 									"modifiers": [],
-									"declaredTypes": [
-										{
-											"kind": "TypePrimitive",
-											"type": "number"
-										}
-									],
-									"initialValues": [],
-									"inferredTypes": [],
 									"mutable": true,
 									"identifiersList": [
 										{
 											"kind": "Identifier",
 											"name": "initializeAndAssignLater"
 										}
-									]
+									],
+									"declaredTypes": [
+										{
+											"kind": "TypeNumber",
+											"size": "int32"
+										}
+									],
+									"initialValues": [],
+									"inferredPossibleTypes": []
 								},
 								{
 									"kind": "AssignmentExpression",
@@ -865,8 +1246,17 @@
 									"right": [
 										{
 											"kind": "NumberLiteral",
-											"format": "int",
-											"value": 5
+											"value": 5,
+											"possibleSizes": [
+												"int8",
+												"int16",
+												"int32",
+												"int64",
+												"uint8",
+												"uint16",
+												"uint32",
+												"uint64"
+											]
 										}
 									]
 								},
@@ -880,14 +1270,14 @@
 									]
 								}
 							]
-						},
-						"joeDoc": {
-							"kind": "JoeDoc",
-							"content": "/** method with no args */"
 						}
 					},
 					{
 						"kind": "FunctionDeclaration",
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** with args */"
+						},
 						"modifiers": [],
 						"name": {
 							"kind": "Identifier",
@@ -906,7 +1296,8 @@
 								"declaredType": {
 									"kind": "TypePrimitive",
 									"type": "bool"
-								}
+								},
+								"inferredPossibleTypes": []
 							},
 							{
 								"kind": "Parameter",
@@ -919,7 +1310,8 @@
 								"declaredType": {
 									"kind": "Identifier",
 									"name": "Tuple"
-								}
+								},
+								"inferredPossibleTypes": []
 							},
 							{
 								"kind": "Parameter",
@@ -929,13 +1321,15 @@
 									"kind": "Identifier",
 									"name": "arg3"
 								},
+								"inferredPossibleTypes": [
+									{
+										"kind": "TypePrimitive",
+										"type": "bool"
+									}
+								],
 								"defaultValue": {
 									"kind": "BoolLiteral",
 									"value": true
-								},
-								"inferredType": {
-									"kind": "TypePrimitive",
-									"type": "bool"
 								}
 							},
 							{
@@ -952,21 +1346,22 @@
 										"kind": "Identifier",
 										"name": "Thing"
 									}
-								}
+								},
+								"inferredPossibleTypes": []
 							}
 						],
 						"returnTypes": [],
 						"body": {
 							"kind": "BlockStatement",
 							"expressions": []
-						},
-						"joeDoc": {
-							"kind": "JoeDoc",
-							"content": "/** with args */"
 						}
 					},
 					{
 						"kind": "FunctionDeclaration",
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** with one return val */"
+						},
 						"modifiers": [],
 						"name": {
 							"kind": "Identifier",
@@ -993,14 +1388,14 @@
 									]
 								}
 							]
-						},
-						"joeDoc": {
-							"kind": "JoeDoc",
-							"content": "/** with one return val */"
 						}
 					},
 					{
 						"kind": "FunctionDeclaration",
+						"joeDoc": {
+							"kind": "JoeDoc",
+							"content": "/** multiple return vals */"
+						},
 						"modifiers": [],
 						"name": {
 							"kind": "Identifier",
@@ -1014,8 +1409,8 @@
 								"type": "bool"
 							},
 							{
-								"kind": "TypePrimitive",
-								"type": "number"
+								"kind": "TypeNumber",
+								"size": "dec32"
 							},
 							{
 								"kind": "Identifier",
@@ -1034,8 +1429,11 @@
 										},
 										{
 											"kind": "NumberLiteral",
-											"format": "int",
-											"value": 5
+											"value": 5,
+											"possibleSizes": [
+												"dec32",
+												"dec64"
+											]
 										},
 										{
 											"kind": "CallExpression",
@@ -1055,10 +1453,6 @@
 									]
 								}
 							]
-						},
-						"joeDoc": {
-							"kind": "JoeDoc",
-							"content": "/** multiple return vals */"
 						}
 					}
 				]

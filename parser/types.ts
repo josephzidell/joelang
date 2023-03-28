@@ -107,11 +107,7 @@ export const ExpressionNodeTypes: NT[] = [
 ];
 
 /** These are Node Types that are physically assignable to some variable, param, or in a return. */
-export const AssignableNodeTypes: NT[] = [
-	...ExpressionNodeTypes,
-	NT.FunctionDeclaration,
-	NT.ThisKeyword,
-];
+export const AssignableNodeTypes: NT[] = [...ExpressionNodeTypes, NT.FunctionDeclaration, NT.ThisKeyword];
 
 /** These are the Types corresponding to AssignableNodeTypes */
 export const AssignableTypes: NT[] = [
@@ -148,9 +144,9 @@ export const validNodeTypesAsMemberObject = [
 
 export const validChildrenAsMemberProperty = [
 	NT.BinaryExpression, // eg. foo[index + 1]
-	NT.CallExpression, // eg. foo[bar() -> number]
+	NT.CallExpression, // eg. foo[bar() -> int64]
 	NT.CommaSeparator, // eg. foo[bar, baz]
-	NT.Identifier, // eg. foo[bar: number]
+	NT.Identifier, // eg. foo[bar: int32]
 	NT.MemberExpression, // eg. foo[bar.baz]
 	NT.NumberLiteral, // eg. foo[1]
 	NT.RangeExpression, // eg. foo[1 .. 2]
