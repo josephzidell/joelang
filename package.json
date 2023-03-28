@@ -1,7 +1,7 @@
 {
   "name": "joelang",
   "version": "0.0.0",
-  "description": "A scripting lang that aims to be simple to read",
+  "description": "A programming lang that aims to be simple to read",
   "scripts": {
     "lint": "eslint --ext .ts .",
     "lint-fix": "eslint --ext .ts . --fix",
