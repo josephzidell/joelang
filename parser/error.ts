@@ -2,9 +2,7 @@ import ErrorContext from '../shared/errorContext';
 import { Node } from './types';
 
 /**
- * All parser error codes.
- *
- * TODO This list is not yet complete
+ * Parser error codes.
  */
 export enum ParserErrorCode {
 	MisplacedKeyword = 'P000',

@@ -347,7 +347,6 @@ export default class Parser {
 						isNextABracketClose &&
 						([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType)
 					) {
-						// TODO or member chain
 						// we have an array type
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.ArrayOf, token, this.currentRoot, true),

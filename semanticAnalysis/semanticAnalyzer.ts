@@ -98,7 +98,7 @@ import {
 	WhenCaseValueASTs,
 } from './asts';
 import AnalysisError, { AnalysisErrorCode } from './error';
-import visitorMap, { visitor } from './visitorMap';
+import visitorMap from './visitorMap';
 import { filterASTTypeNumbersWithBitCountsLowerThan, getLowestBitCountOf } from '../shared/numbers/utils';
 
 // reusable handler callback for child nodes if we want to skip them
@@ -161,20 +161,7 @@ export default class SemanticAnalyzer {
 	nodeToAST<T = AST>(node: Node): Result<T> {
 		this.currentNode = node;
 
-		if (node.type in visitorMap) {
-			return (visitorMap[node.type] as visitor)(node, this);
-		}
-
-		return error(
-			// TODO change this error
-			new AnalysisError(
-				AnalysisErrorCode.MissingVisitee,
-				`Please implement visit${node.type.at(0)?.toUpperCase()}${node.type.substring(1)}() method`,
-				node,
-				new ErrorContext(this.parser.lexer.code, node.pos.line, node.pos.col, node.value?.length || 1),
-			),
-			this.getAST,
-		);
+		return visitorMap[node.type](node, this);
 	}
 
 	// reusable function to handle a node that has a value

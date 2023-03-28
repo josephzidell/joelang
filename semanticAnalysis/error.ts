@@ -2,16 +2,13 @@ import { Node } from '../parser/types';
 import ErrorContext from '../shared/errorContext';
 
 /**
- * All parser error codes.
- *
- * TODO This list is not yet complete
+ * Analysis error codes.
  */
 export enum AnalysisErrorCode {
 	MissingCST = 'S000',
 	MissingPreviousNode = 'S001',
 	MissingParentNode = 'S002',
 	ExtraNodesFound = 'S003',
-	MissingVisitee = 'S004', // TODO remove this
 	IdentifierExpected = 'S005',
 	KeywordExpected = 'S006',
 	ExpressionExpected = 'S007',
