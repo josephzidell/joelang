@@ -1142,11 +1142,11 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'C'],
 							[
-								NT.ClassExtensionsList,
+								NT.ExtensionsList,
 								[
-									[NT.ClassExtension, [[NT.Identifier, 'A']]],
+									[NT.Extension, [[NT.Identifier, 'A']]],
 									[NT.CommaSeparator],
-									[NT.ClassExtension, [[NT.Identifier, 'B']]],
+									[NT.Extension, [[NT.Identifier, 'B']]],
 								],
 							],
 							[
@@ -1678,11 +1678,11 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'Foo'],
 							[
-								NT.ClassExtensionsList,
+								NT.ExtensionsList,
 								[
-									[NT.ClassExtension, [[NT.Identifier, 'Bar']]],
+									[NT.Extension, [[NT.Identifier, 'Bar']]],
 									[NT.CommaSeparator],
-									[NT.ClassExtension, [[NT.Identifier, 'Baz']]],
+									[NT.Extension, [[NT.Identifier, 'Baz']]],
 								],
 							],
 							[
@@ -1727,10 +1727,10 @@ describe('parser.ts', (): void => {
 								],
 							],
 							[
-								NT.ClassExtensionsList,
+								NT.ExtensionsList,
 								[
 									[
-										NT.ClassExtension,
+										NT.Extension,
 										[
 											[NT.Identifier, 'Bar'],
 											[
@@ -1750,7 +1750,7 @@ describe('parser.ts', (): void => {
 										],
 									],
 									[NT.CommaSeparator],
-									[NT.ClassExtension, [[NT.Identifier, 'Baz']]],
+									[NT.Extension, [[NT.Identifier, 'Baz']]],
 								],
 							],
 							[
@@ -2010,7 +2010,7 @@ describe('parser.ts', (): void => {
 						NT.ClassDeclaration,
 						[
 							[NT.Identifier, 'Bar'],
-							[NT.ClassExtensionsList, [[NT.ClassExtension, [[NT.Identifier, 'Foo']]]]],
+							[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -2125,7 +2125,7 @@ describe('parser.ts', (): void => {
 						NT.EnumDeclaration,
 						[
 							[NT.Identifier, 'Bar'],
-							[NT.EnumExtensionsList, [[NT.EnumExtension, [[NT.Identifier, 'Foo']]]]],
+							[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -2158,11 +2158,11 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'Foo'],
 							[
-								NT.EnumExtensionsList,
+								NT.ExtensionsList,
 								[
-									[NT.EnumExtension, [[NT.Identifier, 'Bar']]],
+									[NT.Extension, [[NT.Identifier, 'Bar']]],
 									[NT.CommaSeparator],
-									[NT.EnumExtension, [[NT.Identifier, 'Baz']]],
+									[NT.Extension, [[NT.Identifier, 'Baz']]],
 								],
 							],
 							[NT.BlockStatement, []],
@@ -2198,10 +2198,10 @@ describe('parser.ts', (): void => {
 								],
 							],
 							[
-								NT.EnumExtensionsList,
+								NT.ExtensionsList,
 								[
 									[
-										NT.EnumExtension,
+										NT.Extension,
 										[
 											[NT.Identifier, 'Bar'],
 											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
@@ -2209,7 +2209,7 @@ describe('parser.ts', (): void => {
 									],
 									[NT.CommaSeparator],
 									[
-										NT.EnumExtension,
+										NT.Extension,
 										[
 											[NT.Identifier, 'Baz'],
 											[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
@@ -4515,7 +4515,7 @@ describe('parser.ts', (): void => {
 						NT.InterfaceDeclaration,
 						[
 							[NT.Identifier, 'Bar'],
-							[NT.InterfaceExtensionsList, [[NT.InterfaceExtension, [[NT.Identifier, 'Foo']]]]],
+							[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
 							[NT.BlockStatement, []],
 						],
 					],
@@ -4548,11 +4548,11 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'Foo'],
 							[
-								NT.InterfaceExtensionsList,
+								NT.ExtensionsList,
 								[
-									[NT.InterfaceExtension, [[NT.Identifier, 'Bar']]],
+									[NT.Extension, [[NT.Identifier, 'Bar']]],
 									[NT.CommaSeparator],
-									[NT.InterfaceExtension, [[NT.Identifier, 'Baz']]],
+									[NT.Extension, [[NT.Identifier, 'Baz']]],
 								],
 							],
 							[NT.BlockStatement, []],
@@ -4588,10 +4588,10 @@ describe('parser.ts', (): void => {
 								],
 							],
 							[
-								NT.InterfaceExtensionsList,
+								NT.ExtensionsList,
 								[
 									[
-										NT.InterfaceExtension,
+										NT.Extension,
 										[
 											[NT.Identifier, 'Bar'],
 											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
@@ -4599,7 +4599,7 @@ describe('parser.ts', (): void => {
 									],
 									[NT.CommaSeparator],
 									[
-										NT.InterfaceExtension,
+										NT.Extension,
 										[
 											[NT.Identifier, 'Baz'],
 											[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],

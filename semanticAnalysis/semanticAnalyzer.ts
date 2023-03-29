@@ -1269,10 +1269,10 @@ export default class SemanticAnalyzer {
 
 			// the extends list
 			{
-				type: NT.ClassExtensionsList,
+				type: NT.ExtensionsList,
 				required: false,
 				callback: (child) => {
-					const visitResult = this.visitClassExtensionsList(child);
+					const visitResult = this.visitExtensionsList(child);
 					switch (visitResult.outcome) {
 						case 'ok':
 							ast.extends = visitResult.value;
@@ -1313,10 +1313,6 @@ export default class SemanticAnalyzer {
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
-	}
-
-	visitClassExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleExtensionsOrImplementsList(node, NT.ClassExtension);
 	}
 
 	visitClassImplementsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
@@ -1413,12 +1409,7 @@ export default class SemanticAnalyzer {
 	visitEnumDeclaration(node: Node): Result<ASTEnumDeclaration> {
 		const ast = new ASTEnumDeclaration();
 
-		const handlingResult = this.handleASTDeclaration(
-			node,
-			ast,
-			NT.EnumExtensionsList,
-			this.visitEnumExtensionsList,
-		);
+		const handlingResult = this.handleASTDeclaration(node, ast, NT.ExtensionsList, this.visitExtensionsList);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -1428,8 +1419,8 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitEnumExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleExtensionsOrImplementsList(node, NT.EnumExtension);
+	visitExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
+		return this.handleExtensionsOrImplementsList(node, NT.Extension);
 	}
 
 	visitForStatement(node: Node): Result<ASTForStatement> {
@@ -1846,12 +1837,7 @@ export default class SemanticAnalyzer {
 	visitInterfaceDeclaration(node: Node): Result<ASTInterfaceDeclaration> {
 		const ast = new ASTInterfaceDeclaration();
 
-		const handlingResult = this.handleASTDeclaration(
-			node,
-			ast,
-			NT.InterfaceExtensionsList,
-			this.visitInterfaceExtensionsList,
-		);
+		const handlingResult = this.handleASTDeclaration(node, ast, NT.ExtensionsList, this.visitExtensionsList);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -1859,10 +1845,6 @@ export default class SemanticAnalyzer {
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
-	}
-
-	visitInterfaceExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleExtensionsOrImplementsList(node, NT.InterfaceExtension);
 	}
 
 	/**

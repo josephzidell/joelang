@@ -55,10 +55,8 @@ export default class Parser {
 	mapParentNodeToChild: Partial<Record<NT, NT>> = {
 		[NT.ParametersList]: NT.Parameter,
 		[NT.TypeParametersList]: NT.TypeParameter,
-		[NT.ClassExtensionsList]: NT.ClassExtension,
+		[NT.ExtensionsList]: NT.Extension,
 		[NT.ClassImplementsList]: NT.ClassImplement,
-		[NT.EnumExtensionsList]: NT.EnumExtension,
-		[NT.InterfaceExtensionsList]: NT.InterfaceExtension,
 	};
 
 	lexer: Lexer;
@@ -270,14 +268,10 @@ export default class Parser {
 			} else if (token.type === 'brace_open') {
 				this.endExpressionWhileIn([NT.BinaryExpression]);
 				this.endExpressionWhileIn([NT.FunctionSignature, NT.FunctionReturns]);
-				this.endExpressionIfIn(NT.ClassExtension);
-				this.endExpressionIfIn(NT.ClassExtensionsList);
+				this.endExpressionIfIn(NT.Extension);
+				this.endExpressionIfIn(NT.ExtensionsList);
 				this.endExpressionIfIn(NT.ClassImplement);
 				this.endExpressionIfIn(NT.ClassImplementsList);
-				this.endExpressionIfIn(NT.EnumExtension);
-				this.endExpressionIfIn(NT.EnumExtensionsList);
-				this.endExpressionIfIn(NT.InterfaceExtension);
-				this.endExpressionIfIn(NT.InterfaceExtensionsList);
 				this.endExpressionIfIn(NT.UnaryExpression);
 
 				// if in `for let i = 0; i < 10; i++ {}`, we need to end the UnaryExpression of i++
@@ -821,12 +815,7 @@ export default class Parser {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.Parameter || this.currentRoot.type === NT.TypeParameter) {
 					this.endExpression();
-				} else if (
-					this.currentRoot.type === NT.ClassExtension ||
-					this.currentRoot.type === NT.ClassImplement ||
-					this.currentRoot.type === NT.EnumExtension ||
-					this.currentRoot.type === NT.InterfaceExtension
-				) {
+				} else if (this.currentRoot.type === NT.Extension || this.currentRoot.type === NT.ClassImplement) {
 					this.endExpression();
 				} else if (this.currentRoot.type === NT.Property || this.currentRoot.type === NT.PropertyShape) {
 					this.endExpression();
@@ -976,9 +965,7 @@ export default class Parser {
 					if (
 						twoBackType &&
 						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType) &&
-						!(
-							[NT.ClassExtension, NT.ClassImplement, NT.EnumExtension, NT.InterfaceExtension] as NT[]
-						).includes(this.currentRoot.type) &&
+						!([NT.Extension, NT.ClassImplement] as NT[]).includes(this.currentRoot.type) &&
 						this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
 					) {
 						// we're in a MemberExpression after the GenericTypesList
@@ -1212,14 +1199,12 @@ export default class Parser {
 						break;
 
 					case 'extends':
-						if (this.currentRoot.type === NT.ClassDeclaration) {
-							this.beginExpressionWith(MakeNode(NT.ClassExtensionsList, token, this.currentRoot, true));
-						} else if (this.currentRoot.type === NT.EnumDeclaration) {
-							this.beginExpressionWith(MakeNode(NT.EnumExtensionsList, token, this.currentRoot, true));
-						} else if (this.currentRoot.type === NT.InterfaceDeclaration) {
-							this.beginExpressionWith(
-								MakeNode(NT.InterfaceExtensionsList, token, this.currentRoot, true),
-							);
+						if (
+							([NT.ClassDeclaration, NT.EnumDeclaration, NT.InterfaceDeclaration] as NT[]).includes(
+								this.currentRoot.type,
+							)
+						) {
+							this.beginExpressionWith(MakeNode(NT.ExtensionsList, token, this.currentRoot, true));
 						} else {
 							return error(
 								new ParserError(
@@ -1331,8 +1316,8 @@ export default class Parser {
 						}
 						break;
 					case 'implements':
-						this.endExpressionIfIn(NT.ClassExtension);
-						this.endExpressionIfIn(NT.ClassExtensionsList);
+						this.endExpressionIfIn(NT.Extension);
+						this.endExpressionIfIn(NT.ExtensionsList);
 
 						this.beginExpressionWith(MakeNode(NT.ClassImplementsList, token, this.currentRoot, true));
 						break;

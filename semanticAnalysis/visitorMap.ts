@@ -27,10 +27,6 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitCallExpression(node) as Result<T>,
 	[NT.ClassDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitClassDeclaration(node) as Result<T>,
-	[NT.ClassExtension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
-		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T>,
-	[NT.ClassExtensionsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
-		analyzer.visitClassExtensionsList(node) as Result<T>,
 	[NT.ClassImplement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T>,
 	[NT.ClassImplementsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
@@ -44,10 +40,10 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitElseStatement(node) as Result<T>,
 	[NT.EnumDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitEnumDeclaration(node) as Result<T>,
-	[NT.EnumExtension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+	[NT.Extension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T>,
-	[NT.EnumExtensionsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
-		analyzer.visitEnumExtensionsList(node) as Result<T>,
+	[NT.ExtensionsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
+		analyzer.visitExtensionsList(node) as Result<T>,
 	[NT.ForStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitForStatement(node) as Result<T>,
 	[NT.FromKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.noop(node) as Result<T>,
@@ -66,10 +62,6 @@ const visitorMap: Record<NT, visitor> = {
 	[NT.InKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.noop(node) as Result<T>,
 	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitInterfaceDeclaration(node) as Result<T>,
-	[NT.InterfaceExtension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
-		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T>,
-	[NT.InterfaceExtensionsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
-		analyzer.visitInterfaceExtensionsList(node) as Result<T>,
 	[NT.JoeDoc]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> => analyzer.visitJoeDoc(node) as Result<T>,
 	[NT.LoopStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T> =>
 		analyzer.visitLoopStatement(node) as Result<T>,
