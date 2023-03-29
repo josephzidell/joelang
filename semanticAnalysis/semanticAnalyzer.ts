@@ -1,6 +1,5 @@
 import _ from 'lodash';
 import { Simplify } from 'type-fest';
-import { NumberSize, numberSizesAll, numberSizesSignedInts, numberSizesUnsignedInts } from '../shared/numbers/sizes';
 import { primitiveTypes } from '../lexer/types';
 import { regexFlags } from '../lexer/util';
 import Parser from '../parser/parser';
@@ -18,6 +17,8 @@ import {
 	validNodeTypesAsMemberObject,
 } from '../parser/types';
 import ErrorContext from '../shared/errorContext';
+import { NumberSize, numberSizesAll, numberSizesSignedInts, numberSizesUnsignedInts } from '../shared/numbers/sizes';
+import { filterASTTypeNumbersWithBitCountsLowerThan, getLowestBitCountOf } from '../shared/numbers/utils';
 import { error, ok, Result } from '../shared/result';
 import {
 	AssignableASTs,
@@ -31,7 +32,9 @@ import {
 	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTClassDeclaration,
+	ASTDeclaration,
 	ASTDoneStatement,
+	ASTEnumDeclaration,
 	ASTForStatement,
 	ASTFunctionDeclaration,
 	ASTFunctionSignature,
@@ -99,7 +102,6 @@ import {
 } from './asts';
 import AnalysisError, { AnalysisErrorCode } from './error';
 import visitorMap from './visitorMap';
-import { filterASTTypeNumbersWithBitCountsLowerThan, getLowestBitCountOf } from '../shared/numbers/utils';
 
 // reusable handler callback for child nodes if we want to skip them
 const skipThisChild = (_child: Node) => ok(undefined);
@@ -246,7 +248,7 @@ export default class SemanticAnalyzer {
 		return ok(children);
 	}
 
-	handleClassOrInterfaceExtensionsOrImplementsList(node: Node, nodeType: NT): Result<ASTTypeExceptPrimitive[]> {
+	handleExtensionsOrImplementsList(node: Node, nodeType: NT): Result<ASTTypeExceptPrimitive[]> {
 		const validChildren = [nodeType, NT.CommaSeparator];
 		const extensions: ASTTypeExceptPrimitive[] = [];
 
@@ -375,6 +377,66 @@ export default class SemanticAnalyzer {
 		}
 
 		return [];
+	}
+
+	private handleASTDeclaration(
+		node: Node,
+		ast: ASTDeclaration,
+		nodeType: NT,
+		extensionsListVisitor: (node: Node) => Result<ASTTypeExceptPrimitive[], Error, unknown>,
+	) {
+		return this.handleNodesChildrenOfDifferentTypes(node, [
+			// the joeDoc
+			this.getChildHandlerForJoeDoc(ast),
+
+			// the modifiers
+			this.getChildHandlerForModifiers(ast),
+
+			// the name
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const result = this.visitIdentifier(child);
+					switch (result.outcome) {
+						case 'ok':
+							ast.name = result.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return result;
+							break;
+					}
+				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) =>
+					`Declaration Name: We were expecting an Identifier, but found "${child?.type}"`,
+			},
+
+			// the type parameters
+			this.getChildHandlerForTypeParams(ast),
+
+			// the extends list
+			{
+				type: nodeType,
+				required: false,
+				callback: (child) => {
+					const visitResult = extensionsListVisitor.call(this, child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.extends = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+				},
+			},
+
+			// the body
+			this.getChildHandlerForRequiredBody(ast),
+		]);
 	}
 
 	// reusable function to handle a node that has children of different types
@@ -939,7 +1001,8 @@ export default class SemanticAnalyzer {
 					return ok(undefined);
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child) => `We were expecting an Identifier here, but we got a ${child?.type} instead`,
+				errorMessage: (child) =>
+					`AssignmentExpression: We were expecting an Identifier here, but we got a ${child?.type} instead`,
 			},
 
 			// second child: the assignment operator
@@ -1122,7 +1185,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`CallExpression: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the type arguments
@@ -1198,7 +1261,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`ClassDeclaration: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// type parameters
@@ -1253,14 +1316,14 @@ export default class SemanticAnalyzer {
 	}
 
 	visitClassExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.ClassExtension);
+		return this.handleExtensionsOrImplementsList(node, NT.ClassExtension);
 	}
 
 	visitClassImplementsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.ClassImplement);
+		return this.handleExtensionsOrImplementsList(node, NT.ClassImplement);
 	}
 
-	visitClassOrInterfaceExtendsOrImplements(node: Node): Result<ASTType> {
+	visitDeclarationExtendsOrImplements(node: Node): Result<ASTType> {
 		let identifierOrMemberExpression: ASTIdentifier | ASTMemberExpression | undefined;
 		let typeArgs: ASTType[] | undefined;
 
@@ -1284,7 +1347,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`Declaration: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the type arguments
@@ -1347,6 +1410,28 @@ export default class SemanticAnalyzer {
 		return this.nodeToAST<ASTBlockStatement | ASTIfStatement>(child);
 	}
 
+	visitEnumDeclaration(node: Node): Result<ASTEnumDeclaration> {
+		const ast = new ASTEnumDeclaration();
+
+		const handlingResult = this.handleASTDeclaration(
+			node,
+			ast,
+			NT.EnumExtensionsList,
+			this.visitEnumExtensionsList,
+		);
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	visitEnumExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
+		return this.handleExtensionsOrImplementsList(node, NT.EnumExtension);
+	}
+
 	visitForStatement(node: Node): Result<ASTForStatement> {
 		const ast = new ASTForStatement();
 
@@ -1376,7 +1461,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`ForStatement: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// the InKeyword
@@ -1618,7 +1703,7 @@ export default class SemanticAnalyzer {
 			NT.Identifier,
 			(value) => ok(ASTIdentifier._(value)),
 			AnalysisErrorCode.IdentifierExpected,
-			(node: Node) => `We were expecting an Identifier, but found a "${node.type}"`,
+			(node: Node) => `Identifier: We were expecting an Identifier, but found a "${node.type}"`,
 		);
 	}
 
@@ -1716,7 +1801,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`ImportDeclaration: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the "from" keyword
@@ -1761,58 +1846,12 @@ export default class SemanticAnalyzer {
 	visitInterfaceDeclaration(node: Node): Result<ASTInterfaceDeclaration> {
 		const ast = new ASTInterfaceDeclaration();
 
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// the joeDoc
-			this.getChildHandlerForJoeDoc(ast),
-
-			// the modifiers
-			this.getChildHandlerForModifiers(ast),
-
-			// the name
-			{
-				type: NT.Identifier,
-				required: true,
-				callback: (child) => {
-					const result = this.visitIdentifier(child);
-					switch (result.outcome) {
-						case 'ok':
-							ast.name = result.value;
-							return ok(undefined);
-							break;
-						case 'error':
-							return result;
-							break;
-					}
-				},
-				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
-			},
-
-			// the type parameters
-			this.getChildHandlerForTypeParams(ast),
-
-			// the extends list
-			{
-				type: NT.InterfaceExtensionsList,
-				required: false,
-				callback: (child) => {
-					const visitResult = this.visitInterfaceExtensionsList(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.extends = visitResult.value;
-							return ok(undefined);
-							break;
-						case 'error':
-							return visitResult;
-							break;
-					}
-				},
-			},
-
-			// the body
-			this.getChildHandlerForRequiredBody(ast),
-		]);
+		const handlingResult = this.handleASTDeclaration(
+			node,
+			ast,
+			NT.InterfaceExtensionsList,
+			this.visitInterfaceExtensionsList,
+		);
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -1823,7 +1862,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitInterfaceExtensionsList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		return this.handleClassOrInterfaceExtensionsOrImplementsList(node, NT.InterfaceExtension);
+		return this.handleExtensionsOrImplementsList(node, NT.InterfaceExtension);
 	}
 
 	/**
@@ -1881,7 +1920,7 @@ export default class SemanticAnalyzer {
 				return error(
 					new AnalysisError(
 						AnalysisErrorCode.IdentifierExpected,
-						`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
+						`MemberExpression Object: We were expecting an Identifier, but found "${child?.type}"`,
 						child || node,
 						this.getErrorContext(child || node, 1),
 					),
@@ -1907,7 +1946,7 @@ export default class SemanticAnalyzer {
 				return error(
 					new AnalysisError(
 						AnalysisErrorCode.IdentifierExpected,
-						`We were expecting an Identifier in this MemberExpression, but found "${child?.type}"`,
+						`MemberExpression Property: We were expecting an Identifier, but found "${child?.type}"`,
 						child || node,
 						this.getErrorContext(child || node, 1),
 					),
@@ -1950,7 +1989,7 @@ export default class SemanticAnalyzer {
 			node,
 			validChildrenAsMemberProperty,
 			AnalysisErrorCode.IdentifierExpected,
-			(child: Node) => `We were expecting an Identifier in this MemberList, but found "${child.type}"`,
+			(child: Node) => `MemberList: We were expecting an Identifier, but found "${child.type}"`,
 		);
 	}
 
@@ -1965,7 +2004,7 @@ export default class SemanticAnalyzer {
 				return error(
 					new AnalysisError(
 						AnalysisErrorCode.IdentifierExpected,
-						`We were expecting an Identifier in this MemberListExpression, but found "${child?.type}"`,
+						`MemberListExpression: We were expecting an Identifier, but found "${child?.type}"`,
 						child || node,
 						this.getErrorContext(child || node, node.value?.length || 1),
 					),
@@ -2142,7 +2181,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (node: Node | undefined) =>
-					`We were expecting an identifier, but found a "${node?.type}"`,
+					`Parameter: We were expecting an Identifier, but found a "${node?.type}"`,
 			},
 
 			// third child: a colon
@@ -2429,6 +2468,7 @@ export default class SemanticAnalyzer {
 		let validChildren = [
 			NT.ClassDeclaration,
 			NT.Comment,
+			NT.EnumDeclaration,
 			NT.FunctionDeclaration,
 			NT.ImportDeclaration,
 			NT.InterfaceDeclaration,
@@ -2489,7 +2529,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`Property: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the property value
@@ -2543,7 +2583,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`PropertyShape: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// second child: the property type
@@ -3382,7 +3422,7 @@ export default class SemanticAnalyzer {
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
 				errorMessage: (child: Node | undefined) =>
-					`We were expecting an Identifier, but found "${child?.type}"`,
+					`VariableDeclaration: We were expecting an Identifier, but found "${child?.type}"`,
 			},
 
 			// the colon (optional)

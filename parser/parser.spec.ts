@@ -12,6 +12,7 @@ import {
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTDoneStatement,
+	ASTEnumDeclaration,
 	ASTForStatement,
 	ASTFunctionDeclaration,
 	ASTFunctionSignature,
@@ -2050,6 +2051,194 @@ describe('parser.ts', (): void => {
 				'/* let x = "foo" */',
 				[[NT.Comment, '/* let x = "foo" */']],
 				[], // empty program
+			);
+		});
+	});
+
+	describe('EnumDeclaration', (): void => {
+		it('empty enum', (): void => {
+			testParseAndAnalyze(
+				'enum Foo {}',
+				[
+					[
+						NT.EnumDeclaration,
+						[
+							[NT.Identifier, 'Foo'],
+							[NT.BlockStatement, []],
+						],
+					],
+				],
+				[
+					ASTEnumDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+
+			testParseAndAnalyze(
+				'enum Foo <| T, U |> {}',
+				[
+					[
+						NT.EnumDeclaration,
+						[
+							[NT.Identifier, 'Foo'],
+							[
+								NT.TypeParametersList,
+								[
+									[NT.TypeParameter, [[NT.Identifier, 'T']]],
+									[NT.CommaSeparator],
+									[NT.TypeParameter, [[NT.Identifier, 'U']]],
+								],
+							],
+							[NT.BlockStatement, []],
+						],
+					],
+				],
+				[
+					ASTEnumDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						extends: [],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('enum extends other', (): void => {
+			testParseAndAnalyze(
+				'enum Foo {} enum Bar extends Foo {}',
+				[
+					[
+						NT.EnumDeclaration,
+						[
+							[NT.Identifier, 'Foo'],
+							[NT.BlockStatement, []],
+						],
+					],
+					[
+						NT.EnumDeclaration,
+						[
+							[NT.Identifier, 'Bar'],
+							[NT.EnumExtensionsList, [[NT.EnumExtension, [[NT.Identifier, 'Foo']]]]],
+							[NT.BlockStatement, []],
+						],
+					],
+				],
+				[
+					ASTEnumDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [],
+						body: ASTBlockStatement._([]),
+					}),
+					ASTEnumDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Bar'),
+						typeParams: [],
+						extends: [ASTIdentifier._('Foo')],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('enum extends multiple', (): void => {
+			testParseAndAnalyze(
+				'enum Foo extends Bar, Baz {}',
+				[
+					[
+						NT.EnumDeclaration,
+						[
+							[NT.Identifier, 'Foo'],
+							[
+								NT.EnumExtensionsList,
+								[
+									[NT.EnumExtension, [[NT.Identifier, 'Bar']]],
+									[NT.CommaSeparator],
+									[NT.EnumExtension, [[NT.Identifier, 'Baz']]],
+								],
+							],
+							[NT.BlockStatement, []],
+						],
+					],
+				],
+				[
+					ASTEnumDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [],
+						extends: [ASTIdentifier._('Bar'), ASTIdentifier._('Baz')],
+						body: ASTBlockStatement._([]),
+					}),
+				],
+			);
+		});
+
+		it('enum extends multiple with generics', (): void => {
+			testParseAndAnalyze(
+				'enum Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}',
+				[
+					[
+						NT.EnumDeclaration,
+						[
+							[NT.Identifier, 'Foo'],
+							[
+								NT.TypeParametersList,
+								[
+									[NT.TypeParameter, [[NT.Identifier, 'T']]],
+									[NT.CommaSeparator],
+									[NT.TypeParameter, [[NT.Identifier, 'U']]],
+								],
+							],
+							[
+								NT.EnumExtensionsList,
+								[
+									[
+										NT.EnumExtension,
+										[
+											[NT.Identifier, 'Bar'],
+											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
+										],
+									],
+									[NT.CommaSeparator],
+									[
+										NT.EnumExtension,
+										[
+											[NT.Identifier, 'Baz'],
+											[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
+										],
+									],
+								],
+							],
+							[NT.BlockStatement, []],
+						],
+					],
+				],
+				[
+					ASTEnumDeclaration._({
+						modifiers: [],
+						name: ASTIdentifier._('Foo'),
+						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						extends: [
+							ASTTypeInstantiationExpression._({
+								base: ASTIdentifier._('Bar'),
+								typeArgs: [ASTIdentifier._('T')],
+							}),
+							ASTTypeInstantiationExpression._({
+								base: ASTIdentifier._('Baz'),
+								typeArgs: [ASTIdentifier._('U')],
+							}),
+						],
+						body: ASTBlockStatement._([]),
+					}),
+				],
 			);
 		});
 	});

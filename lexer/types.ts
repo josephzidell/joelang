@@ -106,6 +106,7 @@ export const keywords = [
 	'const',
 	'done', // aka break
 	'else',
+	'enum',
 	'extends',
 	'f',
 	'for',

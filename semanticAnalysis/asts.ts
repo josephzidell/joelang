@@ -28,7 +28,7 @@ export abstract class AST {
 	abstract kind: string;
 
 	/**
-	 * Override the default behavior when calling util.insepct()
+	 * Override the default behavior when calling util.inspect()
 	 * and don't display the `kind` property. It is only necessary
 	 * for JSON serialization since the class name isn't there.
 	 */
@@ -36,10 +36,22 @@ export abstract class AST {
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { kind, ...rest } = this;
 
-		// we need to explcitely dsplay the class name since it
+		// we need to explicitly display the class name since it
 		// disappears when using a custom inspect function.
 		return `${this.constructor.name} ${util.inspect(rest, options)}`;
 	}
+}
+
+export abstract class ASTDeclaration
+	extends AST
+	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams
+{
+	joeDoc: ASTJoeDoc | undefined;
+	modifiers: ASTModifier[] = [];
+	name!: ASTIdentifier;
+	typeParams: ASTType[] = [];
+	extends: ASTTypeExceptPrimitive[] = [];
+	body!: ASTBlockStatement;
 }
 
 export class ASTArgumentsList extends AST {
@@ -183,18 +195,9 @@ export class ASTCallExpression extends AST {
 	}
 }
 
-export class ASTClassDeclaration
-	extends AST
-	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams
-{
+export class ASTClassDeclaration extends ASTDeclaration {
 	kind = 'ClassDeclaration';
-	joeDoc: ASTJoeDoc | undefined;
-	modifiers: ASTModifier[] = [];
-	name!: ASTIdentifier;
-	typeParams: ASTType[] = [];
-	extends: ASTTypeExceptPrimitive[] = [];
 	implements: ASTTypeExceptPrimitive[] = [];
-	body!: ASTBlockStatement;
 
 	// factory function
 	static _({
@@ -237,6 +240,41 @@ export class ASTDoneStatement extends AST {
 	// factory function
 	static _(): ASTDoneStatement {
 		return new ASTDoneStatement();
+	}
+}
+
+export class ASTEnumDeclaration extends ASTDeclaration {
+	kind = 'EnumDeclaration';
+
+	// factory function
+	static _({
+		joeDoc,
+		modifiers,
+		name,
+		typeParams,
+		extends: _extends,
+		body,
+	}: {
+		joeDoc?: ASTJoeDoc;
+		modifiers: ASTModifier[];
+		name: ASTIdentifier;
+		typeParams: ASTType[];
+		extends: ASTTypeExceptPrimitive[];
+		body: ASTBlockStatement;
+	}): ASTEnumDeclaration {
+		const ast = new ASTEnumDeclaration();
+
+		// only set if it's defined
+		if (typeof joeDoc !== 'undefined') {
+			ast.joeDoc = joeDoc;
+		}
+
+		ast.modifiers = modifiers;
+		ast.name = name;
+		ast.typeParams = typeParams;
+		ast.extends = _extends;
+		ast.body = body;
+		return ast;
 	}
 }
 
@@ -388,17 +426,8 @@ export class ASTImportDeclaration extends AST {
 	}
 }
 
-export class ASTInterfaceDeclaration
-	extends AST
-	implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasRequiredBody, ASTThatHasTypeParams
-{
+export class ASTInterfaceDeclaration extends ASTDeclaration {
 	kind = 'InterfaceDeclaration';
-	joeDoc: ASTJoeDoc | undefined;
-	modifiers: ASTModifier[] = [];
-	name!: ASTIdentifier;
-	typeParams: ASTType[] = [];
-	extends: ASTTypeExceptPrimitive[] = [];
-	body!: ASTBlockStatement;
 
 	// factory function
 	static _({

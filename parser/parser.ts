@@ -57,6 +57,7 @@ export default class Parser {
 		[NT.TypeParametersList]: NT.TypeParameter,
 		[NT.ClassExtensionsList]: NT.ClassExtension,
 		[NT.ClassImplementsList]: NT.ClassImplement,
+		[NT.EnumExtensionsList]: NT.EnumExtension,
 		[NT.InterfaceExtensionsList]: NT.InterfaceExtension,
 	};
 
@@ -273,6 +274,8 @@ export default class Parser {
 				this.endExpressionIfIn(NT.ClassExtensionsList);
 				this.endExpressionIfIn(NT.ClassImplement);
 				this.endExpressionIfIn(NT.ClassImplementsList);
+				this.endExpressionIfIn(NT.EnumExtension);
+				this.endExpressionIfIn(NT.EnumExtensionsList);
 				this.endExpressionIfIn(NT.InterfaceExtension);
 				this.endExpressionIfIn(NT.InterfaceExtensionsList);
 				this.endExpressionIfIn(NT.UnaryExpression);
@@ -333,6 +336,7 @@ export default class Parser {
 				this.endExpressionIfIn(NT.FunctionDeclaration);
 				this.endExpressionIfIn(NT.FunctionSignature);
 				this.endExpressionIfIn(NT.ClassDeclaration);
+				this.endExpressionIfIn(NT.EnumDeclaration);
 				this.endExpressionIfIn(NT.InterfaceDeclaration);
 				this.endExpressionIfIn(NT.ObjectExpression);
 				this.endExpressionIfIn(NT.ObjectShape);
@@ -820,6 +824,7 @@ export default class Parser {
 				} else if (
 					this.currentRoot.type === NT.ClassExtension ||
 					this.currentRoot.type === NT.ClassImplement ||
+					this.currentRoot.type === NT.EnumExtension ||
 					this.currentRoot.type === NT.InterfaceExtension
 				) {
 					this.endExpression();
@@ -932,6 +937,7 @@ export default class Parser {
 					(
 						[
 							NT.ClassDeclaration,
+							NT.EnumDeclaration,
 							NT.FunctionDeclaration,
 							NT.FunctionSignature,
 							NT.InterfaceDeclaration,
@@ -970,9 +976,9 @@ export default class Parser {
 					if (
 						twoBackType &&
 						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType) &&
-						!([NT.ClassExtension, NT.ClassImplement, NT.InterfaceExtension] as NT[]).includes(
-							this.currentRoot.type,
-						) &&
+						!(
+							[NT.ClassExtension, NT.ClassImplement, NT.EnumExtension, NT.InterfaceExtension] as NT[]
+						).includes(this.currentRoot.type) &&
 						this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
 					) {
 						// we're in a MemberExpression after the GenericTypesList
@@ -1094,7 +1100,7 @@ export default class Parser {
 				switch (token.value) {
 					case 'abstract':
 					case 'static':
-						// can either be a ClassDeclaration, FunctionDeclaration or VariableDeclaration
+						// can either be a ClassDeclaration, EnumDeclaration, FunctionDeclaration or VariableDeclaration
 
 						// the simplest way is to start a ModifiersList,
 						// then when we come across a one of those declarations, we check if this.currentRoot is a ModifiersList
@@ -1117,40 +1123,17 @@ export default class Parser {
 						break;
 					case 'class':
 						{
-							// the ClassDeclaration may have already started with some Modifier(s)
-							let classNode: Result<Node>;
-							if (this.currentRoot.type === NT.ModifiersList) {
-								if (this.debug) {
-									console.debug(
-										'Currently there is a ModifiersList open; now beginning ClassDeclaration and adopting the ModifiersList',
-									);
-								}
+							const classDeclaration = this.parseClassOrEnumDeclaration(
+								token,
+								NT.ClassDeclaration,
+								'ClassDeclaration',
+							);
 
-								classNode = this.beginExpressionWithAdoptingCurrentRoot(
-									MakeNode(NT.ClassDeclaration, token, this.currentRoot, true),
-								);
-							} else {
-								if (this.debug) {
-									console.debug('There is no ModifiersList open; now beginning a ClassDeclaration');
-								}
-
-								// beginExpressionWith doesn't result a Result<>
-								classNode = ok(
-									this.beginExpressionWith(
-										MakeNode(NT.ClassDeclaration, token, this.currentRoot, true),
-									),
-								);
+							if (classDeclaration.outcome === 'error') {
+								return classDeclaration;
 							}
 
-							switch (classNode.outcome) {
-								// do NOT return for ok bec if you do, it will exit the loop
-								case 'ok':
-									this.adoptPrecedingJoeDocIfPresent(classNode.value);
-									break;
-								case 'error':
-									return error(classNode.error);
-									break;
-							}
+							// do NOT return for ok bec if you do, it will exit the loop
 						}
 						break;
 					case 'const':
@@ -1211,9 +1194,28 @@ export default class Parser {
 							);
 						}
 						break;
+
+					case 'enum':
+						{
+							const enumDeclaration = this.parseClassOrEnumDeclaration(
+								token,
+								NT.EnumDeclaration,
+								'EnumDeclaration',
+							);
+
+							if (enumDeclaration.outcome === 'error') {
+								return enumDeclaration;
+							}
+
+							// do NOT return for ok bec if you do, it will exit the loop
+						}
+						break;
+
 					case 'extends':
 						if (this.currentRoot.type === NT.ClassDeclaration) {
 							this.beginExpressionWith(MakeNode(NT.ClassExtensionsList, token, this.currentRoot, true));
+						} else if (this.currentRoot.type === NT.EnumDeclaration) {
+							this.beginExpressionWith(MakeNode(NT.EnumExtensionsList, token, this.currentRoot, true));
 						} else if (this.currentRoot.type === NT.InterfaceDeclaration) {
 							this.beginExpressionWith(
 								MakeNode(NT.InterfaceExtensionsList, token, this.currentRoot, true),
@@ -1222,7 +1224,7 @@ export default class Parser {
 							return error(
 								new ParserError(
 									ParserErrorCode.MisplacedKeyword,
-									'`extends` keyword is used for a Class or Interface to extend another',
+									'`extends` keyword is used for a Class, Enum, or Interface to extend another',
 									this.currentRoot,
 									this.getErrorContext(token.value.length),
 								),
@@ -1465,10 +1467,44 @@ export default class Parser {
 		return ok(this.root);
 	}
 
+	private parseClassOrEnumDeclaration(token: Token, nodeType: NT, name: string): Result<Node, Error, unknown> {
+		// the Declaration may have already started with some Modifier(s)
+		let declarationNode: Result<Node>;
+		if (this.currentRoot.type === NT.ModifiersList) {
+			if (this.debug) {
+				console.debug(
+					`Currently there is a ModifiersList open; now beginning ${name} and adopting the ModifiersList`,
+				);
+			}
+
+			declarationNode = this.beginExpressionWithAdoptingCurrentRoot(
+				MakeNode(nodeType, token, this.currentRoot, true),
+			);
+		} else {
+			if (this.debug) {
+				console.debug(`There is no ModifiersList open; now beginning a ${name}`);
+			}
+
+			// beginExpressionWith doesn't return a Result<>
+			declarationNode = ok(this.beginExpressionWith(MakeNode(nodeType, token, this.currentRoot, true)));
+		}
+
+		switch (declarationNode.outcome) {
+			case 'ok':
+				this.adoptPrecedingJoeDocIfPresent(declarationNode.value);
+
+				return declarationNode;
+				break;
+			case 'error':
+				return error(declarationNode.error);
+				break;
+		}
+	}
+
 	/**
 	 * When applicable, checks for the presence of a preceding JoeDoc and adopts it
 	 *
-	 * @param applicableNode for Class, Function, Interface, or Variable
+	 * @param applicableNode for Class, Enum, Function, Interface, or Variable
 	 * @returns the applicableNode regardless
 	 */
 	private adoptPrecedingJoeDocIfPresent(applicableNode: Node): Result<Node> {
