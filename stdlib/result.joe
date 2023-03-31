@@ -13,7 +13,7 @@
  * }
  * ```
  */
-enum Result<|T, E extends Error|> {
+enum Result<|T, E: Error|> {
 	Ok(T),
 	Error(E),
 }

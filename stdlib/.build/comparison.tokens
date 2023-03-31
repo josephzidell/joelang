@@ -1,0 +1,90 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 138,
+		"value": "/**\n * used for the comparison between two values\n *\n * Example:\n *\n * ```\n * 3 <=> 4 // Less\n * 'apples' <=> 'apples' // Equal\n * ```\n */",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 139,
+		"end": 143,
+		"value": "enum",
+		"line": 11,
+		"col": 1
+	},
+	{
+		"type": "identifier",
+		"start": 144,
+		"end": 154,
+		"value": "Comparison",
+		"line": 11,
+		"col": 6
+	},
+	{
+		"type": "brace_open",
+		"start": 155,
+		"end": 156,
+		"value": "{",
+		"line": 11,
+		"col": 17
+	},
+	{
+		"type": "identifier",
+		"start": 158,
+		"end": 162,
+		"value": "Less",
+		"line": 12,
+		"col": 2
+	},
+	{
+		"type": "comma",
+		"start": 162,
+		"end": 163,
+		"value": ",",
+		"line": 12,
+		"col": 6
+	},
+	{
+		"type": "identifier",
+		"start": 165,
+		"end": 170,
+		"value": "Equal",
+		"line": 13,
+		"col": 2
+	},
+	{
+		"type": "comma",
+		"start": 170,
+		"end": 171,
+		"value": ",",
+		"line": 13,
+		"col": 7
+	},
+	{
+		"type": "identifier",
+		"start": 173,
+		"end": 177,
+		"value": "More",
+		"line": 14,
+		"col": 2
+	},
+	{
+		"type": "comma",
+		"start": 177,
+		"end": 178,
+		"value": ",",
+		"line": 14,
+		"col": 6
+	},
+	{
+		"type": "brace_close",
+		"start": 179,
+		"end": 180,
+		"value": "}",
+		"line": 15,
+		"col": 1
+	}
+]

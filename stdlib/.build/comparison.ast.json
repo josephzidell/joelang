@@ -1,0 +1,36 @@
+{
+	"kind": "Program",
+	"declarations": [
+		{
+			"joeDoc": {
+				"kind": "JoeDoc",
+				"content": "/**\n * used for the comparison between two values\n *\n * Example:\n *\n * ```\n * 3 <=> 4 // Less\n * 'apples' <=> 'apples' // Equal\n * ```\n */"
+			},
+			"modifiers": [],
+			"name": {
+				"kind": "Identifier",
+				"name": "Comparison"
+			},
+			"typeParams": [],
+			"extends": [],
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": [
+					{
+						"kind": "Identifier",
+						"name": "Less"
+					},
+					{
+						"kind": "Identifier",
+						"name": "Equal"
+					},
+					{
+						"kind": "Identifier",
+						"name": "More"
+					}
+				]
+			},
+			"kind": "EnumDeclaration"
+		}
+	]
+}

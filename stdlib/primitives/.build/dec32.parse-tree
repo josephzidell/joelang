@@ -1,0 +1,97 @@
+[
+  [
+    'Program',
+    [
+      [
+        'ClassDeclaration',
+        [
+          [
+            'JoeDoc',
+            '/**\n * This represents the decimal 32 primitive type.\n */'
+          ],
+          [ 'Identifier', 'Dec32' ],
+          [
+            'BlockStatement',
+            [
+              [
+                'VariableDeclaration',
+                'const',
+                [
+                  [
+                    'AssigneesList',
+                    [
+                      [ 'Identifier', 'MIN' ]
+                    ]
+                  ],
+                  [ 'AssignmentOperator' ],
+                  [
+                    'AssignablesList',
+                    [
+                      [
+                        'BinaryExpression',
+                        '*',
+                        [
+                          [
+                            'UnaryExpression',
+                            '-',
+                            { before: true },
+                            [
+                              [ 'NumberLiteral', '0.000000' ]
+                            ]
+                          ],
+                          [
+                            'BinaryExpression',
+                            '^e',
+                            [
+                              [ 'NumberLiteral', '10' ],
+                              [ 'Identifier', '−95' ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'SemicolonSeparator' ],
+              [
+                'VariableDeclaration',
+                'const',
+                [
+                  [
+                    'AssigneesList',
+                    [
+                      [ 'Identifier', 'MAX' ]
+                    ]
+                  ],
+                  [ 'AssignmentOperator' ],
+                  [
+                    'AssignablesList',
+                    [
+                      [
+                        'BinaryExpression',
+                        '*',
+                        [
+                          [ 'NumberLiteral', '9.999999' ],
+                          [
+                            'BinaryExpression',
+                            '^e',
+                            [
+                              [ 'NumberLiteral', '10' ],
+                              [ 'NumberLiteral', '96' ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'SemicolonSeparator' ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+]

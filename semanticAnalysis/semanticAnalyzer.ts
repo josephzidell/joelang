@@ -439,6 +439,28 @@ export default class SemanticAnalyzer {
 		]);
 	}
 
+	/** Ensures the child is undefined */
+	ensureNoMoreChildren(
+		child: Node | undefined,
+		errorCode: AnalysisErrorCode = AnalysisErrorCode.ExpressionNotExpected,
+		errorMessage: (child: Node) => string = (child) =>
+			`We did not expect to find an expression of type "${child.type}" here`,
+	): Result<undefined> {
+		if (typeof child === 'undefined') {
+			return ok(undefined);
+		}
+
+		return error(
+			new AnalysisError(
+				errorCode,
+				errorMessage(child),
+				child,
+				this.getErrorContext(child, child.value?.length ?? 1),
+			),
+			this.ast,
+		);
+	}
+
 	// reusable function to handle a node that has children of different types
 	// each child can be either required, optional, or dependent on whether a previous child of certain type was present
 	// each child will have a callback that will be called if the child is present
@@ -580,16 +602,9 @@ export default class SemanticAnalyzer {
 		}
 
 		// there should be no more children
-		if (typeof child !== 'undefined') {
-			return error(
-				new AnalysisError(
-					AnalysisErrorCode.ExpressionNotExpected,
-					`We did not expect to find an expression of type "${child.type}" here`,
-					child,
-					this.getErrorContext(child, child.value?.length ?? 1),
-				),
-				this.ast,
-			);
+		const moreChildrenResult = this.ensureNoMoreChildren(child);
+		if (moreChildrenResult.outcome === 'error') {
+			return moreChildrenResult;
 		}
 
 		if (this.debug) {
@@ -846,7 +861,7 @@ export default class SemanticAnalyzer {
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator],
 			AnalysisErrorCode.AssignableExpected,
-			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
+			(child) => `ArgumentList: We were expecting an assignable here, but we got a ${child.type} instead`,
 		);
 		switch (argsResult.outcome) {
 			case 'ok':
@@ -870,7 +885,7 @@ export default class SemanticAnalyzer {
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator, NT.PostfixIfStatement],
 			AnalysisErrorCode.AssignableExpected,
-			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
+			(child) => `ArrayExpression: We were expecting an assignable here, but we got a ${child.type} instead`,
 		);
 		switch (itemsResult.outcome) {
 			case 'ok':
@@ -1849,7 +1864,7 @@ export default class SemanticAnalyzer {
 
 	/**
 	 * Visits a JoeDoc node. At this point, we have no intention of enforcing that
-	 * JoeDocs be present (but that may change, possibly for public functions).
+	 * JoeDocs be present (but that may change, possibly for pub functions).
 	 *
 	 * TODO: check the contents of the JoeDoc, and enforce any rules
 	 *
@@ -1948,17 +1963,13 @@ export default class SemanticAnalyzer {
 		}
 
 		// there should be no more children
-		const child = nodesChildren.shift();
-		if (typeof child !== 'undefined') {
-			return error(
-				new AnalysisError(
-					AnalysisErrorCode.SemicolonExpected,
-					'Semicolon Expected',
-					child,
-					this.getErrorContext(child, 1),
-				),
-				this.ast,
-			);
+		const moreChildrenResult = this.ensureNoMoreChildren(
+			nodesChildren.shift(),
+			AnalysisErrorCode.SemicolonExpected,
+			() => 'Semicolon Expected',
+		);
+		if (moreChildrenResult.outcome === 'error') {
+			return moreChildrenResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2032,17 +2043,13 @@ export default class SemanticAnalyzer {
 		}
 
 		// there should be no more children
-		const child = nodesChildren.shift();
-		if (typeof child !== 'undefined') {
-			return error(
-				new AnalysisError(
-					AnalysisErrorCode.SemicolonExpected,
-					'Semicolon Expected',
-					child,
-					this.getErrorContext(child, 1),
-				),
-				this.ast,
-			);
+		const moreChildrenResult = this.ensureNoMoreChildren(
+			nodesChildren.shift(),
+			AnalysisErrorCode.SemicolonExpected,
+			() => 'Semicolon Expected',
+		);
+		if (moreChildrenResult.outcome === 'error') {
+			return moreChildrenResult;
 		}
 
 		this.astPointer = this.ast = ast;
@@ -2981,7 +2988,7 @@ export default class SemanticAnalyzer {
 			node,
 			[...AssignableNodeTypes, NT.CommaSeparator],
 			AnalysisErrorCode.AssignableExpected,
-			(child) => `We were expecting an assignable here, but we got a ${child.type} instead`,
+			(child) => `TupleExpression: We were expecting an assignable here, but we got a ${child.type} instead`,
 		);
 		switch (handlingResult.outcome) {
 			case 'ok':
@@ -3250,7 +3257,15 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTypeParameter(node: Node): Result<ASTType | SkipAST> {
-		return this.visitType(node.children[0]);
+		const typeResult = this.visitType(node.children[0]);
+
+		// there should be no more children
+		const moreChildrenResult = this.ensureNoMoreChildren(node.children[1]);
+		if (moreChildrenResult.outcome === 'error') {
+			return moreChildrenResult;
+		}
+
+		return typeResult;
 	}
 
 	visitTypeParametersList(node: Node): Result<ASTTypeExceptPrimitive[]> {
@@ -3338,7 +3353,7 @@ export default class SemanticAnalyzer {
 					AnalysisErrorCode.SemicolonExpected,
 					'Semicolon Expected',
 					child,
-					this.getErrorContext(child, 1),
+					this.getErrorContext(child, child.value?.length ?? 1),
 				),
 				this.ast,
 			);

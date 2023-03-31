@@ -1,0 +1,530 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 98,
+		"value": "/**\n * Class supporting a range `1 .. 3`, etc.\n *\n * Spaces surrounding the `..` are optional.\n */",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 99,
+		"end": 104,
+		"value": "class",
+		"line": 6,
+		"col": 1
+	},
+	{
+		"type": "identifier",
+		"start": 105,
+		"end": 110,
+		"value": "Range",
+		"line": 6,
+		"col": 7
+	},
+	{
+		"type": "brace_open",
+		"start": 111,
+		"end": 112,
+		"value": "{",
+		"line": 6,
+		"col": 13
+	},
+	{
+		"type": "keyword",
+		"start": 114,
+		"end": 117,
+		"value": "pub",
+		"line": 7,
+		"col": 2
+	},
+	{
+		"type": "keyword",
+		"start": 118,
+		"end": 126,
+		"value": "readonly",
+		"line": 7,
+		"col": 6
+	},
+	{
+		"type": "keyword",
+		"start": 127,
+		"end": 132,
+		"value": "const",
+		"line": 7,
+		"col": 15
+	},
+	{
+		"type": "identifier",
+		"start": 133,
+		"end": 138,
+		"value": "lower",
+		"line": 7,
+		"col": 21
+	},
+	{
+		"type": "colon",
+		"start": 138,
+		"end": 139,
+		"value": ":",
+		"line": 7,
+		"col": 26
+	},
+	{
+		"type": "identifier",
+		"start": 140,
+		"end": 146,
+		"value": "number",
+		"line": 7,
+		"col": 28
+	},
+	{
+		"type": "semicolon",
+		"start": 146,
+		"end": 147,
+		"value": ";",
+		"line": 7,
+		"col": 34
+	},
+	{
+		"type": "keyword",
+		"start": 149,
+		"end": 152,
+		"value": "pub",
+		"line": 8,
+		"col": 2
+	},
+	{
+		"type": "keyword",
+		"start": 153,
+		"end": 161,
+		"value": "readonly",
+		"line": 8,
+		"col": 6
+	},
+	{
+		"type": "keyword",
+		"start": 162,
+		"end": 167,
+		"value": "const",
+		"line": 8,
+		"col": 15
+	},
+	{
+		"type": "identifier",
+		"start": 168,
+		"end": 173,
+		"value": "upper",
+		"line": 8,
+		"col": 21
+	},
+	{
+		"type": "colon",
+		"start": 173,
+		"end": 174,
+		"value": ":",
+		"line": 8,
+		"col": 26
+	},
+	{
+		"type": "identifier",
+		"start": 175,
+		"end": 181,
+		"value": "number",
+		"line": 8,
+		"col": 28
+	},
+	{
+		"type": "semicolon",
+		"start": 181,
+		"end": 182,
+		"value": ";",
+		"line": 8,
+		"col": 34
+	},
+	{
+		"type": "keyword",
+		"start": 184,
+		"end": 189,
+		"value": "const",
+		"line": 9,
+		"col": 2
+	},
+	{
+		"type": "identifier",
+		"start": 190,
+		"end": 202,
+		"value": "isAscending?",
+		"line": 9,
+		"col": 8
+	},
+	{
+		"type": "semicolon",
+		"start": 202,
+		"end": 203,
+		"value": ";",
+		"line": 9,
+		"col": 20
+	},
+	{
+		"type": "comment",
+		"start": 205,
+		"end": 243,
+		"value": "// TODO add step defaulting to 1 or -1",
+		"line": 10,
+		"col": 2
+	},
+	{
+		"type": "keyword",
+		"start": 246,
+		"end": 249,
+		"value": "pub",
+		"line": 12,
+		"col": 2
+	},
+	{
+		"type": "keyword",
+		"start": 250,
+		"end": 256,
+		"value": "static",
+		"line": 12,
+		"col": 6
+	},
+	{
+		"type": "keyword",
+		"start": 257,
+		"end": 258,
+		"value": "f",
+		"line": 12,
+		"col": 13
+	},
+	{
+		"type": "identifier",
+		"start": 259,
+		"end": 269,
+		"value": "createFrom",
+		"line": 12,
+		"col": 15
+	},
+	{
+		"type": "paren_open",
+		"start": 269,
+		"end": 270,
+		"value": "(",
+		"line": 12,
+		"col": 25
+	},
+	{
+		"type": "identifier",
+		"start": 270,
+		"end": 273,
+		"value": "rng",
+		"line": 12,
+		"col": 26
+	},
+	{
+		"type": "colon",
+		"start": 273,
+		"end": 274,
+		"value": ":",
+		"line": 12,
+		"col": 29
+	},
+	{
+		"type": "identifier",
+		"start": 275,
+		"end": 290,
+		"value": "RangeExpression",
+		"line": 12,
+		"col": 31
+	},
+	{
+		"type": "paren_close",
+		"start": 290,
+		"end": 291,
+		"value": ")",
+		"line": 12,
+		"col": 46
+	},
+	{
+		"type": "right_arrow",
+		"start": 292,
+		"end": 294,
+		"value": "->",
+		"line": 12,
+		"col": 48
+	},
+	{
+		"type": "identifier",
+		"start": 295,
+		"end": 300,
+		"value": "Range",
+		"line": 12,
+		"col": 51
+	},
+	{
+		"type": "brace_open",
+		"start": 301,
+		"end": 302,
+		"value": "{",
+		"line": 12,
+		"col": 57
+	},
+	{
+		"type": "comment",
+		"start": 305,
+		"end": 329,
+		"value": "// TODO add input guards",
+		"line": 13,
+		"col": 3
+	},
+	{
+		"type": "this",
+		"start": 333,
+		"end": 337,
+		"value": "this",
+		"line": 15,
+		"col": 3
+	},
+	{
+		"type": "dot",
+		"start": 337,
+		"end": 338,
+		"value": ".",
+		"line": 15,
+		"col": 7
+	},
+	{
+		"type": "identifier",
+		"start": 338,
+		"end": 343,
+		"value": "lower",
+		"line": 15,
+		"col": 8
+	},
+	{
+		"type": "assign",
+		"start": 344,
+		"end": 345,
+		"value": "=",
+		"line": 15,
+		"col": 14
+	},
+	{
+		"type": "identifier",
+		"start": 346,
+		"end": 349,
+		"value": "rng",
+		"line": 15,
+		"col": 16
+	},
+	{
+		"type": "dot",
+		"start": 349,
+		"end": 350,
+		"value": ".",
+		"line": 15,
+		"col": 19
+	},
+	{
+		"type": "identifier",
+		"start": 350,
+		"end": 355,
+		"value": "lower",
+		"line": 15,
+		"col": 20
+	},
+	{
+		"type": "semicolon",
+		"start": 355,
+		"end": 356,
+		"value": ";",
+		"line": 15,
+		"col": 25
+	},
+	{
+		"type": "this",
+		"start": 359,
+		"end": 363,
+		"value": "this",
+		"line": 16,
+		"col": 3
+	},
+	{
+		"type": "dot",
+		"start": 363,
+		"end": 364,
+		"value": ".",
+		"line": 16,
+		"col": 7
+	},
+	{
+		"type": "identifier",
+		"start": 364,
+		"end": 369,
+		"value": "upper",
+		"line": 16,
+		"col": 8
+	},
+	{
+		"type": "assign",
+		"start": 370,
+		"end": 371,
+		"value": "=",
+		"line": 16,
+		"col": 14
+	},
+	{
+		"type": "identifier",
+		"start": 372,
+		"end": 375,
+		"value": "rng",
+		"line": 16,
+		"col": 16
+	},
+	{
+		"type": "dot",
+		"start": 375,
+		"end": 376,
+		"value": ".",
+		"line": 16,
+		"col": 19
+	},
+	{
+		"type": "identifier",
+		"start": 376,
+		"end": 381,
+		"value": "upper",
+		"line": 16,
+		"col": 20
+	},
+	{
+		"type": "semicolon",
+		"start": 381,
+		"end": 382,
+		"value": ";",
+		"line": 16,
+		"col": 25
+	},
+	{
+		"type": "comment",
+		"start": 386,
+		"end": 448,
+		"value": "// TODO is this true if you want the whole array? ary[0 .. -1]",
+		"line": 18,
+		"col": 3
+	},
+	{
+		"type": "this",
+		"start": 451,
+		"end": 455,
+		"value": "this",
+		"line": 19,
+		"col": 3
+	},
+	{
+		"type": "dot",
+		"start": 455,
+		"end": 456,
+		"value": ".",
+		"line": 19,
+		"col": 7
+	},
+	{
+		"type": "identifier",
+		"start": 456,
+		"end": 468,
+		"value": "isAscending?",
+		"line": 19,
+		"col": 8
+	},
+	{
+		"type": "assign",
+		"start": 469,
+		"end": 470,
+		"value": "=",
+		"line": 19,
+		"col": 21
+	},
+	{
+		"type": "this",
+		"start": 471,
+		"end": 475,
+		"value": "this",
+		"line": 19,
+		"col": 23
+	},
+	{
+		"type": "dot",
+		"start": 475,
+		"end": 476,
+		"value": ".",
+		"line": 19,
+		"col": 27
+	},
+	{
+		"type": "identifier",
+		"start": 476,
+		"end": 481,
+		"value": "lower",
+		"line": 19,
+		"col": 28
+	},
+	{
+		"type": "less_than",
+		"start": 482,
+		"end": 483,
+		"value": "<",
+		"line": 19,
+		"col": 34
+	},
+	{
+		"type": "this",
+		"start": 484,
+		"end": 488,
+		"value": "this",
+		"line": 19,
+		"col": 36
+	},
+	{
+		"type": "dot",
+		"start": 488,
+		"end": 489,
+		"value": ".",
+		"line": 19,
+		"col": 40
+	},
+	{
+		"type": "identifier",
+		"start": 489,
+		"end": 494,
+		"value": "upper",
+		"line": 19,
+		"col": 41
+	},
+	{
+		"type": "semicolon",
+		"start": 494,
+		"end": 495,
+		"value": ";",
+		"line": 19,
+		"col": 46
+	},
+	{
+		"type": "brace_close",
+		"start": 497,
+		"end": 498,
+		"value": "}",
+		"line": 20,
+		"col": 2
+	},
+	{
+		"type": "brace_close",
+		"start": 499,
+		"end": 500,
+		"value": "}",
+		"line": 21,
+		"col": 1
+	}
+]

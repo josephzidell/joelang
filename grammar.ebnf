@@ -101,7 +101,7 @@ extends = "extends" , identifierWithPossibleGenericTypes , { "," ,  identifierWi
 
 implements = "implements" , identifierWithPossibleGenericTypes , { "," , identifierWithPossibleGenericTypes } ;
 
-modifier = ( "public" | "static" | "abstract" ) ;
+modifier = ( "pub" | "static" | "abstract" | "readonly" ) ;
 
 modifiers = { modifier , { " " , modifier } };
 

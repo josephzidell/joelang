@@ -1,0 +1,21 @@
+[
+  [
+    'Program',
+    [
+      [
+        'ClassDeclaration',
+        [
+          [ 'JoeDoc', '/**\n * Main parent class for errors\n */' ],
+          [
+            'ModifiersList',
+            [
+              [ 'Modifier', 'abstract' ]
+            ]
+          ],
+          [ 'Identifier', 'Error' ],
+          [ 'BlockStatement', [] ]
+        ]
+      ]
+    ]
+  ]
+]

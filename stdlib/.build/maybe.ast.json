@@ -1,0 +1,46 @@
+{
+	"kind": "Program",
+	"declarations": [
+		{
+			"joeDoc": {
+				"kind": "JoeDoc",
+				"content": "/**\n * used for storing a value that may be present\n *\n * Example:\n *\n * ```\n * let someValue = Has(15); // store a value, type is determined automatically\n * let someValue: Maybe<number> = HasNot; // no value (currently)\n * // to extract the value\n * when someValue {\n * \tHas(value) -> ...\n * \tHasNot -> ...\n * }\n * ```\n */"
+			},
+			"modifiers": [],
+			"name": {
+				"kind": "Identifier",
+				"name": "Maybe"
+			},
+			"typeParams": [
+				{
+					"kind": "Identifier",
+					"name": "T"
+				}
+			],
+			"extends": [],
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": [
+					{
+						"kind": "CallExpression",
+						"callee": {
+							"kind": "Identifier",
+							"name": "Has"
+						},
+						"args": [
+							{
+								"kind": "Identifier",
+								"name": "T"
+							}
+						]
+					},
+					{
+						"kind": "Identifier",
+						"name": "HasNot"
+					}
+				]
+			},
+			"kind": "EnumDeclaration"
+		}
+	]
+}

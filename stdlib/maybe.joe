@@ -4,16 +4,16 @@
  * Example:
  *
  * ```
- * let someValue = Is(15); // store a value, type is determined automatically
- * let someValue: Maybe<number> = IsNot; // no value (currently)
+ * let someValue = Has(15); // store a value, type is determined automatically
+ * let someValue: Maybe<number> = HasNot; // no value (currently)
  * // to extract the value
  * when someValue {
- * 	Is(val) -> ...
- * 	IsNot -> ...
+ * 	Has(value) -> ...
+ * 	HasNot -> ...
  * }
  * ```
  */
 enum Maybe<|T|> {
-	Is(T),
-	IsNot,
+	Has(T),
+	HasNot,
 }

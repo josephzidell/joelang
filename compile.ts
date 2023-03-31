@@ -9,14 +9,30 @@ import { simplifyTree } from './parser/simplifier';
 import { Node } from './parser/types';
 import AnalysisError from './semanticAnalysis/error';
 import SemanticAnalyzer from './semanticAnalysis/semanticAnalyzer';
+import path from 'path';
 
 const args = process.argv.slice(2);
-// let input: string;
+const outputDir = '.build';
 let pathSansExt = '';
 const outFiles = {
-	tokens: (pathSansExt: string) => `${pathSansExt}.tokens`,
-	parseTree: (pathSansExt: string) => `${pathSansExt}.parse-tree`,
-	ast: (pathSansExt: string) => `${pathSansExt}.ast.json`,
+	tokens: async (pathSansExt: string) => {
+		const parsed = path.parse(`${pathSansExt}.tokens`);
+		await fsPromises.mkdir(path.join(parsed.dir, outputDir), { recursive: true });
+
+		return path.join(parsed.dir, outputDir, parsed.base);
+	},
+	parseTree: async (pathSansExt: string) => {
+		const parsed = path.parse(`${pathSansExt}.parse-tree`);
+		await fsPromises.mkdir(path.join(parsed.dir, outputDir), { recursive: true });
+
+		return path.join(parsed.dir, outputDir, parsed.base);
+	},
+	ast: async (pathSansExt: string) => {
+		const parsed = path.parse(`${pathSansExt}.ast.json`);
+		await fsPromises.mkdir(path.join(parsed.dir, outputDir), { recursive: true });
+
+		return path.join(parsed.dir, outputDir, parsed.base);
+	},
 };
 
 interface Options {
@@ -53,7 +69,7 @@ void (async (): Promise<void> => {
 				// first output tokens
 				if (!isThisAnInlineAnalysis) {
 					const output = JSON.stringify(parser.lexer.tokens, null, '\t');
-					const outFile = outFiles.tokens(pathSansExt);
+					const outFile = await outFiles.tokens(pathSansExt);
 
 					try {
 						await fsPromises.writeFile(outFile, output);
@@ -68,7 +84,7 @@ void (async (): Promise<void> => {
 				const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
 				if (!isThisAnInlineAnalysis) {
-					const outFile = outFiles.parseTree(pathSansExt);
+					const outFile = await outFiles.parseTree(pathSansExt);
 
 					try {
 						await fsPromises.writeFile(outFile, output);
@@ -153,7 +169,7 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 					}
 				} else {
 					const output = JSON.stringify(analysisResult.value, null, '\t');
-					const outFile = outFiles.ast(pathSansExt);
+					const outFile = await outFiles.ast(pathSansExt);
 
 					try {
 						await fsPromises.writeFile(outFile, output);

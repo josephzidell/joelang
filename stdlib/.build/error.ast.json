@@ -1,0 +1,29 @@
+{
+	"kind": "Program",
+	"declarations": [
+		{
+			"joeDoc": {
+				"kind": "JoeDoc",
+				"content": "/**\n * Main parent class for errors\n */"
+			},
+			"modifiers": [
+				{
+					"kind": "Modifier",
+					"keyword": "abstract"
+				}
+			],
+			"name": {
+				"kind": "Identifier",
+				"name": "Error"
+			},
+			"typeParams": [],
+			"extends": [],
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": []
+			},
+			"kind": "ClassDeclaration",
+			"implements": []
+		}
+	]
+}

@@ -1,0 +1,62 @@
+[
+  [
+    'Program',
+    [
+      [
+        'EnumDeclaration',
+        [
+          [
+            'JoeDoc',
+            '/**\n' +
+              ' * used for storing a value that may be present\n' +
+              ' *\n' +
+              ' * Example:\n' +
+              ' *\n' +
+              ' * ```\n' +
+              ' * let someValue = Has(15); // store a value, type is determined automatically\n' +
+              ' * let someValue: Maybe<number> = HasNot; // no value (currently)\n' +
+              ' * // to extract the value\n' +
+              ' * when someValue {\n' +
+              ' * \tHas(value) -> ...\n' +
+              ' * \tHasNot -> ...\n' +
+              ' * }\n' +
+              ' * ```\n' +
+              ' */'
+          ],
+          [ 'Identifier', 'Maybe' ],
+          [
+            'TypeParametersList',
+            [
+              [
+                'TypeParameter',
+                [
+                  [ 'Identifier', 'T' ]
+                ]
+              ]
+            ]
+          ],
+          [
+            'BlockStatement',
+            [
+              [
+                'CallExpression',
+                [
+                  [ 'Identifier', 'Has' ],
+                  [
+                    'ArgumentsList',
+                    [
+                      [ 'Identifier', 'T' ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'CommaSeparator' ],
+              [ 'Identifier', 'HasNot' ],
+              [ 'CommaSeparator' ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+]

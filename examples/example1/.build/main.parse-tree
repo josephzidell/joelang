@@ -112,10 +112,10 @@
             ]
           ],
           [
-            'ClassExtensionsList',
+            'ExtensionsList',
             [
               [
-                'ClassExtension',
+                'Extension',
                 [
                   [ 'Identifier', 'Bar' ],
                   [
@@ -128,7 +128,7 @@
               ],
               [ 'CommaSeparator' ],
               [
-                'ClassExtension',
+                'Extension',
                 [
                   [ 'Identifier', 'Baz' ]
                 ]

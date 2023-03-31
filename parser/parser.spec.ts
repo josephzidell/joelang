@@ -1854,11 +1854,11 @@ describe('parser.ts', (): void => {
 
 			testParseAndAnalyze(
 				`abstract class Foo {
-					abstract const baz: int8;
+					abstract readonly const baz: int8;
 
 					abstract static f hello<|T|> (name = 'World') -> Greeting, T;
 
-					static f world (name = 'Earth');
+					pub static f world (name = 'Earth');
 				}`,
 				[
 					[
@@ -1873,7 +1873,13 @@ describe('parser.ts', (): void => {
 										NT.VariableDeclaration,
 										'const',
 										[
-											[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
+											[
+												NT.ModifiersList,
+												[
+													[NT.Modifier, 'abstract'],
+													[NT.Modifier, 'readonly'],
+												],
+											],
 											[NT.AssigneesList, [[NT.Identifier, 'baz']]],
 											[NT.ColonSeparator],
 											[NT.TypeArgumentsList, [[NT.Type, 'int8']]],
@@ -1919,7 +1925,13 @@ describe('parser.ts', (): void => {
 									[
 										NT.FunctionDeclaration,
 										[
-											[NT.ModifiersList, [[NT.Modifier, 'static']]],
+											[
+												NT.ModifiersList,
+												[
+													[NT.Modifier, 'pub'],
+													[NT.Modifier, 'static'],
+												],
+											],
 											[NT.Identifier, 'world'],
 											[
 												NT.ParametersList,
@@ -1951,7 +1963,7 @@ describe('parser.ts', (): void => {
 						implements: [],
 						body: ASTBlockStatement._([
 							ASTVariableDeclaration._({
-								modifiers: [ASTModifier._('abstract')],
+								modifiers: [ASTModifier._('abstract'), ASTModifier._('readonly')],
 								mutable: false,
 								identifiersList: [ASTIdentifier._('baz')],
 								declaredTypes: [ASTTypeNumber._('int8')],
@@ -1975,7 +1987,7 @@ describe('parser.ts', (): void => {
 								body: undefined,
 							}),
 							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('static')],
+								modifiers: [ASTModifier._('pub'), ASTModifier._('static')],
 								name: ASTIdentifier._('world'),
 								typeParams: [],
 								params: [
@@ -4639,13 +4651,20 @@ describe('parser.ts', (): void => {
 		describe('for a class', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
 				testParseAndAnalyze(
-					`/** foo */
+					`/**
+					 * foo
+					 */
 					class Foo {}`,
 					[
 						[
 							NT.ClassDeclaration,
 							[
-								[NT.JoeDoc, '/** foo */'],
+								[
+									NT.JoeDoc,
+									`/**
+					 * foo
+					 */`,
+								],
 								[NT.Identifier, 'Foo'],
 								[NT.BlockStatement, []],
 							],
@@ -4653,8 +4672,48 @@ describe('parser.ts', (): void => {
 					],
 					[
 						ASTClassDeclaration._({
-							joeDoc: ASTJoeDoc._('/** foo */'),
+							joeDoc: ASTJoeDoc._(`/**
+					 * foo
+					 */`),
 							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
+			});
+
+			it('even when there are modifiers', () => {
+				testParseAndAnalyze(
+					`/**
+					 * foo
+					 */
+					abstract class Foo {}`,
+					[
+						[
+							NT.ClassDeclaration,
+							[
+								[
+									NT.JoeDoc,
+									`/**
+					 * foo
+					 */`,
+								],
+								[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
+								[NT.Identifier, 'Foo'],
+								[NT.BlockStatement, []],
+							],
+						],
+					],
+					[
+						ASTClassDeclaration._({
+							joeDoc: ASTJoeDoc._(`/**
+					 * foo
+					 */`),
+							modifiers: [ASTModifier._('abstract')],
 							name: ASTIdentifier._('Foo'),
 							typeParams: [],
 							extends: [],

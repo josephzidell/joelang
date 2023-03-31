@@ -120,6 +120,8 @@ export const keywords = [
 	'loop',
 	'next', // aka continue
 	'print',
+	'pub',
+	'readonly',
 	'return',
 	'static',
 	'when',

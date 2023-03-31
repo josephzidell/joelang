@@ -1,0 +1,122 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 324,
+		"value": "/**\n * used for storing a value that may be present\n *\n * Example:\n *\n * ```\n * let someValue = Has(15); // store a value, type is determined automatically\n * let someValue: Maybe<number> = HasNot; // no value (currently)\n * // to extract the value\n * when someValue {\n * \tHas(value) -> ...\n * \tHasNot -> ...\n * }\n * ```\n */",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 325,
+		"end": 329,
+		"value": "enum",
+		"line": 16,
+		"col": 1
+	},
+	{
+		"type": "identifier",
+		"start": 330,
+		"end": 335,
+		"value": "Maybe",
+		"line": 16,
+		"col": 6
+	},
+	{
+		"type": "triangle_open",
+		"start": 335,
+		"end": 337,
+		"value": "<|",
+		"line": 16,
+		"col": 11
+	},
+	{
+		"type": "identifier",
+		"start": 337,
+		"end": 338,
+		"value": "T",
+		"line": 16,
+		"col": 13
+	},
+	{
+		"type": "triangle_close",
+		"start": 338,
+		"end": 340,
+		"value": "|>",
+		"line": 16,
+		"col": 14
+	},
+	{
+		"type": "brace_open",
+		"start": 341,
+		"end": 342,
+		"value": "{",
+		"line": 16,
+		"col": 17
+	},
+	{
+		"type": "identifier",
+		"start": 344,
+		"end": 347,
+		"value": "Has",
+		"line": 17,
+		"col": 2
+	},
+	{
+		"type": "paren_open",
+		"start": 347,
+		"end": 348,
+		"value": "(",
+		"line": 17,
+		"col": 5
+	},
+	{
+		"type": "identifier",
+		"start": 348,
+		"end": 349,
+		"value": "T",
+		"line": 17,
+		"col": 6
+	},
+	{
+		"type": "paren_close",
+		"start": 349,
+		"end": 350,
+		"value": ")",
+		"line": 17,
+		"col": 7
+	},
+	{
+		"type": "comma",
+		"start": 350,
+		"end": 351,
+		"value": ",",
+		"line": 17,
+		"col": 8
+	},
+	{
+		"type": "identifier",
+		"start": 353,
+		"end": 359,
+		"value": "HasNot",
+		"line": 18,
+		"col": 2
+	},
+	{
+		"type": "comma",
+		"start": 359,
+		"end": 360,
+		"value": ",",
+		"line": 18,
+		"col": 8
+	},
+	{
+		"type": "brace_close",
+		"start": 361,
+		"end": 362,
+		"value": "}",
+		"line": 19,
+		"col": 1
+	}
+]

@@ -1,0 +1,242 @@
+{
+	"kind": "Program",
+	"declarations": [
+		{
+			"joeDoc": {
+				"kind": "JoeDoc",
+				"content": "/**\n * Class supporting a range `1 .. 3`, etc.\n *\n * Spaces surrounding the `..` are optional.\n */"
+			},
+			"modifiers": [],
+			"name": {
+				"kind": "Identifier",
+				"name": "Range"
+			},
+			"typeParams": [],
+			"extends": [],
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": [
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [
+							{
+								"kind": "Modifier",
+								"keyword": "pub"
+							},
+							{
+								"kind": "Modifier",
+								"keyword": "readonly"
+							}
+						],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "lower"
+							}
+						],
+						"declaredTypes": [
+							{
+								"kind": "Identifier",
+								"name": "number"
+							}
+						],
+						"initialValues": [],
+						"inferredPossibleTypes": []
+					},
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [
+							{
+								"kind": "Modifier",
+								"keyword": "pub"
+							},
+							{
+								"kind": "Modifier",
+								"keyword": "readonly"
+							}
+						],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "upper"
+							}
+						],
+						"declaredTypes": [
+							{
+								"kind": "Identifier",
+								"name": "number"
+							}
+						],
+						"initialValues": [],
+						"inferredPossibleTypes": []
+					},
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "isAscending?"
+							}
+						],
+						"declaredTypes": [
+							{
+								"kind": "TypePrimitive",
+								"type": "bool"
+							}
+						],
+						"initialValues": [],
+						"inferredPossibleTypes": []
+					},
+					{
+						"kind": "FunctionDeclaration",
+						"modifiers": [
+							{
+								"kind": "Modifier",
+								"keyword": "pub"
+							},
+							{
+								"kind": "Modifier",
+								"keyword": "static"
+							}
+						],
+						"name": {
+							"kind": "Identifier",
+							"name": "createFrom"
+						},
+						"typeParams": [],
+						"params": [
+							{
+								"kind": "Parameter",
+								"modifiers": [],
+								"isRest": false,
+								"name": {
+									"kind": "Identifier",
+									"name": "rng"
+								},
+								"declaredType": {
+									"kind": "Identifier",
+									"name": "RangeExpression"
+								},
+								"inferredPossibleTypes": []
+							}
+						],
+						"returnTypes": [
+							{
+								"kind": "Identifier",
+								"name": "Range"
+							}
+						],
+						"body": {
+							"kind": "BlockStatement",
+							"expressions": [
+								{
+									"kind": "AssignmentExpression",
+									"left": [
+										{
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "ThisKeyword"
+											},
+											"property": {
+												"kind": "Identifier",
+												"name": "lower"
+											}
+										}
+									],
+									"right": [
+										{
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "Identifier",
+												"name": "rng"
+											},
+											"property": {
+												"kind": "Identifier",
+												"name": "lower"
+											}
+										}
+									]
+								},
+								{
+									"kind": "AssignmentExpression",
+									"left": [
+										{
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "ThisKeyword"
+											},
+											"property": {
+												"kind": "Identifier",
+												"name": "upper"
+											}
+										}
+									],
+									"right": [
+										{
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "Identifier",
+												"name": "rng"
+											},
+											"property": {
+												"kind": "Identifier",
+												"name": "upper"
+											}
+										}
+									]
+								},
+								{
+									"kind": "AssignmentExpression",
+									"left": [
+										{
+											"kind": "MemberExpression",
+											"object": {
+												"kind": "ThisKeyword"
+											},
+											"property": {
+												"kind": "Identifier",
+												"name": "isAscending?"
+											}
+										}
+									],
+									"right": [
+										{
+											"kind": "BinaryExpression",
+											"operator": "<",
+											"left": {
+												"kind": "MemberExpression",
+												"object": {
+													"kind": "ThisKeyword"
+												},
+												"property": {
+													"kind": "Identifier",
+													"name": "lower"
+												}
+											},
+											"right": {
+												"kind": "MemberExpression",
+												"object": {
+													"kind": "ThisKeyword"
+												},
+												"property": {
+													"kind": "Identifier",
+													"name": "upper"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				]
+			},
+			"kind": "ClassDeclaration",
+			"implements": []
+		}
+	]
+}

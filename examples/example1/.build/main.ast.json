@@ -99,7 +99,6 @@
 			}
 		},
 		{
-			"kind": "ClassDeclaration",
 			"modifiers": [],
 			"name": {
 				"kind": "Identifier",
@@ -128,25 +127,6 @@
 				{
 					"kind": "Identifier",
 					"name": "Baz"
-				}
-			],
-			"implements": [
-				{
-					"kind": "TypeInstantiationExpression",
-					"base": {
-						"kind": "Identifier",
-						"name": "AbstractFooBar"
-					},
-					"typeArgs": [
-						{
-							"kind": "Identifier",
-							"name": "A"
-						}
-					]
-				},
-				{
-					"kind": "Identifier",
-					"name": "AnotherAbstractClass"
 				}
 			],
 			"body": {
@@ -1456,7 +1436,27 @@
 						}
 					}
 				]
-			}
+			},
+			"kind": "ClassDeclaration",
+			"implements": [
+				{
+					"kind": "TypeInstantiationExpression",
+					"base": {
+						"kind": "Identifier",
+						"name": "AbstractFooBar"
+					},
+					"typeArgs": [
+						{
+							"kind": "Identifier",
+							"name": "A"
+						}
+					]
+				},
+				{
+					"kind": "Identifier",
+					"name": "AnotherAbstractClass"
+				}
+			]
 		}
 	]
 }

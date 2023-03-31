@@ -1,0 +1,142 @@
+{
+	"kind": "Program",
+	"declarations": [
+		{
+			"joeDoc": {
+				"kind": "JoeDoc",
+				"content": "/**\n * This represents the decimal 32 primitive type.\n */"
+			},
+			"modifiers": [],
+			"name": {
+				"kind": "Identifier",
+				"name": "Dec32"
+			},
+			"typeParams": [],
+			"extends": [],
+			"body": {
+				"kind": "BlockStatement",
+				"expressions": [
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "MIN"
+							}
+						],
+						"declaredTypes": [],
+						"initialValues": [
+							{
+								"kind": "BinaryExpression",
+								"operator": "*",
+								"left": {
+									"kind": "UnaryExpression",
+									"before": true,
+									"operator": "-",
+									"operand": {
+										"kind": "NumberLiteral",
+										"value": 0,
+										"possibleSizes": [
+											"dec32",
+											"dec64"
+										]
+									}
+								},
+								"right": {
+									"kind": "BinaryExpression",
+									"operator": "^e",
+									"left": {
+										"kind": "NumberLiteral",
+										"value": 10,
+										"possibleSizes": [
+											"int8",
+											"int16",
+											"int32",
+											"int64",
+											"uint8",
+											"uint16",
+											"uint32",
+											"uint64"
+										]
+									},
+									"right": {
+										"kind": "Identifier",
+										"name": "−95"
+									}
+								}
+							}
+						],
+						"inferredPossibleTypes": [
+							[]
+						]
+					},
+					{
+						"kind": "VariableDeclaration",
+						"modifiers": [],
+						"mutable": false,
+						"identifiersList": [
+							{
+								"kind": "Identifier",
+								"name": "MAX"
+							}
+						],
+						"declaredTypes": [],
+						"initialValues": [
+							{
+								"kind": "BinaryExpression",
+								"operator": "*",
+								"left": {
+									"kind": "NumberLiteral",
+									"value": 9.999999,
+									"possibleSizes": [
+										"dec32",
+										"dec64"
+									]
+								},
+								"right": {
+									"kind": "BinaryExpression",
+									"operator": "^e",
+									"left": {
+										"kind": "NumberLiteral",
+										"value": 10,
+										"possibleSizes": [
+											"int8",
+											"int16",
+											"int32",
+											"int64",
+											"uint8",
+											"uint16",
+											"uint32",
+											"uint64"
+										]
+									},
+									"right": {
+										"kind": "NumberLiteral",
+										"value": 96,
+										"possibleSizes": [
+											"int8",
+											"int16",
+											"int32",
+											"int64",
+											"uint8",
+											"uint16",
+											"uint32",
+											"uint64"
+										]
+									}
+								}
+							}
+						],
+						"inferredPossibleTypes": [
+							[]
+						]
+					}
+				]
+			},
+			"kind": "ClassDeclaration",
+			"implements": []
+		}
+	]
+}

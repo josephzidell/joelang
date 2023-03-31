@@ -1,0 +1,194 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 57,
+		"value": "/**\n * This represents the decimal 32 primitive type.\n */",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 58,
+		"end": 63,
+		"value": "class",
+		"line": 4,
+		"col": 1
+	},
+	{
+		"type": "identifier",
+		"start": 64,
+		"end": 69,
+		"value": "Dec32",
+		"line": 4,
+		"col": 7
+	},
+	{
+		"type": "brace_open",
+		"start": 70,
+		"end": 71,
+		"value": "{",
+		"line": 4,
+		"col": 13
+	},
+	{
+		"type": "keyword",
+		"start": 73,
+		"end": 78,
+		"value": "const",
+		"line": 5,
+		"col": 2
+	},
+	{
+		"type": "identifier",
+		"start": 79,
+		"end": 82,
+		"value": "MIN",
+		"line": 5,
+		"col": 8
+	},
+	{
+		"type": "assign",
+		"start": 83,
+		"end": 84,
+		"value": "=",
+		"line": 5,
+		"col": 12
+	},
+	{
+		"type": "minus",
+		"start": 85,
+		"end": 86,
+		"value": "-",
+		"line": 5,
+		"col": 14
+	},
+	{
+		"type": "number",
+		"start": 86,
+		"end": 94,
+		"value": "0.000000",
+		"line": 5,
+		"col": 15
+	},
+	{
+		"type": "asterisk",
+		"start": 95,
+		"end": 96,
+		"value": "*",
+		"line": 5,
+		"col": 24
+	},
+	{
+		"type": "number",
+		"start": 97,
+		"end": 99,
+		"value": "10",
+		"line": 5,
+		"col": 26
+	},
+	{
+		"type": "exponent",
+		"start": 99,
+		"end": 101,
+		"value": "^e",
+		"line": 5,
+		"col": 28
+	},
+	{
+		"type": "identifier",
+		"start": 101,
+		"end": 104,
+		"value": "−95",
+		"line": 5,
+		"col": 30
+	},
+	{
+		"type": "semicolon",
+		"start": 104,
+		"end": 105,
+		"value": ";",
+		"line": 5,
+		"col": 33
+	},
+	{
+		"type": "keyword",
+		"start": 107,
+		"end": 112,
+		"value": "const",
+		"line": 6,
+		"col": 2
+	},
+	{
+		"type": "identifier",
+		"start": 113,
+		"end": 116,
+		"value": "MAX",
+		"line": 6,
+		"col": 8
+	},
+	{
+		"type": "assign",
+		"start": 117,
+		"end": 118,
+		"value": "=",
+		"line": 6,
+		"col": 12
+	},
+	{
+		"type": "number",
+		"start": 119,
+		"end": 127,
+		"value": "9.999999",
+		"line": 6,
+		"col": 14
+	},
+	{
+		"type": "asterisk",
+		"start": 128,
+		"end": 129,
+		"value": "*",
+		"line": 6,
+		"col": 23
+	},
+	{
+		"type": "number",
+		"start": 130,
+		"end": 132,
+		"value": "10",
+		"line": 6,
+		"col": 25
+	},
+	{
+		"type": "exponent",
+		"start": 132,
+		"end": 134,
+		"value": "^e",
+		"line": 6,
+		"col": 27
+	},
+	{
+		"type": "number",
+		"start": 134,
+		"end": 136,
+		"value": "96",
+		"line": 6,
+		"col": 29
+	},
+	{
+		"type": "semicolon",
+		"start": 136,
+		"end": 137,
+		"value": ";",
+		"line": 6,
+		"col": 31
+	},
+	{
+		"type": "brace_close",
+		"start": 138,
+		"end": 139,
+		"value": "}",
+		"line": 7,
+		"col": 1
+	}
+]

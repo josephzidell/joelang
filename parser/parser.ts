@@ -1086,6 +1086,8 @@ export default class Parser {
 
 				switch (token.value) {
 					case 'abstract':
+					case 'pub':
+					case 'readonly':
 					case 'static':
 						// can either be a ClassDeclaration, EnumDeclaration, FunctionDeclaration or VariableDeclaration
 
@@ -1501,7 +1503,8 @@ export default class Parser {
 			return ok(applicableNode);
 		}
 
-		const wasAdopted = this.adoptNode(this.currentRoot.parent, prevNode, applicableNode);
+		// joedoc becomes the first child of the applicableNode
+		const wasAdopted = this.adoptNode(this.currentRoot.parent, prevNode, applicableNode, false);
 		switch (wasAdopted.outcome) {
 			case 'ok':
 				return ok(applicableNode);

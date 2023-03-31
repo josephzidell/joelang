@@ -1,0 +1,7 @@
+/**
+ * This represents the decimal 32 primitive type.
+ */
+class Dec32 {
+	const MIN = -0.000000 * 10^e−95;
+	const MAX = 9.999999 * 10^e96;
+}

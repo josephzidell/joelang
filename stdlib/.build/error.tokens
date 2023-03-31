@@ -1,0 +1,50 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 39,
+		"value": "/**\n * Main parent class for errors\n */",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 40,
+		"end": 48,
+		"value": "abstract",
+		"line": 4,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 49,
+		"end": 54,
+		"value": "class",
+		"line": 4,
+		"col": 10
+	},
+	{
+		"type": "identifier",
+		"start": 55,
+		"end": 60,
+		"value": "Error",
+		"line": 4,
+		"col": 16
+	},
+	{
+		"type": "brace_open",
+		"start": 61,
+		"end": 62,
+		"value": "{",
+		"line": 4,
+		"col": 22
+	},
+	{
+		"type": "brace_close",
+		"start": 62,
+		"end": 63,
+		"value": "}",
+		"line": 4,
+		"col": 23
+	}
+]
