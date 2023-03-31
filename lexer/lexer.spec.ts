@@ -1,4 +1,6 @@
+import assert from 'node:assert/strict';
 import { Result } from '../shared/result';
+import LexerError from './error';
 import { keywords, Token, TokenType, tokenTypesUsingSymbols, declarableTypes } from './types';
 import { lex } from './util';
 
@@ -280,6 +282,23 @@ describe('lexer.ts', (): void => {
 				['assign', '='],
 				['number', '51'],
 			]);
+		});
+
+		it('number with valid size', (): void => {
+			expect(lex('51_uint8')).toMatchTokens([['number', '51_uint8']]);
+		});
+
+		it('number with invalid size', (): void => {
+			// arrange / act
+			const result = lex('51_foo32');
+
+			// assert
+			assert(result.outcome === 'error');
+			const error = result.error as LexerError;
+			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+1 | 51_foo32
+  |   ^ Syntax Error. Unknown character: "_"
+  |`);
 		});
 	});
 

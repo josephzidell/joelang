@@ -521,11 +521,7 @@ export default class Lexer {
 		const tokens: Token[] = [];
 
 		let currentToken = this.getToken();
-		while (currentToken.outcome !== 'error') {
-			if (currentToken.value.type === 'eof') {
-				return ok(tokens);
-			}
-
+		while (currentToken.outcome !== 'error' && currentToken.value.type !== 'eof') {
 			tokens.push(currentToken.value);
 
 			// get next
@@ -536,6 +532,7 @@ export default class Lexer {
 			return error(currentToken.error);
 		}
 
+		// token is eof, and we're done
 		return ok(tokens);
 	}
 
