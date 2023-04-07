@@ -78,6 +78,7 @@ import {
 	ASTTypeExceptPrimitive,
 	ASTTypeInstantiationExpression,
 	ASTTypeNumber,
+	ASTTypeParameter,
 	ASTTypePrimitive,
 	ASTTypePrimitiveBool,
 	ASTTypePrimitivePath,
@@ -3257,25 +3258,117 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTypeParameter(node: Node): Result<ASTType | SkipAST> {
-		const typeResult = this.visitType(node.children[0]);
+		const ast = new ASTTypeParameter();
 
-		// there should be no more children
-		const moreChildrenResult = this.ensureNoMoreChildren(node.children[1]);
-		if (moreChildrenResult.outcome === 'error') {
-			return moreChildrenResult;
+		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// the type
+			{
+				type: AssignableTypes,
+				required: true,
+				callback: (child: Node) => {
+					const typeResult = this.visitType(child);
+					switch (typeResult.outcome) {
+						case 'ok':
+							ast.type = typeResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return typeResult;
+							break;
+					}
+				},
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: (child: Node | undefined) =>
+					`TypeParameter: We were expecting to find a Type, but found a "${child?.type}"`,
+			},
+
+			// the colon (optional)
+			{
+				type: NT.ColonSeparator,
+				required: false,
+
+				// do nothing, we just want to skip over the colon separator
+				callback: skipThisChild,
+			},
+
+			// the constraint type (required if there was a colon separator)
+			{
+				type: AssignableTypes,
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.ColonSeparator;
+				},
+				callback: (child) => {
+					const visitResult = this.visitType(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.constraint = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+
+					return ok(undefined);
+				},
+				errorCode: AnalysisErrorCode.TypeExpected,
+				errorMessage: (child: Node | undefined) =>
+					`TypeParameter: We were expecting a Type constraint in this VariableDeclaration, but found "${child?.type}"`,
+			},
+
+			// next could be a default type, or nothing
+			{
+				type: NT.AssignmentOperator,
+				required: false,
+
+				// do nothing, we just want to skip over the assignment operator
+				callback: skipThisChild,
+			},
+
+			// next child must be a type if there was an assignment operator
+			// or nothing if there was no assignment operator
+			{
+				type: AssignableTypes,
+
+				// if the previous child was an assignment operator, then this child is required
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.AssignmentOperator;
+				},
+
+				callback: (child) => {
+					const visitResult = this.visitType(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.defaultType = visitResult.value;
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+
+					return ok(undefined);
+				},
+				errorCode: AnalysisErrorCode.AssignableExpected,
+				errorMessage: (child: Node | undefined) =>
+					`TypeParameter: We were expecting a default type, but found "${child?.type}"`,
+			},
+		]);
+		if (handleResult.outcome === 'error') {
+			return handleResult;
 		}
 
-		return typeResult;
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
 	}
 
-	visitTypeParametersList(node: Node): Result<ASTTypeExceptPrimitive[]> {
-		let typeParams: ASTTypeExceptPrimitive[] = [];
+	visitTypeParametersList(node: Node): Result<ASTTypeParameter[]> {
+		let typeParams: ASTTypeParameter[] = [];
 
-		const conversionResult = this.visitChildren<ASTTypeExceptPrimitive>(
+		const conversionResult = this.visitChildren<ASTTypeParameter>(
 			node,
 			[NT.CommaSeparator, NT.TypeParameter],
 			AnalysisErrorCode.TypeExpected,
-			(child: Node) => `We were expecting to find a Type, but found a "${child.type}"`,
+			(child: Node) => `TypeParametersList: We were expecting to find a Type, but found a "${child.type}"`,
 		);
 		switch (conversionResult.outcome) {
 			case 'ok':

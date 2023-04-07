@@ -1,0 +1,82 @@
+[
+  [
+    'Program',
+    [
+      [
+        'EnumDeclaration',
+        [
+          [
+            'JoeDoc',
+            '/**\n' +
+              ' * used for returning a value or an error\n' +
+              ' *\n' +
+              ' * Example:\n' +
+              ' *\n' +
+              ' * ```\n' +
+              ' * let result = Ok("myStuff");\n' +
+              " * result = Error(MySpecialError.create('Whoops')) if something == 'bad';\n" +
+              ' *\n' +
+              ' * when result {\n' +
+              ' * \tOk(val: string)              -> print val,\n' +
+              ' * \tError(error: MySpecialError) -> log(error),\n' +
+              ' * }\n' +
+              ' * ```\n' +
+              ' */'
+          ],
+          [ 'Identifier', 'Result' ],
+          [
+            'TypeParametersList',
+            [
+              [
+                'TypeParameter',
+                [
+                  [ 'Identifier', 'T' ]
+                ]
+              ],
+              [ 'CommaSeparator' ],
+              [
+                'TypeParameter',
+                [
+                  [ 'Identifier', 'E' ],
+                  [ 'ColonSeparator' ],
+                  [ 'Identifier', 'Error' ]
+                ]
+              ]
+            ]
+          ],
+          [
+            'BlockStatement',
+            [
+              [
+                'CallExpression',
+                [
+                  [ 'Identifier', 'Ok' ],
+                  [
+                    'ArgumentsList',
+                    [
+                      [ 'Identifier', 'T' ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'CommaSeparator' ],
+              [
+                'CallExpression',
+                [
+                  [ 'Identifier', 'Error' ],
+                  [
+                    'ArgumentsList',
+                    [
+                      [ 'Identifier', 'E' ]
+                    ]
+                  ]
+                ]
+              ],
+              [ 'CommaSeparator' ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+]

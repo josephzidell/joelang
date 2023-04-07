@@ -21,7 +21,7 @@ export interface ASTThatHasRequiredBody {
 }
 
 export interface ASTThatHasTypeParams {
-	typeParams: ASTType[];
+	typeParams: ASTTypeParameter[];
 }
 
 export abstract class AST {
@@ -49,7 +49,7 @@ export abstract class ASTDeclaration
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
-	typeParams: ASTType[] = [];
+	typeParams: ASTTypeParameter[] = [];
 	extends: ASTTypeExceptPrimitive[] = [];
 	body!: ASTBlockStatement;
 }
@@ -212,7 +212,7 @@ export class ASTClassDeclaration extends ASTDeclaration {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
-		typeParams: ASTType[];
+		typeParams: ASTTypeParameter[];
 		extends: ASTTypeExceptPrimitive[];
 		implements: ASTTypeExceptPrimitive[];
 		body: ASTBlockStatement;
@@ -258,7 +258,7 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
-		typeParams: ASTType[];
+		typeParams: ASTTypeParameter[];
 		extends: ASTTypeExceptPrimitive[];
 		body: ASTBlockStatement;
 	}): ASTEnumDeclaration {
@@ -307,7 +307,7 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name: ASTIdentifier | undefined = undefined;
-	typeParams: ASTType[] = [];
+	typeParams: ASTTypeParameter[] = [];
 	params: ASTParameter[] = [];
 	returnTypes: ASTType[] = [];
 	body: ASTBlockStatement | undefined = undefined;
@@ -325,7 +325,7 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier | undefined;
-		typeParams: ASTType[];
+		typeParams: ASTTypeParameter[];
 		params: ASTParameter[];
 		returnTypes: ASTType[];
 		body: ASTBlockStatement | undefined;
@@ -349,7 +349,7 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 	kind = 'FunctionSignature';
-	typeParams: ASTType[] = [];
+	typeParams: ASTTypeParameter[] = [];
 	params: ASTParameter[] = [];
 	returnTypes: ASTType[] = [];
 
@@ -359,7 +359,7 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 		params,
 		returnTypes,
 	}: {
-		typeParams: ASTType[];
+		typeParams: ASTTypeParameter[];
 		params: ASTParameter[];
 		returnTypes: ASTType[];
 	}): ASTFunctionSignature {
@@ -441,7 +441,7 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 		joeDoc?: ASTJoeDoc;
 		modifiers: ASTModifier[];
 		name: ASTIdentifier;
-		typeParams: ASTType[];
+		typeParams: ASTTypeParameter[];
 		extends: ASTTypeExceptPrimitive[];
 		body: ASTBlockStatement;
 	}): ASTInterfaceDeclaration {
@@ -1002,6 +1002,31 @@ export type ASTTypeExceptPrimitive =
 	| ASTTypeRange;
 export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
 /** End ASTType */
+
+export class ASTTypeParameter extends AST {
+	kind = 'TypeParameter';
+	type!: ASTType;
+	constraint?: ASTType;
+	defaultType?: ASTType;
+
+	// factory function
+	static _(type: ASTType, constraint?: ASTType, defaultType?: ASTType): ASTTypeParameter {
+		const ast = new ASTTypeParameter();
+		ast.type = type;
+
+		// only set if it's defined
+		if (typeof constraint !== 'undefined') {
+			ast.constraint = constraint;
+		}
+
+		// only set if it's defined
+		if (typeof defaultType !== 'undefined') {
+			ast.defaultType = defaultType;
+		}
+
+		return ast;
+	}
+}
 
 export class ASTUnaryExpression<T> extends AST {
 	kind = 'UnaryExpression';

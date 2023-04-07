@@ -558,7 +558,9 @@ export default class Parser {
 				// end a TypeArgumentsList if we're in one
 				this.endExpressionIfIn(NT.TypeArgumentsList);
 
-				if (!([NT.Parameter, NT.VariableDeclaration] as NT[]).includes(this.currentRoot.type)) {
+				if (
+					!([NT.Parameter, NT.TypeParameter, NT.VariableDeclaration] as NT[]).includes(this.currentRoot.type)
+				) {
 					// create an AssigneesList node taking the previous node as its child
 					{
 						const result = this.beginExpressionWithAdoptingPreviousNode(

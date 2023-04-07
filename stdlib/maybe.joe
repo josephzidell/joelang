@@ -13,7 +13,7 @@
  * }
  * ```
  */
-enum Maybe<|T|> {
+enum Maybe <| T |> {
 	Has(T),
 	HasNot,
 }

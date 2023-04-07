@@ -50,6 +50,7 @@ import {
 	ASTType,
 	ASTTypeInstantiationExpression,
 	ASTTypeNumber,
+	ASTTypeParameter,
 	ASTTypePrimitive,
 	ASTTypeRange,
 	ASTUnaryExpression,
@@ -1564,12 +1565,14 @@ describe('parser.ts', (): void => {
 						modifiers: [],
 						name: ASTIdentifier._('Foo'),
 						typeParams: [
-							ASTIdentifier._('T'),
-							ASTMemberExpression._({
-								object: ASTIdentifier._('U'),
-								property: ASTIdentifier._('V'),
-							}),
-							ASTTypePrimitive._('bool'),
+							ASTTypeParameter._(ASTIdentifier._('T')),
+							ASTTypeParameter._(
+								ASTMemberExpression._({
+									object: ASTIdentifier._('U'),
+									property: ASTIdentifier._('V'),
+								}),
+							),
+							ASTTypeParameter._(ASTTypePrimitive._('bool')),
 						],
 						extends: [],
 						implements: [],
@@ -1775,7 +1778,10 @@ describe('parser.ts', (): void => {
 					ASTClassDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						typeParams: [
+							ASTTypeParameter._(ASTIdentifier._('T')),
+							ASTTypeParameter._(ASTIdentifier._('U')),
+						],
 						extends: [
 							ASTTypeInstantiationExpression._({
 								base: ASTIdentifier._('Bar'),
@@ -1844,7 +1850,7 @@ describe('parser.ts', (): void => {
 					ASTClassDeclaration._({
 						modifiers: [ASTModifier._('abstract')],
 						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTIdentifier._('T')],
+						typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
 						extends: [],
 						implements: [],
 						body: ASTBlockStatement._([]),
@@ -1973,7 +1979,7 @@ describe('parser.ts', (): void => {
 							ASTFunctionDeclaration._({
 								modifiers: [ASTModifier._('abstract'), ASTModifier._('static')],
 								name: ASTIdentifier._('hello'),
-								typeParams: [ASTIdentifier._('T')],
+								typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
 								params: [
 									ASTParameter._({
 										modifiers: [],
@@ -2114,7 +2120,10 @@ describe('parser.ts', (): void => {
 					ASTEnumDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						typeParams: [
+							ASTTypeParameter._(ASTIdentifier._('T')),
+							ASTTypeParameter._(ASTIdentifier._('U')),
+						],
 						extends: [],
 						body: ASTBlockStatement._([]),
 					}),
@@ -2237,7 +2246,10 @@ describe('parser.ts', (): void => {
 					ASTEnumDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						typeParams: [
+							ASTTypeParameter._(ASTIdentifier._('T')),
+							ASTTypeParameter._(ASTIdentifier._('U')),
+						],
 						extends: [
 							ASTTypeInstantiationExpression._({
 								base: ASTIdentifier._('Bar'),
@@ -3099,7 +3111,7 @@ describe('parser.ts', (): void => {
 					ASTFunctionDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('foo'),
-						typeParams: [ASTIdentifier._('T')],
+						typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
 						params: [
 							ASTParameter._({
 								modifiers: [],
@@ -3602,7 +3614,7 @@ describe('parser.ts', (): void => {
 					ASTFunctionDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('foo'),
-						typeParams: [ASTIdentifier._('T')],
+						typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
 						params: [
 							ASTParameter._({
 								modifiers: [],
@@ -3741,7 +3753,7 @@ describe('parser.ts', (): void => {
 							ASTFunctionDeclaration._({
 								modifiers: [ASTModifier._('abstract')],
 								name: ASTIdentifier._('foo3'),
-								typeParams: [ASTIdentifier._('T')],
+								typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
 								params: [],
 								returnTypes: [ASTTypePrimitive._('bool')],
 								body: undefined,
@@ -3867,7 +3879,7 @@ describe('parser.ts', (): void => {
 							ASTFunctionDeclaration._({
 								modifiers: [],
 								name: undefined,
-								typeParams: [ASTIdentifier._('T')],
+								typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
 								params: [
 									ASTParameter._({
 										modifiers: [],
@@ -4504,7 +4516,10 @@ describe('parser.ts', (): void => {
 					ASTInterfaceDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						typeParams: [
+							ASTTypeParameter._(ASTIdentifier._('T')),
+							ASTTypeParameter._(ASTIdentifier._('U')),
+						],
 						extends: [],
 						body: ASTBlockStatement._([]),
 					}),
@@ -4627,7 +4642,10 @@ describe('parser.ts', (): void => {
 					ASTInterfaceDeclaration._({
 						modifiers: [],
 						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTIdentifier._('T'), ASTIdentifier._('U')],
+						typeParams: [
+							ASTTypeParameter._(ASTIdentifier._('T')),
+							ASTTypeParameter._(ASTIdentifier._('U')),
+						],
 						extends: [
 							ASTTypeInstantiationExpression._({
 								base: ASTIdentifier._('Bar'),
@@ -7875,6 +7893,148 @@ describe('parser.ts', (): void => {
 								}),
 							],
 							returnTypes: [ASTTypeRange._()],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
+			});
+		});
+
+		describe('TypeParameter', () => {
+			it('should accept just a type', () => {
+				testParseAndAnalyze(
+					'class Foo<|T|> {}',
+					[
+						[
+							NT.ClassDeclaration,
+							[
+								[NT.Identifier, 'Foo'],
+								[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
+								[NT.BlockStatement, []],
+							],
+						],
+					],
+					[
+						ASTClassDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
+			});
+
+			it('should accept a type and a constraint', () => {
+				testParseAndAnalyze(
+					'class Foo<|T: Bar|> {}',
+					[
+						[
+							NT.ClassDeclaration,
+							[
+								[NT.Identifier, 'Foo'],
+								[
+									NT.TypeParametersList,
+									[
+										[
+											NT.TypeParameter,
+											[[NT.Identifier, 'T'], [NT.ColonSeparator], [NT.Identifier, 'Bar']],
+										],
+									],
+								],
+								[NT.BlockStatement, []],
+							],
+						],
+					],
+					[
+						ASTClassDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [ASTTypeParameter._(ASTIdentifier._('T'), ASTIdentifier._('Bar'))],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
+			});
+
+			it('should accept a type and a default type', () => {
+				testParseAndAnalyze(
+					'class Foo<|T = Bar|> {}',
+					[
+						[
+							NT.ClassDeclaration,
+							[
+								[NT.Identifier, 'Foo'],
+								[
+									NT.TypeParametersList,
+									[
+										[
+											NT.TypeParameter,
+											[[NT.Identifier, 'T'], [NT.AssignmentOperator], [NT.Identifier, 'Bar']],
+										],
+									],
+								],
+								[NT.BlockStatement, []],
+							],
+						],
+					],
+					[
+						ASTClassDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [ASTTypeParameter._(ASTIdentifier._('T'), undefined, ASTIdentifier._('Bar'))],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([]),
+						}),
+					],
+				);
+			});
+
+			it('should accept a type, a constraint, and a default type', () => {
+				testParseAndAnalyze(
+					'class Foo<|T: Bar = Baz|> {}',
+					[
+						[
+							NT.ClassDeclaration,
+							[
+								[NT.Identifier, 'Foo'],
+								[
+									NT.TypeParametersList,
+									[
+										[
+											NT.TypeParameter,
+											[
+												[NT.Identifier, 'T'],
+												[NT.ColonSeparator],
+												[NT.Identifier, 'Bar'],
+												[NT.AssignmentOperator],
+												[NT.Identifier, 'Baz'],
+											],
+										],
+									],
+								],
+								[NT.BlockStatement, []],
+							],
+						],
+					],
+					[
+						ASTClassDeclaration._({
+							modifiers: [],
+							name: ASTIdentifier._('Foo'),
+							typeParams: [
+								ASTTypeParameter._(
+									ASTIdentifier._('T'),
+									ASTIdentifier._('Bar'),
+									ASTIdentifier._('Baz'),
+								),
+							],
+							extends: [],
+							implements: [],
 							body: ASTBlockStatement._([]),
 						}),
 					],

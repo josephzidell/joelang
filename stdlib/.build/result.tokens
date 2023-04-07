@@ -1,0 +1,178 @@
+[
+	{
+		"type": "comment",
+		"start": 0,
+		"end": 306,
+		"value": "/**\n * used for returning a value or an error\n *\n * Example:\n *\n * ```\n * let result = Ok(\"myStuff\");\n * result = Error(MySpecialError.create('Whoops')) if something == 'bad';\n *\n * when result {\n * \tOk(val: string)              -> print val,\n * \tError(error: MySpecialError) -> log(error),\n * }\n * ```\n */",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "keyword",
+		"start": 307,
+		"end": 311,
+		"value": "enum",
+		"line": 16,
+		"col": 1
+	},
+	{
+		"type": "identifier",
+		"start": 312,
+		"end": 318,
+		"value": "Result",
+		"line": 16,
+		"col": 6
+	},
+	{
+		"type": "triangle_open",
+		"start": 318,
+		"end": 320,
+		"value": "<|",
+		"line": 16,
+		"col": 12
+	},
+	{
+		"type": "identifier",
+		"start": 320,
+		"end": 321,
+		"value": "T",
+		"line": 16,
+		"col": 14
+	},
+	{
+		"type": "comma",
+		"start": 321,
+		"end": 322,
+		"value": ",",
+		"line": 16,
+		"col": 15
+	},
+	{
+		"type": "identifier",
+		"start": 323,
+		"end": 324,
+		"value": "E",
+		"line": 16,
+		"col": 17
+	},
+	{
+		"type": "colon",
+		"start": 324,
+		"end": 325,
+		"value": ":",
+		"line": 16,
+		"col": 18
+	},
+	{
+		"type": "identifier",
+		"start": 326,
+		"end": 331,
+		"value": "Error",
+		"line": 16,
+		"col": 20
+	},
+	{
+		"type": "triangle_close",
+		"start": 331,
+		"end": 333,
+		"value": "|>",
+		"line": 16,
+		"col": 25
+	},
+	{
+		"type": "brace_open",
+		"start": 334,
+		"end": 335,
+		"value": "{",
+		"line": 16,
+		"col": 28
+	},
+	{
+		"type": "identifier",
+		"start": 337,
+		"end": 339,
+		"value": "Ok",
+		"line": 17,
+		"col": 2
+	},
+	{
+		"type": "paren_open",
+		"start": 339,
+		"end": 340,
+		"value": "(",
+		"line": 17,
+		"col": 4
+	},
+	{
+		"type": "identifier",
+		"start": 340,
+		"end": 341,
+		"value": "T",
+		"line": 17,
+		"col": 5
+	},
+	{
+		"type": "paren_close",
+		"start": 341,
+		"end": 342,
+		"value": ")",
+		"line": 17,
+		"col": 6
+	},
+	{
+		"type": "comma",
+		"start": 342,
+		"end": 343,
+		"value": ",",
+		"line": 17,
+		"col": 7
+	},
+	{
+		"type": "identifier",
+		"start": 345,
+		"end": 350,
+		"value": "Error",
+		"line": 18,
+		"col": 2
+	},
+	{
+		"type": "paren_open",
+		"start": 350,
+		"end": 351,
+		"value": "(",
+		"line": 18,
+		"col": 7
+	},
+	{
+		"type": "identifier",
+		"start": 351,
+		"end": 352,
+		"value": "E",
+		"line": 18,
+		"col": 8
+	},
+	{
+		"type": "paren_close",
+		"start": 352,
+		"end": 353,
+		"value": ")",
+		"line": 18,
+		"col": 9
+	},
+	{
+		"type": "comma",
+		"start": 353,
+		"end": 354,
+		"value": ",",
+		"line": 18,
+		"col": 10
+	},
+	{
+		"type": "brace_close",
+		"start": 355,
+		"end": 356,
+		"value": "}",
+		"line": 19,
+		"col": 1
+	}
+]
