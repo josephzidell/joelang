@@ -33,6 +33,12 @@ const outFiles = {
 
 		return path.join(parsed.dir, outputDir, parsed.base);
 	},
+	symbols: async (pathSansExt: string) => {
+		const parsed = path.parse(`${pathSansExt}.symbols.json`);
+		await fsPromises.mkdir(path.join(parsed.dir, outputDir), { recursive: true });
+
+		return path.join(parsed.dir, outputDir, parsed.base);
+	},
 };
 
 interface Options {
@@ -155,27 +161,54 @@ async function runSemanticAnalyzer(cst: Node, parser: Parser, isThisAnInlineAnal
 	switch (analysisResult.outcome) {
 		case 'ok':
 			{
+				const [ast, symbols] = analysisResult.value;
 				if (isThisAnInlineAnalysis) {
 					if (args.includes('--json')) {
-						const output = JSON.stringify(analysisResult.value, null, '\t');
-						console.info(output);
+						console.info(JSON.stringify(ast, null, '\t'));
+						console.info(JSON.stringify(symbols, null, '\t'));
 					} else {
-						const output = inspect(analysisResult.value, {
-							compact: 1,
-							showHidden: false,
-							depth: null,
-						});
-						console.info(output);
+						console.info(
+							inspect(ast, {
+								compact: 1,
+								showHidden: false,
+								depth: null,
+							}),
+						);
+
+						console.info(
+							inspect(symbols, {
+								compact: 1,
+								showHidden: false,
+								depth: null,
+							}),
+						);
 					}
 				} else {
-					const output = JSON.stringify(analysisResult.value, null, '\t');
-					const outFile = await outFiles.ast(pathSansExt);
+					{
+						const output = JSON.stringify(ast, null, '\t');
+						const outFile = await outFiles.ast(pathSansExt);
 
-					try {
-						await fsPromises.writeFile(outFile, output);
-					} catch (err) {
-						console.error(`%cError writing AST to ${outFile}: ${(err as Error).message}`, 'color: red');
-						return 1;
+						try {
+							await fsPromises.writeFile(outFile, output);
+						} catch (err) {
+							console.error(`%cError writing AST to ${outFile}: ${(err as Error).message}`, 'color: red');
+							return 1;
+						}
+					}
+
+					{
+						const output = JSON.stringify(symbols, null, '\t');
+						const outFile = await outFiles.symbols(pathSansExt);
+
+						try {
+							await fsPromises.writeFile(outFile, output);
+						} catch (err) {
+							console.error(
+								`%cError writing Symbols to ${outFile}: ${(err as Error).message}`,
+								'color: red',
+							);
+							return 1;
+						}
 					}
 				}
 			}

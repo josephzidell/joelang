@@ -24,6 +24,14 @@ export function error<T, E extends Error = Error, ED = unknown>(error: E, data?:
 	return { outcome: 'error', error, data };
 }
 
+export function mapResult<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
+	if (result.outcome === 'ok') {
+		return ok(fn(result.value));
+	}
+
+	return result;
+}
+
 /**
  * Result And A Maybe
  *

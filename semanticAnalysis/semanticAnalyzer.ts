@@ -19,7 +19,7 @@ import {
 import ErrorContext from '../shared/errorContext';
 import { NumberSize, numberSizesAll, numberSizesSignedInts, numberSizesUnsignedInts } from '../shared/numbers/sizes';
 import { filterASTTypeNumbersWithBitCountsLowerThan, getLowestBitCountOf } from '../shared/numbers/utils';
-import { error, ok, Result } from '../shared/result';
+import { error, mapResult, ok, Result } from '../shared/result';
 import {
 	AssignableASTs,
 	AST,
@@ -103,6 +103,7 @@ import {
 } from './asts';
 import AnalysisError, { AnalysisErrorCode } from './error';
 import visitorMap from './visitorMap';
+import { SymbolTable } from './symbolTable';
 
 // reusable handler callback for child nodes if we want to skip them
 const skipThisChild = (_child: Node) => ok(undefined);
@@ -133,6 +134,8 @@ export default class SemanticAnalyzer {
 	private ast!: AST;
 	private astPointer = this.ast;
 
+	private symbolTable: SymbolTable;
+
 	/** Inline analyses are more lenient than a file */
 	private isAnInlineAnalysis = false;
 
@@ -142,19 +145,23 @@ export default class SemanticAnalyzer {
 		this.cst = cst;
 		this.currentNode = cst;
 		this._parser = parser;
+
+		this.symbolTable = new SymbolTable();
 	}
 
 	thisIsAnInlineAnalysis() {
 		this.isAnInlineAnalysis = true;
 	}
 
-	analyze(): Result<ASTProgram> {
+	analyze(): Result<[ASTProgram, SymbolTable]> {
 		if (this.debug && this.isAnInlineAnalysis) {
 			console.info(`[SemanticAnalyzer] Analyzing '${this.parser.lexer.code}'`);
 		}
 
 		// this will call child nodes recursively and build the AST
-		return this.nodeToAST<ASTProgram>(this.cst);
+		return mapResult(this.nodeToAST<ASTProgram>(this.cst), (ast: ASTProgram) => {
+			return [ast, this.symbolTable];
+		});
 	}
 
 	getAST(): AST {
@@ -759,6 +766,20 @@ export default class SemanticAnalyzer {
 			case ASTBoolLiteral:
 				return [ASTTypePrimitiveBool];
 				break;
+			case ASTIdentifier:
+				{
+					const identifier = expr as ASTIdentifier;
+
+					// look up the identifier in the symbol table
+					const lookupResult = this.symbolTable.lookup(identifier.name);
+					if (lookupResult.outcome === 'error') {
+						// TODO: return an undefined variable error
+						return [];
+					}
+
+					return lookupResult.value.types;
+				}
+				break;
 			case ASTNumberLiteral:
 				return (expr as ASTNumberLiteral).possibleSizes.map((size) => ASTTypeNumber._(size));
 				break;
@@ -846,6 +867,7 @@ export default class SemanticAnalyzer {
 				}
 				break;
 			default:
+				// console.log('inferPossibleASTTypesFromASTAssignable: unhandled expression type', expr.constructor.name);
 				// TODO more work needed here. Discover inferred type of CallExpression, MemberExpression, MemberListExpression, and more
 				return [];
 		}
@@ -3485,7 +3507,7 @@ export default class SemanticAnalyzer {
 			// the modifiers
 			this.getChildHandlerForModifiers(ast),
 
-			// the AssigneesList (required)
+			// the AssigneesList - names (required)
 			{
 				type: NT.AssigneesList,
 				required: true,
@@ -3681,6 +3703,14 @@ export default class SemanticAnalyzer {
 				}
 			});
 		}
+
+		ast.identifiersList.forEach((identifier, index) => {
+			this.symbolTable.define(
+				identifier.name,
+				node.value as 'const' | 'let',
+				ast.declaredTypes[index] ? [ast.declaredTypes[index]] : ast.inferredPossibleTypes[index],
+			);
+		});
 
 		this.astPointer = this.ast = ast;
 

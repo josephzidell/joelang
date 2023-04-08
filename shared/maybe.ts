@@ -1,3 +1,6 @@
+/**
+ * This is an adaptation of the Maybe enum in Joelang
+ */
 export abstract class Maybe<T> {
 	/**
 	 * Indicates if this maybe has a value or not
@@ -14,6 +17,12 @@ export abstract class Maybe<T> {
 
 	public hasNot(): this is MaybeHasNot {
 		return !this._has;
+	}
+
+	public mustGetValue(): T {
+		const that = this as unknown as MaybeHas<T>;
+
+		return that.value;
 	}
 
 	/**

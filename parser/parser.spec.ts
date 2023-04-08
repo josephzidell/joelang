@@ -62,7 +62,8 @@ import {
 } from '../semanticAnalysis/asts';
 import '../setupJest'; // for the types
 import { NT } from './types';
-import { analyze, parse, testParseAndAnalyze } from './util';
+import { parse, testParseAndAnalyze } from './util';
+import { analyze } from '../semanticAnalysis/util';
 
 const binaryMathOperatorsThatArePartOfAMemberExpression = ['+', '+=', '-', '-=', '*', '*='];
 const binaryMathOperatorsThatArePartOfAMemberListExpression = ['/', '/=', '%', '%='];

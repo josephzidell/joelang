@@ -4,6 +4,7 @@ import { simplifyTree, SParseTree } from './parser/simplifier';
 import { Node } from './parser/types';
 import { AST, ASTProgram } from './semanticAnalysis/asts';
 import { Result } from './shared/result';
+import { SymbolTable } from './semanticAnalysis/symbolTable';
 
 export interface CustomMatchers<R = unknown> {
 	/**
@@ -153,30 +154,31 @@ expect.extend({
 ////////////////////////////////////////////////////////////
 
 export function matchAST(
-	actualASTResult: Result<ASTProgram>,
+	actualASTResult: Result<[ASTProgram, SymbolTable]>,
 	expectedASTProgramDeclarations: Get<ASTProgram, 'declarations'>,
 ): CustomMatcherResult {
 	switch (actualASTResult.outcome) {
 		case 'ok':
 			{
-				const actualAST = actualASTResult.value.declarations;
+				const [actualAst] = actualASTResult.value;
+				const actualAstDeclarations = actualAst.declarations;
 
 				// the lengths should be equal
-				if (actualAST.length !== expectedASTProgramDeclarations.length) {
+				if (actualAstDeclarations.length !== expectedASTProgramDeclarations.length) {
 					return {
 						message: () =>
-							`expected ${actualAST.length} AST nodes, ${expectedASTProgramDeclarations.length} found in ${actualAST}`,
+							`expected ${actualAstDeclarations.length} AST nodes, ${expectedASTProgramDeclarations.length} found in ${actualAstDeclarations}`,
 						pass: false,
 					};
 				}
 
 				try {
 					// don't use .toMatchObject() because it only matches partially
-					expect(actualAST).toEqual(expectedASTProgramDeclarations);
+					expect(actualAstDeclarations).toEqual(expectedASTProgramDeclarations);
 
 					return { pass: true, message: () => 'they match' };
 				} catch {
-					const diff = diffObjects(expectedASTProgramDeclarations, actualAST);
+					const diff = diffObjects(expectedASTProgramDeclarations, actualAstDeclarations);
 
 					return {
 						pass: false,
