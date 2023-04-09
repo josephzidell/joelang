@@ -20,9 +20,12 @@ type SymbolTypes = ASTType[];
 type SymbolInfo = {
 	kind: SymbolKind;
 	types: SymbolTypes;
+	value?: unknown;
 };
 
 class Scope {
+	// each scope needs a name; first one is 'global'
+	public name: string;
 	private readonly symbols: Map<string, SymbolInfo> = new Map<string, SymbolInfo>();
 
 	/** Child scopes */
@@ -33,12 +36,13 @@ class Scope {
 		return this._parent;
 	}
 
-	constructor(parent: Maybe<Scope>) {
+	constructor(name: string, parent: Maybe<Scope>) {
+		this.name = name;
 		this._parent = parent;
 	}
 
-	public define(name: string, kind: SymbolKind = '', types: SymbolTypes = []): void {
-		this.symbols.set(name, { kind, types });
+	public define(name: string, kind: SymbolKind = '', types: SymbolTypes = [], value: unknown = undefined): void {
+		this.symbols.set(name, { kind, types, value });
 	}
 
 	public assignKind(name: string, symbolKind: SymbolKind): Result<boolean> {
@@ -105,29 +109,33 @@ class Scope {
 	[util.inspect.custom](depth: number, options: util.InspectOptions): string {
 		// we need to explicitly display the class name since it
 		// disappears when using a custom inspect function.
-		return `${this._parent.has() ? this._parent.value : 'global'} ${this.constructor.name} ${util.inspect(
-			this.symbols,
-			options,
-		)} ${util.inspect(this.children, options)}`;
+		return `${this.name} ${util.inspect(this.symbols, options)} ${util.inspect(this.children, options)}`;
 	}
 }
 
 export class SymbolTable {
+	private root!: Scope;
 	private currentScope: Maybe<Scope>;
 
-	constructor() {
-		this.currentScope = has(new Scope(hasNot()));
+	constructor(scopeName: string) {
+		this.root = new Scope(scopeName, hasNot());
+		this.currentScope = has(this.root);
 	}
 
-	public pushScope(): Scope {
+	public pushScope(name: string): Scope {
 		const parent = this.currentScope;
 
-		const newScope = new Scope(parent);
+		const newScope = new Scope(name, parent);
 		parent.map((parent) => parent.children.push(newScope));
 
 		this.currentScope = has(newScope);
 
 		return newScope;
+	}
+
+	/** Update the current scope's name */
+	public setScopeName(name: string): void {
+		this.currentScope.map((value) => (value.name = name));
 	}
 
 	public popScope(): void {
@@ -138,8 +146,27 @@ export class SymbolTable {
 		}
 	}
 
-	public define(name: string, kind: SymbolKind = '', types: SymbolTypes = []): void {
-		this.getCurrentScope().define(name, kind, types);
+	/**
+	 * Defines a symbol
+	 *
+	 * @param name Symbol name
+	 * @param kind Symbol kind
+	 * @param types Possible types
+	 * @param value The value, if any
+	 * @param inParent Defaulting to false, should the symbol be defined in the parent scope or the current scope?
+	 */
+	public define(
+		name: string,
+		kind: SymbolKind = '',
+		types: SymbolTypes = [],
+		value: unknown = undefined,
+		inParent = false,
+	): void {
+		if (inParent && this.currentScope.has() && this.currentScope.value.parent.has()) {
+			this.currentScope.value.parent.value.define(name, kind, types, value);
+		} else {
+			this.getCurrentScope().define(name, kind, types, value);
+		}
 	}
 
 	public assignKind(name: string, symbolKind: SymbolKind): void {
@@ -159,7 +186,9 @@ export class SymbolTable {
 			return this.currentScope.value;
 		}
 
-		return this.pushScope();
+		// this in an interesting case. More research is
+		// needed to determine if this could happen.
+		return this.pushScope('unknown');
 	}
 
 	/**

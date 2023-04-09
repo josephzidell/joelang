@@ -37,6 +37,11 @@ bower_components
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
+# Build directories
+**/.build/**
+# except the examples since we want to track regressions
+!examples/**/.build/**
+
 **/_build/**
 
 # Dependency directories

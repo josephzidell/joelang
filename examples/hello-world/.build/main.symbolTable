@@ -1,0 +1,3 @@
+SymbolTable global Map(1) {
+  'main' => { kind: 'function', types: [], value: undefined }
+} [ main Map(0) {} [] ]

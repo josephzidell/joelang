@@ -45,7 +45,7 @@ describe('symbolTable', () => {
 						identifiersList: [ASTIdentifier._('foo')],
 						declaredTypes: [ASTTypeNumber._('int16')],
 						initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-						inferredPossibleTypes: [[...NumberSizesIntASTs]],
+						inferredPossibleTypes: [[]],
 					}),
 					ASTVariableDeclaration._({
 						modifiers: [],

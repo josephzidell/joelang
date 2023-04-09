@@ -106,8 +106,11 @@
 			},
 			"typeParams": [
 				{
-					"kind": "Identifier",
-					"name": "A"
+					"kind": "TypeParameter",
+					"type": {
+						"kind": "Identifier",
+						"name": "A"
+					}
 				}
 			],
 			"extends": [
@@ -181,12 +184,7 @@
 							}
 						],
 						"inferredPossibleTypes": [
-							[
-								{
-									"kind": "TypePrimitive",
-									"type": "bool"
-								}
-							]
+							[]
 						]
 					},
 					{
@@ -1276,8 +1274,7 @@
 								"declaredType": {
 									"kind": "TypePrimitive",
 									"type": "bool"
-								},
-								"inferredPossibleTypes": []
+								}
 							},
 							{
 								"kind": "Parameter",
@@ -1290,8 +1287,7 @@
 								"declaredType": {
 									"kind": "Identifier",
 									"name": "Tuple"
-								},
-								"inferredPossibleTypes": []
+								}
 							},
 							{
 								"kind": "Parameter",
@@ -1301,12 +1297,10 @@
 									"kind": "Identifier",
 									"name": "arg3"
 								},
-								"inferredPossibleTypes": [
-									{
-										"kind": "TypePrimitive",
-										"type": "bool"
-									}
-								],
+								"declaredType": {
+									"kind": "TypePrimitive",
+									"type": "bool"
+								},
 								"defaultValue": {
 									"kind": "BoolLiteral",
 									"value": true
@@ -1326,8 +1320,7 @@
 										"kind": "Identifier",
 										"name": "Thing"
 									}
-								},
-								"inferredPossibleTypes": []
+								}
 							}
 						],
 						"returnTypes": [],

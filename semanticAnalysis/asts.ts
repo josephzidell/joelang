@@ -27,6 +27,9 @@ export interface ASTThatHasTypeParams {
 export abstract class AST {
 	abstract kind: string;
 
+	/** A string representation of the node */
+	abstract toString(): string;
+
 	/**
 	 * Override the default behavior when calling util.inspect()
 	 * and don't display the `kind` property. It is only necessary
@@ -64,6 +67,10 @@ export class ASTArgumentsList extends AST {
 		ast.args = args;
 		return ast;
 	}
+
+	toString(): string {
+		return this.args.map((arg) => arg.toString()).join(', ');
+	}
 }
 
 export class ASTArrayExpression<T extends AssignableASTs> extends AST {
@@ -85,6 +92,10 @@ export class ASTArrayExpression<T extends AssignableASTs> extends AST {
 		ast.possibleTypes = possibleTypes;
 		return ast;
 	}
+
+	toString(): string {
+		return `[${this.items.map((item) => item.toString()).join(', ')}]`;
+	}
 }
 
 export class ASTArrayOf extends AST {
@@ -96,6 +107,10 @@ export class ASTArrayOf extends AST {
 		const ast = new ASTArrayOf();
 		ast.type = type;
 		return ast;
+	}
+
+	toString(): string {
+		return `${this.type.toString()}[]`;
 	}
 }
 
@@ -116,6 +131,10 @@ export class ASTAssignmentExpression extends AST {
 		ast.left = left;
 		ast.right = right;
 		return ast;
+	}
+
+	toString(): string {
+		return `${this.left.map((l) => l.toString()).join(', ')} = ${this.right.map((r) => r.toString()).join(', ')}`;
 	}
 }
 
@@ -141,6 +160,10 @@ export class ASTBinaryExpression<L extends ExpressionASTs, R extends ExpressionA
 		ast.right = right;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.left.toString()} ${this.operator} ${this.right.toString()}`;
+	}
 }
 
 export class ASTBlockStatement extends AST {
@@ -153,6 +176,10 @@ export class ASTBlockStatement extends AST {
 		ast.expressions = expressions;
 		return ast;
 	}
+
+	toString(): string {
+		return `{${this.expressions.map((expr) => expr.toString()).join('\n')}}`;
+	}
 }
 
 export class ASTBoolLiteral extends AST {
@@ -164,6 +191,10 @@ export class ASTBoolLiteral extends AST {
 		const ast = new ASTBoolLiteral();
 		ast.value = value;
 		return ast;
+	}
+
+	toString(): string {
+		return this.value.toString(); // this works for a boolean as well as an ASTUnaryExpression<boolean>
 	}
 }
 
@@ -192,6 +223,14 @@ export class ASTCallExpression extends AST {
 
 		ast.args = args;
 		return ast;
+	}
+
+	toString(): string {
+		const typeArgsString = this.typeArgs
+			? `<| ${this.typeArgs.map((typeArg) => typeArg.toString()).join(', ')} |>`
+			: '';
+
+		return `${this.callee.toString()}${typeArgsString}(${this.args.map((arg) => arg.toString()).join(', ')})`;
 	}
 }
 
@@ -232,6 +271,23 @@ export class ASTClassDeclaration extends ASTDeclaration {
 		ast.body = body;
 		return ast;
 	}
+
+	toString(): string {
+		const modifiersString =
+			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const typeParamsString =
+			this.typeParams.length > 0
+				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
+				: '';
+		const extendsString =
+			this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+		const implementsString =
+			this.implements.length > 0
+				? ` implements ${this.implements.map((implement) => implement.toString()).join(', ')}`
+				: '';
+
+		return `${modifiersString}class ${this.name.toString()}${typeParamsString}${extendsString}${implementsString}{...}`;
+	}
 }
 
 export class ASTDoneStatement extends AST {
@@ -240,6 +296,10 @@ export class ASTDoneStatement extends AST {
 	// factory function
 	static _(): ASTDoneStatement {
 		return new ASTDoneStatement();
+	}
+
+	toString(): string {
+		return 'done';
 	}
 }
 
@@ -276,6 +336,19 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 		ast.body = body;
 		return ast;
 	}
+
+	toString(): string {
+		const modifiersString =
+			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const typeParamsString =
+			this.typeParams.length > 0
+				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
+				: '';
+		const extendsString =
+			this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+
+		return `${modifiersString}enum ${this.name.toString()}${typeParamsString}${extendsString}{...}`;
+	}
 }
 
 export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
@@ -299,6 +372,10 @@ export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
 		ast.iterable = iterable;
 		ast.body = body;
 		return ast;
+	}
+
+	toString(): string {
+		return `for (${this.initializer.toString()} in ${this.iterable.toString()}) {...}`;
 	}
 }
 
@@ -345,6 +422,25 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 		ast.body = body;
 		return ast;
 	}
+
+	toString(): string {
+		const modifiersString =
+			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const typeParamsString =
+			this.typeParams.length > 0
+				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
+				: '';
+		const paramsString =
+			this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
+		const returnTypesString =
+			this.returnTypes.length > 0
+				? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}`
+				: '';
+
+		return `${modifiersString}f ${
+			this.name?.toString() ?? ''
+		}${typeParamsString}${paramsString}${returnTypesString}{...}`;
+	}
 }
 
 export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
@@ -369,6 +465,21 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 		ast.returnTypes = returnTypes;
 		return ast;
 	}
+
+	toString(): string {
+		const typeParamsString =
+			this.typeParams.length > 0
+				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
+				: '';
+		const paramsString =
+			this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
+		const returnTypesString =
+			this.returnTypes.length > 0
+				? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}`
+				: '';
+
+		return `f ${typeParamsString}${paramsString}${returnTypesString}`;
+	}
 }
 
 export class ASTIdentifier extends AST {
@@ -380,6 +491,10 @@ export class ASTIdentifier extends AST {
 		const ast = new ASTIdentifier();
 		ast.name = name;
 		return ast;
+	}
+
+	toString(): string {
+		return this.name;
 	}
 }
 
@@ -410,6 +525,12 @@ export class ASTIfStatement extends AST {
 
 		return ast;
 	}
+
+	toString(): string {
+		const alternateString = this.alternate ? ` else {...}` : '';
+
+		return `if ${this.test.toString()} {...}${alternateString}`;
+	}
 }
 
 export class ASTImportDeclaration extends AST {
@@ -423,6 +544,10 @@ export class ASTImportDeclaration extends AST {
 		ast.identifier = identifier;
 		ast.source = source;
 		return ast;
+	}
+
+	toString(): string {
+		return `import ${this.identifier.toString()} from ${this.source.toString()}`;
 	}
 }
 
@@ -459,6 +584,19 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 		ast.body = body;
 		return ast;
 	}
+
+	toString(): string {
+		const modifiersString =
+			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const typeParamsString =
+			this.typeParams.length > 0
+				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
+				: '';
+		const extendsString =
+			this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+
+		return `${modifiersString}interface ${this.name.toString()}${typeParamsString}${extendsString} {...}`;
+	}
 }
 
 export class ASTJoeDoc extends AST {
@@ -471,6 +609,10 @@ export class ASTJoeDoc extends AST {
 		ast.content = content;
 		return ast;
 	}
+
+	toString(): string {
+		return `/** ${this.content} */`;
+	}
 }
 
 export class ASTLoopStatement extends AST {
@@ -482,6 +624,10 @@ export class ASTLoopStatement extends AST {
 		const ast = new ASTLoopStatement();
 		ast.body = body;
 		return ast;
+	}
+
+	toString(): string {
+		return `loop {...}`;
 	}
 }
 
@@ -503,6 +649,17 @@ export class ASTMemberExpression extends AST {
 		ast.property = property;
 		return ast;
 	}
+
+	toString(): string {
+		const propertyString = this.property.toString();
+
+		// if the property begins with a number use brackets, otherwise use dot notation
+		if (propertyString.match(/^\d/)) {
+			return `${this.object.toString()}[${propertyString}]`;
+		}
+
+		return `${this.object.toString()}.${propertyString}`;
+	}
 }
 
 export class ASTMemberListExpression extends AST {
@@ -523,6 +680,10 @@ export class ASTMemberListExpression extends AST {
 		ast.properties = properties;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.object.toString()}[${this.properties.map((property) => property.toString()).join(', ')}]`;
+	}
 }
 
 export class ASTModifier extends AST {
@@ -535,6 +696,10 @@ export class ASTModifier extends AST {
 		ast.keyword = keyword;
 		return ast;
 	}
+
+	toString(): string {
+		return this.keyword;
+	}
 }
 
 export class ASTNextStatement extends AST {
@@ -543,6 +708,10 @@ export class ASTNextStatement extends AST {
 	// factory function
 	static _(): ASTNextStatement {
 		return new ASTNextStatement();
+	}
+
+	toString(): string {
+		return 'next';
 	}
 }
 
@@ -602,6 +771,10 @@ export class ASTNumberLiteral extends AST {
 
 		return ok(ASTNumberLiteral._(parseInt(value), declaredSize, possibleSizes));
 	}
+
+	toString(): string {
+		return `${this.value.toString()}${this.declaredSize ? `_${this.declaredSize}` : ''}`;
+	}
 }
 
 export class ASTObjectExpression extends AST {
@@ -614,6 +787,10 @@ export class ASTObjectExpression extends AST {
 		ast.properties = properties;
 		return ast;
 	}
+
+	toString(): string {
+		return `{${this.properties.map((property) => property.toString()).join(', ')}}`;
+	}
 }
 
 export class ASTObjectShape extends AST {
@@ -625,6 +802,10 @@ export class ASTObjectShape extends AST {
 		const ast = new ASTObjectShape();
 		ast.properties = properties;
 		return ast;
+	}
+
+	toString(): string {
+		return `{${this.properties.map((property) => property.toString()).join(', ')}}`;
 	}
 }
 
@@ -640,6 +821,10 @@ export class ASTProperty extends AST {
 		ast.value = value;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.key.toString()}: ${this.value.toString()}`;
+	}
 }
 
 export class ASTPropertyShape extends AST {
@@ -654,6 +839,10 @@ export class ASTPropertyShape extends AST {
 		ast.possibleTypes = possibleTypes;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.key.toString()}: ${this.possibleTypes.map((type) => type.toString()).join(' | ')}`;
+	}
 }
 
 export class ASTParameter extends AST {
@@ -661,13 +850,7 @@ export class ASTParameter extends AST {
 	modifiers: ASTModifier[] = [];
 	isRest = false;
 	name!: ASTIdentifier;
-
-	/** The type declared by the source code, if any */
-	declaredType?: ASTType;
-
-	/** The possible types inferred from the initial value, if any */
-	inferredPossibleTypes: ASTType[] = [];
-
+	declaredType!: ASTType;
 	defaultValue?: AssignableASTs;
 
 	// factory function
@@ -676,27 +859,19 @@ export class ASTParameter extends AST {
 		isRest,
 		name,
 		declaredType,
-		inferredPossibleTypes,
 		defaultValue,
 	}: {
 		modifiers: ASTModifier[];
 		isRest: boolean;
 		name: ASTIdentifier;
-		declaredType?: ASTType;
-		inferredPossibleTypes: ASTType[];
+		declaredType: ASTType;
 		defaultValue?: AssignableASTs;
 	}): ASTParameter {
 		const ast = new ASTParameter();
 		ast.modifiers = modifiers;
 		ast.isRest = isRest;
 		ast.name = name;
-
-		// only set if it's not undefined
-		if (typeof declaredType !== 'undefined') {
-			ast.declaredType = declaredType;
-		}
-
-		ast.inferredPossibleTypes = inferredPossibleTypes;
+		ast.declaredType = declaredType;
 
 		// only set if it's not undefined
 		if (typeof defaultValue !== 'undefined') {
@@ -704,6 +879,15 @@ export class ASTParameter extends AST {
 		}
 
 		return ast;
+	}
+
+	toString(): string {
+		const modifiersString =
+			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const restString = this.isRest ? '...' : '';
+		const defaultValueString = this.defaultValue ? ` = ${this.defaultValue.toString()}` : '';
+
+		return `${modifiersString}${restString}${this.name.toString()}: ${this.declaredType.toString()}${defaultValueString}`;
 	}
 }
 
@@ -721,6 +905,10 @@ export class ASTPath extends AST {
 		ast.isDir = isDir;
 		return ast;
 	}
+
+	toString(): string {
+		return this.path;
+	}
 }
 
 export class ASTPostfixIfStatement extends AST {
@@ -735,6 +923,10 @@ export class ASTPostfixIfStatement extends AST {
 		ast.test = test;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.expression.toString()} if ${this.test.toString()}`;
+	}
 }
 
 export class ASTPrintStatement extends AST {
@@ -746,6 +938,10 @@ export class ASTPrintStatement extends AST {
 		const ast = new ASTPrintStatement();
 		ast.expressions = expressions;
 		return ast;
+	}
+
+	toString(): string {
+		return `print ${this.expressions.map((expression) => expression.toString()).join(', ')}`;
 	}
 }
 
@@ -762,6 +958,10 @@ export class ASTProgram extends AST {
 
 		return ast;
 	}
+
+	toString(): string {
+		return this.declarations.map((declaration) => declaration.toString()).join('\n');
+	}
 }
 
 export class ASTRangeExpression extends AST {
@@ -775,6 +975,10 @@ export class ASTRangeExpression extends AST {
 		ast.lower = lower;
 		ast.upper = upper;
 		return ast;
+	}
+
+	toString(): string {
+		return `${this.lower.toString()} .. ${this.upper.toString()}`;
 	}
 }
 
@@ -790,6 +994,10 @@ export class ASTRegularExpression extends AST {
 		ast.flags = flags;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.pattern}${this.flags.join('')}`;
+	}
 }
 
 export class ASTRestElement extends AST {
@@ -797,6 +1005,10 @@ export class ASTRestElement extends AST {
 	// factory function
 	static _(): ASTRestElement {
 		return new ASTRestElement();
+	}
+
+	toString(): string {
+		return '...';
 	}
 }
 
@@ -810,6 +1022,10 @@ export class ASTReturnStatement extends AST {
 		ast.expressions = expressions;
 		return ast;
 	}
+
+	toString(): string {
+		return `return ${this.expressions.map((expression) => expression.toString()).join(', ')}`;
+	}
 }
 
 export class ASTStringLiteral extends AST {
@@ -821,6 +1037,10 @@ export class ASTStringLiteral extends AST {
 		const ast = new ASTStringLiteral();
 		ast.value = value;
 		return ast;
+	}
+
+	toString(): string {
+		return `"${this.value}"`; // TODO capture original quote style
 	}
 }
 
@@ -834,6 +1054,10 @@ export class ASTTernaryAlternate<T extends AssignableASTs> extends AST {
 		ast.value = expression;
 		return ast;
 	}
+
+	toString(): string {
+		return this.value.toString();
+	}
 }
 
 export class ASTTernaryCondition extends AST {
@@ -846,6 +1070,10 @@ export class ASTTernaryCondition extends AST {
 		ast.expression = expression;
 		return ast;
 	}
+
+	toString(): string {
+		return this.expression.toString();
+	}
 }
 
 export class ASTTernaryConsequent<T extends AssignableASTs> extends AST {
@@ -857,6 +1085,10 @@ export class ASTTernaryConsequent<T extends AssignableASTs> extends AST {
 		const ast = new ASTTernaryConsequent<T>();
 		ast.value = expression;
 		return ast;
+	}
+
+	toString(): string {
+		return this.value.toString();
 	}
 }
 
@@ -882,6 +1114,10 @@ export class ASTTernaryExpression<C extends AssignableASTs, A extends Assignable
 		ast.alternate = alternate;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.test.toString()} ? ${this.consequent.toString()} : ${this.alternate.toString()}`;
+	}
 }
 
 export class ASTThisKeyword extends AST {
@@ -889,6 +1125,10 @@ export class ASTThisKeyword extends AST {
 	// factory function
 	static _(): ASTThisKeyword {
 		return new ASTThisKeyword();
+	}
+
+	toString(): string {
+		return 'this';
 	}
 }
 
@@ -902,6 +1142,10 @@ export class ASTTupleExpression extends AST {
 		ast.items = items;
 		return ast;
 	}
+
+	toString(): string {
+		return `<${this.items.map((item) => item.toString()).join(', ')}>`;
+	}
 }
 
 export class ASTTupleShape extends AST {
@@ -913,6 +1157,10 @@ export class ASTTupleShape extends AST {
 		const ast = new ASTTupleShape();
 		ast.possibleTypes = possibleTypes;
 		return ast;
+	}
+
+	toString(): string {
+		return `<${this.possibleTypes.map((types) => types.map((type) => type.toString()).join(' | ')).join(', ')}>`;
 	}
 }
 
@@ -935,6 +1183,10 @@ export class ASTTypeInstantiationExpression extends AST {
 		ast.typeArgs = typeArgs;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.base.toString()}<| ${this.typeArgs.map((type) => type.toString()).join(', ')} |>`;
+	}
 }
 
 export type primitiveAstType = 'bool' | 'path' | 'regex' | 'string';
@@ -947,6 +1199,10 @@ export class ASTTypePrimitive extends AST {
 		const ast = new ASTTypePrimitive();
 		ast.type = type;
 		return ast;
+	}
+
+	toString(): string {
+		return this.type;
 	}
 }
 export const ASTTypePrimitiveBool = new ASTTypePrimitive();
@@ -968,6 +1224,10 @@ export class ASTTypeNumber extends AST {
 		ast.size = size;
 		return ast;
 	}
+
+	toString(): string {
+		return `number<${this.size}>`; // these angle brackets have no special meaning
+	}
 }
 
 export const NumberSizesSignedIntASTs = [
@@ -988,9 +1248,14 @@ export const NumberSizesAllASTs = [...NumberSizesIntASTs, ...NumberSizesDecimalA
 
 export class ASTTypeRange extends AST {
 	kind = 'TypeRange';
+
 	// factory function
 	static _(): ASTTypeRange {
 		return new ASTTypeRange();
+	}
+
+	toString(): string {
+		return 'range';
 	}
 }
 
@@ -1026,16 +1291,22 @@ export class ASTTypeParameter extends AST {
 
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.type.toString()}${this.constraint ? ` : ${this.constraint.toString()}` : ''}${
+			this.defaultType ? ` = ${this.defaultType.toString()}` : ''
+		}`;
+	}
 }
 
-export class ASTUnaryExpression<T> extends AST {
+export class ASTUnaryExpression<T extends ExpressionASTs | boolean | number> extends AST {
 	kind = 'UnaryExpression';
 	before!: boolean;
 	operator!: string;
 	operand!: T;
 
 	// factory function
-	static _<T>({
+	static _<T extends ExpressionASTs | boolean | number>({
 		before,
 		operator,
 		operand,
@@ -1049,6 +1320,10 @@ export class ASTUnaryExpression<T> extends AST {
 		ast.operator = operator;
 		ast.operand = operand;
 		return ast;
+	}
+
+	toString(): string {
+		return `${this.before ? this.operator : ''}${this.operand.toString()}${this.before ? '' : this.operator}`;
 	}
 }
 
@@ -1101,6 +1376,20 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 		return ast;
 	}
+
+	toString(): string {
+		const joedocString = this.joeDoc ? `${this.joeDoc.toString()}\n` : '';
+		const modifiersString =
+			this.modifiers.length > 0 ? `${this.modifiers.map((m) => m.toString()).join(' ')} ` : '';
+		const mutableString = this.mutable ? 'const' : 'let';
+		const identifiersString = this.identifiersList.map((i) => i.toString()).join(', ');
+		const declaredTypesString =
+			this.declaredTypes.length > 0 ? `: ${this.declaredTypes.map((t) => t.toString()).join(', ')}` : '';
+		const initialValuesString =
+			this.initialValues.length > 0 ? ` = ${this.initialValues.map((i) => i.toString()).join(', ')}` : '';
+
+		return `${joedocString}${modifiersString}${mutableString} ${identifiersString}${declaredTypesString}${initialValuesString}`;
+	}
 }
 
 export class ASTWhenCase extends AST {
@@ -1121,6 +1410,10 @@ export class ASTWhenCase extends AST {
 		ast.consequent = consequent;
 		return ast;
 	}
+
+	toString(): string {
+		return `${this.values.map((v) => v.toString()).join(', ')} -> ${this.consequent.toString()}`;
+	}
 }
 
 export class ASTWhenExpression extends AST {
@@ -1135,11 +1428,19 @@ export class ASTWhenExpression extends AST {
 		ast.cases = cases;
 		return ast;
 	}
+
+	toString(): string {
+		return `when ${this.expression.toString()} {\n${this.cases.map((c) => c.toString()).join('\n')}\n}`;
+	}
 }
 
 // noop
 export class SkipAST extends AST {
 	kind = 'Skip';
+
+	toString(): string {
+		return '';
+	}
 }
 
 /**

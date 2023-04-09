@@ -1,0 +1,25 @@
+[
+  [
+    'Program',
+    [
+      [
+        'FunctionDeclaration',
+        [
+          [ 'Identifier', 'main' ],
+          [
+            'BlockStatement',
+            [
+              [
+                'PrintStatement',
+                [
+                  [ 'StringLiteral', 'Hello, World!' ]
+                ]
+              ],
+              [ 'SemicolonSeparator' ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+]

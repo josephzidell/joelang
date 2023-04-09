@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import _, { random } from 'lodash';
 import { Simplify } from 'type-fest';
 import { primitiveTypes } from '../lexer/types';
 import { regexFlags } from '../lexer/util';
@@ -146,7 +146,7 @@ export default class SemanticAnalyzer {
 		this.currentNode = cst;
 		this._parser = parser;
 
-		this.symbolTable = new SymbolTable();
+		this.symbolTable = new SymbolTable('global');
 	}
 
 	thisIsAnInlineAnalysis() {
@@ -638,7 +638,8 @@ export default class SemanticAnalyzer {
 	): Result<void> {
 		// whether we got types or not, call the assigner.
 		// Worst case, we could not infer possible types: ok :) 🤷 ¯\_(ツ)_/¯
-		assigner(this.inferPossibleASTTypesFromASTAssignable(valueAST, valueNode));
+		// TODO: This will change as the compiler is built out more
+		assigner(this.inferPossibleASTTypesFromASTAssignable(valueAST));
 
 		// either way, we're done
 		return ok(undefined);
@@ -679,7 +680,7 @@ export default class SemanticAnalyzer {
 	 * Attempts to infer possible ASTTypes from an ASTAssignable.
 	 * This is very forgiving, and only returns an error in extremely unlikely cases.
 	 */
-	private inferPossibleASTTypesFromASTAssignable(expr: AST, node: Node): ASTType[] {
+	private inferPossibleASTTypesFromASTAssignable(expr: AST): ASTType[] {
 		switch (expr.constructor) {
 			case ASTArrayExpression:
 				{
@@ -692,7 +693,6 @@ export default class SemanticAnalyzer {
 					// if we can infer the type of the child, we can infer the type of the array
 					return this.inferPossibleASTTypesFromASTAssignable(
 						(expr as ASTArrayExpression<ExpressionASTs>).items[0],
-						node,
 					).map((childType) => ASTArrayOf._(childType));
 				}
 				break;
@@ -786,10 +786,7 @@ export default class SemanticAnalyzer {
 			case ASTObjectExpression:
 				{
 					const propertiesShapes = (expr as ASTObjectExpression).properties.map((property) =>
-						ASTPropertyShape._(
-							property.key,
-							this.inferPossibleASTTypesFromASTAssignable(property.value, node),
-						),
+						ASTPropertyShape._(property.key, this.inferPossibleASTTypesFromASTAssignable(property.value)),
 					);
 
 					return [ASTObjectShape._(propertiesShapes)];
@@ -799,7 +796,7 @@ export default class SemanticAnalyzer {
 				return [ASTTypePrimitivePath];
 				break;
 			case ASTPostfixIfStatement:
-				return this.inferPossibleASTTypesFromASTAssignable((expr as ASTPostfixIfStatement).expression, node);
+				return this.inferPossibleASTTypesFromASTAssignable((expr as ASTPostfixIfStatement).expression);
 				break;
 			case ASTRangeExpression:
 				return [ASTTypeRange._()];
@@ -813,15 +810,8 @@ export default class SemanticAnalyzer {
 			case ASTTernaryExpression:
 				{
 					const ternaryExpr = expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>;
-
-					const typesOfConsequent = this.inferPossibleASTTypesFromASTAssignable(
-						ternaryExpr.consequent.value,
-						node,
-					);
-					const typesOfAlternate = this.inferPossibleASTTypesFromASTAssignable(
-						ternaryExpr.alternate.value,
-						node,
-					);
+					const typesOfConsequent = this.inferPossibleASTTypesFromASTAssignable(ternaryExpr.consequent.value);
+					const typesOfAlternate = this.inferPossibleASTTypesFromASTAssignable(ternaryExpr.alternate.value);
 
 					return _.intersectionBy(typesOfConsequent, typesOfAlternate, astUniqueness);
 				}
@@ -829,7 +819,7 @@ export default class SemanticAnalyzer {
 			case ASTTupleExpression:
 				{
 					const possibleShapes = (expr as ASTTupleExpression).items.map((item) =>
-						this.inferPossibleASTTypesFromASTAssignable(item, node),
+						this.inferPossibleASTTypesFromASTAssignable(item),
 					);
 
 					return [ASTTupleShape._(possibleShapes)];
@@ -1545,6 +1535,14 @@ export default class SemanticAnalyzer {
 	visitFunctionDeclaration(node: Node): Result<ASTFunctionDeclaration> {
 		const ast = new ASTFunctionDeclaration();
 
+		// add to symbol table
+		// start a new scope
+		// the scope name is either the function name, or a auto-generated name
+		// this auto-generated name could never collide with a user-defined name since it's not valid syntax
+		const scopeName = ast.name?.name ?? `.f_anon_${node.toString()}_${random(100_000, false)}`;
+		this.symbolTable.pushScope(scopeName);
+
+		// handle the children
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// the joeDoc
 			this.getChildHandlerForJoeDoc(ast),
@@ -1561,6 +1559,13 @@ export default class SemanticAnalyzer {
 					switch (result.outcome) {
 						case 'ok':
 							ast.name = result.value;
+
+							// define the function in the parent symbol table
+							this.symbolTable.define(ast.name.name, 'function', [], undefined, true);
+
+							// update the symbol table's scope name
+							this.symbolTable.setScopeName(ast.name.name);
+
 							return ok(undefined);
 							break;
 						case 'error':
@@ -1582,6 +1587,16 @@ export default class SemanticAnalyzer {
 					switch (visitResult.outcome) {
 						case 'ok':
 							ast.params = visitResult.value;
+
+							// add the parameters to the symbol table
+							ast.params.forEach((param) => {
+								this.symbolTable.define(
+									param.name.name,
+									'parameter',
+									[param.declaredType],
+									param.defaultValue,
+								);
+							});
 							return ok(undefined);
 							break;
 						case 'error':
@@ -1600,6 +1615,9 @@ export default class SemanticAnalyzer {
 					switch (visitResult.outcome) {
 						case 'ok':
 							ast.returnTypes = visitResult.value;
+
+							// add the return types to the symbol table
+							this.symbolTable.appendTypes(scopeName, ast.returnTypes);
 							return ok(undefined);
 							break;
 						case 'error':
@@ -1627,6 +1645,10 @@ export default class SemanticAnalyzer {
 				},
 			},
 		]);
+
+		// close the scope whether there was an error or not
+		this.symbolTable.popScope();
+
 		if (handlingResult.outcome === 'error') {
 			return handlingResult;
 		}
@@ -2265,27 +2287,37 @@ export default class SemanticAnalyzer {
 							ast.defaultValue = visitResult.value;
 
 							// now attempt to infer the type from the default value
+							if (typeof ast.declaredType === 'undefined') {
+								// ast.defaultValue is guaranteed to be defined at this point
+								this.assignInferredPossibleTypes(
+									ast.defaultValue,
+									child,
+									(possibleTypes: ASTType[]) => {
+										if (possibleTypes.length !== 1) {
+											return error(
+												new AnalysisError(
+													AnalysisErrorCode.TypeExpected,
+													'We could not determine the type of this parameter',
+													child,
+													this.getErrorContext(child, child.value?.length || 1),
+												),
+											);
+										}
 
-							// ast.defaultValue is guaranteed to be defined at this point
-							this.assignInferredPossibleTypes(ast.defaultValue, child, (possibleTypes: ASTType[]) => {
-								ast.inferredPossibleTypes = possibleTypes;
-							});
-
-							if (
-								typeof ast.declaredType !== 'undefined' &&
-								ast.inferredPossibleTypes.length > 0 &&
-								astUniqueness(ast.inferredPossibleTypes[0]) !== astUniqueness(ast.declaredType)
-							) {
-								return error(
-									new AnalysisError(
-										AnalysisErrorCode.TypeMismatch,
-										`We cannot assign a value of possible type [${ast.inferredPossibleTypes
-											.map(astUniqueness)
-											.join(', ')}] to a "${astUniqueness(ast.declaredType)}" parameter`,
-										child,
-										this.getErrorContext(child, child.value?.length || 1),
-									),
+										ast.declaredType = possibleTypes[0];
+									},
 								);
+							} else {
+								if (!this.isAssignable(ast.defaultValue, ast.declaredType)) {
+									return error(
+										new AnalysisError(
+											AnalysisErrorCode.TypeMismatch,
+											`[Compiler] The default value for this parameter is not assignable to the declared type "${ast.declaredType}"`,
+											child,
+											this.getErrorContext(child, child.value?.length || 1),
+										),
+									);
+								}
 							}
 
 							break;
@@ -2309,33 +2341,28 @@ export default class SemanticAnalyzer {
 
 		// if the identifier ends with a '?', check that either the declared type is bool
 		// or that the inferred type is bool
-		if (ast.name.name.at(-1) === '?') {
-			if (typeof ast.declaredType !== 'undefined' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
-				return error(
-					new AnalysisError(
-						AnalysisErrorCode.BoolTypeExpected,
-						`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
-						node,
-						this.getErrorContext(node, node.value?.length || 1),
-					),
-					this.ast,
-				);
-			} else if (!_.isEqual(ast.inferredPossibleTypes, ASTTypePrimitiveBool)) {
-				return error(
-					new AnalysisError(
-						AnalysisErrorCode.BoolTypeExpected,
-						`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
-						node,
-						this.getErrorContext(node, node.value?.length || 1),
-					),
-					this.ast,
-				);
-			}
+		if (ast.name.name.at(-1) === '?' && !_.isEqual(ast.declaredType, ASTTypePrimitiveBool)) {
+			return error(
+				new AnalysisError(
+					AnalysisErrorCode.BoolTypeExpected,
+					`bool type expected since the parameter name "${ast.name.name}" ends with a "?"`,
+					node,
+					this.getErrorContext(node, node.value?.length || 1),
+				),
+				this.ast,
+			);
 		}
 
 		this.astPointer = this.ast = ast;
 
 		return ok(ast);
+	}
+
+	/** function to check if a value may be assigned to a variable/parameter of a given type */
+	private isAssignable(value: AssignableASTs, type: ASTType): boolean {
+		const inferredTypes = this.inferPossibleASTTypesFromASTAssignable(value);
+
+		return inferredTypes.map(astUniqueness).includes(astUniqueness(type));
 	}
 
 	visitParametersList(node: Node): Result<ASTParameter[]> {
@@ -2484,6 +2511,7 @@ export default class SemanticAnalyzer {
 			NT.FunctionDeclaration,
 			NT.ImportDeclaration,
 			NT.InterfaceDeclaration,
+			NT.PrintStatement,
 			NT.SemicolonSeparator,
 			NT.VariableDeclaration,
 		];
@@ -3611,17 +3639,19 @@ export default class SemanticAnalyzer {
 
 							// ast.initialValues is guaranteed to be defined at this point
 							ast.initialValues.forEach((initialValue, index) => {
-								this.assignInferredPossibleTypes(initialValue, child, (possibleTypes: ASTType[]) => {
-									ast.inferredPossibleTypes[index] = possibleTypes;
-								});
+								// if the type was declared, then we don't need to infer it
+								if (typeof ast.declaredTypes[index] === 'undefined') {
+									this.assignInferredPossibleTypes(
+										initialValue,
+										child,
+										(possibleTypes: ASTType[]) => {
+											ast.inferredPossibleTypes[index] = possibleTypes;
+										},
+									);
+								} else {
+									ast.inferredPossibleTypes[index] = [];
+								}
 
-								// console.debug({
-								// 	inferredType: ast.inferredType,
-								// 	inferredConstructor: ast.inferredType.constructor,
-								// 	declaredType: ast.declaredType,
-								// 	declaredConstructor: ast.declaredType?.constructor,
-								// 	match: ast.inferredType.constructor !== ast.declaredType?.constructor,
-								// })
 								if (
 									typeof ast.declaredTypes[index] !== 'undefined' &&
 									typeof ast.inferredPossibleTypes[index] !== 'undefined' &&
@@ -3704,11 +3734,13 @@ export default class SemanticAnalyzer {
 			});
 		}
 
+		// add to symbol table
 		ast.identifiersList.forEach((identifier, index) => {
 			this.symbolTable.define(
 				identifier.name,
 				node.value as 'const' | 'let',
 				ast.declaredTypes[index] ? [ast.declaredTypes[index]] : ast.inferredPossibleTypes[index],
+				ast.initialValues[index],
 			);
 		});
 

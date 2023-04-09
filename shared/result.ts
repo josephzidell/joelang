@@ -1,21 +1,23 @@
 import { Maybe } from './maybe';
 
+type ResultOk<T> = {
+	outcome: 'ok';
+	value: T;
+};
+
+type ResultError<E extends Error, ED> = {
+	outcome: 'error';
+	error: E;
+	data?: ED;
+};
+
 /**
  * This is an adaptation of the Result enum in Joelang
  */
-export type Result<T, E extends Error = Error, ED = unknown> =
-	| {
-			outcome: 'ok';
-			value: T;
-	  }
-	| {
-			outcome: 'error';
-			error: E;
-			data?: ED;
-	  };
+export type Result<T, E extends Error = Error, ED = unknown> = ResultOk<T> | ResultError<E, ED>;
 
 /** Shortcut to create an ok Result */
-export function ok<T>(value: T): Result<T> {
+export function ok<T, E extends Error = Error, ED = unknown>(value: T): Result<T, E, ED> {
 	return { outcome: 'ok', value };
 }
 
@@ -30,6 +32,48 @@ export function mapResult<T, U>(result: Result<T>, fn: (value: T) => U): Result<
 	}
 
 	return result;
+}
+
+export function isOk<T>(result: Result<T>): result is ResultOk<T> {
+	return result.outcome === 'ok';
+}
+
+export function isError<T>(result: Result<T>): result is ResultError<Error, unknown> {
+	return result.outcome === 'error';
+}
+
+export function allOk<T>(results: Result<T>[]): results is ResultOk<T>[] {
+	return results.every((result) => result.outcome === 'ok');
+}
+
+export function anyIsError<T>(results: Result<T>[]): results is ResultError<Error, unknown>[] {
+	return results.some((result) => result.outcome === 'error');
+}
+
+/**
+ * Flattens an array of results into a single result, only 1 level deep.
+ *
+ * Note this is not recursive. Also note all the results must be the same type.
+ *
+ * @param results To flatten
+ * @returns A new Result, ok if all the results are ok, error if any of the results have an error
+ */
+export function flattenResults<T, E extends Error = Error, ED = unknown>(
+	results: Result<T, E, ED>[],
+): Result<T[], E, ED> {
+	if (allOk(results)) {
+		return ok(results.map((result) => result.value));
+	}
+
+	const errors = results.filter((result) => isError(result)).map((result) => (result as ResultError<E, ED>).error);
+
+	// TODO: this is a bit of a hack, but it's the best I can do for now
+	// This combines all the errors into a single error, recycling the first one
+	// since we need an instance of E, and I'm not sure how to create a new one
+	const firstError = errors[0];
+	firstError.message = `flatten: ${errors.map((error) => error.message).join(';')}`;
+
+	return error(firstError);
 }
 
 /**

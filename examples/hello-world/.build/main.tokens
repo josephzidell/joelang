@@ -1,0 +1,58 @@
+[
+	{
+		"type": "keyword",
+		"start": 0,
+		"end": 1,
+		"value": "f",
+		"line": 1,
+		"col": 1
+	},
+	{
+		"type": "identifier",
+		"start": 2,
+		"end": 6,
+		"value": "main",
+		"line": 1,
+		"col": 3
+	},
+	{
+		"type": "brace_open",
+		"start": 7,
+		"end": 8,
+		"value": "{",
+		"line": 1,
+		"col": 8
+	},
+	{
+		"type": "keyword",
+		"start": 10,
+		"end": 15,
+		"value": "print",
+		"line": 2,
+		"col": 2
+	},
+	{
+		"type": "string",
+		"start": 16,
+		"end": 31,
+		"value": "Hello, World!",
+		"line": 2,
+		"col": 8
+	},
+	{
+		"type": "semicolon",
+		"start": 31,
+		"end": 32,
+		"value": ";",
+		"line": 2,
+		"col": 23
+	},
+	{
+		"type": "brace_close",
+		"start": 33,
+		"end": 34,
+		"value": "}",
+		"line": 3,
+		"col": 1
+	}
+]
