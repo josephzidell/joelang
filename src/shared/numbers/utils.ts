@@ -1,5 +1,5 @@
-import { ASTTypeNumber } from '../../analyzer/asts';
-import { error, ok, Result } from '../result';
+import { ASTNumberLiteral, ASTTypeNumber, ASTUnaryExpression } from '../../analyzer/asts';
+import { Result, error, ok } from '../result';
 import { BitCount, NumberSize, numberSizeDetails } from './sizes';
 
 /**
@@ -101,3 +101,22 @@ export const filterASTTypeNumbersWithBitCountsLowerThan = (
 ): ASTTypeNumber[] => {
 	return asts.filter((ast) => numberSizeDetails[ast.size].bits >= bitCount);
 };
+
+export function getPossibleSizesFromNumberOrUnary(
+	expr: ASTNumberLiteral | ASTUnaryExpression<ASTNumberLiteral>,
+): NumberSize[] {
+	if (expr.constructor === ASTNumberLiteral) {
+		return expr.possibleSizes;
+	}
+
+	// if it's a unary expression, it could be a negative number
+	// so we can only infer the size if the number is a literal
+	if (expr.constructor === ASTUnaryExpression) {
+		const unaryExpr = expr as ASTUnaryExpression<ASTNumberLiteral>;
+		if (unaryExpr.operand.constructor === ASTNumberLiteral) {
+			return unaryExpr.operand.possibleSizes;
+		}
+	}
+
+	return [];
+}
