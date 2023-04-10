@@ -1,6 +1,6 @@
 import { Get } from 'type-fest';
-import { ASTProgram } from '../semanticAnalysis/asts';
-import { analyze } from '../semanticAnalysis/util';
+import { ASTProgram } from '../analyzer/asts';
+import { analyze } from '../analyzer/util';
 import { Result } from '../shared/result';
 import Parser from './parser';
 import { SParseTree } from './simplifier';

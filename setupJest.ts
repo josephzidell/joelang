@@ -1,9 +1,9 @@
 import { Get } from 'type-fest';
+import { AST, ASTProgram } from './src/analyzer/asts';
+import { SymbolTable } from './src/analyzer/symbolTable';
 import { Token, TokenType } from './src/lexer/types';
 import { SParseTree, simplifyTree } from './src/parser/simplifier';
 import { Node } from './src/parser/types';
-import { AST, ASTProgram } from './src/semanticAnalysis/asts';
-import { SymbolTable } from './src/semanticAnalysis/symbolTable';
 import { Result } from './src/shared/result';
 
 export interface CustomMatchers<R = unknown> {

@@ -1,5 +1,3 @@
-// write tests for semanticAnalyzer
-
 import { ASTNumberLiteral } from './asts';
 
 // Path: semanticAnalysis/semanticAnalyzer.ts

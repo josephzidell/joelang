@@ -1,4 +1,4 @@
-import { ASTTypeNumber } from '../../semanticAnalysis/asts';
+import { ASTTypeNumber } from '../../analyzer/asts';
 import { error, ok, Result } from '../result';
 import { BitCount, NumberSize, numberSizeDetails } from './sizes';
 

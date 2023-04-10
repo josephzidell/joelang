@@ -3,10 +3,10 @@
  */
 
 import util from 'util';
-import { NumberSize } from '../shared/numbers/sizes';
 import { patterns } from '../lexer/types';
-import { ok, Result } from '../shared/result';
+import { NumberSize } from '../shared/numbers/sizes';
 import { determinePossibleNumberSizes } from '../shared/numbers/utils';
+import { ok, Result } from '../shared/result';
 
 export interface ASTThatHasJoeDoc {
 	joeDoc: ASTJoeDoc | undefined;

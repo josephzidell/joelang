@@ -102,8 +102,8 @@ import {
 	WhenCaseValueASTs,
 } from './asts';
 import AnalysisError, { AnalysisErrorCode } from './error';
-import visitorMap from './visitorMap';
 import { SymbolTable } from './symbolTable';
+import visitorMap from './visitorMap';
 
 // reusable handler callback for child nodes if we want to skip them
 const skipThisChild = (_child: Node) => ok(undefined);

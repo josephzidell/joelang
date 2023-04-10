@@ -1,7 +1,6 @@
 /* eslint-disable no-useless-escape */
 import assert from 'node:assert/strict';
-import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
-import { primitiveTypes } from '../lexer/types';
+import '../../setupJest'; // for the types
 import {
 	ASTArrayExpression,
 	ASTArrayOf,
@@ -59,11 +58,12 @@ import {
 	ASTWhenExpression,
 	NumberSizesDecimalASTs,
 	NumberSizesIntASTs,
-} from '../semanticAnalysis/asts';
-import '../../setupJest'; // for the types
+} from '../analyzer/asts';
+import { analyze } from '../analyzer/util';
+import { primitiveTypes } from '../lexer/types';
+import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';
-import { analyze } from '../semanticAnalysis/util';
 
 const binaryMathOperatorsThatArePartOfAMemberExpression = ['+', '+=', '-', '-=', '*', '*='];
 const binaryMathOperatorsThatArePartOfAMemberListExpression = ['/', '/=', '%', '%='];

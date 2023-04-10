@@ -10,7 +10,7 @@ import {
 	ASTTypePrimitive,
 	ASTVariableDeclaration,
 	primitiveAstType,
-} from '../semanticAnalysis/asts';
+} from '../analyzer/asts';
 import { NumberSize } from '../shared/numbers/sizes';
 import { Result, error, flattenResults, ok } from '../shared/result';
 import CompilerError from './error';
