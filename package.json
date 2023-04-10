@@ -9,7 +9,7 @@
     "prettier": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "test": "jest --detectOpenHandles && npm run --silent test-integration",
-    "test-integration": "./joec examples/example1/main.joe -a"
+    "test-integration": "joec examples/example1/main.joe -a"
   },
   "repository": {
     "type": "git",
