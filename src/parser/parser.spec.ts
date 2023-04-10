@@ -60,7 +60,7 @@ import {
 	NumberSizesDecimalASTs,
 	NumberSizesIntASTs,
 } from '../semanticAnalysis/asts';
-import '../setupJest'; // for the types
+import '../../setupJest'; // for the types
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';
 import { analyze } from '../semanticAnalysis/util';
