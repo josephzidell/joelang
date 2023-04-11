@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { Maybe } from './maybe';
 
 type ResultOk<T> = {
@@ -46,6 +47,14 @@ export function allOk<T>(results: Result<T>[]): results is ResultOk<T>[] {
 	return results.every((result) => result.outcome === 'ok');
 }
 
+export function allMapOk<T, excludeKeys extends string | symbol>(results: {
+	[key in Exclude<keyof T, excludeKeys>]: Result<T[key]>;
+}): results is {
+	[key in Exclude<keyof T, excludeKeys>]: ResultOk<T[key]>;
+} {
+	return Object.values(results).every((result) => (result as Result<unknown>).outcome === 'ok');
+}
+
 export function anyIsError<T>(results: Result<T>[]): results is ResultError<Error, unknown>[] {
 	return results.some((result) => result.outcome === 'error');
 }
@@ -66,6 +75,34 @@ export function flattenResults<T, E extends Error = Error, ED = unknown>(
 	}
 
 	const errors = results.filter((result) => isError(result)).map((result) => (result as ResultError<E, ED>).error);
+
+	// TODO: this is a bit of a hack, but it's the best I can do for now
+	// This combines all the errors into a single error, recycling the first one
+	// since we need an instance of E, and I'm not sure how to create a new one
+	const firstError = errors[0];
+	firstError.message = `flatten: ${errors.map((error) => error.message).join(';')}`;
+
+	return error(firstError);
+}
+
+/**
+ * Flattens a record of results into a single result, only 1 level deep.
+ *
+ * Note this is not recursive. Also note all the errors must be the same type.
+ *
+ * @param map To flatten
+ * @returns A new Result, ok if all the results are ok, error if any of the results have an error
+ */
+export function flattenResultsMap<T, excludeKeys extends string | symbol, E extends Error = Error, ED = unknown>(map: {
+	[Tkey in Exclude<keyof T, excludeKeys>]: Result<T[Tkey], E, ED>;
+}): Result<{ [Tkey in keyof T]: T[Tkey] }, E, ED> {
+	if (allMapOk<T, excludeKeys>(map)) {
+		return ok(_.mapValues(map, (result) => result.value) as { [Tkey in keyof T]: T[Tkey] });
+	}
+
+	const errors = Object.values(map)
+		.filter((result) => isError(result as Result<unknown>))
+		.map((result) => (result as ResultError<E, ED>).error);
 
 	// TODO: this is a bit of a hack, but it's the best I can do for now
 	// This combines all the errors into a single error, recycling the first one

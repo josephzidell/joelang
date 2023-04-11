@@ -4,7 +4,7 @@ import ErrorContext from '../shared/errorContext';
 /**
  * Analysis error codes.
  */
-export enum AnalysisErrorCode {
+export enum Code {
 	MissingCST = 'S000',
 	MissingPreviousNode = 'S001',
 	MissingParentNode = 'S002',
@@ -58,7 +58,7 @@ export default class AnalysisError extends TypeError {
 	private node;
 	private context;
 
-	constructor(errorCode: AnalysisErrorCode, message: string, node: Node | undefined, context: ErrorContext) {
+	constructor(errorCode: Code, message: string, node: Node | undefined, context: ErrorContext) {
 		super(message);
 
 		this.errorCode = errorCode;
@@ -66,7 +66,7 @@ export default class AnalysisError extends TypeError {
 		this.context = context;
 	}
 
-	getErrorCode(): AnalysisErrorCode {
+	getErrorCode(): Code {
 		return this.errorCode;
 	}
 
