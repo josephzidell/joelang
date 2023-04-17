@@ -951,7 +951,7 @@ export class ASTProgram extends AST {
 	declarations: AST[] = [];
 
 	// factory function
-	static _({ declarations }: { declarations: AST[] }): ASTProgram {
+	static _(declarations: AST[]): ASTProgram {
 		const ast = new ASTProgram();
 
 		ast.declarations = declarations;

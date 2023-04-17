@@ -68,7 +68,12 @@ export default class LlvmIrConverter {
 				return this.convertVariableDeclaration(node as ASTVariableDeclaration);
 		}
 
-		return error(new CompilerError(`convertNode: Unknown AST node "${node.constructor.name}"`, this.filename));
+		return error(
+			new CompilerError(
+				`convertNode: Don't know how to convert AST node "${node.constructor.name}" to LLVM`,
+				this.filename,
+			),
+		);
 	}
 
 	// convert multiple AST nodes to LLVM IR
