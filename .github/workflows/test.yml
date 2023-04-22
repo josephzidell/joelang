@@ -54,7 +54,6 @@ jobs:
         Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
         $LLVM_CMAKE_DIR = "$pwd\\LLVM-${{ env.LLVM_VERSION }}-win64\\lib\\cmake\\llvm"
         echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
-        npm config set cmake_LLVM_DIR $LLVM_CMAKE_DIR
 
     # - name: Install LLVM and Clang
     #   uses: KyleMayes/install-llvm-action@v1.8.0
