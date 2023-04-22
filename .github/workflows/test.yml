@@ -84,6 +84,7 @@ jobs:
       run: |
         npm run build
         pkg -t ${{ env.PKG_TARGET }} --output "${{ env.JOEC_COMMAND }}" _build/compile.js
+        chmod +x ${{ env.JOEC_COMMAND }}
 
     - name: Run tests
       run: npx jest -- e2e.spec.js

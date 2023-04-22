@@ -19,7 +19,7 @@ it('Test case: 1', () => {
 
 // path to executable
 // check if an env var is set
-const joecCommand = process.env.JOEC_COMMAND ?? 'node _build/compile.js';
+const joecCommand = process.env.JOEC_COMMAND ? `./${process.env.JOEC_COMMAND}` : 'node _build/compile.js';
 
 testDirectories.forEach((testDir) => {
 	const testName = `Test case: ${testDir.split('/').pop()}`;
