@@ -42,7 +42,7 @@ jobs:
       run: |
         sudo wget https://apt.llvm.org/llvm.sh
         sudo chmod +x llvm.sh
-        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
+        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }} all
         sudo apt-get install ninja-build
     - name: Install LLVM on Windows
       if: startsWith(matrix.os, 'windows')
