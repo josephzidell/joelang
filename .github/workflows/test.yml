@@ -52,18 +52,12 @@ jobs:
         $LLVM_PREBUILT_FILE = "llvm-${{ env.LLVM_VERSION }}-${{ matrix.os }}.zip"
         curl -sLO https://github.com/ApsarasX/llvm-windows/releases/download/llvmorg-${{ env.LLVM_VERSION }}/$LLVM_PREBUILT_FILE
         Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
-        echo "Dir $pwd\\LLVM-${{ env.LLVM_VERSION }}-win64\\lib\\cmake"
-        dir "$pwd\\LLVM-${{ env.LLVM_VERSION }}-win64\\lib\\cmake"
-        echo "Dir $pwd\\LLVM-${{ env.LLVM_VERSION }}-win64\\lib\\cmake\\llvm"
-        dir "$pwd\\LLVM-${{ env.LLVM_VERSION }}-win64\\lib\\cmake\\llvm"
-        $LLVM_CMAKE_DIR = "$pwd\\LLVM-${{ env.LLVM_VERSION }}-win64\\lib\\cmake\\llvm"
-        echo "$LLVM_CMAKE_DIR" >> "$LLVM_DIR"
-        echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
-
-    # - name: Install LLVM and Clang
-    #   uses: KyleMayes/install-llvm-action@v1.8.0
-    #   with:
-    #     version: "15"
+        echo "Dir $pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake"
+        dir "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake"
+        echo "Dir $pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
+        dir "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
+        echo "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm\" >> "$LLVM_DIR"
+        echo "$pwd\LLVM-${{ env.LLVM_VERSION_MAJOR }}\bin" >> $GITHUB_PATH
 
     # - name: Install LLVM and GCC (Ubuntu)
     #   if: runner.os == 'Linux'
