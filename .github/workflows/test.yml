@@ -36,7 +36,9 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         brew update
+        brew upgrade
         brew install llvm@${{ env.LLVM_VERSION_MAJOR }}
+        echo "/usr/local/opt/llvm@${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
     - name: Install LLVM on Ubuntu
       if: startsWith(matrix.os, 'ubuntu')
       run: |
