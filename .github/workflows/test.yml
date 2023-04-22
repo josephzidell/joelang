@@ -54,7 +54,7 @@ jobs:
         Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
         echo "Dir $pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
         dir "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
-        echo "LLVM_DIR=$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm\" >> "$GITHUB_ENV"
+        echo "LLVM_DIR=$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm" >> "$GITHUB_ENV"
         echo "$pwd\LLVM-${{ env.LLVM_VERSION_MAJOR }}\bin" >> $GITHUB_PATH
 
     # - name: Install LLVM and GCC (Ubuntu)
