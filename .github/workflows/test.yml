@@ -26,27 +26,32 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Install LLVM and GCC (Ubuntu)
-      if: runner.os == 'Linux'
-      run: |
-        wget https://apt.llvm.org/llvm.sh
-        sudo chmod +x llvm.sh
-        sudo ./llvm.sh 15 all
-        sudo apt-get update
-        # sudo apt-get install -y llvm clang gcc
-        sudo apt-get install -y cmake zlib1g-dev
+    - name: Install LLVM and Clang
+      uses: KyleMayes/install-llvm-action@v1.8.0
 
-    - name: Install LLVM and GCC (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install cmake llvm@15
-        brew install gcc
+    # - name: Install LLVM and GCC (Ubuntu)
+    #   if: runner.os == 'Linux'
+    #   run: |
+    #     wget https://apt.llvm.org/llvm.sh
+    #     sudo chmod +x llvm.sh
+    #     sudo ./llvm.sh 15 all
+    #     sudo apt-get update
+    #     # sudo apt-get install -y llvm clang gcc
+    #     sudo apt-get install -y cmake zlib1g-dev
 
-    - name: Install LLVM and GCC (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        choco install llvm --version=15.0.7
-        choco install mingw
+    # - name: Install LLVM and GCC (macOS)
+    #   if: runner.os == 'macOS'
+    #   run: |
+    #     brew install cmake llvm@15
+    #     brew install gcc
+
+    # - name: Install LLVM and GCC (Windows)
+    #   if: runner.os == 'Windows'
+    #   run: |
+    #     # choco install llvm --version=15.0.7
+    #     # choco install mingw
+    #     llvm-config --cmakedir
+    #     npm config set cmake_LLVM_DIR C:\Users\dev\llvm-13.0.1.src\build\lib\cmake\llvm
 
     - name: Install dependencies
       run: npm ci
