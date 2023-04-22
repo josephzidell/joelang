@@ -34,46 +34,13 @@ jobs:
         node-version: ${{ matrix.node }}
         check-latest: true
 
-    - name: Install LLVM on macOS
-      if: startsWith(matrix.os, 'macos')
-      run: |
-        brew update
-        brew upgrade
-        brew install llvm@${{ env.LLVM_VERSION_MAJOR }}
-        echo "/usr/local/opt/llvm@${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
-        echo "PKG_TARGET=node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
-        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
-
-    - name: Install LLVM on Ubuntu
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        sudo wget https://apt.llvm.org/llvm.sh
-        sudo chmod +x llvm.sh
-        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
-        echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
-        echo "PKG_TARGET=node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
-        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
-
-    - name: Install LLVM on Windows
-      if: startsWith(matrix.os, 'windows')
-      run: |
-        $LLVM_PREBUILT_FILE = "llvm-${{ env.LLVM_VERSION }}-${{ matrix.os }}.zip"
-        curl -sLO https://github.com/ApsarasX/llvm-windows/releases/download/llvmorg-${{ env.LLVM_VERSION }}/$LLVM_PREBUILT_FILE
-        Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
-        echo "Dir $pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
-        dir "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
-        echo "LLVM_DIR='$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake'" >> "$GITHUB_ENV"
-        echo "$pwd\LLVM-${{ env.LLVM_VERSION_MAJOR }}\bin" >> $GITHUB_PATH
-        echo "PKG_TARGET=node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
-        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
-
-    # - name: Install LLVM and GCC (Windows)
-    #   if: runner.os == 'Windows'
-    #   run: |
-    #     # choco install llvm --version=15.0.7
-    #     # choco install mingw
-    #     llvm-config --cmakedir
-    #     npm config set cmake_LLVM_DIR C:\Users\dev\llvm-13.0.1.src\build\lib\cmake\llvm
+    - name: Install LLVM
+      uses: ./github-actions/install-llvm
+      with:
+        llvm-version: ${{ env.LLVM_VERSION }}
+        llvm-version-major: ${{ env.LLVM_VERSION_MAJOR }}
+        os: ${{ matrix.os }}
+        node-version: ${{ matrix.node }}
 
     - name: Install dependencies
       run: |

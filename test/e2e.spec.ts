@@ -26,7 +26,6 @@ testDirectories.forEach((testDir) => {
 
 	it(testName, () => {
 		const command = `${joecCommand} ${join(testDir, 'main.joe')}`;
-		console.debug({ command });
 
 		// Compile and run the test program and capture its output
 		const actualOutput = execSync(command).toString();

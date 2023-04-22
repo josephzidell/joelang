@@ -1,0 +1,50 @@
+name: Install LLVM
+description: A reusable action to install LLVM
+inputs:
+  llvm-version:
+    description: The LLVM version to install
+    required: true
+  llvm-version-major:
+    description: The LLVM major version to install
+    required: true
+  os:
+    description: The OS to install LLVM on
+    required: true
+  node-version:
+    description: The Node.js version to install
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install LLVM on Ubuntu
+      if: startsWith(inputs.os, 'macos')
+      run: |
+        brew update
+        brew upgrade
+        brew install llvm@${{ inputs.llvm-version-major }}
+        echo "/usr/local/opt/llvm@${{ inputs.llvm-version-major }}/bin" >> $GITHUB_PATH
+        echo "PKG_TARGET=node${{ inputs.node-version }}-macos-x64" >> "$GITHUB_ENV"
+        echo "JOEC_COMMAND=joec-node${{ inputs.node-version }}-macos-x64" >> "$GITHUB_ENV"
+
+    - name: Install LLVM on Ubuntu
+      if: startsWith(inputs.os, 'ubuntu')
+      run: |
+        sudo wget https://apt.llvm.org/llvm.sh
+        sudo chmod +x llvm.sh
+        sudo ./llvm.sh ${{ inputs.llvm-version-major }}
+        echo "/usr/lib/llvm-${{ inputs.llvm-version-major }}/bin" >> $GITHUB_PATH
+        echo "PKG_TARGET=node${{ inputs.node-version }}-linux-x64" >> "$GITHUB_ENV"
+        echo "JOEC_COMMAND=joec-node${{ inputs.node-version }}-linux-x64" >> "$GITHUB_ENV"
+
+    - name: Install LLVM on Windows
+      if: startsWith(inputs.os, 'windows')
+      run: |
+        $LLVM_PREBUILT_FILE = "llvm-${{ inputs.llvm-version }}-${{ inputs.os }}.zip"
+        curl -sLO https://github.com/ApsarasX/llvm-windows/releases/download/llvmorg-${{ inputs.llvm-version }}/$LLVM_PREBUILT_FILE
+        Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
+        echo "Dir $pwd\LLVM-${{ inputs.llvm-version }}-win64\lib\cmake\llvm"
+        dir "$pwd\LLVM-${{ inputs.llvm-version }}-win64\lib\cmake\llvm"
+        echo "LLVM_DIR='$pwd\LLVM-${{ inputs.llvm-version }}-win64\lib\cmake'" >> "$GITHUB_ENV"
+        echo "$pwd\LLVM-${{ inputs.llvm-version-major }}\bin" >> $GITHUB_PATH
+        echo "PKG_TARGET=node${{ inputs.node-version }}-win-x64" >> "$GITHUB_ENV"
+        echo "JOEC_COMMAND=joec-node${{ inputs.node-version }}-win-x64" >> "$GITHUB_ENV"
