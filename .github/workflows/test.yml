@@ -37,14 +37,13 @@ jobs:
       run: |
         brew update
         brew install llvm@${{ env.LLVM_VERSION_MAJOR }} ninja
-    - name: Install LLVM and Ninja on Ubuntu
+    - name: Install LLVM on Ubuntu
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo wget https://apt.llvm.org/llvm.sh
         sudo chmod +x llvm.sh
-        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }} all
+        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
         echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
-        sudo apt-get install ninja-build
     - name: Install LLVM on Windows
       if: startsWith(matrix.os, 'windows')
       run: |
