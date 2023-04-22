@@ -3,13 +3,17 @@
   "version": "0.0.0",
   "description": "A programming lang that aims to be simple to read",
   "scripts": {
-    "dev": "tsc -w &",
+    "build": "tsc",
+	"dev": "tsc -w &",
     "lint": "eslint --ext .ts .",
     "lint-fix": "eslint --ext .ts . --fix",
     "prettier": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "test": "jest --detectOpenHandles && npm run --silent test-integration",
     "test-integration": "joec examples/example1/main.joe -a"
+  },
+  "pkg": {
+	"scripts": "_build/**/*.js"
   },
   "repository": {
     "type": "git",
