@@ -29,9 +29,9 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         sudo chmod +x llvm.sh
         sudo ./llvm.sh 14
-		sudo apt-get update
+        sudo apt-get update
         # sudo apt-get install -y llvm clang gcc
-		sudo apt-get install -y cmake zlib1g-dev
+        sudo apt-get install -y cmake zlib1g-dev
 
     - name: Install LLVM and GCC (macOS)
       if: runner.os == 'macOS'
