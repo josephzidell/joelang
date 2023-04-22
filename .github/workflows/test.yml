@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -26,13 +26,17 @@ jobs:
     - name: Install LLVM and GCC (Ubuntu)
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get update
-        sudo apt-get install -y llvm clang gcc
+        wget https://apt.llvm.org/llvm.sh
+        sudo chmod +x llvm.sh
+        sudo ./llvm.sh 14
+		sudo apt-get update
+        # sudo apt-get install -y llvm clang gcc
+		sudo apt-get install -y cmake zlib1g-dev
 
     - name: Install LLVM and GCC (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install llvm
+        brew install cmake llvm@14
         brew install gcc
 
     - name: Install LLVM and GCC (Windows)
