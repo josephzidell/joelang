@@ -18,10 +18,10 @@ jobs:
     strategy:
       matrix:
         os:
-        # - ubuntu-latest
-        - windows-2022
+        - ubuntu-22.04
+        # - windows-2022
         # - macOS-latest
-        node: [18]
+        node: [14, 16, 18]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
