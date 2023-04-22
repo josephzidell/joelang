@@ -34,7 +34,7 @@ jobs:
         node-version: ${{ matrix.node }}
 
     - name: Install LLVM
-      uses: ./.github/actions/install-llvm
+      uses: josephzidell/joelang/.github/workflows/install-llvm.yml
       with:
         llvm-version: ${{ env.LLVM_VERSION }}
         llvm-version-major: ${{ env.LLVM_VERSION_MAJOR }}

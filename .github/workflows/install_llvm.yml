@@ -1,21 +1,27 @@
-name: Install LLVM
-description: A reusable action to install LLVM
-inputs:
-  llvm-version:
-    description: The LLVM version to install
-    required: true
-  llvm-version-major:
-    description: The LLVM major version to install
-    required: true
-  os:
-    description: The OS to install LLVM on
-    required: true
-  node-version:
-    description: The Node.js version to install
-    required: true
-runs:
-  using: composite
-  steps:
+on:
+  workflow_call:
+    inputs:
+      llvm-version:
+        type: string
+        description: The LLVM version to install
+        required: true
+      llvm-version-major:
+        type: number
+        description: The LLVM major version to install
+        required: true
+      os:
+        type: string
+        description: The OS to install LLVM on
+        required: true
+      node-version:
+        type: number
+        description: The Node.js version to install
+        required: true
+
+jobs:
+  install_llvm_job:
+    runs-on: ${{ inputs.os }}
+    steps:
     - name: Install LLVM on Ubuntu
       if: startsWith(inputs.os, 'macos')
       run: |
