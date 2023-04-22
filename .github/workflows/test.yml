@@ -11,15 +11,17 @@ on:
 env:
   LLVM_VERSION: 14.0.6
   LLVM_VERSION_MAJOR: 14
+  PKG_TARGET: null
+  JOEC_COMMAND: node _build/compile.js
 
 jobs:
   test:
     strategy:
       matrix:
         os:
-        # - ubuntu-22.04
-        - windows-2022
-        # - macos-12
+        - ubuntu-22.04
+        - macos-12
+        # - windows-2022
         node: [18]
     runs-on: ${{ matrix.os }}
     steps:
@@ -39,6 +41,9 @@ jobs:
         brew upgrade
         brew install llvm@${{ env.LLVM_VERSION_MAJOR }}
         echo "/usr/local/opt/llvm@${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
+        echo "PKG_TARGET=node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
+        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
+
     - name: Install LLVM on Ubuntu
       if: startsWith(matrix.os, 'ubuntu')
       run: |
@@ -46,6 +51,9 @@ jobs:
         sudo chmod +x llvm.sh
         sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
         echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
+        echo "PKG_TARGET=node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
+        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
+
     - name: Install LLVM on Windows
       if: startsWith(matrix.os, 'windows')
       run: |
@@ -54,24 +62,10 @@ jobs:
         Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
         echo "Dir $pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
         dir "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
-        echo "LLVM_DIR=$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm" >> "$GITHUB_ENV"
+        echo "LLVM_DIR='$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake'" >> "$GITHUB_ENV"
         echo "$pwd\LLVM-${{ env.LLVM_VERSION_MAJOR }}\bin" >> $GITHUB_PATH
-
-    # - name: Install LLVM and GCC (Ubuntu)
-    #   if: runner.os == 'Linux'
-    #   run: |
-    #     wget https://apt.llvm.org/llvm.sh
-    #     sudo chmod +x llvm.sh
-    #     sudo ./llvm.sh 15 all
-    #     sudo apt-get update
-    #     # sudo apt-get install -y llvm clang gcc
-    #     sudo apt-get install -y cmake zlib1g-dev
-
-    # - name: Install LLVM and GCC (macOS)
-    #   if: runner.os == 'macOS'
-    #   run: |
-    #     brew install cmake llvm@15
-    #     brew install gcc
+        echo "PKG_TARGET=node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
+        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
 
     # - name: Install LLVM and GCC (Windows)
     #   if: runner.os == 'Windows'
@@ -82,9 +76,14 @@ jobs:
     #     npm config set cmake_LLVM_DIR C:\Users\dev\llvm-13.0.1.src\build\lib\cmake\llvm
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install
+        npm install -g pkg
 
-    - name: Build project and run tests
+    - name: Build project and executable
       run: |
         npm run build
-        npx jest -- e2e.spec.js
+        pkg -t ${{ env.PKG_TARGET }} --output "${{ env.JOEC_COMMAND }}" _build/compile.js
+
+    - name: Run tests
+      run: npx jest -- e2e.spec.js

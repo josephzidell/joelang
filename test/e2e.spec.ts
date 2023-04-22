@@ -14,15 +14,22 @@ function getSubdirectories(dirPath: string): string[] {
 const testDirectories = getSubdirectories(join(__dirname, '..', '..', 'test'));
 
 it('Test case: 1', () => {
-	expect(testDirectories.length).toEqual(1);
+	expect(testDirectories.length).toBeGreaterThanOrEqual(1);
 });
+
+// path to executable
+// check if an env var is set
+const joecCommand = process.env.JOEC_COMMAND ?? 'node _build/compile.js';
 
 testDirectories.forEach((testDir) => {
 	const testName = `Test case: ${testDir.split('/').pop()}`;
 
 	it(testName, () => {
+		const command = `${joecCommand} ${join(testDir, 'main.joe')}`;
+		console.debug({ command });
+
 		// Compile and run the test program and capture its output
-		const actualOutput = execSync(`node _build/compile.js ${join(testDir, 'main.joe')}`).toString();
+		const actualOutput = execSync(command).toString();
 
 		// Read the expected output from a file
 		const expectedOutput = readFileSync(join(testDir, 'expected.out'), 'utf-8');
