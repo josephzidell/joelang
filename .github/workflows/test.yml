@@ -3,10 +3,14 @@ name: Test Joelang Compiler
 on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
     branches:
-      - main
+      - '**'
+
+env:
+  LLVM_VERSION: 15.0.7
+  LLVM_VERSION_MAJOR: 15
 
 jobs:
   test:
@@ -15,21 +19,45 @@ jobs:
       matrix:
         os:
         # - ubuntu-latest
-        - windows-latest
+        - windows-2022
         # - macOS-latest
+        node: [18]
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
-        node-version: '18'
+        node-version: ${{ matrix.node }}
+        check-latest: true
 
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v1.8.0
-      with:
-        version: "15"
+    - name: Install LLVM and Ninja on macOS
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        brew update
+        brew install llvm@${{ env.LLVM_VERSION_MAJOR }} ninja
+    - name: Install LLVM and Ninja on Ubuntu
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo wget https://apt.llvm.org/llvm.sh
+        sudo chmod +x llvm.sh
+        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
+        sudo apt-get install ninja-build
+    - name: Install LLVM on Windows
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        $LLVM_VERSION = "${{ env.LLVM_VERSION }}"
+        $LLVM_PREBUILT_FILE = "llvm-$LLVM_VERSION-${{ matrix.os }}.zip"
+        curl -sLO https://github.com/ApsarasX/llvm-windows/releases/download/llvmorg-$LLVM_VERSION/$LLVM_PREBUILT_FILE
+        Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
+        $LLVM_CMAKE_DIR = "$pwd\\LLVM-$LLVM_VERSION-win64\\lib\\cmake\\llvm"
+        npm config set cmake_LLVM_DIR $LLVM_CMAKE_DIR
+
+    # - name: Install LLVM and Clang
+    #   uses: KyleMayes/install-llvm-action@v1.8.0
+    #   with:
+    #     version: "15"
 
     # - name: Install LLVM and GCC (Ubuntu)
     #   if: runner.os == 'Linux'
@@ -56,12 +84,9 @@ jobs:
     #     npm config set cmake_LLVM_DIR C:\Users\dev\llvm-13.0.1.src\build\lib\cmake\llvm
 
     - name: Install dependencies
-      run: npm ci
+      run: npm install --ignore-scripts
 
-    - name: Build project
-      run: npm run build
-
-    - name: Test executable
+    - name: Build project and run tests
       run: |
-        # Your test commands go here, for example:
+        npm run build
         npx jest -- e2e.spec.js
