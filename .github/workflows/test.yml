@@ -54,4 +54,4 @@ jobs:
     - name: Test executable
       run: |
         # Your test commands go here, for example:
-        jest -- e2e.spec.js
+        npx jest -- e2e.spec.js
