@@ -42,7 +42,7 @@ jobs:
     - name: Install LLVM and GCC (Windows)
       if: runner.os == 'Windows'
       run: |
-        choco install llvm
+        choco install llvm --version=14.0.6
         choco install mingw
 
     - name: Install dependencies
