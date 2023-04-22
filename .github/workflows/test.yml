@@ -84,7 +84,7 @@ jobs:
     #     npm config set cmake_LLVM_DIR C:\Users\dev\llvm-13.0.1.src\build\lib\cmake\llvm
 
     - name: Install dependencies
-      run: npm install --ignore-scripts
+      run: npm install
 
     - name: Build project and run tests
       run: |
