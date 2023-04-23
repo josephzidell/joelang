@@ -83,43 +83,14 @@ jobs:
         pkg -t node${{ matrix.node }}-macos-x64 --output "joec-node${{ matrix.node }}-macos-x64" _build/compile.js && chmod +x joec-node${{ matrix.node }}-macos-x64
 
     # Create the release
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v3
+    - name: Release
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
         draft: false
-        prerelease: false
-
-    - name: Upload Linux executable
-      uses: actions/upload-release-asset@v3
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./
-        asset_name: joec-node${{ matrix.node }}-linux-x64
-        asset_content_type: application/octet-stream
-
-    - name: Upload macOS executable
-      uses: actions/upload-release-asset@v3
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./
-        asset_name: joec-node${{ matrix.node }}-macos-x64
-        asset_content_type: application/octet-stream
-
-    # - name: Upload Windows executable
-    #   uses: actions/upload-release-asset@v3
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-    #     asset_path: ./
-    #     asset_name: joelang-windows.exe
-    #     asset_content_type: application/octet-stream
+        prerelease: true
+        files: |
+          joec-node${{ matrix.node }}-linux-x64
+          joec-node${{ matrix.node }}-macos-x64
+        name: Release ${{ github.ref }}
