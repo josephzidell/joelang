@@ -10,7 +10,7 @@ env:
   LLVM_VERSION_MAJOR: 14
 
 jobs:
-  build_and_release:
+  build:
     strategy:
       matrix:
         os:
@@ -82,6 +82,10 @@ jobs:
         pkg -t node${{ matrix.node }}-linux-x64 --output "joec-node${{ matrix.node }}-linux-x64" _build/compile.js && chmod +x joec-node${{ matrix.node }}-linux-x64
         pkg -t node${{ matrix.node }}-macos-x64 --output "joec-node${{ matrix.node }}-macos-x64" _build/compile.js && chmod +x joec-node${{ matrix.node }}-macos-x64
 
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
     # Create the release
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -90,7 +94,5 @@ jobs:
       with:
         draft: false
         prerelease: true
-        files: |
-          joec-node${{ matrix.node }}-linux-x64
-          joec-node${{ matrix.node }}-macos-x64
+        files: joec-node*-*-*
         name: Release ${{ github.ref }}
