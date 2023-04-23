@@ -8,6 +8,8 @@ on:
 env:
   LLVM_VERSION: 14.0.6
   LLVM_VERSION_MAJOR: 14
+  PKG_TARGET: null
+  EXECUTABLE: null
 
 jobs:
   build:
@@ -41,7 +43,7 @@ jobs:
         sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
         echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
         echo "PKG_TARGET=node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
-        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
+        echo "EXECUTABLE=joelang-${{ github.ref_name }}-node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
 
     - name: Install LLVM on macOS
       if: startsWith(matrix.os, 'macos')
@@ -51,7 +53,7 @@ jobs:
         brew install llvm@${{ env.LLVM_VERSION_MAJOR }}
         echo "/usr/local/opt/llvm@${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
         echo "PKG_TARGET=node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
-        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
+        echo "EXECUTABLE=joelang-${{ github.ref_name }}-node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
 
     - name: Install LLVM on Windows
       if: startsWith(matrix.os, 'windows')
@@ -64,7 +66,7 @@ jobs:
         echo "LLVM_DIR='$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake'" >> "$GITHUB_ENV"
         echo "$pwd\LLVM-${{ env.LLVM_VERSION_MAJOR }}\bin" >> $GITHUB_PATH
         echo "PKG_TARGET=node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
-        echo "JOEC_COMMAND=joec-node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
+        echo "EXECUTABLE=joelang-${{ github.ref_name }}-${{ github.ref_name }}-node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
 
     # Install all dependencies
     - name: Install dependencies
@@ -79,8 +81,13 @@ jobs:
     # Build executables for different platforms and archs
     - name: Build executables
       run: |
-        pkg -t node${{ matrix.node }}-linux-x64 --output "joec-node${{ matrix.node }}-linux-x64" _build/compile.js && chmod +x joec-node${{ matrix.node }}-linux-x64
-        pkg -t node${{ matrix.node }}-macos-x64 --output "joec-node${{ matrix.node }}-macos-x64" _build/compile.js && chmod +x joec-node${{ matrix.node }}-macos-x64
+        pkg -t ${{ env.PKG_TARGET }} --output "${{ env.EXECUTABLE }}" _build/compile.js && chmod +x ${{ env.EXECUTABLE }}
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: joelang-executable node${{ matrix.node }} ${{ matrix.os }}
+        path: ${{ env.EXECUTABLE }}
+        if-no-files-found: error
 
   release:
     needs: build
@@ -88,6 +95,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+    # Download the artifacts
+    - uses: actions/download-artifact@v3
+
     # Create the release
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -96,5 +107,5 @@ jobs:
       with:
         draft: false
         prerelease: true
-        files: joec-node*-*-*
-        name: Release ${{ github.ref }}
+        files: joelang-${{ github.ref_name }}-node*-*-*
+        name: Release ${{ github.ref_name }}

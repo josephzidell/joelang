@@ -12,3 +12,7 @@ quote_type = single
 [*.parse-tree]
 indent_size = 2
 indent_style = space
+
+[*.yml]
+indent_size = 2
+indent_style = space
