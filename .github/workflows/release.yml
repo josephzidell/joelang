@@ -83,6 +83,8 @@ jobs:
         pkg -t node${{ matrix.node }}-macos-x64 --output "joec-node${{ matrix.node }}-macos-x64" _build/compile.js && chmod +x joec-node${{ matrix.node }}-macos-x64
 
   release:
+    needs: build
+
     runs-on: ubuntu-latest
 
     steps:
