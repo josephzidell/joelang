@@ -85,7 +85,7 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-        name: joelang-executable node${{ matrix.node }} ${{ matrix.os }}
+        name: joelang-artifact-${{ github.ref_name }}-node${{ matrix.node }}-${{ matrix.os }}
         path: ${{ env.EXECUTABLE }}
         if-no-files-found: error
 
@@ -107,5 +107,5 @@ jobs:
       with:
         draft: false
         prerelease: true
-        files: joelang-${{ github.ref_name }}-node*-*-*
+        files: joelang-artifact-${{ github.ref_name }}-node*-*/joelang-${{ github.ref_name }}-node*-*-*
         name: Release ${{ github.ref_name }}
