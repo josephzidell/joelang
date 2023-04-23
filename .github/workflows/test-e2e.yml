@@ -1,4 +1,4 @@
-name: Test Joelang Compiler
+name: E2E Tests
 
 on:
   push:
