@@ -1,3 +1,13 @@
 #!/usr/bin/env node
 
+// If run as an NPM script change working directory to current directory of calling
+// process. This allows developers to do `npm run joec ...` anywhere in the source
+// tree.
+(() => {
+	const process = require('node:process');
+	if (process.env.INIT_CWD) {
+		process.chdir(process.env.INIT_CWD);
+	}
+})();
+
 require(require('node:path').resolve(__dirname, '..', '_build', 'compile.js'));
