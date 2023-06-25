@@ -35,38 +35,23 @@ jobs:
       with:
         node-version: ${{ matrix.node }}
 
-    - name: Install LLVM on Linux
+    - name: Install on Linux
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo wget https://apt.llvm.org/llvm.sh
-        sudo chmod +x llvm.sh
-        sudo ./llvm.sh ${{ env.LLVM_VERSION_MAJOR }}
-        echo "/usr/lib/llvm-${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
         echo "PKG_TARGET=node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
-        echo "EXECUTABLE=joelang-${{ github.ref_name }}-node${{ matrix.node }}-linux-x64" >> "$GITHUB_ENV"
+        echo "EXECUTABLE=joelang-${{ github.ref_name }}-x64-linux" >> "$GITHUB_ENV"
 
-    - name: Install LLVM on macOS
+    - name: Install on macOS
       if: startsWith(matrix.os, 'macos')
       run: |
-        brew update
-        brew upgrade
-        brew install llvm@${{ env.LLVM_VERSION_MAJOR }}
-        echo "/usr/local/opt/llvm@${{ env.LLVM_VERSION_MAJOR }}/bin" >> $GITHUB_PATH
         echo "PKG_TARGET=node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
-        echo "EXECUTABLE=joelang-${{ github.ref_name }}-node${{ matrix.node }}-macos-x64" >> "$GITHUB_ENV"
+        echo "EXECUTABLE=joelang-${{ github.ref_name }}-x64-macos" >> "$GITHUB_ENV"
 
-    - name: Install LLVM on Windows
+    - name: Install on Windows
       if: startsWith(matrix.os, 'windows')
       run: |
-        $LLVM_PREBUILT_FILE = "llvm-${{ env.LLVM_VERSION }}-${{ matrix.os }}.zip"
-        curl -sLO https://github.com/ApsarasX/llvm-windows/releases/download/llvmorg-${{ env.LLVM_VERSION }}/$LLVM_PREBUILT_FILE
-        Expand-Archive -Path $LLVM_PREBUILT_FILE -DestinationPath .
-        echo "Dir $pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
-        dir "$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake\llvm"
-        echo "LLVM_DIR='$pwd\LLVM-${{ env.LLVM_VERSION }}-win64\lib\cmake'" >> "$GITHUB_ENV"
-        echo "$pwd\LLVM-${{ env.LLVM_VERSION_MAJOR }}\bin" >> $GITHUB_PATH
         echo "PKG_TARGET=node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
-        echo "EXECUTABLE=joelang-${{ github.ref_name }}-${{ github.ref_name }}-node${{ matrix.node }}-win-x64" >> "$GITHUB_ENV"
+        echo "EXECUTABLE=joelang-${{ github.ref_name }}-x64-win" >> "$GITHUB_ENV"
 
     # Install all dependencies
     - name: Install dependencies
@@ -85,7 +70,7 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-        name: joelang-artifact-${{ github.ref_name }}-node${{ matrix.node }}-${{ matrix.os }}
+        name: joelang-${{ github.ref_name }}-x64-${{ matrix.os }}
         path: ${{ env.EXECUTABLE }}
         if-no-files-found: error
 

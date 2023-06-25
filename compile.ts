@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import fsPromises from 'fs/promises';
+import llvm from 'llvm-bindings';
 import path from 'path';
 import { inspect } from 'util';
 import { ASTProgram } from './src/analyzer/asts';
@@ -321,15 +322,12 @@ async function runCompiler(ast: ASTProgram, isSourceFromStdin: boolean, options:
 							executablePath = `${buildDir}/${sourceFilenameSansExt}`;
 						}
 
-						const commands = [
-							// generate assembly file
-							[
-								`llc`,
-								`${buildDir}/${sourceFilenameSansExt}.ll`,
-								`-o`,
-								`${buildDir}/${sourceFilenameSansExt}.s`,
-							],
+						generateObjectFile(
+							`${buildDir}/${sourceFilenameSansExt}.ll`,
+							`${buildDir}/${sourceFilenameSansExt}1.o`,
+						);
 
+						const commands = [
 							// generate object file
 							[
 								`llc`,
@@ -404,6 +402,21 @@ async function runCompiler(ast: ASTProgram, isSourceFromStdin: boolean, options:
 				break;
 		}
 	}
+}
+
+async function generateObjectFile(inputFile: string, objectFile: string): Promise<void> {
+	llvm.InitializeAllTargets();
+	llvm.InitializeAllTargetInfos();
+	llvm.InitializeAllTargetMCs();
+	llvm.InitializeAllAsmPrinters();
+	llvm.InitializeAllAsmParsers();
+
+	const smDiagnostic = new llvm.SMDiagnostic();
+	const context = new llvm.LLVMContext();
+	const llModule = llvm.parseIRFile(inputFile, smDiagnostic, context);
+
+	// Generate the .o file
+	await fsPromises.writeFile(objectFile, llModule.getDataLayoutStr());
 }
 
 /**
@@ -499,19 +512,25 @@ async function setupBuildDir(root: string, only: Only): Promise<string> {
 }
 
 async function getSourceFromFile(args: string[], only: Only): Promise<string> {
-	const filename = args[0];
+	const userPassedPath = args[0];
+	let fileToCompile = userPassedPath;
+	// check if the userPassedPath is a directory
+	// if it is, we'll look for a file named main.joe in that directory
+	if ((await fsPromises.stat(userPassedPath)).isDirectory()) {
+		fileToCompile = path.resolve(userPassedPath, 'main.joe');
+	}
 
 	try {
-		const buf = await fsPromises.readFile(filename, undefined);
+		const buf = await fsPromises.readFile(fileToCompile, undefined);
 
-		const parsed = path.parse(path.resolve(filename));
+		const parsed = path.parse(path.resolve(userPassedPath));
 		buildDir = await setupBuildDir(parsed.dir, only);
 		sourceFilenameSansExt = parsed.name;
 
 		// read the file
 		return buf.toString();
 	} catch (err) {
-		console.error(`File ${filename} does not exist.`);
+		console.error(`File ${fileToCompile} does not exist.`);
 		process.exit(1);
 	}
 }
