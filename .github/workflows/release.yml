@@ -38,12 +38,12 @@ jobs:
     - name: Setup build environment
       run: |
         # Update packages
-        DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y curl gcc mono-mcs
+        DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install -y curl gcc mono-mcs
         sudo rm -rf /var/lib/apt/lists/*
 
         # Install Node.js, npm, LLVM, and CMake
         curl -sL https://deb.nodesource.com/setup_18.x | bash
-        apt-get install -y nodejs llvm g++ cmake zlib1g-dev
+        sudo apt-get install -y nodejs llvm g++ cmake zlib1g-dev
 
         # Install pkg
         npm i -g pkg
