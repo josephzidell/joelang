@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - 'gh-actions-release'
 
 env:
   LLVM_VERSION: 14.0.6
@@ -44,7 +46,7 @@ jobs:
         apt-get install -y llvm g++ cmake zlib1g-dev
 
         # Install pkg
-        npm i -g pkg
+        sudo npm i -g pkg
 
     # Install dependencies and build the project
     - name: Install dependencies and build project
