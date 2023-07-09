@@ -50,7 +50,7 @@
   "devDependencies": {
     "@babel/core": "^7.21.4",
     "@babel/preset-env": "^7.21.5",
-    "@babel/preset-typescript": "^7.21.4",
+    "@babel/preset-typescript": "^7.22.5",
     "@types/fs-extra": "^11.0.1",
     "@types/jest": "^29.5.1",
     "@types/json-diff": "^0.9.1",
