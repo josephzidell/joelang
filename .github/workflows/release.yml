@@ -39,7 +39,7 @@ jobs:
       run: |
         # Update packages
         DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y curl gcc mono-mcs
-        rm -rf /var/lib/apt/lists/*
+        sudo rm -rf /var/lib/apt/lists/*
 
         # Install Node.js, npm, LLVM, and CMake
         curl -sL https://deb.nodesource.com/setup_18.x | bash
