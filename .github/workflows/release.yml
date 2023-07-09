@@ -15,10 +15,6 @@ jobs:
   build:
     strategy:
       matrix:
-    #     os:
-    #     - ubuntu-22.04
-    #     - macos-12
-        # - windows-2022
         node: [18]
 
     runs-on: ubuntu-22.04
@@ -37,12 +33,7 @@ jobs:
 
     - name: Setup build environment
       run: |
-        # Update packages
-        # DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install -y curl gcc mono-mcs
-        # sudo rm -rf /var/lib/apt/lists/*
-
         # Install Node.js, npm, LLVM, and CMake
-        # curl -sL https://deb.nodesource.com/setup_18.x | bash
         sudo apt-get install -y llvm g++ cmake zlib1g-dev
 
         # Install pkg
@@ -92,5 +83,5 @@ jobs:
       with:
         draft: false
         prerelease: true
-        files: joelang-artifact-${{ github.ref_name }}-node*-*/joelang-${{ github.ref_name }}-node*-*-*
+        files: joelang-${{ github.ref_name }}-*-*
         name: Release ${{ github.ref_name }}
