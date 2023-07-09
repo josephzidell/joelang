@@ -4,7 +4,7 @@
   "description": "A programming lang that aims to be simple to read",
   "scripts": {
     "build": "tsc",
-	"dev": "tsc -w &",
+    "dev": "tsc -w &",
     "lint": "eslint --ext .ts .",
     "lint-fix": "eslint --ext .ts . --fix",
     "prettier": "prettier --check .",
@@ -12,8 +12,16 @@
     "test": "jest --detectOpenHandles && npm run --silent test-integration",
     "test-integration": "joec examples/kitchen-sink/main.joe -a"
   },
+  "bin": "_build/compile.js",
   "pkg": {
-	"scripts": "_build/**/*.js"
+    "scripts": "_build/**/*.js",
+    "assets": [
+      "node_modules/llvm-bindings/build/Release/llvm-bindings.node"
+    ],
+    "targets": [
+      "node18-linux-x64"
+    ],
+    "outputPath": "."
   },
   "repository": {
     "type": "git",
