@@ -43,10 +43,10 @@ jobs:
 
         # Install Node.js, npm, LLVM, and CMake
         # curl -sL https://deb.nodesource.com/setup_18.x | bash
-        apt-get install -y llvm g++ cmake zlib1g-dev
+        sudo apt-get install -y llvm g++ cmake zlib1g-dev
 
         # Install pkg
-        sudo npm i -g pkg
+        npm i -g pkg
 
     # Install dependencies and build the project
     - name: Install dependencies and build project
