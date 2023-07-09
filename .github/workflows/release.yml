@@ -8,8 +8,6 @@ on:
 env:
   LLVM_VERSION: 14.0.6
   LLVM_VERSION_MAJOR: 14
-  PKG_TARGET: null
-  EXECUTABLE: null
 
 jobs:
   build:
@@ -38,8 +36,8 @@ jobs:
     - name: Setup build environment
       run: |
         # Update packages
-        DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install -y curl gcc mono-mcs
-        sudo rm -rf /var/lib/apt/lists/*
+        # DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install -y curl gcc mono-mcs
+        # sudo rm -rf /var/lib/apt/lists/*
 
         # Install Node.js, npm, LLVM, and CMake
         curl -sL https://deb.nodesource.com/setup_18.x | bash
