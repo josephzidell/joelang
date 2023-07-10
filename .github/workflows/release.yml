@@ -83,5 +83,7 @@ jobs:
       with:
         draft: false
         prerelease: true
-        files: joelang-${{ github.ref_name }}-*-*
+        # each file lives in its own directory
+        files: joelang-${{ github.ref_name }}-*-*/joelang-${{ github.ref_name }}-*-*
         name: Release ${{ github.ref_name }}
+      continue-on-error: false
