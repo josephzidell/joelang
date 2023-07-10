@@ -52,7 +52,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: joelang-${{ github.ref_name }}-x64-linux
-        path: joelang-${{ github.ref_name }}-x64-linux
+        path: joelang
         if-no-files-found: error
     # - uses: actions/upload-artifact@v3
     #   with:
@@ -84,6 +84,6 @@ jobs:
         draft: false
         prerelease: true
         # each file lives in its own directory
-        files: joelang-${{ github.ref_name }}-*-*/joelang-${{ github.ref_name }}-*-*
+        files: joelang-${{ github.ref_name }}-*-*/*
         name: Release ${{ github.ref_name }}
       continue-on-error: false
