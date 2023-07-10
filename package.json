@@ -19,7 +19,9 @@
       "node_modules/llvm-bindings/build/Release/llvm-bindings.node"
     ],
     "targets": [
-      "node18-linux-x64"
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-x64"
     ],
     "outputPath": "."
   },

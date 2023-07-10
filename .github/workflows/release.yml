@@ -52,18 +52,18 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: joelang-${{ github.ref_name }}-x64-linux
-        path: joelang
+        path: joelang-linux
         if-no-files-found: error
-    # - uses: actions/upload-artifact@v3
-    #   with:
-    #     name: joelang-${{ github.ref_name }}-x64-macos
-    #     path: joelang-${{ github.ref_name }}-x64-macos
-    #     if-no-files-found: error
-    # - uses: actions/upload-artifact@v3
-    #   with:
-    #     name: joelang-${{ github.ref_name }}-x64-win
-    #     path: joelang-${{ github.ref_name }}-x64-win
-    #     if-no-files-found: error
+    - uses: actions/upload-artifact@v3
+      with:
+        name: joelang-${{ github.ref_name }}-x64-macos
+        path: joelang-macos
+        if-no-files-found: error
+    - uses: actions/upload-artifact@v3
+      with:
+        name: joelang-${{ github.ref_name }}-x64-win
+        path: joelang-win.exe
+        if-no-files-found: error
 
   release:
     needs: build
