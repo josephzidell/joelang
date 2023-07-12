@@ -1,8 +1,5 @@
-// write a class Compiler that takes cli args
-
 import { spawn } from 'child_process';
 import fsPromises from 'fs/promises';
-import llvm from 'llvm-bindings';
 import path from 'path';
 import { inspect } from 'util';
 import { ASTProgram } from '../analyzer/asts';
@@ -16,7 +13,8 @@ import ParserError from '../parser/error';
 import Parser from '../parser/parser';
 import { simplifyTree } from '../parser/simplifier';
 import { Node } from '../parser/types';
-import { Result } from '../shared/result';
+import { handleProcessOutput } from '../shared/command';
+import { Result, error, ok } from '../shared/result';
 import LlvmIrConverter from './llvm_ir_converter';
 
 export class Compiler {
@@ -31,14 +29,28 @@ export class Compiler {
 	private sourceFilenameSansExt = '.inline';
 
 	private targetPaths = {
-		tokens: async () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.tokens`),
-		parseTree: async () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.parse-tree`),
-		ast: async () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.ast.json`),
-		symbols: async () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.symbolTable`),
+		tokens: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.tokens`),
+		parseTree: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.parse-tree`),
+		ast: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.ast.json`),
+		symbols: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.symbolTable`),
 
 		// llvmIr currently supports multiple files, so we need to pass in the filename
-		llvmIr: async (filename: string) => {
-			return `${this.buildDir}/${filename.replace('.joe', '.ll')}`;
+		llvmIr: (filename: string) => {
+			return path.join(this.buildDir, filename.replace('.joe', '.ll'));
+		},
+
+		llvmBitcode: () => {
+			return path.join(this.buildDir, `${this.sourceFilenameSansExt}.bc`);
+		},
+
+		executable: () => {
+			// for inline analyses, we don't care about the executable file,
+			// so it can go into the build directory. Otherwise, we need it.
+			let filePath = `${path.dirname(this.buildDir)}/${this.sourceFilenameSansExt}`;
+			if (this.source.fromStdin) {
+				filePath = `${this.buildDir}/${this.sourceFilenameSansExt}`;
+			}
+			return filePath;
 		},
 	};
 
@@ -85,13 +97,28 @@ export class Compiler {
 		}
 
 		// continue to the compiler
-		await this.runCompiler(analyzerResult.value[0]);
+		const compilerResult = await this.runCompiler(analyzerResult.value[0]);
+		if (compilerResult.outcome === 'error') {
+			this.handleErrorFromCompiler(compilerResult);
+
+			// don't return since we still want this.afterCompiler() to run
+		}
+
 		await this.afterCompiler();
 	}
 
 	private async afterCompiler() {
+		// for inline analyses, we need to run the executable
+		if (this.source.fromStdin) {
+			const childProcess = spawn(this.targetPaths.executable());
+
+			await handleProcessOutput(childProcess);
+		}
+
 		// delete the this.buildDir directory
-		await fsPromises.rm(this.buildDir, { recursive: true });
+		if (!this.debug) {
+			await fsPromises.rm(this.buildDir, { recursive: true });
+		}
 	}
 
 	private handleErrorFromSemanticAnalyzer(analyzerResult: { outcome: 'error'; error: Error; data?: unknown }) {
@@ -105,11 +132,28 @@ export class Compiler {
 		console.groupEnd();
 	}
 
+	private handleErrorFromCompiler(compilerResult: { outcome: 'error'; error: Error; data?: unknown }) {
+		if (compilerResult.error instanceof CompilerError) {
+			const llvmIrError = compilerResult.error as CompilerError;
+
+			console.groupCollapsed(`Error[Compiler]: ${llvmIrError.getFilename()} ${llvmIrError.message}`);
+			llvmIrError
+				.getContext()
+				.toStringArray(llvmIrError.message)
+				.forEach((str) => console.log(str));
+			console.groupEnd();
+		} else {
+			console.groupCollapsed(`Error[Compiler]: ${compilerResult.error.message}`);
+			console.log(compilerResult.error);
+			console.groupEnd();
+		}
+	}
+
 	private async afterParser(parser: Parser, parserResult: { outcome: 'ok'; value: Node }) {
 		// first output tokens
 		if (!this.source.fromStdin) {
 			const output = JSON.stringify(parser.lexer.tokens, null, '\t');
-			const tokensFilePath = await this.targetPaths.tokens();
+			const tokensFilePath = this.targetPaths.tokens();
 
 			if (!(await this.writeToFile(tokensFilePath, output, 'Tokens'))) {
 				process.exit(1);
@@ -129,7 +173,7 @@ export class Compiler {
 			console.info(output);
 			console.groupEnd();
 		} else {
-			const parseTreeFilePath = await this.targetPaths.parseTree();
+			const parseTreeFilePath = this.targetPaths.parseTree();
 
 			if (!(await this.writeToFile(parseTreeFilePath, output, 'Parse Tree'))) {
 				process.exit(1);
@@ -188,109 +232,103 @@ export class Compiler {
 	}
 
 	/** Runs the Compiler */
-	private async runCompiler(ast: ASTProgram): Promise<void> {
+	private async runCompiler(ast: ASTProgram): Promise<Result<undefined>> {
 		// convert AST to LLVM IR and compile
-		const llvmIrConverter = new LlvmIrConverter();
+		try {
+			const llvmIrConverter = new LlvmIrConverter(this.debug);
+			const conversions = llvmIrConverter.convert({ [`${this.sourceFilenameSansExt}.joe`]: ast });
 
-		const conversions = llvmIrConverter.convert({ [`${this.sourceFilenameSansExt}.joe`]: ast });
-		for await (const [filename, conversionResult] of Object.entries(conversions)) {
-			if (conversionResult.outcome === 'error') {
-				const llvmIrError = conversionResult.error as CompilerError;
-
-				console.error(`Error[Compiler]: ${llvmIrError.getFilename()} ${llvmIrError.message}`);
-
-				continue;
-			}
-
-			const llvmModule = conversionResult.value;
-			if (this.debug) {
-				console.groupCollapsed('\n=== LLVM IR ===\n');
-				console.info(llvmModule.print());
-				console.groupEnd();
-			}
-
-			const output = llvmModule.print();
-			const llvmIrFilePath = await this.targetPaths.llvmIr(filename);
-
-			try {
-				await fsPromises.writeFile(llvmIrFilePath, output);
-
-				// for inline analyses, we don't care about the executable file,
-				// so it can go into the build directory. Otherwise, we need it.
-				let executablePath = `${path.dirname(this.buildDir)}/${this.sourceFilenameSansExt}`;
-				if (this.source.fromStdin) {
-					executablePath = `${this.buildDir}/${this.sourceFilenameSansExt}`;
+			for (const [filename, conversionResult] of Object.entries(conversions)) {
+				if (conversionResult.outcome === 'error') {
+					return conversionResult;
 				}
 
-				this.generateObjectFile(
+				const llvmModule = conversionResult.value;
+				if (this.debug) {
+					console.groupCollapsed('\n=== LLVM IR ===\n');
+					console.info(llvmModule.print());
+					console.groupEnd();
+				}
+
+				const output = llvmModule.print();
+				const llvmIrFilePath = this.targetPaths.llvmIr(filename);
+
+				try {
+					await fsPromises.writeFile(llvmIrFilePath, output);
+				} catch (err) {
+					console.error(`%cError[Compiler]: ${llvmIrFilePath}: ${(err as Error).message}`, 'color: red');
+					continue;
+				}
+			}
+
+			const bitcodePath = this.targetPaths.llvmBitcode();
+			const generateBitcodeFileResult = await llvmIrConverter.generateBitcode(bitcodePath);
+			if (generateBitcodeFileResult.outcome === 'error') {
+				return generateBitcodeFileResult;
+			}
+
+			const executablePath = this.targetPaths.executable();
+
+			const commands = [
+				// generate object file
+				[
+					`llc`,
+					`-O2`,
+					`-filetype=obj`,
+					`-relocation-model=pic`,
 					`${this.buildDir}/${this.sourceFilenameSansExt}.ll`,
-					`${this.buildDir}/${this.sourceFilenameSansExt}1.o`,
-				);
+					`-o`,
+					`${this.buildDir}/${this.sourceFilenameSansExt}.o`,
+				],
 
-				const commands = [
-					// generate object file
-					[
-						`llc`,
-						`-O2`,
-						`-filetype=obj`,
-						`-relocation-model=pic`,
-						`${this.buildDir}/${this.sourceFilenameSansExt}.ll`,
-						`-o`,
-						`${this.buildDir}/${this.sourceFilenameSansExt}.o`,
-					],
+				// generate executable
+				[`gcc`, `${this.buildDir}/${this.sourceFilenameSansExt}.o`, `-o`, executablePath],
 
-					// generate executable
-					[`gcc`, `${this.buildDir}/${this.sourceFilenameSansExt}.o`, `-o`, executablePath],
+				// make executable
+				[`chmod`, `+x`, executablePath],
+			];
 
-					// make executable
-					[`chmod`, `+x`, executablePath],
+			for await (const command of commands) {
+				try {
+					const childProcess = spawn(command.shift() as string, command, {
+						shell: true,
+					});
 
-					// run executable
-					[`${executablePath}`],
-				];
+					// stdout
+					if (childProcess.stdout) {
+						for await (const chunkBytes of childProcess.stdout) {
+							const chunk = String(chunkBytes);
 
-				for await (const command of commands) {
-					try {
-						const childProcess = spawn(command.shift() as string, command, {
-							shell: true,
-						});
-
-						// stdout
-						if (childProcess.stdout) {
-							for await (const chunkBytes of childProcess.stdout) {
-								const chunk = String(chunkBytes);
-
-								console.info(chunk);
-							}
+							console.info(chunk);
 						}
-						childProcess?.stdout?.on('data', function (data: string): void {
-							console.info(`command output: ${data}`);
-						});
-
-						// stderr
-						let stderr = '';
-						if (childProcess.stderr) {
-							for await (const chunk of childProcess.stderr) {
-								stderr += chunk;
-							}
-						}
-
-						if (stderr) {
-							console.error(`Stderr Error: ${stderr}`);
-						}
-
-						// wait for childProcess to complete
-						await new Promise((resolve, _reject): void => {
-							childProcess.on('close', resolve);
-						});
-					} catch (err) {
-						console.error(err);
 					}
+					childProcess?.stdout?.on('data', function (data: string): void {
+						console.info(`command output: ${data}`);
+					});
+
+					// stderr
+					let stderr = '';
+					if (childProcess.stderr) {
+						for await (const chunk of childProcess.stderr) {
+							stderr += chunk;
+						}
+					}
+
+					if (stderr) {
+						console.error(`Stderr Error: ${stderr}`);
+					}
+					// wait for childProcess to complete
+					await new Promise((resolve, _reject): void => {
+						childProcess.on('close', resolve);
+					});
+				} catch (err) {
+					console.error(err);
 				}
-			} catch (err) {
-				console.error(`%cError[Compiler]: ${llvmIrFilePath}: ${(err as Error).message}`, 'color: red');
-				continue;
 			}
+
+			return ok(undefined);
+		} catch (err) {
+			return error(err as Error);
 		}
 	}
 
@@ -506,20 +544,5 @@ export class Compiler {
 		}
 
 		return analysisResult;
-	}
-
-	private async generateObjectFile(inputFile: string, objectFile: string): Promise<void> {
-		llvm.InitializeAllTargets();
-		llvm.InitializeAllTargetInfos();
-		llvm.InitializeAllTargetMCs();
-		llvm.InitializeAllAsmPrinters();
-		llvm.InitializeAllAsmParsers();
-
-		const smDiagnostic = new llvm.SMDiagnostic();
-		const context = new llvm.LLVMContext();
-		const llModule = llvm.parseIRFile(inputFile, smDiagnostic, context);
-
-		// Generate the .o file
-		await fsPromises.writeFile(objectFile, llModule.getDataLayoutStr());
 	}
 }

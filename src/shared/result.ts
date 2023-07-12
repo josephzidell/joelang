@@ -26,6 +26,18 @@ export function error<T, E extends Error = Error, ED = unknown>(error: E, data?:
 	return { outcome: 'error', error, data };
 }
 
+export function ifNotUndefined<T, E extends Error = Error, ED = unknown>(
+	value: T | undefined,
+	errorIfUndefined: E,
+	data?: ED,
+): Result<T, E, ED> {
+	if (typeof value === 'undefined') {
+		return error(errorIfUndefined, data);
+	}
+
+	return ok(value);
+}
+
 export function mapResult<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
 	if (result.outcome === 'ok') {
 		return ok(fn(result.value));
@@ -46,8 +58,28 @@ export function allOk<T>(results: Result<T>[]): results is ResultOk<T>[] {
 	return results.every((result) => result.outcome === 'ok');
 }
 
-export function anyIsError<T>(results: Result<T>[]): results is ResultError<Error, unknown>[] {
-	return results.some((result) => result.outcome === 'error');
+export function anyIsError<T>(results: Result<T>[]): boolean {
+	return results.some((result) => isError(result));
+}
+
+// get first error
+export function getFirstError<T>(results: Result<T>[]): ResultError<Error, unknown> {
+	return results.find((result) => result.outcome === 'error') as ResultError<Error, unknown>;
+}
+
+/**
+ * get values of array of results. If any of the results are errors, throw an error.
+ * @param results To unwrap
+ * @returns An array of the values of the results
+ */
+export function unwrapResults<T>(results: Result<T>[]): T[] {
+	return results.map((result) => {
+		if (!isOk(result)) {
+			throw new Error(`unwrapResults: result is not ok: ${result.error.message}`);
+		}
+
+		return result.value;
+	});
 }
 
 /**

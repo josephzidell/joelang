@@ -8,6 +8,7 @@ import { mockPos } from './src/shared/pos';
 import { Result } from './src/shared/result';
 
 export interface CustomMatchers<R = unknown> {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	toEqualAstMockingPosProperty<E = any>(expected: E): R;
 
 	/**
@@ -156,6 +157,7 @@ expect.extend({
 // Semantic Analyzer Stuff
 ////////////////////////////////////////////////////////////
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mockASTPos(obj: any): any {
 	if (Array.isArray(obj)) {
 		return obj.map(mockASTPos);

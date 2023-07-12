@@ -1,20 +1,34 @@
-import llvm from 'llvm-bindings';
+import fsPromises from 'fs/promises';
+import llvm, { TargetRegistry, config } from 'llvm-bindings';
 import {
 	AST,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
+	ASTNumberLiteral,
 	ASTPrintStatement,
 	ASTProgram,
 	ASTType,
 	ASTTypeNumber,
 	ASTTypePrimitive,
+	ASTUnaryExpression,
 	ASTVariableDeclaration,
 	primitiveAstType,
 } from '../analyzer/asts';
-import { NumberSize } from '../shared/numbers/sizes';
-import { Result, error, flattenResults, ok } from '../shared/result';
+import ErrorContext from '../shared/errorContext';
+import { NumberSize, SizeInfo, numberSizeDetails } from '../shared/numbers/sizes';
+import {
+	Result,
+	anyIsError,
+	error,
+	flattenResults,
+	getFirstError,
+	ifNotUndefined,
+	ok,
+	unwrapResults,
+} from '../shared/result';
 import CompilerError from './error';
 import convertStdLib from './stdlib';
+import { cFuncTypes } from './stdlibs.types';
 
 export default class LlvmIrConverter {
 	private context: llvm.LLVMContext;
@@ -23,9 +37,47 @@ export default class LlvmIrConverter {
 	private stdlib!: llvm.Module;
 	private filename = '';
 	private valueMap = new Map<string, llvm.Value>();
+	private targetMachine: llvm.TargetMachine;
+	private targetTriple: string;
+	private debug = false;
 
-	constructor() {
+	constructor(debug: boolean) {
+		this.debug = debug;
+
+		// following https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl08.html
+
+		llvm.InitializeAllTargetInfos();
+		llvm.InitializeAllTargets();
+		llvm.InitializeAllTargetMCs();
+		llvm.InitializeAllAsmParsers();
+		llvm.InitializeAllAsmPrinters();
+
 		this.context = new llvm.LLVMContext();
+
+		// 8.2 Choosing a Target
+		this.targetTriple = config.LLVM_DEFAULT_TARGET_TRIPLE;
+		if (this.debug) {
+			console.debug({
+				LLVM_DEFAULT_TARGET_TRIPLE: config.LLVM_DEFAULT_TARGET_TRIPLE,
+				LLVM_HOST_TRIPLE: config.LLVM_HOST_TRIPLE,
+				LLVM_ON_UNIX: config.LLVM_ON_UNIX,
+				LLVM_VERSION_MAJOR: config.LLVM_VERSION_MAJOR,
+				LLVM_VERSION_MINOR: config.LLVM_VERSION_MINOR,
+				LLVM_VERSION_PATCH: config.LLVM_VERSION_PATCH,
+				LLVM_VERSION_STRING: config.LLVM_VERSION_STRING,
+			});
+		}
+
+		const target = TargetRegistry.lookupTarget(this.targetTriple);
+		if (target === null) {
+			throw new Error(`Could not find target for ${this.targetTriple}`);
+		}
+
+		// 8.3 TargetMachine
+		this.targetMachine = target.createTargetMachine(this.targetTriple, 'x86-64', '');
+
+		// convert the stdlib
+		this.stdlib = convertStdLib(this.context);
 	}
 
 	public convert(files: Record<string, ASTProgram>): Record<string, Result<llvm.Module>> {
@@ -36,8 +88,21 @@ export default class LlvmIrConverter {
 			this.module = new llvm.Module(this.filename, this.context);
 			this.builder = new llvm.IRBuilder(this.context);
 
-			// compile standard library
-			this.stdlib = convertStdLib(this.context, this.module, this.builder);
+			// 8.4 Configuring the Module
+			this.module.setDataLayout(this.targetMachine.createDataLayout());
+			this.module.setTargetTriple(this.targetTriple);
+			this.module.setModuleIdentifier(this.filename);
+
+			// 8.5 Emit Object Code
+			if (this.debug) {
+				console.debug({
+					ModuleIdentifier: this.module.getModuleIdentifier(),
+					SourceFileName: this.module.getSourceFileName(),
+					Name: this.module.getName(),
+					TargetTriple: this.module.getTargetTriple(),
+					Print: this.module.print(),
+				});
+			}
 
 			// walk the AST and convert each node to LLVM IR
 			const conversionResult = this.convertNodes(ast.declarations);
@@ -47,7 +112,9 @@ export default class LlvmIrConverter {
 			}
 
 			if (llvm.verifyModule(this.module)) {
-				map[this.filename] = error(new CompilerError('Verifying module failed', this.filename));
+				map[this.filename] = error(
+					new CompilerError('Verifying module failed', this.filename, this.getErrorContext(ast, 1)),
+				);
 				continue;
 			}
 
@@ -57,18 +124,43 @@ export default class LlvmIrConverter {
 		return map;
 	}
 
+	public async generateBitcode(filePath: string): Promise<Result<undefined>> {
+		try {
+			// TODO handle multiple modules
+			// generate object file
+			llvm.WriteBitcodeToFile(this.module, filePath);
+			await fsPromises.chmod(filePath, 0o775);
+
+			return ok(undefined);
+		} catch (err) {
+			return error(err as Error);
+		}
+	}
+
+	getErrorContext(node: AST, length?: number): ErrorContext {
+		return new ErrorContext(node.toString(), node.pos.line, node.pos.col, length ?? node.pos.end - node.pos.start);
+	}
+
 	// convert an AST node to LLVM IR
 	private convertNode(node: AST): Result<llvm.Value | llvm.Value[]> {
 		switch (node.constructor.name) {
 			case 'ASTFunctionDeclaration':
 				return this.convertFunctionDeclaration(node as ASTFunctionDeclaration);
+			case 'ASTNumberLiteral':
+				return this.convertNumberLiteral(node as ASTNumberLiteral);
 			case 'ASTPrintStatement':
 				return this.convertPrintStatement(node as ASTPrintStatement);
 			case 'ASTVariableDeclaration':
 				return this.convertVariableDeclaration(node as ASTVariableDeclaration);
 		}
 
-		return error(new CompilerError(`convertNode: Unknown AST node "${node.constructor.name}"`, this.filename));
+		return error(
+			new CompilerError(
+				`convertNode: Unknown AST node "${node.constructor.name}"`,
+				this.filename,
+				this.getErrorContext(node),
+			),
+		);
 	}
 
 	// convert multiple AST nodes to LLVM IR
@@ -95,9 +187,9 @@ export default class LlvmIrConverter {
 
 	private convertFunctionDeclaration(node: ASTFunctionDeclaration): Result<llvm.Function> {
 		// TODO handle multiple return types
-		const funcReturnType = this.convertType(node.returnTypes[0]);
-		if (funcReturnType.outcome === 'error') {
-			return funcReturnType;
+		const funcReturnTypeResult = this.convertType(node.returnTypes[0]);
+		if (funcReturnTypeResult.outcome === 'error') {
+			return funcReturnTypeResult;
 		}
 
 		const params = flattenResults(node.params.map((param) => this.convertType(param.declaredType)));
@@ -106,7 +198,7 @@ export default class LlvmIrConverter {
 		}
 
 		// create function type
-		const functionType = llvm.FunctionType.get(funcReturnType.value, params.value, false);
+		const functionType = llvm.FunctionType.get(funcReturnTypeResult.value, params.value, false);
 
 		// create function
 		const func = llvm.Function.Create(
@@ -127,53 +219,76 @@ export default class LlvmIrConverter {
 		}
 
 		// return value
-		if (funcReturnType.value.getTypeID() === this.builder.getVoidTy().getTypeID()) {
+		if (funcReturnTypeResult.value.getTypeID() === this.builder.getVoidTy().getTypeID()) {
 			this.builder.CreateRetVoid();
 		} else {
+			// TODO handle multiple return values
 			this.builder.CreateRet(conversionResult.value[0]);
 		}
 
 		// verify it
 		if (llvm.verifyFunction(func)) {
-			return error(new CompilerError('Verifying function failed', this.filename));
+			return error(new CompilerError('Verifying function failed', this.filename, this.getErrorContext(node)));
 		}
 
 		return ok(func);
 	}
 
+	private convertNumberLiteral(node: ASTNumberLiteral): Result<llvm.ConstantInt> {
+		const size: SizeInfo = numberSizeDetails[node.declaredSize ?? node.possibleSizes[0]];
+
+		// TODO handle ASTUnaryExpression<number> better
+		const value = typeof node.value === 'number' ? node.value : (node.value as ASTUnaryExpression<number>).operand;
+
+		if (size.type === 'dec') {
+			// TODO handle decimals
+			// this is a placeholder
+			return error(new Error('Decimals not implemented yet in convertNumberLiteral()'));
+			// return ok(new llvm.APFloat(value));
+		} else {
+			// TODO handle signed/unsigned
+			return ok(this.builder.getIntN(size.bits, value));
+			// return ok(new llvm.APInt(size.bits, value, size.type.startsWith('u')));
+		}
+	}
+
 	// convert an ASTPrintStatement to an LLVM IR printf call
 	private convertPrintStatement(ast: ASTPrintStatement): Result<llvm.Value> {
-		// get printf function
-		const printfFunc = this.stdlib.getFunction('printf');
-		if (printfFunc === null) {
-			return error(new CompilerError('printf function not found', this.filename));
-		}
+		const printfFunc = llvm.Function.Create(
+			cFuncTypes.printf(this.builder),
+			llvm.Function.LinkageTypes.ExternalLinkage,
+			'printf',
+			this.module,
+		);
 
 		// create format string
-		const exprToPrint = ast.expressions
-			.map((expr) => {
-				if (expr.constructor.name === 'ASTIdentifier') {
-					const arg = this.valueMap.get((expr as ASTIdentifier).name);
-					if (typeof arg === 'undefined') {
-						return error(
-							new CompilerError(
-								`PrintStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,
-								this.filename,
-							),
-						);
-					}
+		const exprToPrint: Array<Result<llvm.Value | string>> = ast.expressions.map((expr) => {
+			// if it's an identifier, get the value from the value map
+			if (expr.constructor.name === 'ASTIdentifier') {
+				return ifNotUndefined(
+					this.valueMap.get((expr as ASTIdentifier).name),
+					new CompilerError(
+						`PrintStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,
+						this.filename,
+						this.getErrorContext(expr),
+					),
+				);
+			}
 
-					return arg;
-				}
+			return ok(expr.toString());
+		});
+		// check if any of the expressions failed
+		if (anyIsError(exprToPrint)) {
+			return getFirstError(exprToPrint);
+		}
 
-				return expr.toString();
-			})
-			.join(' ');
-
-		const formatString = this.builder.CreateGlobalStringPtr(exprToPrint);
+		const formatStrings = unwrapResults(exprToPrint).map((expr) =>
+			// TODO handle an llvm.Value
+			this.builder.CreateGlobalStringPtr(expr.toString()),
+		);
 
 		// create printf call
-		const printfCall = this.builder.CreateCall(printfFunc, [formatString]);
+		const printfCall = this.builder.CreateCall(printfFunc, formatStrings);
 
 		return ok(printfCall);
 	}
@@ -190,7 +305,11 @@ export default class LlvmIrConverter {
 					const arg = this.valueMap.get((ast as ASTIdentifier).name);
 					if (typeof arg === 'undefined') {
 						return error(
-							new CompilerError(`We don't recognize "${(ast as ASTIdentifier).name}"`, this.filename),
+							new CompilerError(
+								`We don't recognize "${(ast as ASTIdentifier).name}"`,
+								this.filename,
+								this.getErrorContext(ast),
+							),
 						);
 					}
 
@@ -217,7 +336,11 @@ export default class LlvmIrConverter {
 						return ok(sizeMap[(ast as ASTTypeNumber).size]);
 					} else {
 						return error(
-							new CompilerError(`Unknown number size "${(ast as ASTTypeNumber).size}"`, this.filename),
+							new CompilerError(
+								`Unknown number size "${(ast as ASTTypeNumber).size}"`,
+								this.filename,
+								this.getErrorContext(ast),
+							),
 						);
 					}
 				}
@@ -239,6 +362,7 @@ export default class LlvmIrConverter {
 							new CompilerError(
 								`Unknown primitive type "${(ast as ASTTypePrimitive).type}"`,
 								this.filename,
+								this.getErrorContext(ast),
 							),
 						);
 					}
@@ -247,7 +371,11 @@ export default class LlvmIrConverter {
 		}
 
 		return error(
-			new CompilerError(`convertType: Please add AST type "${ast.constructor.name}" to the list`, this.filename),
+			new CompilerError(
+				`convertType: Please add AST type "${ast.constructor.name}" to the list`,
+				this.filename,
+				this.getErrorContext(ast),
+			),
 		);
 	}
 
@@ -260,6 +388,7 @@ export default class LlvmIrConverter {
 					new CompilerError(
 						`convertVariableDeclaration: We don't know the type of "${identifier.name}"`,
 						this.filename,
+						this.getErrorContext(ast),
 					),
 				);
 			}
@@ -295,5 +424,3 @@ export default class LlvmIrConverter {
 		return this.context;
 	}
 }
-
-new LlvmIrConverter();
