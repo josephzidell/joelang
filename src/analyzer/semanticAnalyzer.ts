@@ -578,8 +578,8 @@ export default class SemanticAnalyzer {
 		return ok(undefined);
 	}
 
-	noop(_node: Node): Result<SkipAST> {
-		const ast = new SkipAST();
+	noop(node: Node): Result<SkipAST> {
+		const ast = new SkipAST(node.pos);
 
 		this.astPointer = this.ast = ast;
 
@@ -623,7 +623,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitArgumentList(node: Node): Result<ASTArgumentsList> {
-		const ast = new ASTArgumentsList();
+		const ast = new ASTArgumentsList(node.pos);
 
 		const argsResult = this.visitChildren<AssignableASTs>(
 			node,
@@ -647,7 +647,7 @@ export default class SemanticAnalyzer {
 
 	/** An ArrayExpression needs a type, which can be evaluated either via the first item or via the context (VariableDeclaration, Argument Type, etc.) */
 	visitArrayExpression(node: Node): Result<ASTArrayExpression<AssignableASTs>> {
-		const ast = new ASTArrayExpression();
+		const ast = new ASTArrayExpression(node.pos);
 
 		const itemsResult = this.visitChildren<AssignableASTs>(
 			node,
@@ -713,7 +713,7 @@ export default class SemanticAnalyzer {
 						);
 					}
 
-					const ast = ASTArrayOf._(visitResult.value);
+					const ast = ASTArrayOf._(visitResult.value, node.pos);
 
 					this.astPointer = this.ast = ast;
 
@@ -760,7 +760,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitAssignmentExpression(node: Node): Result<ASTAssignmentExpression> {
-		const ast = new ASTAssignmentExpression();
+		const ast = new ASTAssignmentExpression(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: left-hand side
@@ -830,7 +830,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitBinaryExpression(node: Node): Result<ASTBinaryExpression<ExpressionASTs, ExpressionASTs>> {
-		const ast = new ASTBinaryExpression<ExpressionASTs, ExpressionASTs>();
+		const ast = new ASTBinaryExpression<ExpressionASTs, ExpressionASTs>(node.pos);
 
 		// first grammatical requirement: the operator
 		if (!node.value) {
@@ -904,7 +904,7 @@ export default class SemanticAnalyzer {
 	visitBlockStatement(node: Node): Result<ASTBlockStatement> {
 		const validChildren = Object.values(NT).filter((nt) => nt !== NT.ImportDeclaration);
 
-		const ast = new ASTBlockStatement();
+		const ast = new ASTBlockStatement(node.pos);
 
 		// next, get the expressions from the children
 		const expressionsResult = this.visitChildren<AST>(
@@ -928,7 +928,7 @@ export default class SemanticAnalyzer {
 
 	visitBoolLiteral(node: Node): Result<ASTBoolLiteral> {
 		if (node?.type === NT.BoolLiteral && node.value) {
-			const ast = ASTBoolLiteral._(node.value === 'true');
+			const ast = ASTBoolLiteral._(node.value === 'true', node.pos);
 
 			this.astPointer = this.ast = ast;
 
@@ -942,7 +942,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitCallExpression(node: Node): Result<ASTCallExpression> {
-		const ast = new ASTCallExpression();
+		const ast = new ASTCallExpression(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the callee
@@ -1013,7 +1013,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitClassDeclaration(node: Node): Result<ASTClassDeclaration> {
-		const ast = new ASTClassDeclaration();
+		const ast = new ASTClassDeclaration(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// the joeDoc
@@ -1160,10 +1160,13 @@ export default class SemanticAnalyzer {
 		}
 
 		if (typeof typeArgs !== 'undefined') {
-			const ast = ASTTypeInstantiationExpression._({
-				base: identifierOrMemberExpression,
-				typeArgs,
-			});
+			const ast = ASTTypeInstantiationExpression._(
+				{
+					base: identifierOrMemberExpression,
+					typeArgs,
+				},
+				node.pos,
+			);
 
 			this.astPointer = this.ast = ast;
 
@@ -1177,8 +1180,8 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitDoneStatement(_node: Node): Result<ASTDoneStatement> {
-		return ok(ASTDoneStatement._());
+	visitDoneStatement(node: Node): Result<ASTDoneStatement> {
+		return ok(ASTDoneStatement._(node.pos));
 	}
 
 	visitElseStatement(child: Node): Result<ASTBlockStatement | ASTIfStatement> {
@@ -1186,7 +1189,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitEnumDeclaration(node: Node): Result<ASTEnumDeclaration> {
-		const ast = new ASTEnumDeclaration();
+		const ast = new ASTEnumDeclaration(node.pos);
 
 		const handlingResult = this.handleASTDeclaration(node, ast, NT.ExtensionsList, this.visitExtensionsList);
 		if (handlingResult.outcome === 'error') {
@@ -1203,7 +1206,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitForStatement(node: Node): Result<ASTForStatement> {
-		const ast = new ASTForStatement();
+		const ast = new ASTForStatement(node.pos);
 
 		// if the first child is a parenthesized node, then we need to unwrap it
 		// and replace it with its children
@@ -1284,7 +1287,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitFunctionDeclaration(node: Node): Result<ASTFunctionDeclaration> {
-		const ast = new ASTFunctionDeclaration();
+		const ast = new ASTFunctionDeclaration(node.pos);
 
 		// add to symbol table
 		// start a new scope
@@ -1431,7 +1434,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitFunctionSignature(node: Node): Result<ASTFunctionSignature> {
-		const ast = new ASTFunctionSignature();
+		const ast = new ASTFunctionSignature(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the modifiers
@@ -1503,14 +1506,14 @@ export default class SemanticAnalyzer {
 		return this.handleNodeThatHasValueAndNoChildren(
 			node,
 			NT.Identifier,
-			(value) => ok(ASTIdentifier._(value)),
+			(value) => ok(ASTIdentifier._(value, node.pos)),
 			AnalysisErrorCode.IdentifierExpected,
 			(node: Node) => `Identifier: We were expecting an Identifier, but found a "${node.type}"`,
 		);
 	}
 
 	visitIfStatement(node: Node): Result<ASTIfStatement> {
-		const ast = new ASTIfStatement();
+		const ast = new ASTIfStatement(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the test
@@ -1582,7 +1585,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitImportDeclaration(node: Node): Result<ASTImportDeclaration> {
-		const ast = new ASTImportDeclaration();
+		const ast = new ASTImportDeclaration(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the identifier
@@ -1646,7 +1649,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitInterfaceDeclaration(node: Node): Result<ASTInterfaceDeclaration> {
-		const ast = new ASTInterfaceDeclaration();
+		const ast = new ASTInterfaceDeclaration(node.pos);
 
 		const handlingResult = this.handleASTDeclaration(node, ast, NT.ExtensionsList, this.visitExtensionsList);
 		if (handlingResult.outcome === 'error') {
@@ -1669,10 +1672,10 @@ export default class SemanticAnalyzer {
 	 */
 	visitJoeDoc(node: Node): Result<ASTJoeDoc> {
 		if (node.type === NT.JoeDoc && node.value) {
-			return ok(ASTJoeDoc._(node.value));
+			return ok(ASTJoeDoc._(node.value, node.pos));
 		}
 
-		// check the contents of the JoeDoc
+		// TODO check the contents of the JoeDoc
 
 		return error(
 			new AnalysisError(
@@ -1685,7 +1688,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitLoopStatement(node: Node): Result<ASTLoopStatement> {
-		const ast = new ASTLoopStatement();
+		const ast = new ASTLoopStatement(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// TODO add the guard
@@ -1703,7 +1706,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitMemberExpression(node: Node): Result<ASTMemberExpression> {
-		const ast = new ASTMemberExpression();
+		const ast = new ASTMemberExpression(node.pos);
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first grammatical requirement: parent (required)
@@ -1783,7 +1786,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitMemberListExpression(node: Node): Result<ASTMemberListExpression> {
-		const ast = new ASTMemberListExpression();
+		const ast = new ASTMemberListExpression(node.pos);
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first grammatical requirement: parent (required)
@@ -1857,7 +1860,7 @@ export default class SemanticAnalyzer {
 		return this.handleNodeThatHasValueAndNoChildren(
 			node,
 			NT.Modifier,
-			(value) => ok(ASTModifier._(value)),
+			(value) => ok(ASTModifier._(value, node.pos)),
 			AnalysisErrorCode.ModifierExpected,
 			(node: Node) => `We were expecting a modifier, but found a "${node.type}"`,
 		);
@@ -1867,15 +1870,15 @@ export default class SemanticAnalyzer {
 		return this.visitChildren(node, [NT.Modifier], AnalysisErrorCode.ModifierExpected, () => 'Modifier Expected');
 	}
 
-	visitNextStatement(_node: Node): Result<ASTNextStatement> {
-		return ok(ASTNextStatement._());
+	visitNextStatement(node: Node): Result<ASTNextStatement> {
+		return ok(ASTNextStatement._(node.pos));
 	}
 
 	visitNumberLiteral(node: Node): Result<ASTNumberLiteral> {
 		return this.handleNodeThatHasValueAndNoChildren(
 			node,
 			NT.NumberLiteral,
-			(value) => ASTNumberLiteral.convertNumberValueTo(value),
+			(value) => ASTNumberLiteral.convertNumberValueTo(value, node.pos),
 			AnalysisErrorCode.NumberLiteralExpected,
 			(node: Node) => `We were expecting a number, but found a "${node.type}"`,
 		);
@@ -1891,7 +1894,7 @@ export default class SemanticAnalyzer {
 		switch (conversionResult.outcome) {
 			case 'ok':
 				{
-					const ast = ASTObjectExpression._(conversionResult.value);
+					const ast = ASTObjectExpression._(conversionResult.value, node.pos);
 
 					this.astPointer = this.ast = ast;
 
@@ -1914,7 +1917,7 @@ export default class SemanticAnalyzer {
 		switch (conversionResult.outcome) {
 			case 'ok':
 				{
-					const ast = ASTObjectShape._(conversionResult.value);
+					const ast = ASTObjectShape._(conversionResult.value, node.pos);
 
 					this.astPointer = this.ast = ast;
 
@@ -1930,7 +1933,7 @@ export default class SemanticAnalyzer {
 	visitParameter(node: Node): Result<ASTParameter> {
 		// this is significant overlap with the visitVariableDeclaration() function
 
-		const ast = new ASTParameter();
+		const ast = new ASTParameter(node.pos);
 
 		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// TODO add support for modifiers
@@ -2142,7 +2145,7 @@ export default class SemanticAnalyzer {
 
 	visitPath(node: Node): Result<ASTPath> {
 		if (node?.type === NT.Path && node.value) {
-			const ast = new ASTPath();
+			const ast = new ASTPath(node.pos);
 
 			// first, determine if the path is relative or absolute
 			ast.absolute = node.value.startsWith('@');
@@ -2170,7 +2173,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitPostfixIfStatement(node: Node): Result<ASTPostfixIfStatement> {
-		const ast = new ASTPostfixIfStatement();
+		const ast = new ASTPostfixIfStatement(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the expression
@@ -2225,7 +2228,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitPrintStatement(node: Node): Result<ASTPrintStatement> {
-		const ast = new ASTPrintStatement();
+		const ast = new ASTPrintStatement(node.pos);
 
 		// first, get the expression to print
 		const expressionsResult = this.visitChildren<ExpressionASTs>(
@@ -2267,7 +2270,7 @@ export default class SemanticAnalyzer {
 			validChildren = Object.values(NT);
 		}
 
-		const ast = new ASTProgram();
+		const ast = new ASTProgram(node.pos);
 
 		// the imports
 		// skip for now
@@ -2293,7 +2296,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitProperty(node: Node): Result<ASTProperty> {
-		const ast = new ASTProperty();
+		const ast = new ASTProperty(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the property name
@@ -2347,7 +2350,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitPropertyShape(node: Node): Result<ASTPropertyShape> {
-		const ast = new ASTPropertyShape();
+		const ast = new ASTPropertyShape(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the property name
@@ -2410,7 +2413,7 @@ export default class SemanticAnalyzer {
 			NT.UnaryExpression,
 		];
 
-		const ast = new ASTRangeExpression();
+		const ast = new ASTRangeExpression(node.pos);
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first child: the lower bound (required)
@@ -2468,7 +2471,7 @@ export default class SemanticAnalyzer {
 
 	visitRegularExpression(node: Node): Result<ASTRegularExpression> {
 		if (node?.type === NT.RegularExpression && node.value) {
-			const ast = new ASTRegularExpression();
+			const ast = new ASTRegularExpression(node.pos);
 
 			// separate pattern and flags
 			const lastSlashStringIndex = node.value?.lastIndexOf('/');
@@ -2537,7 +2540,7 @@ export default class SemanticAnalyzer {
 
 	visitRestElement(node: Node): Result<ASTRestElement> {
 		if (node?.type === NT.RestElement) {
-			const ast = new ASTRestElement();
+			const ast = new ASTRestElement(node.pos);
 
 			this.astPointer = this.ast = ast;
 
@@ -2556,7 +2559,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitReturnStatement(node: Node): Result<ASTReturnStatement> {
-		const ast = new ASTReturnStatement();
+		const ast = new ASTReturnStatement(node.pos);
 
 		const conversionResult = this.visitChildren<ExpressionASTs>(
 			node,
@@ -2580,7 +2583,7 @@ export default class SemanticAnalyzer {
 	visitStringLiteral(node: Node): Result<ASTStringLiteral> {
 		// check if the value is undefined, since empty strings are valid
 		if (node?.type === NT.StringLiteral && typeof node.value !== 'undefined') {
-			const ast = new ASTStringLiteral();
+			const ast = new ASTStringLiteral(node.pos);
 
 			ast.value = node.value;
 
@@ -2607,7 +2610,7 @@ export default class SemanticAnalyzer {
 				return visitResult;
 			}
 
-			const ast = new ASTTernaryAlternate<AssignableASTs>();
+			const ast = new ASTTernaryAlternate<AssignableASTs>(node.pos);
 
 			ast.value = visitResult.value;
 
@@ -2634,7 +2637,7 @@ export default class SemanticAnalyzer {
 				return visitResult;
 			}
 
-			const ast = new ASTTernaryCondition();
+			const ast = new ASTTernaryCondition(node.pos);
 
 			ast.expression = visitResult.value;
 
@@ -2661,7 +2664,7 @@ export default class SemanticAnalyzer {
 				return visitResult;
 			}
 
-			const ast = new ASTTernaryConsequent<AssignableASTs>();
+			const ast = new ASTTernaryConsequent<AssignableASTs>(node.pos);
 
 			ast.value = visitResult.value;
 
@@ -2682,7 +2685,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTernaryExpression(node: Node): Result<ASTTernaryExpression<AssignableASTs, AssignableASTs>> {
-		const ast = new ASTTernaryExpression();
+		const ast = new ASTTernaryExpression(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the test
@@ -2759,7 +2762,7 @@ export default class SemanticAnalyzer {
 
 	visitThisKeyword(node: Node): Result<ASTThisKeyword> {
 		if (node?.type === NT.ThisKeyword) {
-			const ast = new ASTThisKeyword();
+			const ast = new ASTThisKeyword(node.pos);
 
 			this.astPointer = this.ast = ast;
 
@@ -2778,7 +2781,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTupleExpression(node: Node): Result<ASTTupleExpression> {
-		const ast = new ASTTupleExpression();
+		const ast = new ASTTupleExpression(node.pos);
 
 		const handlingResult = this.visitChildren<AssignableASTs>(
 			node,
@@ -2848,7 +2851,7 @@ export default class SemanticAnalyzer {
 			}
 		}
 
-		const ast = ASTTupleShape._(children);
+		const ast = ASTTupleShape._(children, node.pos);
 
 		this.astPointer = this.ast = ast;
 
@@ -2888,7 +2891,7 @@ export default class SemanticAnalyzer {
 
 				// check if it's a number type
 				if (numberSizesAll.includes(node.value as NumberSize)) {
-					const ast = ASTTypeNumber._(node.value as NumberSize);
+					const ast = ASTTypeNumber._(node.value as NumberSize, node.pos);
 
 					this.astPointer = this.ast = ast;
 
@@ -2897,7 +2900,7 @@ export default class SemanticAnalyzer {
 
 				// check if it's a primitive type
 				if (primitiveTypes.includes(node.value as primitiveAstType)) {
-					const ast = ASTTypePrimitive._(node.value as primitiveAstType);
+					const ast = ASTTypePrimitive._(node.value as primitiveAstType, node.pos);
 
 					this.astPointer = this.ast = ast;
 
@@ -2906,7 +2909,7 @@ export default class SemanticAnalyzer {
 
 				// check if it's a range
 				if (node.value === 'range') {
-					const ast = ASTTypeRange._();
+					const ast = ASTTypeRange._(node.pos);
 
 					this.astPointer = this.ast = ast;
 
@@ -2918,7 +2921,7 @@ export default class SemanticAnalyzer {
 
 			// or if it's a CommaSeparator
 			case NT.CommaSeparator:
-				return ok(new SkipAST());
+				return ok(new SkipAST(node.pos));
 				break;
 
 			// check if it's a FunctionSignature
@@ -2980,7 +2983,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTypeInstantiationExpression(node: Node): Result<ASTTypeInstantiationExpression> {
-		const ast = new ASTTypeInstantiationExpression();
+		const ast = new ASTTypeInstantiationExpression(node.pos);
 
 		// first grammatical requirement: the type
 		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
@@ -3053,7 +3056,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitTypeParameter(node: Node): Result<ASTType | SkipAST> {
-		const ast = new ASTTypeParameter();
+		const ast = new ASTTypeParameter(node.pos);
 
 		const handleResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// the type
@@ -3178,7 +3181,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitUnaryExpression(node: UnaryExpressionNode): Result<ASTUnaryExpression<ExpressionASTs>> {
-		const ast = new ASTUnaryExpression<ExpressionASTs>();
+		const ast = new ASTUnaryExpression<ExpressionASTs>(node.pos);
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first grammatical requirement: is the operator before or after the operand
@@ -3255,7 +3258,7 @@ export default class SemanticAnalyzer {
 	visitVariableDeclaration(node: Node): Result<ASTVariableDeclaration> {
 		// there is significant overlap with the visitParameter() function
 
-		const ast = new ASTVariableDeclaration();
+		const ast = new ASTVariableDeclaration(node.pos);
 
 		// first grammatical requirement: mutability keyword (from the value)
 		if (node.value && ['const', 'let'].includes(node.value)) {
@@ -3294,7 +3297,7 @@ export default class SemanticAnalyzer {
 							// if the identifier ends with a '?', that _is_ declaring the type as bool
 							ast.identifiersList.forEach((identifier, index) => {
 								if (identifier.name.at(-1) === '?') {
-									ast.declaredTypes[index] = ASTTypePrimitiveBool;
+									ast.declaredTypes[index] = ASTTypePrimitiveBool(child.pos);
 								}
 							});
 
@@ -3496,7 +3499,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitWhenCase(node: Node): Result<ASTWhenCase> {
-		const ast = new ASTWhenCase();
+		const ast = new ASTWhenCase(node.pos);
 
 		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
 			// first child: the values (required)
@@ -3579,7 +3582,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitWhenExpression(node: Node): Result<ASTWhenExpression> {
-		const ast = new ASTWhenExpression();
+		const ast = new ASTWhenExpression(node.pos);
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		// first child: the test expression (required)

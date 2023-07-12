@@ -62,6 +62,7 @@ import {
 import { analyze } from '../analyzer/util';
 import { primitiveTypes } from '../lexer/types';
 import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
+import { mockPos } from '../shared/pos';
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';
 
@@ -92,18 +93,19 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-					right: ASTNumberLiteral._(2000, undefined, [
-						'int16',
-						'int32',
-						'int64',
-						'uint16',
-						'uint32',
-						'uint64',
-					]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						right: ASTNumberLiteral._(
+							2000,
+							undefined,
+							['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 
@@ -121,15 +123,21 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTUnaryExpression._({
-						before: true,
-						operator: '-',
-						operand: ASTNumberLiteral._(1000, undefined, ['int16', 'int32', 'int64']),
-					}),
-					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTUnaryExpression._(
+							{
+								before: true,
+								operator: '-',
+								operand: ASTNumberLiteral._(1000, undefined, ['int16', 'int32', 'int64'], mockPos),
+							},
+							mockPos,
+						),
+						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 
@@ -147,15 +155,21 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-					right: ASTUnaryExpression._({
-						before: true,
-						operator: '-',
-						operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-					}),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						right: ASTUnaryExpression._(
+							{
+								before: true,
+								operator: '-',
+								operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 
@@ -173,19 +187,28 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTUnaryExpression._({
-						before: true,
-						operator: '-',
-						operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
-					}),
-					right: ASTUnaryExpression._({
-						before: true,
-						operator: '-',
-						operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-					}),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTUnaryExpression._(
+							{
+								before: true,
+								operator: '-',
+								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+							},
+							mockPos,
+						),
+						right: ASTUnaryExpression._(
+							{
+								before: true,
+								operator: '-',
+								operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -206,11 +229,14 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTIdentifier._('foo'),
-					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTIdentifier._('foo', mockPos),
+						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -230,11 +256,14 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-					right: ASTIdentifier._('foo'),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						right: ASTIdentifier._('foo', mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -261,14 +290,20 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTStringLiteral._('a'),
-					}),
-					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTStringLiteral._('a', mockPos),
+							},
+							mockPos,
+						),
+						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 
@@ -292,14 +327,20 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTIdentifier._('a'),
-					}),
-					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTIdentifier._('a', mockPos),
+							},
+							mockPos,
+						),
+						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 
@@ -329,17 +370,26 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTMemberExpression._({
-						object: ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTStringLiteral._('a'),
-						}),
-						property: ASTIdentifier._('b'),
-					}),
-					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTMemberExpression._(
+							{
+								object: ASTMemberExpression._(
+									{
+										object: ASTIdentifier._('foo', mockPos),
+										property: ASTStringLiteral._('a', mockPos),
+									},
+									mockPos,
+								),
+								property: ASTIdentifier._('b', mockPos),
+							},
+							mockPos,
+						),
+						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 
@@ -375,23 +425,38 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-					right: ASTMemberExpression._({
-						object: ASTMemberExpression._({
-							object: ASTMemberExpression._({
-								object: ASTMemberExpression._({
-									object: ASTThisKeyword._(),
-									property: ASTIdentifier._('foo'),
-								}),
-								property: ASTStringLiteral._('a'),
-							}),
-							property: ASTStringLiteral._('c'),
-						}),
-						property: ASTIdentifier._('d'),
-					}),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						right: ASTMemberExpression._(
+							{
+								object: ASTMemberExpression._(
+									{
+										object: ASTMemberExpression._(
+											{
+												object: ASTMemberExpression._(
+													{
+														object: ASTThisKeyword._(mockPos),
+														property: ASTIdentifier._('foo', mockPos),
+													},
+													mockPos,
+												),
+												property: ASTStringLiteral._('a', mockPos),
+											},
+											mockPos,
+										),
+										property: ASTStringLiteral._('c', mockPos),
+									},
+									mockPos,
+								),
+								property: ASTIdentifier._('d', mockPos),
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -418,15 +483,21 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.StringLiteral, 'a'],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-					right: ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTStringLiteral._('a'),
-					}),
-				}),
-				ASTStringLiteral._('a'),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						right: ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTStringLiteral._('a', mockPos),
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
+				ASTStringLiteral._('a', mockPos),
 			],
 		);
 	});
@@ -453,14 +524,20 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTCallExpression._({
-						callee: ASTIdentifier._('foo'),
-						args: [ASTStringLiteral._('a')],
-					}),
-					right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTCallExpression._(
+							{
+								callee: ASTIdentifier._('foo', mockPos),
+								args: [ASTStringLiteral._('a', mockPos)],
+							},
+							mockPos,
+						),
+						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -486,14 +563,20 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-					right: ASTCallExpression._({
-						callee: ASTIdentifier._('foo'),
-						args: [ASTStringLiteral._('a')],
-					}),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						right: ASTCallExpression._(
+							{
+								callee: ASTIdentifier._('foo', mockPos),
+								args: [ASTStringLiteral._('a', mockPos)],
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -526,17 +609,26 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTStringLiteral._('a'),
-					}),
-					right: ASTCallExpression._({
-						callee: ASTIdentifier._('bar'),
-						args: [ASTStringLiteral._('b')],
-					}),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTStringLiteral._('a', mockPos),
+							},
+							mockPos,
+						),
+						right: ASTCallExpression._(
+							{
+								callee: ASTIdentifier._('bar', mockPos),
+								args: [ASTStringLiteral._('b', mockPos)],
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -568,17 +660,26 @@ const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 				[NT.SemicolonSeparator],
 			],
 			[
-				ASTBinaryExpression._({
-					operator,
-					left: ASTCallExpression._({
-						callee: ASTIdentifier._('foo'),
-						args: [ASTStringLiteral._('a')],
-					}),
-					right: ASTMemberExpression._({
-						object: ASTIdentifier._('bar'),
-						property: ASTStringLiteral._('b'),
-					}),
-				}),
+				ASTBinaryExpression._(
+					{
+						operator,
+						left: ASTCallExpression._(
+							{
+								callee: ASTIdentifier._('foo', mockPos),
+								args: [ASTStringLiteral._('a', mockPos)],
+							},
+							mockPos,
+						),
+						right: ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('bar', mockPos),
+								property: ASTStringLiteral._('b', mockPos),
+							},
+							mockPos,
+						),
+					},
+					mockPos,
+				),
 			],
 		);
 	});
@@ -601,10 +702,13 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTAssignmentExpression._({
-						left: [ASTIdentifier._('foo')],
-						right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-					}),
+					ASTAssignmentExpression._(
+						{
+							left: [ASTIdentifier._('foo', mockPos)],
+							right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -624,15 +728,21 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTAssignmentExpression._({
-						left: [
-							ASTMemberExpression._({
-								object: ASTThisKeyword._(),
-								property: ASTIdentifier._('foo'),
-							}),
-						],
-						right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-					}),
+					ASTAssignmentExpression._(
+						{
+							left: [
+								ASTMemberExpression._(
+									{
+										object: ASTThisKeyword._(mockPos),
+										property: ASTIdentifier._('foo', mockPos),
+									},
+									mockPos,
+								),
+							],
+							right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -668,19 +778,25 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTAssignmentExpression._({
-						left: [
-							ASTIdentifier._('x'),
-							ASTMemberExpression._({
-								object: ASTIdentifier._('foo'),
-								property: ASTIdentifier._('bar'),
-							}),
-						],
-						right: [
-							ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-							ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						],
-					}),
+					ASTAssignmentExpression._(
+						{
+							left: [
+								ASTIdentifier._('x', mockPos),
+								ASTMemberExpression._(
+									{
+										object: ASTIdentifier._('foo', mockPos),
+										property: ASTIdentifier._('bar', mockPos),
+									},
+									mockPos,
+								),
+							],
+							right: [
+								ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -720,18 +836,27 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [],
-						body: ASTBlockStatement._([
-							ASTPrintStatement._([ASTStringLiteral._('hello')]),
-							ASTBlockStatement._([ASTPrintStatement._([ASTStringLiteral._('world')])]),
-							ASTPrintStatement._([ASTStringLiteral._('!')]),
-						]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._(
+								[
+									ASTPrintStatement._([ASTStringLiteral._('hello', mockPos)], mockPos),
+									ASTBlockStatement._(
+										[ASTPrintStatement._([ASTStringLiteral._('world', mockPos)], mockPos)],
+										mockPos,
+									),
+									ASTPrintStatement._([ASTStringLiteral._('!', mockPos)], mockPos),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -803,31 +928,58 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [],
-						body: ASTBlockStatement._([
-							ASTPrintStatement._([ASTStringLiteral._('hello')]),
-							ASTBlockStatement._([
-								ASTPrintStatement._([ASTStringLiteral._('world')]),
-								ASTBlockStatement._([
-									ASTVariableDeclaration._({
-										modifiers: [],
-										mutable: false,
-										identifiersList: [ASTIdentifier._('x')],
-										declaredTypes: [],
-										initialValues: [ASTNumberLiteral._(4, undefined, [...numberSizesInts])],
-										inferredPossibleTypes: [[...NumberSizesIntASTs]],
-									}),
-								]),
-								ASTBlockStatement._([ASTPrintStatement._([ASTIdentifier._('x')])]),
-							]),
-							ASTPrintStatement._([ASTStringLiteral._('!')]),
-						]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._(
+								[
+									ASTPrintStatement._([ASTStringLiteral._('hello', mockPos)], mockPos),
+									ASTBlockStatement._(
+										[
+											ASTPrintStatement._([ASTStringLiteral._('world', mockPos)], mockPos),
+											ASTBlockStatement._(
+												[
+													ASTVariableDeclaration._(
+														{
+															modifiers: [],
+															mutable: false,
+															identifiersList: [ASTIdentifier._('x', mockPos)],
+															declaredTypes: [],
+															initialValues: [
+																ASTNumberLiteral._(
+																	4,
+																	undefined,
+																	[...numberSizesInts],
+																	mockPos,
+																),
+															],
+															inferredPossibleTypes: [
+																NumberSizesIntASTs.map((ns) => ns(mockPos)),
+															],
+														},
+														mockPos,
+													),
+												],
+												mockPos,
+											),
+											ASTBlockStatement._(
+												[ASTPrintStatement._([ASTIdentifier._('x', mockPos)], mockPos)],
+												mockPos,
+											),
+										],
+										mockPos,
+									),
+									ASTPrintStatement._([ASTStringLiteral._('!', mockPos)], mockPos),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -875,27 +1027,36 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('doSomething'),
-						typeParams: [],
-						params: [],
-						returnTypes: [ASTTypePrimitive._('string'), ASTTypePrimitive._('bool')],
-						body: ASTBlockStatement._([]),
-					}),
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('goLangStyle'), ASTIdentifier._('ok')],
-						declaredTypes: [],
-						initialValues: [
-							ASTCallExpression._({
-								callee: ASTIdentifier._('doSomething'),
-								args: [],
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('doSomething', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [ASTTypePrimitive._('string', mockPos), ASTTypePrimitive._('bool', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('goLangStyle', mockPos), ASTIdentifier._('ok', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTCallExpression._(
+									{
+										callee: ASTIdentifier._('doSomething', mockPos),
+										args: [],
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -932,19 +1093,31 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTCallExpression._({
-						callee: ASTMemberExpression._({
-							object: ASTMemberExpression._({
-								object: ASTMemberExpression._({
-									object: ASTIdentifier._('a'),
-									property: ASTIdentifier._('b'),
-								}),
-								property: ASTIdentifier._('c'),
-							}),
-							property: ASTIdentifier._('d'),
-						}),
-						args: [ASTNumberLiteral._(4, undefined, [...numberSizesInts])],
-					}),
+					ASTCallExpression._(
+						{
+							callee: ASTMemberExpression._(
+								{
+									object: ASTMemberExpression._(
+										{
+											object: ASTMemberExpression._(
+												{
+													object: ASTIdentifier._('a', mockPos),
+													property: ASTIdentifier._('b', mockPos),
+												},
+												mockPos,
+											),
+											property: ASTIdentifier._('c', mockPos),
+										},
+										mockPos,
+									),
+									property: ASTIdentifier._('d', mockPos),
+								},
+								mockPos,
+							),
+							args: [ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -968,13 +1141,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTCallExpression._({
-							callee: ASTIdentifier._('a'),
-							args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-						}),
-						property: ASTIdentifier._('b'),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('a', mockPos),
+									args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								},
+								mockPos,
+							),
+							property: ASTIdentifier._('b', mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1004,16 +1183,25 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTCallExpression._({
-						callee: ASTMemberExpression._({
-							object: ASTCallExpression._({
-								callee: ASTIdentifier._('a'),
-								args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-							}),
-							property: ASTIdentifier._('b'),
-						}),
-						args: [ASTNumberLiteral._(2, undefined, [...numberSizesInts])],
-					}),
+					ASTCallExpression._(
+						{
+							callee: ASTMemberExpression._(
+								{
+									object: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('a', mockPos),
+											args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+										},
+										mockPos,
+									),
+									property: ASTIdentifier._('b', mockPos),
+								},
+								mockPos,
+							),
+							args: [ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1043,15 +1231,21 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTCallExpression._({
-						callee: ASTIdentifier._('a'),
-						args: [
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('b'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-						],
-					}),
+					ASTCallExpression._(
+						{
+							callee: ASTIdentifier._('a', mockPos),
+							args: [
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('b', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -1069,11 +1263,14 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTCallExpression._({
-						callee: ASTIdentifier._('a'),
-						typeArgs: [ASTIdentifier._('T')],
-						args: [ASTIdentifier._('b')],
-					}),
+					ASTCallExpression._(
+						{
+							callee: ASTIdentifier._('a', mockPos),
+							typeArgs: [ASTIdentifier._('T', mockPos)],
+							args: [ASTIdentifier._('b', mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1113,20 +1310,29 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [
-							ASTCallExpression._({
-								callee: ASTIdentifier._('Foo'),
-								typeArgs: [ASTIdentifier._('T'), ASTArrayOf._(ASTIdentifier._('T'))],
-								args: [],
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTCallExpression._(
+									{
+										callee: ASTIdentifier._('Foo', mockPos),
+										typeArgs: [
+											ASTIdentifier._('T', mockPos),
+											ASTArrayOf._(ASTIdentifier._('T', mockPos), mockPos),
+										],
+										args: [],
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1207,39 +1413,75 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('C'),
-						typeParams: [],
-						extends: [ASTIdentifier._('A'), ASTIdentifier._('B')],
-						implements: [],
-						body: ASTBlockStatement._([
-							ASTFunctionDeclaration._({
-								modifiers: [],
-								name: ASTIdentifier._('foo'),
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: ASTBlockStatement._([
-									ASTReturnStatement._([
-										ASTCallExpression._({
-											callee: ASTMemberExpression._({
-												object: ASTMemberExpression._({
-													object: ASTThisKeyword._(),
-													property: ASTTypeInstantiationExpression._({
-														base: ASTIdentifier._('parent'),
-														typeArgs: [ASTIdentifier._('B')],
-													}),
-												}),
-												property: ASTIdentifier._('foo'),
-											}),
-											args: [],
-										}),
-									]),
-								]),
-							}),
-						]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('C', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('A', mockPos), ASTIdentifier._('B', mockPos)],
+							implements: [],
+							body: ASTBlockStatement._(
+								[
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [],
+											name: ASTIdentifier._('foo', mockPos),
+											typeParams: [],
+											params: [],
+											returnTypes: [],
+											body: ASTBlockStatement._(
+												[
+													ASTReturnStatement._(
+														[
+															ASTCallExpression._(
+																{
+																	callee: ASTMemberExpression._(
+																		{
+																			object: ASTMemberExpression._(
+																				{
+																					object: ASTThisKeyword._(mockPos),
+																					property:
+																						ASTTypeInstantiationExpression._(
+																							{
+																								base: ASTIdentifier._(
+																									'parent',
+																									mockPos,
+																								),
+																								typeArgs: [
+																									ASTIdentifier._(
+																										'B',
+																										mockPos,
+																									),
+																								],
+																							},
+																							mockPos,
+																						),
+																				},
+																				mockPos,
+																			),
+																			property: ASTIdentifier._('foo', mockPos),
+																		},
+																		mockPos,
+																	),
+																	args: [],
+																},
+																mockPos,
+															),
+														],
+														mockPos,
+													),
+												],
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1269,16 +1511,25 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTCallExpression._({
-						callee: ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('bar'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-						}),
-						args: [],
-					}),
+					ASTCallExpression._(
+						{
+							callee: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTTypeInstantiationExpression._(
+										{
+											base: ASTIdentifier._('bar', mockPos),
+											typeArgs: [ASTIdentifier._('T', mockPos)],
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
+							args: [],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -1306,16 +1557,25 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTCallExpression._({
-						callee: ASTMemberExpression._({
-							object: ASTThisKeyword._(),
-							property: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('bar'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-						}),
-						args: [],
-					}),
+					ASTCallExpression._(
+						{
+							callee: ASTMemberExpression._(
+								{
+									object: ASTThisKeyword._(mockPos),
+									property: ASTTypeInstantiationExpression._(
+										{
+											base: ASTIdentifier._('bar', mockPos),
+											typeArgs: [ASTIdentifier._('T', mockPos)],
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
+							args: [],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1341,13 +1601,19 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTCallExpression._({
-							callee: ASTMemberExpression._({
-								object: ASTIdentifier._('A'),
-								property: ASTIdentifier._('create'),
-							}),
-							args: [],
-						}),
+						ASTCallExpression._(
+							{
+								callee: ASTMemberExpression._(
+									{
+										object: ASTIdentifier._('A', mockPos),
+										property: ASTIdentifier._('create', mockPos),
+									},
+									mockPos,
+								),
+								args: [],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -1414,32 +1680,56 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTCallExpression._({
-							callee: ASTMemberExpression._({
-								object: ASTTypeInstantiationExpression._({
-									base: ASTIdentifier._('A'),
-									typeArgs: [ASTIdentifier._('T'), ASTIdentifier._('U')],
-								}),
-								property: ASTIdentifier._('create'),
-							}),
-							args: [
-								ASTCallExpression._({
-									callee: ASTMemberExpression._({
-										object: ASTIdentifier._('T'),
-										property: ASTIdentifier._('create'),
-									}),
-									args: [],
-								}),
-								ASTCallExpression._({
-									callee: ASTMemberExpression._({
-										object: ASTIdentifier._('U'),
-										property: ASTIdentifier._('create'),
-									}),
-									args: [],
-								}),
-								ASTStringLiteral._('foo'),
-							],
-						}),
+						ASTCallExpression._(
+							{
+								callee: ASTMemberExpression._(
+									{
+										object: ASTTypeInstantiationExpression._(
+											{
+												base: ASTIdentifier._('A', mockPos),
+												typeArgs: [
+													ASTIdentifier._('T', mockPos),
+													ASTIdentifier._('U', mockPos),
+												],
+											},
+											mockPos,
+										),
+										property: ASTIdentifier._('create', mockPos),
+									},
+									mockPos,
+								),
+								args: [
+									ASTCallExpression._(
+										{
+											callee: ASTMemberExpression._(
+												{
+													object: ASTIdentifier._('T', mockPos),
+													property: ASTIdentifier._('create', mockPos),
+												},
+												mockPos,
+											),
+											args: [],
+										},
+										mockPos,
+									),
+									ASTCallExpression._(
+										{
+											callee: ASTMemberExpression._(
+												{
+													object: ASTIdentifier._('U', mockPos),
+													property: ASTIdentifier._('create', mockPos),
+												},
+												mockPos,
+											),
+											args: [],
+										},
+										mockPos,
+									),
+									ASTStringLiteral._('foo', mockPos),
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -1482,22 +1772,37 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTCallExpression._({
-							callee: ASTMemberExpression._({
-								object: ASTMemberExpression._({
-									object: ASTMemberExpression._({
-										object: ASTMemberExpression._({
-											object: ASTIdentifier._('A'),
-											property: ASTIdentifier._('B'),
-										}),
-										property: ASTIdentifier._('C'),
-									}),
-									property: ASTIdentifier._('D'),
-								}),
-								property: ASTIdentifier._('create'),
-							}),
-							args: [],
-						}),
+						ASTCallExpression._(
+							{
+								callee: ASTMemberExpression._(
+									{
+										object: ASTMemberExpression._(
+											{
+												object: ASTMemberExpression._(
+													{
+														object: ASTMemberExpression._(
+															{
+																object: ASTIdentifier._('A', mockPos),
+																property: ASTIdentifier._('B', mockPos),
+															},
+															mockPos,
+														),
+														property: ASTIdentifier._('C', mockPos),
+													},
+													mockPos,
+												),
+												property: ASTIdentifier._('D', mockPos),
+											},
+											mockPos,
+										),
+										property: ASTIdentifier._('create', mockPos),
+									},
+									mockPos,
+								),
+								args: [],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -1518,14 +1823,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -1562,23 +1870,32 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T')),
-							ASTTypeParameter._(
-								ASTMemberExpression._({
-									object: ASTIdentifier._('U'),
-									property: ASTIdentifier._('V'),
-								}),
-							),
-							ASTTypeParameter._(ASTTypePrimitive._('bool')),
-						],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(
+									ASTMemberExpression._(
+										{
+											object: ASTIdentifier._('U', mockPos),
+											property: ASTIdentifier._('V', mockPos),
+										},
+										mockPos,
+									),
+									undefined,
+									undefined,
+									mockPos,
+								),
+								ASTTypeParameter._(ASTTypePrimitive._('bool', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1597,14 +1914,17 @@ describe('parser.ts', (): void => {
 					[NT.Comment, '# bar'],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1644,31 +1964,43 @@ describe('parser.ts', (): void => {
 					[NT.Comment, '# bar'],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([
-							ASTVariableDeclaration._({
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo')],
-								declaredTypes: [],
-								initialValues: [ASTStringLiteral._('bar')],
-								inferredPossibleTypes: [[ASTTypePrimitive._('string')]],
-							}),
-							ASTFunctionDeclaration._({
-								modifiers: [],
-								name: ASTIdentifier._('bar'),
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: ASTBlockStatement._([]),
-							}),
-						]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._(
+								[
+									ASTVariableDeclaration._(
+										{
+											modifiers: [],
+											mutable: false,
+											identifiersList: [ASTIdentifier._('foo', mockPos)],
+											declaredTypes: [],
+											initialValues: [ASTStringLiteral._('bar', mockPos)],
+											inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
+										},
+										mockPos,
+									),
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [],
+											name: ASTIdentifier._('bar', mockPos),
+											typeParams: [],
+											params: [],
+											returnTypes: [],
+											body: ASTBlockStatement._([], mockPos),
+										},
+										mockPos,
+									),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1702,14 +2034,20 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [ASTIdentifier._('Bar'), ASTIdentifier._('Baz')],
-						implements: [ASTIdentifier._('AbstractFooBar'), ASTIdentifier._('AnotherAbstractClass')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
+							implements: [
+								ASTIdentifier._('AbstractFooBar', mockPos),
+								ASTIdentifier._('AnotherAbstractClass', mockPos),
+							],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1776,35 +2114,47 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T')),
-							ASTTypeParameter._(ASTIdentifier._('U')),
-						],
-						extends: [
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('Bar'),
-								typeArgs: [
-									ASTTypeInstantiationExpression._({
-										base: ASTIdentifier._('T'),
-										typeArgs: [ASTIdentifier._('RE')],
-									}),
-									ASTTypePrimitive._('path'),
-								],
-							}),
-							ASTIdentifier._('Baz'),
-						],
-						implements: [
-							ASTIdentifier._('AbstractFooBar'),
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('AnotherAbstractClass'),
-								typeArgs: [ASTIdentifier._('U')],
-							}),
-						],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('Bar', mockPos),
+										typeArgs: [
+											ASTTypeInstantiationExpression._(
+												{
+													base: ASTIdentifier._('T', mockPos),
+													typeArgs: [ASTIdentifier._('RE', mockPos)],
+												},
+												mockPos,
+											),
+											ASTTypePrimitive._('path', mockPos),
+										],
+									},
+									mockPos,
+								),
+								ASTIdentifier._('Baz', mockPos),
+							],
+							implements: [
+								ASTIdentifier._('AbstractFooBar', mockPos),
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('AnotherAbstractClass', mockPos),
+										typeArgs: [ASTIdentifier._('U', mockPos)],
+									},
+									mockPos,
+								),
+							],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -1823,14 +2173,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [ASTModifier._('abstract')],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [ASTModifier._('abstract', mockPos)],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -1848,14 +2201,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [ASTModifier._('abstract')],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [ASTModifier._('abstract', mockPos)],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -1962,55 +2320,95 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [ASTModifier._('abstract')],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([
-							ASTVariableDeclaration._({
-								modifiers: [ASTModifier._('abstract'), ASTModifier._('readonly')],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('baz')],
-								declaredTypes: [ASTTypeNumber._('int8')],
-								initialValues: [],
-								inferredPossibleTypes: [],
-							}),
-							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('abstract'), ASTModifier._('static')],
-								name: ASTIdentifier._('hello'),
-								typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-								params: [
-									ASTParameter._({
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('name'),
-										declaredType: ASTTypePrimitive._('string'),
-										defaultValue: ASTStringLiteral._('World'),
-									}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [ASTModifier._('abstract', mockPos)],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._(
+								[
+									ASTVariableDeclaration._(
+										{
+											modifiers: [
+												ASTModifier._('abstract', mockPos),
+												ASTModifier._('readonly', mockPos),
+											],
+											mutable: false,
+											identifiersList: [ASTIdentifier._('baz', mockPos)],
+											declaredTypes: [ASTTypeNumber._('int8', mockPos)],
+											initialValues: [],
+											inferredPossibleTypes: [],
+										},
+										mockPos,
+									),
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [
+												ASTModifier._('abstract', mockPos),
+												ASTModifier._('static', mockPos),
+											],
+											name: ASTIdentifier._('hello', mockPos),
+											typeParams: [
+												ASTTypeParameter._(
+													ASTIdentifier._('T', mockPos),
+													undefined,
+													undefined,
+													mockPos,
+												),
+											],
+											params: [
+												ASTParameter._(
+													{
+														modifiers: [],
+														isRest: false,
+														name: ASTIdentifier._('name', mockPos),
+														declaredType: ASTTypePrimitive._('string', mockPos),
+														defaultValue: ASTStringLiteral._('World', mockPos),
+													},
+													mockPos,
+												),
+											],
+											returnTypes: [
+												ASTIdentifier._('Greeting', mockPos),
+												ASTIdentifier._('T', mockPos),
+											],
+											body: undefined,
+										},
+										mockPos,
+									),
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [
+												ASTModifier._('pub', mockPos),
+												ASTModifier._('static', mockPos),
+											],
+											name: ASTIdentifier._('world', mockPos),
+											typeParams: [],
+											params: [
+												ASTParameter._(
+													{
+														modifiers: [],
+														isRest: false,
+														name: ASTIdentifier._('name', mockPos),
+														declaredType: ASTTypePrimitive._('string', mockPos),
+														defaultValue: ASTStringLiteral._('Earth', mockPos),
+													},
+													mockPos,
+												),
+											],
+											returnTypes: [],
+											body: undefined,
+										},
+										mockPos,
+									),
 								],
-								returnTypes: [ASTIdentifier._('Greeting'), ASTIdentifier._('T')],
-								body: undefined,
-							}),
-							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('pub'), ASTModifier._('static')],
-								name: ASTIdentifier._('world'),
-								typeParams: [],
-								params: [
-									ASTParameter._({
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('name'),
-										declaredType: ASTTypePrimitive._('string'),
-										defaultValue: ASTStringLiteral._('Earth'),
-									}),
-								],
-								returnTypes: [],
-								body: undefined,
-							}),
-						]),
-					}),
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -2035,22 +2433,28 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [ASTModifier._('abstract')],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
-					ASTClassDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Bar'),
-						typeParams: [],
-						extends: [ASTIdentifier._('Foo')],
-						implements: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [ASTModifier._('abstract', mockPos)],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTClassDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Bar', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('Foo', mockPos)],
+							implements: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2088,13 +2492,16 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTEnumDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTEnumDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -2118,16 +2525,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTEnumDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T')),
-							ASTTypeParameter._(ASTIdentifier._('U')),
-						],
-						extends: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTEnumDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2153,20 +2563,26 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTEnumDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						body: ASTBlockStatement._([]),
-					}),
-					ASTEnumDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Bar'),
-						typeParams: [],
-						extends: [ASTIdentifier._('Foo')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTEnumDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTEnumDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Bar', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('Foo', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2192,13 +2608,16 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTEnumDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [ASTIdentifier._('Bar'), ASTIdentifier._('Baz')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTEnumDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2244,25 +2663,34 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTEnumDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T')),
-							ASTTypeParameter._(ASTIdentifier._('U')),
-						],
-						extends: [
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('Bar'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('Baz'),
-								typeArgs: [ASTIdentifier._('U')],
-							}),
-						],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTEnumDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('Bar', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('Baz', mockPos),
+										typeArgs: [ASTIdentifier._('U', mockPos)],
+									},
+									mockPos,
+								),
+							],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2290,21 +2718,30 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTRangeExpression._({
-							lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-							upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTRangeExpression._(
+								{
+									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+									upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2335,21 +2772,30 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTRangeExpression._({
-							lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-							upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTRangeExpression._(
+								{
+									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+									upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2393,35 +2839,47 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [
-							ASTArrayExpression._({
-								items: [
-									ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-									ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-								],
-								possibleTypes: [...NumberSizesIntASTs],
-							}),
-						],
-						inferredPossibleTypes: [NumberSizesIntASTs.map(ASTArrayOf._)],
-					}),
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
+					ASTVariableDeclaration._(
+						{
 							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
 							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTIdentifier._('foo'),
-						body: ASTBlockStatement._([]),
-					}),
+							initialValues: [
+								ASTArrayExpression._(
+									{
+										items: [
+											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+											ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										],
+										possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ASTArrayOf._(ns(mockPos), mockPos))],
+						},
+						mockPos,
+					),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTIdentifier._('foo', mockPos),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2454,25 +2912,34 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('n'), ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTArrayExpression._({
-							items: [
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							],
-							possibleTypes: [...NumberSizesIntASTs],
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('n', mockPos), ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTArrayExpression._(
+								{
+									items: [
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									],
+									possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2498,21 +2965,30 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTCallExpression._({
-							callee: ASTIdentifier._('foo'),
-							args: [],
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('foo', mockPos),
+									args: [],
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2538,21 +3014,30 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTIdentifier._('bar'),
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTIdentifier._('bar', mockPos),
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2587,25 +3072,34 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTMemberListExpression._({
-							object: ASTIdentifier._('foo'),
-							properties: [
-								ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-								ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-							],
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTMemberListExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									properties: [
+										ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+									],
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2642,26 +3136,38 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTMemberListExpression._({
-							object: ASTIdentifier._('foo'),
-							properties: [
-								ASTRangeExpression._({
-									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-									upper: ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-								}),
-							],
-						}),
-						body: ASTBlockStatement._([]),
-					}),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTMemberListExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									properties: [
+										ASTRangeExpression._(
+											{
+												lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+												upper: ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+											},
+											mockPos,
+										),
+									],
+								},
+								mockPos,
+							),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2683,19 +3189,25 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTIdentifier._('foo'),
-						body: ASTBlockStatement._([]),
-					}),
-					ASTPrintStatement._([ASTStringLiteral._('something after')]),
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
+									modifiers: [],
+									mutable: true,
+									identifiersList: [ASTIdentifier._('i', mockPos)],
+									declaredTypes: [],
+									initialValues: [],
+									inferredPossibleTypes: [],
+								},
+								mockPos,
+							),
+							iterable: ASTIdentifier._('foo', mockPos),
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTPrintStatement._([ASTStringLiteral._('something after', mockPos)], mockPos),
 				],
 			);
 		});
@@ -2732,31 +3244,46 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTForStatement._({
-						initializer: ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('i')],
-							declaredTypes: [],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
-						iterable: ASTIdentifier._('foo'),
-						body: ASTBlockStatement._([
-							ASTForStatement._({
-								initializer: ASTVariableDeclaration._({
+					ASTForStatement._(
+						{
+							initializer: ASTVariableDeclaration._(
+								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('j')],
+									identifiersList: [ASTIdentifier._('i', mockPos)],
 									declaredTypes: [],
 									initialValues: [],
 									inferredPossibleTypes: [],
-								}),
-								iterable: ASTIdentifier._('bar'),
-								body: ASTBlockStatement._([]),
-							}),
-						]),
-					}),
+								},
+								mockPos,
+							),
+							iterable: ASTIdentifier._('foo', mockPos),
+							body: ASTBlockStatement._(
+								[
+									ASTForStatement._(
+										{
+											initializer: ASTVariableDeclaration._(
+												{
+													modifiers: [],
+													mutable: true,
+													identifiersList: [ASTIdentifier._('j', mockPos)],
+													declaredTypes: [],
+													initialValues: [],
+													inferredPossibleTypes: [],
+												},
+												mockPos,
+											),
+											iterable: ASTIdentifier._('bar', mockPos),
+											body: ASTBlockStatement._([], mockPos),
+										},
+										mockPos,
+									),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2776,14 +3303,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2804,15 +3334,18 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [ASTTypePrimitive._('bool')],
-						body: ASTBlockStatement._([]),
-					}),
-					ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
 				],
 			);
 		});
@@ -2842,16 +3375,25 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [ASTTypePrimitive._('bool'), ASTTypePrimitive._('string')],
-						body: ASTBlockStatement._([
-							ASTReturnStatement._([ASTBoolLiteral._(true), ASTStringLiteral._('hey')]),
-						]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [ASTTypePrimitive._('bool', mockPos), ASTTypePrimitive._('string', mockPos)],
+							body: ASTBlockStatement._(
+								[
+									ASTReturnStatement._(
+										[ASTBoolLiteral._(true, mockPos), ASTStringLiteral._('hey', mockPos)],
+										mockPos,
+									),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2870,14 +3412,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2897,14 +3442,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [],
-						returnTypes: [ASTTypePrimitive._('bool')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -2958,38 +3506,56 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTTypeNumber._('int8'),
-							}),
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('callback'),
-								declaredType: ASTFunctionSignature._({
-									typeParams: [],
-									params: [
-										ASTParameter._({
-											modifiers: [],
-											isRest: false,
-											name: ASTIdentifier._('a'),
-											declaredType: ASTTypeNumber._('int8'),
-										}),
-									],
-									returnTypes: [ASTTypePrimitive._('string'), ASTTypePrimitive._('bool')],
-								}),
-							}),
-						],
-						returnTypes: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTTypeNumber._('int8', mockPos),
+									},
+									mockPos,
+								),
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('callback', mockPos),
+										declaredType: ASTFunctionSignature._(
+											{
+												typeParams: [],
+												params: [
+													ASTParameter._(
+														{
+															modifiers: [],
+															isRest: false,
+															name: ASTIdentifier._('a', mockPos),
+															declaredType: ASTTypeNumber._('int8', mockPos),
+														},
+														mockPos,
+													),
+												],
+												returnTypes: [
+													ASTTypePrimitive._('string', mockPos),
+													ASTTypePrimitive._('bool', mockPos),
+												],
+											},
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3016,27 +3582,36 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTTypeNumber._('int8'),
-							}),
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('r'),
-								declaredType: ASTTypePrimitive._('regex'),
-							}),
-						],
-						returnTypes: [ASTTypePrimitive._('regex'), ASTTypePrimitive._('bool')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTTypeNumber._('int8', mockPos),
+									},
+									mockPos,
+								),
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('r', mockPos),
+										declaredType: ASTTypePrimitive._('regex', mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [ASTTypePrimitive._('regex', mockPos), ASTTypePrimitive._('bool', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3104,41 +3679,61 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTFunctionSignature._({
-									typeParams: [],
-									params: [],
-									returnTypes: [ASTIdentifier._('T')],
-								}),
-							}),
-						],
-						returnTypes: [
-							ASTFunctionSignature._({
-								typeParams: [],
-								params: [],
-								returnTypes: [
-									ASTTypeInstantiationExpression._({
-										base: ASTIdentifier._('Result'),
-										typeArgs: [
-											ASTTypeInstantiationExpression._({
-												base: ASTIdentifier._('Maybe'),
-												typeArgs: [ASTIdentifier._('T')],
-											}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+							],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTFunctionSignature._(
+											{
+												typeParams: [],
+												params: [],
+												returnTypes: [ASTIdentifier._('T', mockPos)],
+											},
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [
+								ASTFunctionSignature._(
+									{
+										typeParams: [],
+										params: [],
+										returnTypes: [
+											ASTTypeInstantiationExpression._(
+												{
+													base: ASTIdentifier._('Result', mockPos),
+													typeArgs: [
+														ASTTypeInstantiationExpression._(
+															{
+																base: ASTIdentifier._('Maybe', mockPos),
+																typeArgs: [ASTIdentifier._('T', mockPos)],
+															},
+															mockPos,
+														),
+													],
+												},
+												mockPos,
+											),
 										],
-									}),
-								],
-							}),
-						],
-						body: ASTBlockStatement._([]),
-					}),
+									},
+									mockPos,
+								),
+							],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3170,21 +3765,27 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTTupleShape._([[ASTTypePrimitive._('bool')]]),
-							}),
-						],
-						returnTypes: [ASTTupleShape._([[ASTTypeNumber._('dec64')]])],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTTupleShape._([[ASTTypePrimitive._('bool', mockPos)]], mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [ASTTupleShape._([[ASTTypeNumber._('dec64', mockPos)]], mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3216,23 +3817,33 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTArrayOf._(
-									ASTTupleShape._([[ASTArrayOf._(ASTTypePrimitive._('bool'))]]),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTArrayOf._(
+											ASTTupleShape._(
+												[[ASTArrayOf._(ASTTypePrimitive._('bool', mockPos), mockPos)]],
+												mockPos,
+											),
+											mockPos,
+										),
+									},
+									mockPos,
 								),
-							}),
-						],
-						returnTypes: [ASTTupleShape._([[ASTTypeNumber._('int32')]])],
-						body: ASTBlockStatement._([]),
-					}),
+							],
+							returnTypes: [ASTTupleShape._([[ASTTypeNumber._('int32', mockPos)]], mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3292,40 +3903,63 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTArrayOf._(ASTTypeNumber._('int8')),
-								defaultValue: ASTArrayExpression._({
-									items: [ASTNumberLiteral._(5, undefined, [...numberSizesInts])],
-									possibleTypes: [...NumberSizesIntASTs],
-								}),
-							}),
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('b'),
-								declaredType: ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('string'))),
-							}),
-							ASTParameter._({
-								modifiers: [],
-								isRest: true,
-								name: ASTIdentifier._('c'),
-								declaredType: ASTArrayOf._(ASTIdentifier._('Foo')),
-							}),
-						],
-						returnTypes: [
-							ASTTypePrimitive._('regex'),
-							ASTArrayOf._(ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('path')))),
-						],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTArrayOf._(ASTTypeNumber._('int8', mockPos), mockPos),
+										defaultValue: ASTArrayExpression._(
+											{
+												items: [
+													ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+												],
+												possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+											},
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('b', mockPos),
+										declaredType: ASTArrayOf._(
+											ASTArrayOf._(ASTTypePrimitive._('string', mockPos), mockPos),
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: true,
+										name: ASTIdentifier._('c', mockPos),
+										declaredType: ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [
+								ASTTypePrimitive._('regex', mockPos),
+								ASTArrayOf._(
+									ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('path', mockPos), mockPos), mockPos),
+									mockPos,
+								),
+							],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3443,53 +4077,119 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('school'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('age'),
-								declaredType: ASTTypeNumber._('int8'),
-							}),
-						],
-						returnTypes: [ASTTypePrimitive._('string')],
-						body: ASTBlockStatement._([
-							ASTReturnStatement._([
-								ASTWhenExpression._({
-									expression: ASTIdentifier._('age'),
-									cases: [
-										ASTWhenCase._({
-											values: [ASTNumberLiteral._(11, undefined, [...numberSizesInts])],
-											consequent: ASTStringLiteral._('Hogwarts First Year'),
-										}),
-										ASTWhenCase._({
-											values: [
-												ASTRangeExpression._({
-													lower: ASTNumberLiteral._(12, undefined, [...numberSizesInts]),
-													upper: ASTNumberLiteral._(17, undefined, [...numberSizesInts]),
-												}),
-											],
-											consequent: ASTStringLiteral._('Another Year at Hogwarts'),
-										}),
-										ASTWhenCase._({
-											values: [
-												ASTNumberLiteral._(18, undefined, [...numberSizesInts]),
-												ASTNumberLiteral._(19, undefined, [...numberSizesInts]),
-											],
-											consequent: ASTStringLiteral._('Auror Training'),
-										}),
-										ASTWhenCase._({
-											values: [ASTRestElement._()],
-											consequent: ASTStringLiteral._('Auror'),
-										}),
-									],
-								}),
-							]),
-						]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('school', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('age', mockPos),
+										declaredType: ASTTypeNumber._('int8', mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [ASTTypePrimitive._('string', mockPos)],
+							body: ASTBlockStatement._(
+								[
+									ASTReturnStatement._(
+										[
+											ASTWhenExpression._(
+												{
+													expression: ASTIdentifier._('age', mockPos),
+													cases: [
+														ASTWhenCase._(
+															{
+																values: [
+																	ASTNumberLiteral._(
+																		11,
+																		undefined,
+																		[...numberSizesInts],
+																		mockPos,
+																	),
+																],
+																consequent: ASTStringLiteral._(
+																	'Hogwarts First Year',
+																	mockPos,
+																),
+															},
+															mockPos,
+														),
+														ASTWhenCase._(
+															{
+																values: [
+																	ASTRangeExpression._(
+																		{
+																			lower: ASTNumberLiteral._(
+																				12,
+																				undefined,
+																				[...numberSizesInts],
+																				mockPos,
+																			),
+																			upper: ASTNumberLiteral._(
+																				17,
+																				undefined,
+																				[...numberSizesInts],
+																				mockPos,
+																			),
+																		},
+																		mockPos,
+																	),
+																],
+																consequent: ASTStringLiteral._(
+																	'Another Year at Hogwarts',
+																	mockPos,
+																),
+															},
+															mockPos,
+														),
+														ASTWhenCase._(
+															{
+																values: [
+																	ASTNumberLiteral._(
+																		18,
+																		undefined,
+																		[...numberSizesInts],
+																		mockPos,
+																	),
+																	ASTNumberLiteral._(
+																		19,
+																		undefined,
+																		[...numberSizesInts],
+																		mockPos,
+																	),
+																],
+																consequent: ASTStringLiteral._(
+																	'Auror Training',
+																	mockPos,
+																),
+															},
+															mockPos,
+														),
+														ASTWhenCase._(
+															{
+																values: [ASTRestElement._(mockPos)],
+																consequent: ASTStringLiteral._('Auror', mockPos),
+															},
+															mockPos,
+														),
+													],
+												},
+												mockPos,
+											),
+										],
+										mockPos,
+									),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3548,34 +4248,52 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('age'),
-								declaredType: ASTTypeNumber._('uint16'),
-							}),
-						],
-						returnTypes: [ASTTypeNumber._('uint16'), ASTTypePrimitive._('string')],
-						body: ASTBlockStatement._([
-							ASTReturnStatement._([
-								ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
-								ASTWhenExpression._({
-									expression: ASTIdentifier._('age'),
-									cases: [
-										ASTWhenCase._({
-											values: [ASTRestElement._()],
-											consequent: ASTStringLiteral._('No more foos'),
-										}),
-									],
-								}),
-							]),
-						]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('age', mockPos),
+										declaredType: ASTTypeNumber._('uint16', mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [ASTTypeNumber._('uint16', mockPos), ASTTypePrimitive._('string', mockPos)],
+							body: ASTBlockStatement._(
+								[
+									ASTReturnStatement._(
+										[
+											ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+											ASTWhenExpression._(
+												{
+													expression: ASTIdentifier._('age', mockPos),
+													cases: [
+														ASTWhenCase._(
+															{
+																values: [ASTRestElement._(mockPos)],
+																consequent: ASTStringLiteral._('No more foos', mockPos),
+															},
+															mockPos,
+														),
+													],
+												},
+												mockPos,
+											),
+										],
+										mockPos,
+									),
+								],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3599,21 +4317,29 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTIdentifier._('T'),
-							}),
-						],
-						returnTypes: [ASTIdentifier._('T')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+							],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTIdentifier._('T', mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [ASTIdentifier._('T', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3706,61 +4432,92 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTClassDeclaration._({
-						modifiers: [ASTModifier._('abstract')],
-						name: ASTIdentifier._('A'),
-						typeParams: [],
-						extends: [],
-						implements: [],
-						body: ASTBlockStatement._([
-							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('abstract')],
-								name: ASTIdentifier._('foo1'),
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: undefined,
-							}),
-							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('abstract')],
-								name: ASTIdentifier._('foo2'),
-								typeParams: [],
-								params: [
-									ASTParameter._({
-										modifiers: [],
-										name: ASTIdentifier._('arg'),
-										isRest: false,
-										declaredType: ASTTypeNumber._('int64'),
-									}),
+					ASTClassDeclaration._(
+						{
+							modifiers: [ASTModifier._('abstract', mockPos)],
+							name: ASTIdentifier._('A', mockPos),
+							typeParams: [],
+							extends: [],
+							implements: [],
+							body: ASTBlockStatement._(
+								[
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [ASTModifier._('abstract', mockPos)],
+											name: ASTIdentifier._('foo1', mockPos),
+											typeParams: [],
+											params: [],
+											returnTypes: [],
+											body: undefined,
+										},
+										mockPos,
+									),
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [ASTModifier._('abstract', mockPos)],
+											name: ASTIdentifier._('foo2', mockPos),
+											typeParams: [],
+											params: [
+												ASTParameter._(
+													{
+														modifiers: [],
+														name: ASTIdentifier._('arg', mockPos),
+														isRest: false,
+														declaredType: ASTTypeNumber._('int64', mockPos),
+													},
+													mockPos,
+												),
+											],
+											returnTypes: [],
+											body: undefined,
+										},
+										mockPos,
+									),
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [ASTModifier._('abstract', mockPos)],
+											name: ASTIdentifier._('foo3', mockPos),
+											typeParams: [
+												ASTTypeParameter._(
+													ASTIdentifier._('T', mockPos),
+													undefined,
+													undefined,
+													mockPos,
+												),
+											],
+											params: [],
+											returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+											body: undefined,
+										},
+										mockPos,
+									),
+									ASTFunctionDeclaration._(
+										{
+											modifiers: [ASTModifier._('abstract', mockPos)],
+											name: ASTIdentifier._('foo4', mockPos),
+											typeParams: [],
+											params: [
+												ASTParameter._(
+													{
+														modifiers: [],
+														isRest: false,
+														name: ASTIdentifier._('arg', mockPos),
+														declaredType: ASTTypeNumber._('dec32', mockPos),
+													},
+													mockPos,
+												),
+											],
+											returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+											body: undefined,
+										},
+										mockPos,
+									),
 								],
-								returnTypes: [],
-								body: undefined,
-							}),
-							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('abstract')],
-								name: ASTIdentifier._('foo3'),
-								typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-								params: [],
-								returnTypes: [ASTTypePrimitive._('bool')],
-								body: undefined,
-							}),
-							ASTFunctionDeclaration._({
-								modifiers: [ASTModifier._('abstract')],
-								name: ASTIdentifier._('foo4'),
-								typeParams: [],
-								params: [
-									ASTParameter._({
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('arg'),
-										declaredType: ASTTypeNumber._('dec32'),
-									}),
-								],
-								returnTypes: [ASTTypePrimitive._('bool')],
-								body: undefined,
-							}),
-						]),
-					}),
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3781,23 +4538,29 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [
-							ASTFunctionDeclaration._({
-								modifiers: [],
-								name: undefined,
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: ASTBlockStatement._([]),
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTFunctionDeclaration._(
+									{
+										modifiers: [],
+										name: undefined,
+										typeParams: [],
+										params: [],
+										returnTypes: [],
+										body: ASTBlockStatement._([], mockPos),
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3855,35 +4618,57 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [
-							ASTFunctionDeclaration._({
-								modifiers: [],
-								name: undefined,
-								typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-								params: [
-									ASTParameter._({
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTFunctionDeclaration._(
+									{
 										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a'),
-										declaredType: ASTIdentifier._('T'),
-									}),
-								],
-								returnTypes: [ASTIdentifier._('T')],
-								body: ASTBlockStatement._([
-									ASTCallExpression._({
-										callee: ASTIdentifier._('do'),
-										args: [],
-									}),
-								]),
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+										name: undefined,
+										typeParams: [
+											ASTTypeParameter._(
+												ASTIdentifier._('T', mockPos),
+												undefined,
+												undefined,
+												mockPos,
+											),
+										],
+										params: [
+											ASTParameter._(
+												{
+													modifiers: [],
+													isRest: false,
+													name: ASTIdentifier._('a', mockPos),
+													declaredType: ASTIdentifier._('T', mockPos),
+												},
+												mockPos,
+											),
+										],
+										returnTypes: [ASTIdentifier._('T', mockPos)],
+										body: ASTBlockStatement._(
+											[
+												ASTCallExpression._(
+													{
+														callee: ASTIdentifier._('do', mockPos),
+														args: [],
+													},
+													mockPos,
+												),
+											],
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3905,23 +4690,29 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [ASTModifier._('abstract')],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [
-							ASTFunctionDeclaration._({
-								modifiers: [],
-								name: undefined,
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: undefined,
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [ASTModifier._('abstract', mockPos)],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTFunctionDeclaration._(
+									{
+										modifiers: [],
+										name: undefined,
+										typeParams: [],
+										params: [],
+										returnTypes: [],
+										body: undefined,
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3945,14 +4736,20 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('danger?'),
-						typeParams: [],
-						params: [],
-						returnTypes: [ASTTypePrimitive._('bool')],
-						body: ASTBlockStatement._([ASTReturnStatement._([ASTBoolLiteral._(true)])]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('danger?', mockPos),
+							typeParams: [],
+							params: [],
+							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+							body: ASTBlockStatement._(
+								[ASTReturnStatement._([ASTBoolLiteral._(true, mockPos)], mockPos)],
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -3995,23 +4792,32 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTClassDeclaration._({
-								modifiers: [],
-								name: ASTIdentifier._('A'),
-								typeParams: [],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([
-									ASTFunctionDeclaration._({
-										modifiers: [],
-										name: ASTIdentifier._('<=>'),
-										typeParams: [],
-										params: [],
-										returnTypes: [],
-										body: ASTBlockStatement._([]),
-									}),
-								]),
-							}),
+							ASTClassDeclaration._(
+								{
+									modifiers: [],
+									name: ASTIdentifier._('A', mockPos),
+									typeParams: [],
+									extends: [],
+									implements: [],
+									body: ASTBlockStatement._(
+										[
+											ASTFunctionDeclaration._(
+												{
+													modifiers: [],
+													name: ASTIdentifier._('<=>', mockPos),
+													typeParams: [],
+													params: [],
+													returnTypes: [],
+													body: ASTBlockStatement._([], mockPos),
+												},
+												mockPos,
+											),
+										],
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -4033,10 +4839,13 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBoolLiteral._(true),
-						consequent: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBoolLiteral._(true, mockPos),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4061,14 +4870,20 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBinaryExpression._({
-							operator: '<',
-							left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-						}),
-						consequent: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBinaryExpression._(
+								{
+									operator: '<',
+									left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4093,14 +4908,20 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBinaryExpression._({
-							operator: '==',
-							left: ASTIdentifier._('foo'),
-							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-						}),
-						consequent: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBinaryExpression._(
+								{
+									operator: '==',
+									left: ASTIdentifier._('foo', mockPos),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4131,17 +4952,26 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBinaryExpression._({
-							operator: '==',
-							left: ASTCallExpression._({
-								callee: ASTIdentifier._('foo'),
-								args: [],
-							}),
-							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-						}),
-						consequent: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBinaryExpression._(
+								{
+									operator: '==',
+									left: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('foo', mockPos),
+											args: [],
+										},
+										mockPos,
+									),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4186,25 +5016,40 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBinaryExpression._({
-							operator: '&&',
-							left: ASTBinaryExpression._({
-								operator: '==',
-								left: ASTCallExpression._({
-									callee: ASTIdentifier._('foo'),
-									args: [],
-								}),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-							}),
-							right: ASTBinaryExpression._({
-								operator: '<',
-								left: ASTIdentifier._('a'),
-								right: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							}),
-						}),
-						consequent: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTBinaryExpression._(
+										{
+											operator: '==',
+											left: ASTCallExpression._(
+												{
+													callee: ASTIdentifier._('foo', mockPos),
+													args: [],
+												},
+												mockPos,
+											),
+											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+									right: ASTBinaryExpression._(
+										{
+											operator: '<',
+											left: ASTIdentifier._('a', mockPos),
+											right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4241,17 +5086,26 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTIfStatement._({
-							test: ASTBinaryExpression._({
-								operator: '==',
-								left: ASTCallExpression._({
-									callee: ASTIdentifier._('foo'),
-									args: [],
-								}),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-							}),
-							consequent: ASTBlockStatement._([]),
-						}),
+						ASTIfStatement._(
+							{
+								test: ASTBinaryExpression._(
+									{
+										operator: '==',
+										left: ASTCallExpression._(
+											{
+												callee: ASTIdentifier._('foo', mockPos),
+												args: [],
+											},
+											mockPos,
+										),
+										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+								consequent: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4301,25 +5155,40 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTIfStatement._({
-							test: ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTBinaryExpression._({
-									operator: '==',
-									left: ASTCallExpression._({
-										callee: ASTIdentifier._('foo'),
-										args: [],
-									}),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								}),
-								right: ASTBinaryExpression._({
-									operator: '<',
-									left: ASTIdentifier._('a'),
-									right: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-								}),
-							}),
-							consequent: ASTBlockStatement._([]),
-						}),
+						ASTIfStatement._(
+							{
+								test: ASTBinaryExpression._(
+									{
+										operator: '&&',
+										left: ASTBinaryExpression._(
+											{
+												operator: '==',
+												left: ASTCallExpression._(
+													{
+														callee: ASTIdentifier._('foo', mockPos),
+														args: [],
+													},
+													mockPos,
+												),
+												right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											},
+											mockPos,
+										),
+										right: ASTBinaryExpression._(
+											{
+												operator: '<',
+												left: ASTIdentifier._('a', mockPos),
+												right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+											},
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+								consequent: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4339,11 +5208,14 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBoolLiteral._(true),
-						consequent: ASTBlockStatement._([]),
-						alternate: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBoolLiteral._(true, mockPos),
+							consequent: ASTBlockStatement._([], mockPos),
+							alternate: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4368,14 +5240,20 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBoolLiteral._(true),
-						consequent: ASTBlockStatement._([]),
-						alternate: ASTIfStatement._({
-							test: ASTBoolLiteral._(false),
-							consequent: ASTBlockStatement._([]),
-						}),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBoolLiteral._(true, mockPos),
+							consequent: ASTBlockStatement._([], mockPos),
+							alternate: ASTIfStatement._(
+								{
+									test: ASTBoolLiteral._(false, mockPos),
+									consequent: ASTBlockStatement._([], mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4400,14 +5278,20 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTIfStatement._({
-						test: ASTBoolLiteral._(true),
-						consequent: ASTBlockStatement._([]),
-					}),
-					ASTIfStatement._({
-						test: ASTBoolLiteral._(false),
-						consequent: ASTBlockStatement._([]),
-					}),
+					ASTIfStatement._(
+						{
+							test: ASTBoolLiteral._(true, mockPos),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTIfStatement._(
+						{
+							test: ASTBoolLiteral._(false, mockPos),
+							consequent: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4431,22 +5315,34 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTImportDeclaration._({
-							identifier: ASTIdentifier._('mainJoeFile'),
-							source: ASTPath._({
-								absolute: false,
-								path: './some/dir/',
-								isDir: true,
-							}),
-						}),
-						ASTImportDeclaration._({
-							identifier: ASTIdentifier._('another'),
-							source: ASTPath._({
-								absolute: true,
-								path: '@/lexer.joe',
-								isDir: false,
-							}),
-						}),
+						ASTImportDeclaration._(
+							{
+								identifier: ASTIdentifier._('mainJoeFile', mockPos),
+								source: ASTPath._(
+									{
+										absolute: false,
+										path: './some/dir/',
+										isDir: true,
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
+						ASTImportDeclaration._(
+							{
+								identifier: ASTIdentifier._('another', mockPos),
+								source: ASTPath._(
+									{
+										absolute: true,
+										path: '@/lexer.joe',
+										isDir: false,
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4467,13 +5363,16 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTInterfaceDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTInterfaceDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -4497,16 +5396,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTInterfaceDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T')),
-							ASTTypeParameter._(ASTIdentifier._('U')),
-						],
-						extends: [],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTInterfaceDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4532,20 +5434,26 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTInterfaceDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [],
-						body: ASTBlockStatement._([]),
-					}),
-					ASTInterfaceDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Bar'),
-						typeParams: [],
-						extends: [ASTIdentifier._('Foo')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTInterfaceDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
+					ASTInterfaceDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Bar', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('Foo', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4571,13 +5479,16 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTInterfaceDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [],
-						extends: [ASTIdentifier._('Bar'), ASTIdentifier._('Baz')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTInterfaceDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [],
+							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4623,25 +5534,34 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTInterfaceDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('Foo'),
-						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T')),
-							ASTTypeParameter._(ASTIdentifier._('U')),
-						],
-						extends: [
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('Bar'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-							ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('Baz'),
-								typeArgs: [ASTIdentifier._('U')],
-							}),
-						],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTInterfaceDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('Foo', mockPos),
+							typeParams: [
+								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							],
+							extends: [
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('Bar', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+								ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('Baz', mockPos),
+										typeArgs: [ASTIdentifier._('U', mockPos)],
+									},
+									mockPos,
+								),
+							],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4673,17 +5593,23 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							joeDoc: ASTJoeDoc._(`/**
+						ASTClassDeclaration._(
+							{
+								joeDoc: ASTJoeDoc._(
+									`/**
 					 * foo
-					 */`),
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+					 */`,
+									mockPos,
+								),
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4711,17 +5637,23 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							joeDoc: ASTJoeDoc._(`/**
+						ASTClassDeclaration._(
+							{
+								joeDoc: ASTJoeDoc._(
+									`/**
 					 * foo
-					 */`),
-							modifiers: [ASTModifier._('abstract')],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+					 */`,
+									mockPos,
+								),
+								modifiers: [ASTModifier._('abstract', mockPos)],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4741,14 +5673,17 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTClassDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4770,15 +5705,18 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTFunctionDeclaration._({
-							joeDoc: ASTJoeDoc._('/** foo */'),
-							modifiers: [],
-							name: ASTIdentifier._('foo'),
-							typeParams: [],
-							params: [],
-							returnTypes: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTFunctionDeclaration._(
+							{
+								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
+								modifiers: [],
+								name: ASTIdentifier._('foo', mockPos),
+								typeParams: [],
+								params: [],
+								returnTypes: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4798,14 +5736,17 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTFunctionDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('foo'),
-							typeParams: [],
-							params: [],
-							returnTypes: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTFunctionDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('foo', mockPos),
+								typeParams: [],
+								params: [],
+								returnTypes: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4827,14 +5768,17 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTInterfaceDeclaration._({
-							joeDoc: ASTJoeDoc._('/** foo */'),
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [],
-							extends: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTInterfaceDeclaration._(
+							{
+								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [],
+								extends: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4854,13 +5798,16 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTInterfaceDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [],
-							extends: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTInterfaceDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [],
+								extends: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4885,15 +5832,18 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							joeDoc: ASTJoeDoc._('/** foo */'),
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-							inferredPossibleTypes: [[...NumberSizesIntASTs]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4916,14 +5866,17 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-							inferredPossibleTypes: [[...NumberSizesIntASTs]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -4936,9 +5889,12 @@ describe('parser.ts', (): void => {
 				'loop {}',
 				[[NT.LoopStatement, [[NT.BlockStatement, []]]]],
 				[
-					ASTLoopStatement._({
-						body: ASTBlockStatement._([]),
-					}),
+					ASTLoopStatement._(
+						{
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4948,9 +5904,12 @@ describe('parser.ts', (): void => {
 				'loop {\ndone;\n}',
 				[[NT.LoopStatement, [[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]]]],
 				[
-					ASTLoopStatement._({
-						body: ASTBlockStatement._([ASTDoneStatement._()]),
-					}),
+					ASTLoopStatement._(
+						{
+							body: ASTBlockStatement._([ASTDoneStatement._(mockPos)], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4960,9 +5919,12 @@ describe('parser.ts', (): void => {
 				'loop {\nnext;\n}',
 				[[NT.LoopStatement, [[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]]]],
 				[
-					ASTLoopStatement._({
-						body: ASTBlockStatement._([ASTNextStatement._()]),
-					}),
+					ASTLoopStatement._(
+						{
+							body: ASTBlockStatement._([ASTNextStatement._(mockPos)], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -4994,16 +5956,25 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTMemberExpression._({
-							object: ASTMemberExpression._({
-								object: ASTIdentifier._('a'),
-								property: ASTIdentifier._('b'),
-							}),
-							property: ASTIdentifier._('c'),
-						}),
-						property: ASTIdentifier._('d'),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTMemberExpression._(
+								{
+									object: ASTMemberExpression._(
+										{
+											object: ASTIdentifier._('a', mockPos),
+											property: ASTIdentifier._('b', mockPos),
+										},
+										mockPos,
+									),
+									property: ASTIdentifier._('c', mockPos),
+								},
+								mockPos,
+							),
+							property: ASTIdentifier._('d', mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5013,10 +5984,13 @@ describe('parser.ts', (): void => {
 				'this.foo',
 				[[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]],
 				[
-					ASTMemberExpression._({
-						object: ASTThisKeyword._(),
-						property: ASTIdentifier._('foo'),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTThisKeyword._(mockPos),
+							property: ASTIdentifier._('foo', mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5041,13 +6015,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('bar'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('bar', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5071,13 +6051,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('foo'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-							property: ASTIdentifier._('bar'),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('foo', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+								property: ASTIdentifier._('bar', mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5101,13 +6087,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('foo'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-							property: ASTStringLiteral._('bar'),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('foo', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+								property: ASTStringLiteral._('bar', mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5131,13 +6123,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTThisKeyword._(),
-							property: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('bar'),
-								typeArgs: [ASTIdentifier._('T')],
-							}),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTThisKeyword._(mockPos),
+								property: ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('bar', mockPos),
+										typeArgs: [ASTIdentifier._('T', mockPos)],
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5156,10 +6154,13 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTStringLiteral._('bar'),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							property: ASTStringLiteral._('bar', mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5177,10 +6178,13 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5198,10 +6202,13 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTIdentifier._('bar'),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							property: ASTIdentifier._('bar', mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5225,13 +6232,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTMemberExpression._({
-							object: ASTIdentifier._('bar'),
-							property: ASTIdentifier._('baz'),
-						}),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							property: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('bar', mockPos),
+									property: ASTIdentifier._('baz', mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5255,13 +6268,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTCallExpression._({
-							callee: ASTIdentifier._('bar'),
-							args: [],
-						}),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							property: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('bar', mockPos),
+									args: [],
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5281,14 +6300,20 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTUnaryExpression._({
-								before,
-								operator,
-								operand: ASTIdentifier._('bar'),
-							}),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTUnaryExpression._(
+									{
+										before,
+										operator,
+										operand: ASTIdentifier._('bar', mockPos),
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
 					],
 				);
 			},
@@ -5316,14 +6341,20 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTBinaryExpression._({
-								operator,
-								left: ASTIdentifier._('index'),
-								right: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-							}),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								property: ASTBinaryExpression._(
+									{
+										operator,
+										left: ASTIdentifier._('index', mockPos),
+										right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
 					],
 				);
 			},
@@ -5349,14 +6380,26 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberExpression._({
-						object: ASTIdentifier._('foo'),
-						property: ASTTernaryExpression._({
-							test: ASTTernaryCondition._(ASTIdentifier._('bar')),
-							consequent: ASTTernaryConsequent._(ASTNumberLiteral._(0, undefined, [...numberSizesInts])),
-							alternate: ASTTernaryAlternate._(ASTNumberLiteral._(1, undefined, [...numberSizesInts])),
-						}),
-					}),
+					ASTMemberExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							property: ASTTernaryExpression._(
+								{
+									test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
+									consequent: ASTTernaryConsequent._(
+										ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+										mockPos,
+									),
+									alternate: ASTTernaryAlternate._(
+										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										mockPos,
+									),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5378,13 +6421,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTArrayExpression._({
-								items: [ASTStringLiteral._('A'), ASTStringLiteral._('B')],
-								possibleTypes: [ASTTypePrimitive._('string')],
-							}),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTArrayExpression._(
+									{
+										items: [ASTStringLiteral._('A', mockPos), ASTStringLiteral._('B', mockPos)],
+										possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+									},
+									mockPos,
+								),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5402,10 +6451,13 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTStringLiteral._('A'),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTStringLiteral._('A', mockPos),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5426,13 +6478,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTTupleExpression._([
-								ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-								ASTStringLiteral._('B'),
-							]),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTTupleExpression._(
+									[
+										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+										ASTStringLiteral._('B', mockPos),
+									],
+									mockPos,
+								),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5456,13 +6514,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTCallExpression._({
-								callee: ASTIdentifier._('foo'),
-								args: [],
-							}),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTCallExpression._(
+									{
+										callee: ASTIdentifier._('foo', mockPos),
+										args: [],
+									},
+									mockPos,
+								),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5490,13 +6554,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTArrayExpression._({
-								items: [ASTStringLiteral._('A'), ASTStringLiteral._('B')],
-								possibleTypes: [ASTTypePrimitive._('string')],
-							}),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTArrayExpression._(
+									{
+										items: [ASTStringLiteral._('A', mockPos), ASTStringLiteral._('B', mockPos)],
+										possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+									},
+									mockPos,
+								),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5514,10 +6584,13 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTStringLiteral._('A'),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTStringLiteral._('A', mockPos),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5567,13 +6640,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTTupleExpression._([
-								ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-								ASTStringLiteral._('B'),
-							]),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTTupleExpression._(
+									[
+										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+										ASTStringLiteral._('B', mockPos),
+									],
+									mockPos,
+								),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5602,13 +6681,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberExpression._({
-							object: ASTCallExpression._({
-								callee: ASTIdentifier._('foo'),
-								args: [],
-							}),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-						}),
+						ASTMemberExpression._(
+							{
+								object: ASTCallExpression._(
+									{
+										callee: ASTIdentifier._('foo', mockPos),
+										args: [],
+									},
+									mockPos,
+								),
+								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5630,13 +6715,19 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTMemberListExpression._({
-						object: ASTMemberExpression._({
-							object: ASTThisKeyword._(),
-							property: ASTIdentifier._('foo'),
-						}),
-						properties: [ASTStringLiteral._('a'), ASTStringLiteral._('b')],
-					}),
+					ASTMemberListExpression._(
+						{
+							object: ASTMemberExpression._(
+								{
+									object: ASTThisKeyword._(mockPos),
+									property: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
+							properties: [ASTStringLiteral._('a', mockPos), ASTStringLiteral._('b', mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5655,16 +6746,22 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTMemberListExpression._({
-						object: ASTMemberExpression._({
-							object: ASTThisKeyword._(),
-							property: ASTIdentifier._('foo'),
-						}),
-						properties: [
-							ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-							ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-						],
-					}),
+					ASTMemberListExpression._(
+						{
+							object: ASTMemberExpression._(
+								{
+									object: ASTThisKeyword._(mockPos),
+									property: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
+							properties: [
+								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5683,10 +6780,13 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTMemberListExpression._({
-						object: ASTIdentifier._('foo'),
-						properties: [ASTIdentifier._('a'), ASTIdentifier._('b')],
-					}),
+					ASTMemberListExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							properties: [ASTIdentifier._('a', mockPos), ASTIdentifier._('b', mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5718,13 +6818,19 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTMemberListExpression._({
-							object: ASTTypeInstantiationExpression._({
-								base: ASTIdentifier._('foo'),
-								typeArgs: [ASTIdentifier._('bar'), ASTIdentifier._('baz')],
-							}),
-							properties: [ASTStringLiteral._('a'), ASTStringLiteral._('b')],
-						}),
+						ASTMemberListExpression._(
+							{
+								object: ASTTypeInstantiationExpression._(
+									{
+										base: ASTIdentifier._('foo', mockPos),
+										typeArgs: [ASTIdentifier._('bar', mockPos), ASTIdentifier._('baz', mockPos)],
+									},
+									mockPos,
+								),
+								properties: [ASTStringLiteral._('a', mockPos), ASTStringLiteral._('b', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -5754,15 +6860,21 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberListExpression._({
-						object: ASTIdentifier._('foo'),
-						properties: [
-							ASTRangeExpression._({
-								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							}),
-						],
-					}),
+					ASTMemberListExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							properties: [
+								ASTRangeExpression._(
+									{
+										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5799,19 +6911,28 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberListExpression._({
-						object: ASTIdentifier._('foo'),
-						properties: [
-							ASTRangeExpression._({
-								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							}),
-							ASTRangeExpression._({
-								lower: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
-								upper: ASTNumberLiteral._(7, undefined, [...numberSizesInts]),
-							}),
-						],
-					}),
+					ASTMemberListExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							properties: [
+								ASTRangeExpression._(
+									{
+										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+								ASTRangeExpression._(
+									{
+										lower: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+										upper: ASTNumberLiteral._(7, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5829,16 +6950,22 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTMemberListExpression._({
-						object: ASTIdentifier._('foo'),
-						properties: [
-							ASTUnaryExpression._({
-								before: true,
-								operator: '!',
-								operand: ASTIdentifier._('bar'),
-							}),
-						],
-					}),
+					ASTMemberListExpression._(
+						{
+							object: ASTIdentifier._('foo', mockPos),
+							properties: [
+								ASTUnaryExpression._(
+									{
+										before: true,
+										operator: '!',
+										operand: ASTIdentifier._('bar', mockPos),
+									},
+									mockPos,
+								),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -5865,21 +6992,30 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberListExpression._({
-							object: ASTIdentifier._('foo'),
-							properties: [
-								ASTUnaryExpression._({
-									before,
-									operator,
-									operand: ASTIdentifier._('bar'),
-								}),
-								ASTUnaryExpression._({
-									before,
-									operator,
-									operand: ASTIdentifier._('bar'),
-								}),
-							],
-						}),
+						ASTMemberListExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								properties: [
+									ASTUnaryExpression._(
+										{
+											before,
+											operator,
+											operand: ASTIdentifier._('bar', mockPos),
+										},
+										mockPos,
+									),
+									ASTUnaryExpression._(
+										{
+											before,
+											operator,
+											operand: ASTIdentifier._('bar', mockPos),
+										},
+										mockPos,
+									),
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			},
@@ -5912,16 +7048,22 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberListExpression._({
-							object: ASTIdentifier._('foo'),
-							properties: [
-								ASTBinaryExpression._({
-									operator,
-									left: ASTIdentifier._('index'),
-									right: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								}),
-							],
-						}),
+						ASTMemberListExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								properties: [
+									ASTBinaryExpression._(
+										{
+											operator,
+											left: ASTIdentifier._('index', mockPos),
+											right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			},
@@ -5963,21 +7105,30 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTMemberListExpression._({
-							object: ASTIdentifier._('foo'),
-							properties: [
-								ASTBinaryExpression._({
-									operator,
-									left: ASTIdentifier._('index'),
-									right: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								}),
-								ASTBinaryExpression._({
-									operator,
-									left: ASTIdentifier._('index'),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								}),
-							],
-						}),
+						ASTMemberListExpression._(
+							{
+								object: ASTIdentifier._('foo', mockPos),
+								properties: [
+									ASTBinaryExpression._(
+										{
+											operator,
+											left: ASTIdentifier._('index', mockPos),
+											right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+									ASTBinaryExpression._(
+										{
+											operator,
+											left: ASTIdentifier._('index', mockPos),
+											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			},
@@ -5995,11 +7146,14 @@ describe('parser.ts', (): void => {
 							[NT.SemicolonSeparator],
 						],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '!',
-								operand: ASTIdentifier._('foo'),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '!',
+									operand: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6012,11 +7166,14 @@ describe('parser.ts', (): void => {
 							[NT.SemicolonSeparator],
 						],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '!',
-								operand: ASTIdentifier._('foo'),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '!',
+									operand: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6042,14 +7199,20 @@ describe('parser.ts', (): void => {
 							[NT.SemicolonSeparator],
 						],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '!',
-								operand: ASTCallExpression._({
-									callee: ASTIdentifier._('bar'),
-									args: [],
-								}),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '!',
+									operand: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('bar', mockPos),
+											args: [],
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6081,17 +7244,26 @@ describe('parser.ts', (): void => {
 							[NT.SemicolonSeparator],
 						],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '!',
-								operand: ASTCallExpression._({
-									callee: ASTMemberExpression._({
-										object: ASTIdentifier._('foo'),
-										property: ASTIdentifier._('bar'),
-									}),
-									args: [],
-								}),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '!',
+									operand: ASTCallExpression._(
+										{
+											callee: ASTMemberExpression._(
+												{
+													object: ASTIdentifier._('foo', mockPos),
+													property: ASTIdentifier._('bar', mockPos),
+												},
+												mockPos,
+											),
+											args: [],
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6103,11 +7275,14 @@ describe('parser.ts', (): void => {
 						'-1',
 						[[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6117,11 +7292,14 @@ describe('parser.ts', (): void => {
 						'(-1)',
 						[[NT.Parenthesized, [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]]],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6133,11 +7311,14 @@ describe('parser.ts', (): void => {
 						'--foo',
 						[[NT.UnaryExpression, '--', { before: true }, [[NT.Identifier, 'foo']]]],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '--',
-								operand: ASTIdentifier._('foo'),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '--',
+									operand: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 
@@ -6153,14 +7334,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTMemberExpression._({
-								object: ASTIdentifier._('foo'),
-								property: ASTUnaryExpression._({
-									before: true,
-									operator: '--',
-									operand: ASTIdentifier._('i'),
-								}),
-							}),
+							ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTUnaryExpression._(
+										{
+											before: true,
+											operator: '--',
+											operand: ASTIdentifier._('i', mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6170,11 +7357,14 @@ describe('parser.ts', (): void => {
 						'foo--',
 						[[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]],
 						[
-							ASTUnaryExpression._({
-								before: false,
-								operator: '--',
-								operand: ASTIdentifier._('foo'),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: false,
+									operator: '--',
+									operand: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6192,14 +7382,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTMemberExpression._({
-								object: ASTIdentifier._('foo'),
-								property: ASTUnaryExpression._({
-									before: false,
-									operator: '--',
-									operand: ASTIdentifier._('i'),
-								}),
-							}),
+							ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTUnaryExpression._(
+										{
+											before: false,
+											operator: '--',
+											operand: ASTIdentifier._('i', mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6209,11 +7405,14 @@ describe('parser.ts', (): void => {
 						'++foo',
 						[[NT.UnaryExpression, '++', { before: true }, [[NT.Identifier, 'foo']]]],
 						[
-							ASTUnaryExpression._({
-								before: true,
-								operator: '++',
-								operand: ASTIdentifier._('foo'),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '++',
+									operand: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 
@@ -6229,14 +7428,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTMemberExpression._({
-								object: ASTIdentifier._('foo'),
-								property: ASTUnaryExpression._({
-									before: true,
-									operator: '++',
-									operand: ASTIdentifier._('i'),
-								}),
-							}),
+							ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTUnaryExpression._(
+										{
+											before: true,
+											operator: '++',
+											operand: ASTIdentifier._('i', mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6246,11 +7451,14 @@ describe('parser.ts', (): void => {
 						'foo++',
 						[[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]],
 						[
-							ASTUnaryExpression._({
-								before: false,
-								operator: '++',
-								operand: ASTIdentifier._('foo'),
-							}),
+							ASTUnaryExpression._(
+								{
+									before: false,
+									operator: '++',
+									operand: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 
@@ -6266,14 +7474,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTMemberExpression._({
-								object: ASTIdentifier._('foo'),
-								property: ASTUnaryExpression._({
-									before: false,
-									operator: '++',
-									operand: ASTIdentifier._('i'),
-								}),
-							}),
+							ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTUnaryExpression._(
+										{
+											before: false,
+											operator: '++',
+											operand: ASTIdentifier._('i', mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6330,11 +7544,14 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '||',
-								left: ASTIdentifier._('a'),
-								right: ASTBoolLiteral._(true),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '||',
+									left: ASTIdentifier._('a', mockPos),
+									right: ASTBoolLiteral._(true, mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6353,11 +7570,14 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTIdentifier._('a'),
-								right: ASTBoolLiteral._(true),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTIdentifier._('a', mockPos),
+									right: ASTBoolLiteral._(true, mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6442,19 +7662,28 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTBinaryExpression._({
-									operator: '>=',
-									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								}),
-								right: ASTBinaryExpression._({
-									operator: '<=',
-									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
-								}),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTBinaryExpression._(
+										{
+											operator: '>=',
+											left: ASTIdentifier._('foo', mockPos),
+											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+									right: ASTBinaryExpression._(
+										{
+											operator: '<=',
+											left: ASTIdentifier._('foo', mockPos),
+											right: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6487,19 +7716,28 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '||',
-								left: ASTBinaryExpression._({
-									operator: '>',
-									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								}),
-								right: ASTBinaryExpression._({
-									operator: '<',
-									left: ASTIdentifier._('foo'),
-									right: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
-								}),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '||',
+									left: ASTBinaryExpression._(
+										{
+											operator: '>',
+											left: ASTIdentifier._('foo', mockPos),
+											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+									right: ASTBinaryExpression._(
+										{
+											operator: '<',
+											left: ASTIdentifier._('foo', mockPos),
+											right: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6520,11 +7758,14 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTIdentifier._('a'),
-								right: ASTBoolLiteral._(true),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTIdentifier._('a', mockPos),
+									right: ASTBoolLiteral._(true, mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 
@@ -6541,11 +7782,14 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTIdentifier._('a'),
-								right: ASTBoolLiteral._(true),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTIdentifier._('a', mockPos),
+									right: ASTBoolLiteral._(true, mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6570,14 +7814,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTIdentifier._('a'),
-								right: ASTCallExpression._({
-									callee: ASTIdentifier._('foo'),
-									args: [ASTBoolLiteral._(true)],
-								}),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTIdentifier._('a', mockPos),
+									right: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('foo', mockPos),
+											args: [ASTBoolLiteral._(true, mockPos)],
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 
@@ -6600,14 +7850,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTCallExpression._({
-									callee: ASTIdentifier._('a'),
-									args: [ASTBoolLiteral._(true)],
-								}),
-								right: ASTIdentifier._('foo'),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('a', mockPos),
+											args: [ASTBoolLiteral._(true, mockPos)],
+										},
+										mockPos,
+									),
+									right: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6637,14 +7893,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTIdentifier._('a'),
-								right: ASTCallExpression._({
-									callee: ASTIdentifier._('foo'),
-									args: [ASTBoolLiteral._(true)],
-								}),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTIdentifier._('a', mockPos),
+									right: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('foo', mockPos),
+											args: [ASTBoolLiteral._(true, mockPos)],
+										},
+										mockPos,
+									),
+								},
+								mockPos,
+							),
 						],
 					);
 
@@ -6672,14 +7934,20 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[
-							ASTBinaryExpression._({
-								operator: '&&',
-								left: ASTCallExpression._({
-									callee: ASTIdentifier._('a'),
-									args: [ASTBoolLiteral._(true)],
-								}),
-								right: ASTIdentifier._('foo'),
-							}),
+							ASTBinaryExpression._(
+								{
+									operator: '&&',
+									left: ASTCallExpression._(
+										{
+											callee: ASTIdentifier._('a', mockPos),
+											args: [ASTBoolLiteral._(true, mockPos)],
+										},
+										mockPos,
+									),
+									right: ASTIdentifier._('foo', mockPos),
+								},
+								mockPos,
+							),
 						],
 					);
 				});
@@ -6786,28 +8054,37 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-							inferredPossibleTypes: [[...NumberSizesIntASTs]],
-						}),
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('bar')],
-							declaredTypes: [],
-							initialValues: [
-								ASTUnaryExpression._({
-									before: true,
-									operator: '-',
-									operand: ASTIdentifier._('foo'),
-								}),
-							],
-							inferredPossibleTypes: [[]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							},
+							mockPos,
+						),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: true,
+								identifiersList: [ASTIdentifier._('bar', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTUnaryExpression._(
+										{
+											before: true,
+											operator: '-',
+											operand: ASTIdentifier._('foo', mockPos),
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -6842,17 +8119,26 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTPostfixIfStatement._({
-						expression: ASTCallExpression._({
-							callee: ASTIdentifier._('do'),
-							args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-						}),
-						test: ASTBinaryExpression._({
-							operator: '==',
-							left: ASTIdentifier._('foo'),
-							right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-						}),
-					}),
+					ASTPostfixIfStatement._(
+						{
+							expression: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('do', mockPos),
+									args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								},
+								mockPos,
+							),
+							test: ASTBinaryExpression._(
+								{
+									operator: '==',
+									left: ASTIdentifier._('foo', mockPos),
+									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -6879,16 +8165,22 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTPostfixIfStatement._({
-									expression: ASTIdentifier._('foo'),
-									test: ASTBoolLiteral._(true),
-								}),
-								ASTIdentifier._('bar'),
-							],
-							possibleTypes: [],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTPostfixIfStatement._(
+										{
+											expression: ASTIdentifier._('foo', mockPos),
+											test: ASTBoolLiteral._(true, mockPos),
+										},
+										mockPos,
+									),
+									ASTIdentifier._('bar', mockPos),
+								],
+								possibleTypes: [],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -6916,17 +8208,28 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
-								ASTPostfixIfStatement._({
-									expression: ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
-									test: ASTIdentifier._('isDone?'),
-								}),
-								ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
-							],
-							possibleTypes: [...NumberSizesIntASTs],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+									ASTPostfixIfStatement._(
+										{
+											expression: ASTNumberLiteral._(
+												10,
+												undefined,
+												[...numberSizesInts],
+												mockPos,
+											),
+											test: ASTIdentifier._('isDone?', mockPos),
+										},
+										mockPos,
+									),
+									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+								],
+								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -6960,20 +8263,29 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTPostfixIfStatement._({
-									expression: ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
-									test: ASTMemberExpression._({
-										object: ASTThisKeyword._(),
-										property: ASTIdentifier._('isDone?'),
-									}),
-								}),
-								ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
-								ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
-							],
-							possibleTypes: [...NumberSizesIntASTs],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTPostfixIfStatement._(
+										{
+											expression: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+											test: ASTMemberExpression._(
+												{
+													object: ASTThisKeyword._(mockPos),
+													property: ASTIdentifier._('isDone?', mockPos),
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+									ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
+									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+								],
+								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7023,33 +8335,56 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTNumberLiteral._(9, undefined, [...numberSizesInts]),
-								ASTPostfixIfStatement._({
-									expression: ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
-									test: ASTCallExpression._({
-										callee: ASTMemberExpression._({
-											object: ASTThisKeyword._(),
-											property: ASTIdentifier._('isDone?'),
-										}),
-										args: [
-											ASTArrayExpression._({
-												items: [
-													ASTPostfixIfStatement._({
-														expression: ASTBoolLiteral._(true),
-														test: ASTBoolLiteral._(true),
-													}),
-												],
-												possibleTypes: [ASTTypePrimitive._('bool')],
-											}),
-										],
-									}),
-								}),
-								ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
-							],
-							possibleTypes: [...NumberSizesIntASTs],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+									ASTPostfixIfStatement._(
+										{
+											expression: ASTNumberLiteral._(
+												10,
+												undefined,
+												[...numberSizesInts],
+												mockPos,
+											),
+											test: ASTCallExpression._(
+												{
+													callee: ASTMemberExpression._(
+														{
+															object: ASTThisKeyword._(mockPos),
+															property: ASTIdentifier._('isDone?', mockPos),
+														},
+														mockPos,
+													),
+													args: [
+														ASTArrayExpression._(
+															{
+																items: [
+																	ASTPostfixIfStatement._(
+																		{
+																			expression: ASTBoolLiteral._(true, mockPos),
+																			test: ASTBoolLiteral._(true, mockPos),
+																		},
+																		mockPos,
+																	),
+																],
+																possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+															},
+															mockPos,
+														),
+													],
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+								],
+								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7082,20 +8417,39 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTStringLiteral._('foo'),
-								ASTPostfixIfStatement._({
-									expression: ASTStringLiteral._('bar'),
-									test: ASTBinaryExpression._({
-										operator: '<',
-										left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									}),
-								}),
-							],
-							possibleTypes: [ASTTypePrimitive._('string')],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTStringLiteral._('foo', mockPos),
+									ASTPostfixIfStatement._(
+										{
+											expression: ASTStringLiteral._('bar', mockPos),
+											test: ASTBinaryExpression._(
+												{
+													operator: '<',
+													left: ASTNumberLiteral._(
+														1,
+														undefined,
+														[...numberSizesInts],
+														mockPos,
+													),
+													right: ASTNumberLiteral._(
+														2,
+														undefined,
+														[...numberSizesInts],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+								],
+								possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7138,25 +8492,39 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(false),
-								ASTPostfixIfStatement._({
-									expression: ASTBoolLiteral._(false),
-									test: ASTBinaryExpression._({
-										operator: '==',
-										left: ASTIdentifier._('foo'),
-										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									}),
-								}),
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(false),
-								ASTBoolLiteral._(true),
-							],
-							possibleTypes: [ASTTypePrimitive._('bool')],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTBoolLiteral._(true, mockPos),
+									ASTBoolLiteral._(true, mockPos),
+									ASTBoolLiteral._(false, mockPos),
+									ASTPostfixIfStatement._(
+										{
+											expression: ASTBoolLiteral._(false, mockPos),
+											test: ASTBinaryExpression._(
+												{
+													operator: '==',
+													left: ASTIdentifier._('foo', mockPos),
+													right: ASTNumberLiteral._(
+														2,
+														undefined,
+														[...numberSizesInts],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+									ASTBoolLiteral._(true, mockPos),
+									ASTBoolLiteral._(false, mockPos),
+									ASTBoolLiteral._(true, mockPos),
+								],
+								possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7185,13 +8553,19 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTPrintStatement._([
-						ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
-						}),
-					]),
-					ASTPrintStatement._([ASTNumberLiteral._(5, undefined, [...numberSizesInts])]),
+					ASTPrintStatement._(
+						[
+							ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+								},
+								mockPos,
+							),
+						],
+						mockPos,
+					),
+					ASTPrintStatement._([ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)], mockPos),
 				],
 			);
 		});
@@ -7221,15 +8595,24 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTPrintStatement._([
-						ASTCallExpression._({
-							callee: ASTMemberExpression._({
-								object: ASTIdentifier._('myFoo'),
-								property: ASTIdentifier._('foo'),
-							}),
-							args: [],
-						}),
-					]),
+					ASTPrintStatement._(
+						[
+							ASTCallExpression._(
+								{
+									callee: ASTMemberExpression._(
+										{
+											object: ASTIdentifier._('myFoo', mockPos),
+											property: ASTIdentifier._('foo', mockPos),
+										},
+										mockPos,
+									),
+									args: [],
+								},
+								mockPos,
+							),
+						],
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7256,18 +8639,27 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTPrintStatement._([
-						ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						ASTStringLiteral._('a'),
-						ASTArrayExpression._({
-							items: [ASTBoolLiteral._(true)],
-							possibleTypes: [ASTTypePrimitive._('bool')],
-						}),
-						ASTTupleExpression._([
-							ASTStringLiteral._('high'),
-							ASTNumberLiteral._(5, undefined, [...numberSizesInts]),
-						]),
-					]),
+					ASTPrintStatement._(
+						[
+							ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							ASTStringLiteral._('a', mockPos),
+							ASTArrayExpression._(
+								{
+									items: [ASTBoolLiteral._(true, mockPos)],
+									possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+								},
+								mockPos,
+							),
+							ASTTupleExpression._(
+								[
+									ASTStringLiteral._('high', mockPos),
+									ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+								],
+								mockPos,
+							),
+						],
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7289,10 +8681,13 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -7309,14 +8704,20 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTUnaryExpression._({
-							before: true,
-							operator: '-',
-							operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
-						}),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								},
+								mockPos,
+							),
+							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -7333,14 +8734,20 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						upper: ASTUnaryExpression._({
-							before: true,
-							operator: '-',
-							operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-						}),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							upper: ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -7357,18 +8764,27 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTUnaryExpression._({
-							before: true,
-							operator: '-',
-							operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts]),
-						}),
-						upper: ASTUnaryExpression._({
-							before: true,
-							operator: '-',
-							operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-						}),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								},
+								mockPos,
+							),
+							upper: ASTUnaryExpression._(
+								{
+									before: true,
+									operator: '-',
+									operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7388,10 +8804,13 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTIdentifier._('foo'),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTIdentifier._('foo', mockPos),
+							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7410,10 +8829,13 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						upper: ASTIdentifier._('foo'),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							upper: ASTIdentifier._('foo', mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7439,13 +8861,19 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTStringLiteral._('a'),
-						}),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTStringLiteral._('a', mockPos),
+								},
+								mockPos,
+							),
+							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7471,14 +8899,20 @@ describe('parser.ts', (): void => {
 					[NT.StringLiteral, 'a'],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						upper: ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTStringLiteral._('a'),
-						}),
-					}),
-					ASTStringLiteral._('a'),
+					ASTRangeExpression._(
+						{
+							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							upper: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTStringLiteral._('a', mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
+					ASTStringLiteral._('a', mockPos),
 				],
 			);
 		});
@@ -7504,13 +8938,19 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTCallExpression._({
-							callee: ASTIdentifier._('foo'),
-							args: [ASTStringLiteral._('a')],
-						}),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('foo', mockPos),
+									args: [ASTStringLiteral._('a', mockPos)],
+								},
+								mockPos,
+							),
+							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7535,13 +8975,19 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-						upper: ASTCallExpression._({
-							callee: ASTIdentifier._('foo'),
-							args: [ASTStringLiteral._('a')],
-						}),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+							upper: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('foo', mockPos),
+									args: [ASTStringLiteral._('a', mockPos)],
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7573,16 +9019,25 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTMemberExpression._({
-							object: ASTIdentifier._('foo'),
-							property: ASTStringLiteral._('a'),
-						}),
-						upper: ASTCallExpression._({
-							callee: ASTIdentifier._('bar'),
-							args: [ASTStringLiteral._('b')],
-						}),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('foo', mockPos),
+									property: ASTStringLiteral._('a', mockPos),
+								},
+								mockPos,
+							),
+							upper: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('bar', mockPos),
+									args: [ASTStringLiteral._('b', mockPos)],
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7613,16 +9068,25 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTCallExpression._({
-							callee: ASTIdentifier._('foo'),
-							args: [ASTStringLiteral._('a')],
-						}),
-						upper: ASTMemberExpression._({
-							object: ASTIdentifier._('bar'),
-							property: ASTStringLiteral._('b'),
-						}),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('foo', mockPos),
+									args: [ASTStringLiteral._('a', mockPos)],
+								},
+								mockPos,
+							),
+							upper: ASTMemberExpression._(
+								{
+									object: ASTIdentifier._('bar', mockPos),
+									property: ASTStringLiteral._('b', mockPos),
+								},
+								mockPos,
+							),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7677,29 +9141,54 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('count'), ASTIdentifier._('countDown')],
-						declaredTypes: [],
-						initialValues: [
-							ASTRangeExpression._({
-								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								upper: ASTMemberExpression._({
-									object: ASTIdentifier._('myArray'),
-									property: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								}),
-							}),
-							ASTRangeExpression._({
-								lower: ASTMemberExpression._({
-									object: ASTIdentifier._('myArray'),
-									property: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								}),
-								upper: ASTNumberLiteral._(0, undefined, [...numberSizesInts]),
-							}),
-						],
-						inferredPossibleTypes: [[ASTTypeRange._()], [ASTTypeRange._()]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('count', mockPos), ASTIdentifier._('countDown', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTRangeExpression._(
+									{
+										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										upper: ASTMemberExpression._(
+											{
+												object: ASTIdentifier._('myArray', mockPos),
+												property: ASTNumberLiteral._(
+													2,
+													undefined,
+													[...numberSizesInts],
+													mockPos,
+												),
+											},
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+								ASTRangeExpression._(
+									{
+										lower: ASTMemberExpression._(
+											{
+												object: ASTIdentifier._('myArray', mockPos),
+												property: ASTNumberLiteral._(
+													1,
+													undefined,
+													[...numberSizesInts],
+													mockPos,
+												),
+											},
+											mockPos,
+										),
+										upper: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[ASTTypeRange._(mockPos)], [ASTTypeRange._(mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -7708,22 +9197,22 @@ describe('parser.ts', (): void => {
 	describe('Types', (): void => {
 		describe('should understand primitive types', () => {
 			it.each(primitiveTypes)('%s is recognized as its own primitive type', (type) => {
-				testParseAndAnalyze(type, [[NT.Type, type]], [ASTTypePrimitive._(type)]);
+				testParseAndAnalyze(type, [[NT.Type, type]], [ASTTypePrimitive._(type, mockPos)]);
 			});
 
 			it.each(numberSizesAll)('%s is recognized as a number type', (size) => {
-				testParseAndAnalyze(size, [[NT.Type, size]], [ASTTypeNumber._(size)]);
+				testParseAndAnalyze(size, [[NT.Type, size]], [ASTTypeNumber._(size, mockPos)]);
 			});
 
 			it('range is recognized as a type', () => {
-				testParseAndAnalyze('range', [[NT.Type, 'range']], [ASTTypeRange._()]);
+				testParseAndAnalyze('range', [[NT.Type, 'range']], [ASTTypeRange._(mockPos)]);
 			});
 
 			it.each(primitiveTypes)('%s[] is recognized as a one-dimensional array of type', (type) => {
 				testParseAndAnalyze(
 					`${type}[]`,
 					[[NT.ArrayOf, [[NT.Type, type]]]],
-					[ASTArrayOf._(ASTTypePrimitive._(type))],
+					[ASTArrayOf._(ASTTypePrimitive._(type, mockPos), mockPos)],
 				);
 			});
 
@@ -7731,19 +9220,23 @@ describe('parser.ts', (): void => {
 				testParseAndAnalyze(
 					`${size}[]`,
 					[[NT.ArrayOf, [[NT.Type, size]]]],
-					[ASTArrayOf._(ASTTypeNumber._(size))],
+					[ASTArrayOf._(ASTTypeNumber._(size, mockPos), mockPos)],
 				);
 			});
 
 			it('range[] is recognized as a one-dimensional array of type', () => {
-				testParseAndAnalyze('range[]', [[NT.ArrayOf, [[NT.Type, 'range']]]], [ASTArrayOf._(ASTTypeRange._())]);
+				testParseAndAnalyze(
+					'range[]',
+					[[NT.ArrayOf, [[NT.Type, 'range']]]],
+					[ASTArrayOf._(ASTTypeRange._(mockPos), mockPos)],
+				);
 			});
 
 			it.each(primitiveTypes)('%s[][] is recognized as a two-dimensional array of primitive type', (type) => {
 				testParseAndAnalyze(
 					`${type}[][]`,
 					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, type]]]]]],
-					[ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type)))],
+					[ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type, mockPos), mockPos), mockPos)],
 				);
 			});
 
@@ -7751,7 +9244,7 @@ describe('parser.ts', (): void => {
 				testParseAndAnalyze(
 					`${size}[][]`,
 					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, size]]]]]],
-					[ASTArrayOf._(ASTArrayOf._(ASTTypeNumber._(size)))],
+					[ASTArrayOf._(ASTArrayOf._(ASTTypeNumber._(size, mockPos), mockPos), mockPos)],
 				);
 			});
 		});
@@ -7761,13 +9254,13 @@ describe('parser.ts', (): void => {
 				testParseAndAnalyze(
 					'Foo[]',
 					[[NT.ArrayOf, [[NT.Identifier, 'Foo']]]],
-					[ASTArrayOf._(ASTIdentifier._('Foo'))],
+					[ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos)],
 				);
 
 				testParseAndAnalyze(
 					'Foo[][]',
 					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Identifier, 'Foo']]]]]],
-					[ASTArrayOf._(ASTArrayOf._(ASTIdentifier._('Foo')))],
+					[ASTArrayOf._(ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos), mockPos)],
 				);
 			});
 		});
@@ -7789,14 +9282,17 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x')],
-							declaredTypes: [ASTTypeRange._()],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: true,
+								identifiersList: [ASTIdentifier._('x', mockPos)],
+								declaredTypes: [ASTTypeRange._(mockPos)],
+								initialValues: [],
+								inferredPossibleTypes: [],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7828,19 +9324,25 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x')],
-							declaredTypes: [],
-							initialValues: [
-								ASTRangeExpression._({
-									lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-									upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-								}),
-							],
-							inferredPossibleTypes: [[ASTTypeRange._()]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: true,
+								identifiersList: [ASTIdentifier._('x', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTRangeExpression._(
+										{
+											lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+											upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[ASTTypeRange._(mockPos)]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7863,21 +9365,27 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTFunctionDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('foo'),
-							typeParams: [],
-							params: [
-								ASTParameter._({
-									modifiers: [],
-									isRest: false,
-									name: ASTIdentifier._('x'),
-									declaredType: ASTTypeRange._(),
-								}),
-							],
-							returnTypes: [ASTTypeRange._()],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTFunctionDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('foo', mockPos),
+								typeParams: [],
+								params: [
+									ASTParameter._(
+										{
+											modifiers: [],
+											isRest: false,
+											name: ASTIdentifier._('x', mockPos),
+											declaredType: ASTTypeRange._(mockPos),
+										},
+										mockPos,
+									),
+								],
+								returnTypes: [ASTTypeRange._(mockPos)],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7898,14 +9406,19 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [ASTTypeParameter._(ASTIdentifier._('T'))],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTClassDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [
+									ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7932,14 +9445,24 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [ASTTypeParameter._(ASTIdentifier._('T'), ASTIdentifier._('Bar'))],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTClassDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [
+									ASTTypeParameter._(
+										ASTIdentifier._('T', mockPos),
+										ASTIdentifier._('Bar', mockPos),
+										undefined,
+										mockPos,
+									),
+								],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -7966,14 +9489,24 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [ASTTypeParameter._(ASTIdentifier._('T'), undefined, ASTIdentifier._('Bar'))],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTClassDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [
+									ASTTypeParameter._(
+										ASTIdentifier._('T', mockPos),
+										undefined,
+										ASTIdentifier._('Bar', mockPos),
+										mockPos,
+									),
+								],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8006,20 +9539,24 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTClassDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('Foo'),
-							typeParams: [
-								ASTTypeParameter._(
-									ASTIdentifier._('T'),
-									ASTIdentifier._('Bar'),
-									ASTIdentifier._('Baz'),
-								),
-							],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([]),
-						}),
+						ASTClassDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('Foo', mockPos),
+								typeParams: [
+									ASTTypeParameter._(
+										ASTIdentifier._('T', mockPos),
+										ASTIdentifier._('Bar', mockPos),
+										ASTIdentifier._('Baz', mockPos),
+										mockPos,
+									),
+								],
+								extends: [],
+								implements: [],
+								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8042,14 +9579,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [],
-						initialValues: [ASTBoolLiteral._(false)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('bool')]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTBoolLiteral._(false, mockPos)],
+							inferredPossibleTypes: [[ASTTypePrimitive._('bool', mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -8070,21 +9610,24 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x?'), ASTIdentifier._('y')],
-						declaredTypes: [ASTTypePrimitive._('bool')],
-						initialValues: [ASTBoolLiteral._(false), ASTBoolLiteral._(true)],
-						inferredPossibleTypes: [[], [ASTTypePrimitive._('bool')]], // the question mark declares the type as bool, so no need to infer
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x?', mockPos), ASTIdentifier._('y', mockPos)],
+							declaredTypes: [ASTTypePrimitive._('bool', mockPos)],
+							initialValues: [ASTBoolLiteral._(false, mockPos), ASTBoolLiteral._(true, mockPos)],
+							inferredPossibleTypes: [[], [ASTTypePrimitive._('bool', mockPos)]], // the question mark declares the type as bool, so no need to infer
+						},
+						mockPos,
+					),
 				],
 			);
 		});
 
 		it('a double bool assignment and the second one has a question mark', (): void => {
 			const declaredTypes = <ASTType[]>[];
-			declaredTypes[1] = ASTTypePrimitive._('bool');
+			declaredTypes[1] = ASTTypePrimitive._('bool', mockPos);
 
 			testParseAndAnalyze(
 				'let x, y? = false, true',
@@ -8103,14 +9646,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x'), ASTIdentifier._('y?')],
-						declaredTypes: declaredTypes,
-						initialValues: [ASTBoolLiteral._(false), ASTBoolLiteral._(true)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('bool')], []], // the question mark declares the type as bool, so no need to infer
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x', mockPos), ASTIdentifier._('y?', mockPos)],
+							declaredTypes: declaredTypes,
+							initialValues: [ASTBoolLiteral._(false, mockPos), ASTBoolLiteral._(true, mockPos)],
+							inferredPossibleTypes: [[ASTTypePrimitive._('bool', mockPos)], []], // the question mark declares the type as bool, so no need to infer
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8130,14 +9676,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [],
-						initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-						inferredPossibleTypes: [[...NumberSizesIntASTs]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8191,36 +9740,61 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('x')],
-							declaredTypes: [],
-							initialValues: [
-								ASTBinaryExpression._({
-									operator: '^e',
-									left: ASTUnaryExpression._({
-										before: true,
-										operator: '-',
-										operand: ASTNumberLiteral._(2300.006, undefined, [...numberSizesDecimals]),
-									}),
-									right: ASTUnaryExpression._({
-										before: true,
-										operator: '-',
-										operand: ASTNumberLiteral._(2000, undefined, ['int16', 'int32', 'int64']),
-									}),
-								}),
-							],
-							inferredPossibleTypes: [[...NumberSizesDecimalASTs]], // all possible decimal number sizes
-						}),
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('y')],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(5, undefined, [...numberSizesInts])],
-							inferredPossibleTypes: [[...NumberSizesIntASTs]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('x', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTBinaryExpression._(
+										{
+											operator: '^e',
+											left: ASTUnaryExpression._(
+												{
+													before: true,
+													operator: '-',
+													operand: ASTNumberLiteral._(
+														2300.006,
+														undefined,
+														[...numberSizesDecimals],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+											right: ASTUnaryExpression._(
+												{
+													before: true,
+													operator: '-',
+													operand: ASTNumberLiteral._(
+														2000,
+														undefined,
+														['int16', 'int32', 'int64'],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [NumberSizesDecimalASTs.map((ns) => ns(mockPos))], // all possible decimal number sizes
+							},
+							mockPos,
+						),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('y', mockPos)],
+								declaredTypes: [],
+								initialValues: [ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)],
+								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8253,24 +9827,43 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('x')],
-							declaredTypes: [],
-							initialValues: [
-								ASTBinaryExpression._({
-									operator: '^e',
-									left: ASTNumberLiteral._(214748364723, undefined, ['int64', 'uint64']),
-									right: ASTUnaryExpression._({
-										before: true,
-										operator: '-',
-										operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-									}),
-								}),
-							],
-							inferredPossibleTypes: [[ASTTypeNumber._('dec64')]], // only 64 bit decimal number sizes or higher
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('x', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTBinaryExpression._(
+										{
+											operator: '^e',
+											left: ASTNumberLiteral._(
+												214748364723,
+												undefined,
+												['int64', 'uint64'],
+												mockPos,
+											),
+											right: ASTUnaryExpression._(
+												{
+													before: true,
+													operator: '-',
+													operand: ASTNumberLiteral._(
+														2,
+														undefined,
+														[...numberSizesSignedInts],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[ASTTypeNumber._('dec64', mockPos)]], // only 64 bit decimal number sizes or higher
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8291,14 +9884,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [],
-						initialValues: [ASTStringLiteral._('foo')],
-						inferredPossibleTypes: [[ASTTypePrimitive._('string')]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTStringLiteral._('foo', mockPos)],
+							inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8319,14 +9915,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [ASTTypePrimitive._('string')],
-						initialValues: [],
-						inferredPossibleTypes: [],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [ASTTypePrimitive._('string', mockPos)],
+							initialValues: [],
+							inferredPossibleTypes: [],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -8345,14 +9944,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: true,
-						identifiersList: [ASTIdentifier._('x?')],
-						declaredTypes: [ASTTypePrimitive._('bool')],
-						initialValues: [],
-						inferredPossibleTypes: [],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: true,
+							identifiersList: [ASTIdentifier._('x?', mockPos)],
+							declaredTypes: [ASTTypePrimitive._('bool', mockPos)],
+							initialValues: [],
+							inferredPossibleTypes: [],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8374,14 +9976,17 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [ASTTypePrimitive._('string')],
-						initialValues: [ASTStringLiteral._('foo')],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [ASTTypePrimitive._('string', mockPos)],
+							initialValues: [ASTStringLiteral._('foo', mockPos)],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8402,14 +10007,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [],
-						initialValues: [ASTRegularExpression._({ pattern: '/[a-z]/', flags: [] })],
-						inferredPossibleTypes: [[ASTTypePrimitive._('regex')]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTRegularExpression._({ pattern: '/[a-z]/', flags: [] }, mockPos)],
+							inferredPossibleTypes: [[ASTTypePrimitive._('regex', mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -8430,14 +10038,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('x')],
-						declaredTypes: [ASTTypePrimitive._('regex')],
-						initialValues: [ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] })],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('x', mockPos)],
+							declaredTypes: [ASTTypePrimitive._('regex', mockPos)],
+							initialValues: [ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] }, mockPos)],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8458,20 +10069,26 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('dir')],
-						declaredTypes: [],
-						initialValues: [
-							ASTPath._({
-								absolute: true,
-								path: '@/path/to/dir/',
-								isDir: true,
-							}),
-						],
-						inferredPossibleTypes: [[ASTTypePrimitive._('path')]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('dir', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTPath._(
+									{
+										absolute: true,
+										path: '@/path/to/dir/',
+										isDir: true,
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[ASTTypePrimitive._('path', mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -8490,14 +10107,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('dir')],
-						declaredTypes: [],
-						initialValues: [ASTPath._({ absolute: false, path: './myDir/', isDir: true })],
-						inferredPossibleTypes: [[ASTTypePrimitive._('path')]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('dir', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTPath._({ absolute: false, path: './myDir/', isDir: true }, mockPos)],
+							inferredPossibleTypes: [[ASTTypePrimitive._('path', mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 
@@ -8518,20 +10138,26 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('file')],
-						declaredTypes: [ASTTypePrimitive._('path')],
-						initialValues: [
-							ASTPath._({
-								absolute: true,
-								path: '@/path/to/file.joe',
-								isDir: false,
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('file', mockPos)],
+							declaredTypes: [ASTTypePrimitive._('path', mockPos)],
+							initialValues: [
+								ASTPath._(
+									{
+										absolute: true,
+										path: '@/path/to/file.joe',
+										isDir: false,
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8552,14 +10178,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('dir')],
-						declaredTypes: [],
-						initialValues: [ASTIdentifier._('foo')],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('dir', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTIdentifier._('foo', mockPos)],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -8600,22 +10229,31 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('myClass')],
-							declaredTypes: [ASTIdentifier._('MyClass')],
-							initialValues: [
-								ASTCallExpression._({
-									callee: ASTMemberExpression._({
-										object: ASTIdentifier._('MyClass'),
-										property: ASTIdentifier._('create'),
-									}),
-									args: [],
-								}),
-							],
-							inferredPossibleTypes: [[]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('myClass', mockPos)],
+								declaredTypes: [ASTIdentifier._('MyClass', mockPos)],
+								initialValues: [
+									ASTCallExpression._(
+										{
+											callee: ASTMemberExpression._(
+												{
+													object: ASTIdentifier._('MyClass', mockPos),
+													property: ASTIdentifier._('create', mockPos),
+												},
+												mockPos,
+											),
+											args: [],
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8666,27 +10304,39 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('myClass')],
-							declaredTypes: [
-								ASTMemberExpression._({
-									object: ASTIdentifier._('MyPackage'),
-									property: ASTIdentifier._('MyClass'),
-								}),
-							],
-							initialValues: [
-								ASTCallExpression._({
-									callee: ASTMemberExpression._({
-										object: ASTIdentifier._('MyClass'),
-										property: ASTIdentifier._('create'),
-									}),
-									args: [],
-								}),
-							],
-							inferredPossibleTypes: [[]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('myClass', mockPos)],
+								declaredTypes: [
+									ASTMemberExpression._(
+										{
+											object: ASTIdentifier._('MyPackage', mockPos),
+											property: ASTIdentifier._('MyClass', mockPos),
+										},
+										mockPos,
+									),
+								],
+								initialValues: [
+									ASTCallExpression._(
+										{
+											callee: ASTMemberExpression._(
+												{
+													object: ASTIdentifier._('MyClass', mockPos),
+													property: ASTIdentifier._('create', mockPos),
+												},
+												mockPos,
+											),
+											args: [],
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8723,28 +10373,37 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTTupleExpression._([
-									ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-									ASTStringLiteral._('pizza'),
-									ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
-								]),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTTupleShape._([
-										[...NumberSizesIntASTs],
-										[ASTTypePrimitive._('string')],
-										[...NumberSizesDecimalASTs],
-									]),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTTupleExpression._(
+										[
+											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+											ASTStringLiteral._('pizza', mockPos),
+											ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
+										],
+										mockPos,
+									),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTTupleShape._(
+											[
+												NumberSizesIntASTs.map((ns) => ns(mockPos)),
+												[ASTTypePrimitive._('string', mockPos)],
+												NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
+											],
+											mockPos,
+										),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8765,14 +10424,17 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [ASTTupleExpression._([])],
-							inferredPossibleTypes: [[ASTTupleShape._([])]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [ASTTupleExpression._([], mockPos)],
+								inferredPossibleTypes: [[ASTTupleShape._([], mockPos)]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8845,63 +10507,105 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTTupleExpression._([
-									ASTTupleExpression._([
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-										ASTStringLiteral._('pizza'),
-										ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
-									]),
-									ASTBoolLiteral._(true),
-									ASTPath._({
-										absolute: true,
-										path: '@/some/file.joe',
-										isDir: false,
-									}),
-									ASTRangeExpression._({
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-									}),
-									ASTTupleExpression._([
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-										ASTStringLiteral._('fizz'),
-										ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-										ASTStringLiteral._('buzz'),
-									]),
-								]),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTTupleShape._([
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTTupleExpression._(
 										[
-											ASTTupleShape._([
-												[...NumberSizesIntASTs],
-												[ASTTypePrimitive._('string')],
-												[...NumberSizesDecimalASTs],
-											]),
+											ASTTupleExpression._(
+												[
+													ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+													ASTStringLiteral._('pizza', mockPos),
+													ASTNumberLiteral._(
+														3.14,
+														undefined,
+														[...numberSizesDecimals],
+														mockPos,
+													),
+												],
+												mockPos,
+											),
+											ASTBoolLiteral._(true, mockPos),
+											ASTPath._(
+												{
+													absolute: true,
+													path: '@/some/file.joe',
+													isDir: false,
+												},
+												mockPos,
+											),
+											ASTRangeExpression._(
+												{
+													lower: ASTNumberLiteral._(
+														1,
+														undefined,
+														[...numberSizesInts],
+														mockPos,
+													),
+													upper: ASTNumberLiteral._(
+														3,
+														undefined,
+														[...numberSizesInts],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+											ASTTupleExpression._(
+												[
+													ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+													ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+													ASTStringLiteral._('fizz', mockPos),
+													ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+													ASTStringLiteral._('buzz', mockPos),
+												],
+												mockPos,
+											),
 										],
-										[ASTTypePrimitive._('bool')],
-										[ASTTypePrimitive._('path')],
-										[ASTTypeRange._()],
-										[
-											ASTTupleShape._([
-												[...NumberSizesIntASTs],
-												[...NumberSizesIntASTs],
-												[ASTTypePrimitive._('string')],
-												[...NumberSizesIntASTs],
-												[ASTTypePrimitive._('string')],
-											]),
-										],
-									]),
+										mockPos,
+									),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTTupleShape._(
+											[
+												[
+													ASTTupleShape._(
+														[
+															NumberSizesIntASTs.map((ns) => ns(mockPos)),
+															[ASTTypePrimitive._('string', mockPos)],
+															NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
+														],
+														mockPos,
+													),
+												],
+												[ASTTypePrimitive._('bool', mockPos)],
+												[ASTTypePrimitive._('path', mockPos)],
+												[ASTTypeRange._(mockPos)],
+												[
+													ASTTupleShape._(
+														[
+															NumberSizesIntASTs.map((ns) => ns(mockPos)),
+															NumberSizesIntASTs.map((ns) => ns(mockPos)),
+															[ASTTypePrimitive._('string', mockPos)],
+															NumberSizesIntASTs.map((ns) => ns(mockPos)),
+															[ASTTypePrimitive._('string', mockPos)],
+														],
+														mockPos,
+													),
+												],
+											],
+											mockPos,
+										),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8934,15 +10638,24 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTTupleExpression._([
-							ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-							ASTTernaryExpression._({
-								test: ASTTernaryCondition._(ASTIdentifier._('someCondition')),
-								consequent: ASTTernaryConsequent._(ASTStringLiteral._('burnt-orange')),
-								alternate: ASTTernaryAlternate._(ASTStringLiteral._('')),
-							}),
-							ASTBoolLiteral._(true),
-						]),
+						ASTTupleExpression._(
+							[
+								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+								ASTTernaryExpression._(
+									{
+										test: ASTTernaryCondition._(ASTIdentifier._('someCondition', mockPos), mockPos),
+										consequent: ASTTernaryConsequent._(
+											ASTStringLiteral._('burnt-orange', mockPos),
+											mockPos,
+										),
+										alternate: ASTTernaryAlternate._(ASTStringLiteral._('', mockPos), mockPos),
+									},
+									mockPos,
+								),
+								ASTBoolLiteral._(true, mockPos),
+							],
+							mockPos,
+						),
 					],
 				);
 			});
@@ -8979,29 +10692,49 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTObjectExpression._([
-									ASTProperty._(
-										ASTIdentifier._('tpl'),
-										ASTTupleExpression._([ASTNumberLiteral._(1, undefined, [...numberSizesInts])]),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTObjectExpression._(
+										[
+											ASTProperty._(
+												ASTIdentifier._('tpl', mockPos),
+												ASTTupleExpression._(
+													[ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+													mockPos,
+												),
+												mockPos,
+											),
+										],
+										mockPos,
 									),
-								]),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTObjectShape._([
-										ASTPropertyShape._(ASTIdentifier._('tpl'), [
-											ASTTupleShape._([[...NumberSizesIntASTs]]),
-										]),
-									]),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTObjectShape._(
+											[
+												ASTPropertyShape._(
+													ASTIdentifier._('tpl', mockPos),
+													[
+														ASTTupleShape._(
+															[NumberSizesIntASTs.map((ns) => ns(mockPos))],
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+											],
+											mockPos,
+										),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9026,15 +10759,18 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTBoolLiteral._(false),
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(true),
-								ASTBoolLiteral._(false),
-							],
-							possibleTypes: [ASTTypePrimitive._('bool')],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTBoolLiteral._(false, mockPos),
+									ASTBoolLiteral._(true, mockPos),
+									ASTBoolLiteral._(true, mockPos),
+									ASTBoolLiteral._(false, mockPos),
+								],
+								possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9068,36 +10804,56 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								ASTUnaryExpression._({
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-								}),
-								ASTNumberLiteral._(3456, undefined, [
-									'int16',
-									'int32',
-									'int64',
-									'uint16',
-									'uint32',
-									'uint64',
-								]),
-								ASTBinaryExpression._({
-									operator: '^e',
-									left: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-									right: ASTUnaryExpression._({
-										before: true,
-										operator: '-',
-										operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts]),
-									}),
-								}),
-								ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
-								ASTNumberLiteral._(123, undefined, [...numberSizesInts]),
-							],
-							possibleTypes: [...NumberSizesIntASTs],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+									ASTUnaryExpression._(
+										{
+											before: true,
+											operator: '-',
+											operand: ASTNumberLiteral._(
+												2,
+												undefined,
+												[...numberSizesSignedInts],
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+									ASTNumberLiteral._(
+										3456,
+										undefined,
+										['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
+										mockPos,
+									),
+									ASTBinaryExpression._(
+										{
+											operator: '^e',
+											left: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+											right: ASTUnaryExpression._(
+												{
+													before: true,
+													operator: '-',
+													operand: ASTNumberLiteral._(
+														2,
+														undefined,
+														[...numberSizesSignedInts],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+										},
+										mockPos,
+									),
+									ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
+									ASTNumberLiteral._(123, undefined, [...numberSizesInts], mockPos),
+								],
+								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9112,21 +10868,30 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTPath._({
-									absolute: true,
-									path: '@/file.joe',
-									isDir: false,
-								}),
-								ASTPath._({
-									absolute: true,
-									path: '@/another/file.joe',
-									isDir: false,
-								}),
-							],
-							possibleTypes: [ASTTypePrimitive._('path')],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTPath._(
+										{
+											absolute: true,
+											path: '@/file.joe',
+											isDir: false,
+										},
+										mockPos,
+									),
+									ASTPath._(
+										{
+											absolute: true,
+											path: '@/another/file.joe',
+											isDir: false,
+										},
+										mockPos,
+									),
+								],
+								possibleTypes: [ASTTypePrimitive._('path', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9147,23 +10912,35 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTRegularExpression._({
-									pattern: '/[a-z]/',
-									flags: ['i'],
-								}),
-								ASTRegularExpression._({
-									pattern: '/[0-9]/',
-									flags: ['g'],
-								}),
-								ASTRegularExpression._({
-									pattern: '/d/',
-									flags: [],
-								}),
-							],
-							possibleTypes: [ASTTypePrimitive._('regex')],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTRegularExpression._(
+										{
+											pattern: '/[a-z]/',
+											flags: ['i'],
+										},
+										mockPos,
+									),
+									ASTRegularExpression._(
+										{
+											pattern: '/[0-9]/',
+											flags: ['g'],
+										},
+										mockPos,
+									),
+									ASTRegularExpression._(
+										{
+											pattern: '/d/',
+											flags: [],
+										},
+										mockPos,
+									),
+								],
+								possibleTypes: [ASTTypePrimitive._('regex', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9173,10 +10950,13 @@ describe('parser.ts', (): void => {
 					'[\'foo\', "bar"]',
 					[[NT.ArrayExpression, [[NT.StringLiteral, 'foo'], [NT.CommaSeparator], [NT.StringLiteral, 'bar']]]],
 					[
-						ASTArrayExpression._({
-							items: [ASTStringLiteral._('foo'), ASTStringLiteral._('bar')],
-							possibleTypes: [ASTTypePrimitive._('string')],
-						}),
+						ASTArrayExpression._(
+							{
+								items: [ASTStringLiteral._('foo', mockPos), ASTStringLiteral._('bar', mockPos)],
+								possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9248,65 +11028,80 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [
-								ASTArrayOf._(
-									ASTTupleShape._([
-										[ASTTypePrimitive._('string')],
-										[ASTTypeNumber._('uint64')],
-										[ASTTypePrimitive._('bool')],
-									]),
-								),
-							],
-							initialValues: [
-								ASTArrayExpression._({
-									items: [
-										ASTTupleExpression._([
-											ASTStringLiteral._('foo'),
-											ASTNumberLiteral._(314, undefined, [
-												'int16',
-												'int32',
-												'int64',
-												'uint16',
-												'uint32',
-												'uint64',
-											]),
-											ASTBoolLiteral._(false),
-										]),
-										ASTTupleExpression._([
-											ASTStringLiteral._('bar'),
-											ASTNumberLiteral._(900, undefined, [
-												'int16',
-												'int32',
-												'int64',
-												'uint16',
-												'uint32',
-												'uint64',
-											]),
-											ASTBoolLiteral._(true),
-										]),
-									],
-									possibleTypes: [
-										ASTTupleShape._([
-											[ASTTypePrimitive._('string')],
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [
+									ASTArrayOf._(
+										ASTTupleShape._(
 											[
-												ASTTypeNumber._('int16'),
-												ASTTypeNumber._('int32'),
-												ASTTypeNumber._('int64'),
-												ASTTypeNumber._('uint16'),
-												ASTTypeNumber._('uint32'),
-												ASTTypeNumber._('uint64'),
+												[ASTTypePrimitive._('string', mockPos)],
+												[ASTTypeNumber._('uint64', mockPos)],
+												[ASTTypePrimitive._('bool', mockPos)],
 											],
-											[ASTTypePrimitive._('bool')],
-										]),
-									],
-								}),
-							],
-							inferredPossibleTypes: [[]],
-						}),
+											mockPos,
+										),
+										mockPos,
+									),
+								],
+								initialValues: [
+									ASTArrayExpression._(
+										{
+											items: [
+												ASTTupleExpression._(
+													[
+														ASTStringLiteral._('foo', mockPos),
+														ASTNumberLiteral._(
+															314,
+															undefined,
+															['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
+															mockPos,
+														),
+														ASTBoolLiteral._(false, mockPos),
+													],
+													mockPos,
+												),
+												ASTTupleExpression._(
+													[
+														ASTStringLiteral._('bar', mockPos),
+														ASTNumberLiteral._(
+															900,
+															undefined,
+															['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
+															mockPos,
+														),
+														ASTBoolLiteral._(true, mockPos),
+													],
+													mockPos,
+												),
+											],
+											possibleTypes: [
+												ASTTupleShape._(
+													[
+														[ASTTypePrimitive._('string', mockPos)],
+														[
+															ASTTypeNumber._('int16', mockPos),
+															ASTTypeNumber._('int32', mockPos),
+															ASTTypeNumber._('int64', mockPos),
+															ASTTypeNumber._('uint16', mockPos),
+															ASTTypeNumber._('uint32', mockPos),
+															ASTTypeNumber._('uint64', mockPos),
+														],
+														[ASTTypePrimitive._('bool', mockPos)],
+													],
+													mockPos,
+												),
+											],
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9387,39 +11182,81 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [
-								ASTArrayOf._(
-									ASTObjectShape._([
-										ASTPropertyShape._(ASTIdentifier._('a'), [ASTTypeNumber._('uint32')]),
-										ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
-									]),
-								),
-							],
-							initialValues: [
-								ASTArrayExpression._({
-									items: [
-										ASTObjectExpression._([
-											ASTProperty._(
-												ASTIdentifier._('a'),
-												ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-											),
-											ASTProperty._(ASTIdentifier._('b'), ASTStringLiteral._('c')),
-										]),
-									],
-									possibleTypes: [
-										ASTObjectShape._([
-											ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
-											ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
-										]),
-									],
-								}),
-							],
-							inferredPossibleTypes: [[]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [
+									ASTArrayOf._(
+										ASTObjectShape._(
+											[
+												ASTPropertyShape._(
+													ASTIdentifier._('a', mockPos),
+													[ASTTypeNumber._('uint32', mockPos)],
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('b', mockPos),
+													[ASTTypePrimitive._('string', mockPos)],
+													mockPos,
+												),
+											],
+											mockPos,
+										),
+										mockPos,
+									),
+								],
+								initialValues: [
+									ASTArrayExpression._(
+										{
+											items: [
+												ASTObjectExpression._(
+													[
+														ASTProperty._(
+															ASTIdentifier._('a', mockPos),
+															ASTNumberLiteral._(
+																4,
+																undefined,
+																[...numberSizesInts],
+																mockPos,
+															),
+															mockPos,
+														),
+														ASTProperty._(
+															ASTIdentifier._('b', mockPos),
+															ASTStringLiteral._('c', mockPos),
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+											],
+											possibleTypes: [
+												ASTObjectShape._(
+													[
+														ASTPropertyShape._(
+															ASTIdentifier._('a', mockPos),
+															NumberSizesIntASTs.map((ns) => ns(mockPos)),
+															mockPos,
+														),
+														ASTPropertyShape._(
+															ASTIdentifier._('b', mockPos),
+															[ASTTypePrimitive._('string', mockPos)],
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+											],
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9448,33 +11285,39 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('int32s')],
-							declaredTypes: [],
-							initialValues: [
-								ASTArrayExpression._({
-									items: [
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									],
-									possibleTypes: [...NumberSizesIntASTs],
-								}),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTArrayOf._(ASTTypeNumber._('int8')),
-									ASTArrayOf._(ASTTypeNumber._('int16')),
-									ASTArrayOf._(ASTTypeNumber._('int32')),
-									ASTArrayOf._(ASTTypeNumber._('int64')),
-									ASTArrayOf._(ASTTypeNumber._('uint8')),
-									ASTArrayOf._(ASTTypeNumber._('uint16')),
-									ASTArrayOf._(ASTTypeNumber._('uint32')),
-									ASTArrayOf._(ASTTypeNumber._('uint64')),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('int32s', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTArrayExpression._(
+										{
+											items: [
+												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											],
+											possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+										},
+										mockPos,
+									),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTArrayOf._(ASTTypeNumber._('int8', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('int16', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('int32', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('int64', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('uint8', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('uint16', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('uint32', mockPos), mockPos),
+										ASTArrayOf._(ASTTypeNumber._('uint64', mockPos), mockPos),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 
@@ -9495,19 +11338,25 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('myArray')],
-							declaredTypes: [ASTArrayOf._(ASTTypePrimitive._('bool'))],
-							initialValues: [
-								ASTArrayExpression._({
-									items: [],
-									possibleTypes: [],
-								}),
-							],
-							inferredPossibleTypes: [[]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: true,
+								identifiersList: [ASTIdentifier._('myArray', mockPos)],
+								declaredTypes: [ASTArrayOf._(ASTTypePrimitive._('bool', mockPos), mockPos)],
+								initialValues: [
+									ASTArrayExpression._(
+										{
+											items: [],
+											possibleTypes: [],
+										},
+										mockPos,
+									),
+								],
+								inferredPossibleTypes: [[]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9542,35 +11391,43 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTTernaryExpression._({
-									test: ASTTernaryCondition._(ASTIdentifier._('bar')),
-									consequent: ASTTernaryConsequent._(
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTTernaryExpression._(
+										{
+											test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
+											consequent: ASTTernaryConsequent._(
+												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+												mockPos,
+											),
+											alternate: ASTTernaryAlternate._(
+												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+												mockPos,
+											),
+										},
+										mockPos,
 									),
-									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									),
-								}),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTTypeNumber._('int8'),
-									ASTTypeNumber._('int16'),
-									ASTTypeNumber._('int32'),
-									ASTTypeNumber._('int64'),
-									ASTTypeNumber._('uint8'),
-									ASTTypeNumber._('uint16'),
-									ASTTypeNumber._('uint32'),
-									ASTTypeNumber._('uint64'),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTTypeNumber._('int8', mockPos),
+										ASTTypeNumber._('int16', mockPos),
+										ASTTypeNumber._('int32', mockPos),
+										ASTTypeNumber._('int64', mockPos),
+										ASTTypeNumber._('uint8', mockPos),
+										ASTTypeNumber._('uint16', mockPos),
+										ASTTypeNumber._('uint32', mockPos),
+										ASTTypeNumber._('uint64', mockPos),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9626,32 +11483,58 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTTernaryExpression._({
-									test: ASTTernaryCondition._(ASTIdentifier._('bar')),
-									consequent: ASTTernaryConsequent._(
-										ASTTernaryExpression._({
-											test: ASTTernaryCondition._(ASTIdentifier._('baz')),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTTernaryExpression._(
+										{
+											test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
 											consequent: ASTTernaryConsequent._(
-												ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
+												ASTTernaryExpression._(
+													{
+														test: ASTTernaryCondition._(
+															ASTIdentifier._('baz', mockPos),
+															mockPos,
+														),
+														consequent: ASTTernaryConsequent._(
+															ASTNumberLiteral._(
+																3,
+																undefined,
+																[...numberSizesInts],
+																mockPos,
+															),
+															mockPos,
+														),
+														alternate: ASTTernaryAlternate._(
+															ASTNumberLiteral._(
+																4,
+																undefined,
+																[...numberSizesInts],
+																mockPos,
+															),
+															mockPos,
+														),
+													},
+													mockPos,
+												),
+												mockPos,
 											),
 											alternate: ASTTernaryAlternate._(
-												ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
+												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+												mockPos,
 											),
-										}),
+										},
+										mockPos,
 									),
-									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									),
-								}),
-							],
-							inferredPossibleTypes: [[...NumberSizesIntASTs]],
-						}),
+								],
+								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9677,21 +11560,29 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTArrayExpression._({
-							items: [
-								ASTTernaryExpression._({
-									test: ASTTernaryCondition._(ASTIdentifier._('foo')),
-									consequent: ASTTernaryConsequent._(
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+						ASTArrayExpression._(
+							{
+								items: [
+									ASTTernaryExpression._(
+										{
+											test: ASTTernaryCondition._(ASTIdentifier._('foo', mockPos), mockPos),
+											consequent: ASTTernaryConsequent._(
+												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+												mockPos,
+											),
+											alternate: ASTTernaryAlternate._(
+												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+												mockPos,
+											),
+										},
+										mockPos,
 									),
-									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-									),
-								}),
-								ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							],
-							possibleTypes: [...NumberSizesIntASTs],
-						}),
+									ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+								],
+								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9732,23 +11623,44 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTFunctionDeclaration._({
-							modifiers: [],
-							name: ASTIdentifier._('foo'),
-							typeParams: [],
-							params: [],
-							returnTypes: [ASTTypePrimitive._('bool'), ASTTypeNumber._('uint64')],
-							body: ASTBlockStatement._([
-								ASTReturnStatement._([
-									ASTTernaryExpression._({
-										test: ASTTernaryCondition._(ASTIdentifier._('bar')),
-										consequent: ASTTernaryConsequent._(ASTBoolLiteral._(true)),
-										alternate: ASTTernaryAlternate._(ASTBoolLiteral._(false)),
-									}),
-									ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-								]),
-							]),
-						}),
+						ASTFunctionDeclaration._(
+							{
+								modifiers: [],
+								name: ASTIdentifier._('foo', mockPos),
+								typeParams: [],
+								params: [],
+								returnTypes: [ASTTypePrimitive._('bool', mockPos), ASTTypeNumber._('uint64', mockPos)],
+								body: ASTBlockStatement._(
+									[
+										ASTReturnStatement._(
+											[
+												ASTTernaryExpression._(
+													{
+														test: ASTTernaryCondition._(
+															ASTIdentifier._('bar', mockPos),
+															mockPos,
+														),
+														consequent: ASTTernaryConsequent._(
+															ASTBoolLiteral._(true, mockPos),
+															mockPos,
+														),
+														alternate: ASTTernaryAlternate._(
+															ASTBoolLiteral._(false, mockPos),
+															mockPos,
+														),
+													},
+													mockPos,
+												),
+												ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+											],
+											mockPos,
+										),
+									],
+									mockPos,
+								),
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9818,45 +11730,90 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTObjectExpression._([
-									ASTProperty._(
-										ASTIdentifier._('a'),
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTObjectExpression._(
+										[
+											ASTProperty._(
+												ASTIdentifier._('a', mockPos),
+												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+												mockPos,
+											),
+											ASTProperty._(
+												ASTIdentifier._('b', mockPos),
+												ASTStringLiteral._('pizza', mockPos),
+												mockPos,
+											),
+											ASTProperty._(
+												ASTIdentifier._('c', mockPos),
+												ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
+												mockPos,
+											),
+											ASTProperty._(
+												ASTIdentifier._('d', mockPos),
+												ASTArrayExpression._(
+													{
+														items: [
+															ASTNumberLiteral._(
+																10,
+																undefined,
+																[...numberSizesInts],
+																mockPos,
+															),
+															ASTNumberLiteral._(
+																11,
+																undefined,
+																[...numberSizesInts],
+																mockPos,
+															),
+														],
+														possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+													},
+													mockPos,
+												),
+												mockPos,
+											),
+										],
+										mockPos,
 									),
-									ASTProperty._(ASTIdentifier._('b'), ASTStringLiteral._('pizza')),
-									ASTProperty._(
-										ASTIdentifier._('c'),
-										ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
-									),
-									ASTProperty._(
-										ASTIdentifier._('d'),
-										ASTArrayExpression._({
-											items: [
-												ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
-												ASTNumberLiteral._(11, undefined, [...numberSizesInts]),
-											],
-											possibleTypes: [...NumberSizesIntASTs],
-										}),
-									),
-								]),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTObjectShape._([
-										ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
-										ASTPropertyShape._(ASTIdentifier._('b'), [ASTTypePrimitive._('string')]),
-										ASTPropertyShape._(ASTIdentifier._('c'), [...NumberSizesDecimalASTs]),
-										ASTPropertyShape._(ASTIdentifier._('d'), NumberSizesIntASTs.map(ASTArrayOf._)),
-									]),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTObjectShape._(
+											[
+												ASTPropertyShape._(
+													ASTIdentifier._('a', mockPos),
+													NumberSizesIntASTs.map((ns) => ns(mockPos)),
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('b', mockPos),
+													[ASTTypePrimitive._('string', mockPos)],
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('c', mockPos),
+													NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('d', mockPos),
+													NumberSizesIntASTs.map((ns) => ASTArrayOf._(ns(mockPos), mockPos)),
+													mockPos,
+												),
+											],
+											mockPos,
+										),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -9877,14 +11834,17 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [ASTObjectExpression._([])],
-							inferredPossibleTypes: [[ASTObjectShape._([])]],
-						}),
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [ASTObjectExpression._([], mockPos)],
+								inferredPossibleTypes: [[ASTObjectShape._([], mockPos)]],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -10027,103 +11987,219 @@ describe('parser.ts', (): void => {
 						[NT.SemicolonSeparator],
 					],
 					[
-						ASTVariableDeclaration._({
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo')],
-							declaredTypes: [],
-							initialValues: [
-								ASTObjectExpression._([
-									ASTProperty._(
-										ASTIdentifier._('obj'),
-										ASTObjectExpression._([
+						ASTVariableDeclaration._(
+							{
+								modifiers: [],
+								mutable: false,
+								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								declaredTypes: [],
+								initialValues: [
+									ASTObjectExpression._(
+										[
 											ASTProperty._(
-												ASTIdentifier._('a'),
-												ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
+												ASTIdentifier._('obj', mockPos),
+												ASTObjectExpression._(
+													[
+														ASTProperty._(
+															ASTIdentifier._('a', mockPos),
+															ASTNumberLiteral._(
+																1,
+																undefined,
+																[...numberSizesInts],
+																mockPos,
+															),
+															mockPos,
+														),
+														ASTProperty._(
+															ASTIdentifier._('b', mockPos),
+															ASTStringLiteral._('pizza', mockPos),
+															mockPos,
+														),
+														ASTProperty._(
+															ASTIdentifier._('pi', mockPos),
+															ASTObjectExpression._(
+																[
+																	ASTProperty._(
+																		ASTIdentifier._('two_digits', mockPos),
+																		ASTNumberLiteral._(
+																			3.14,
+																			undefined,
+																			[...numberSizesDecimals],
+																			mockPos,
+																		),
+																		mockPos,
+																	),
+																],
+																mockPos,
+															),
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+												mockPos,
 											),
-											ASTProperty._(ASTIdentifier._('b'), ASTStringLiteral._('pizza')),
 											ASTProperty._(
-												ASTIdentifier._('pi'),
-												ASTObjectExpression._([
-													ASTProperty._(
-														ASTIdentifier._('two_digits'),
-														ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals]),
-													),
-												]),
+												ASTIdentifier._('bol', mockPos),
+												ASTBoolLiteral._(true, mockPos),
+												mockPos,
 											),
-										]),
-									),
-									ASTProperty._(ASTIdentifier._('bol'), ASTBoolLiteral._(true)),
-									ASTProperty._(
-										ASTIdentifier._('pth'),
-										ASTPath._({
-											absolute: true,
-											path: '@/some/file.joe',
-											isDir: false,
-										}),
-									),
-									ASTProperty._(
-										ASTIdentifier._('rng'),
-										ASTObjectExpression._([
 											ASTProperty._(
-												ASTIdentifier._('rng'),
-												ASTRangeExpression._({
-													lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-													upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-												}),
+												ASTIdentifier._('pth', mockPos),
+												ASTPath._(
+													{
+														absolute: true,
+														path: '@/some/file.joe',
+														isDir: false,
+													},
+													mockPos,
+												),
+												mockPos,
 											),
-										]),
+											ASTProperty._(
+												ASTIdentifier._('rng', mockPos),
+												ASTObjectExpression._(
+													[
+														ASTProperty._(
+															ASTIdentifier._('rng', mockPos),
+															ASTRangeExpression._(
+																{
+																	lower: ASTNumberLiteral._(
+																		1,
+																		undefined,
+																		[...numberSizesInts],
+																		mockPos,
+																	),
+																	upper: ASTNumberLiteral._(
+																		3,
+																		undefined,
+																		[...numberSizesInts],
+																		mockPos,
+																	),
+																},
+																mockPos,
+															),
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+												mockPos,
+											),
+											ASTProperty._(
+												ASTIdentifier._('tpl', mockPos),
+												ASTTupleExpression._(
+													[
+														ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+														ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+														ASTStringLiteral._('fizz', mockPos),
+														ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+														ASTStringLiteral._('buzz', mockPos),
+													],
+													mockPos,
+												),
+												mockPos,
+											),
+										],
+										mockPos,
 									),
-									ASTProperty._(
-										ASTIdentifier._('tpl'),
-										ASTTupleExpression._([
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-											ASTStringLiteral._('fizz'),
-											ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-											ASTStringLiteral._('buzz'),
-										]),
-									),
-								]),
-							],
-							inferredPossibleTypes: [
-								[
-									ASTObjectShape._([
-										ASTPropertyShape._(ASTIdentifier._('obj'), [
-											ASTObjectShape._([
-												ASTPropertyShape._(ASTIdentifier._('a'), [...NumberSizesIntASTs]),
-												ASTPropertyShape._(ASTIdentifier._('b'), [
-													ASTTypePrimitive._('string'),
-												]),
-												ASTPropertyShape._(ASTIdentifier._('pi'), [
-													ASTObjectShape._([
-														ASTPropertyShape._(ASTIdentifier._('two_digits'), [
-															...NumberSizesDecimalASTs,
-														]),
-													]),
-												]),
-											]),
-										]),
-										ASTPropertyShape._(ASTIdentifier._('bol'), [ASTTypePrimitive._('bool')]),
-										ASTPropertyShape._(ASTIdentifier._('pth'), [ASTTypePrimitive._('path')]),
-										ASTPropertyShape._(ASTIdentifier._('rng'), [
-											ASTObjectShape._([
-												ASTPropertyShape._(ASTIdentifier._('rng'), [ASTTypeRange._()]),
-											]),
-										]),
-										ASTPropertyShape._(ASTIdentifier._('tpl'), [
-											ASTTupleShape._([
-												[...NumberSizesIntASTs],
-												[...NumberSizesIntASTs],
-												[ASTTypePrimitive._('string')],
-												[...NumberSizesIntASTs],
-												[ASTTypePrimitive._('string')],
-											]),
-										]),
-									]),
 								],
-							],
-						}),
+								inferredPossibleTypes: [
+									[
+										ASTObjectShape._(
+											[
+												ASTPropertyShape._(
+													ASTIdentifier._('obj', mockPos),
+													[
+														ASTObjectShape._(
+															[
+																ASTPropertyShape._(
+																	ASTIdentifier._('a', mockPos),
+																	NumberSizesIntASTs.map((ns) => ns(mockPos)),
+																	mockPos,
+																),
+																ASTPropertyShape._(
+																	ASTIdentifier._('b', mockPos),
+																	[ASTTypePrimitive._('string', mockPos)],
+																	mockPos,
+																),
+																ASTPropertyShape._(
+																	ASTIdentifier._('pi', mockPos),
+																	[
+																		ASTObjectShape._(
+																			[
+																				ASTPropertyShape._(
+																					ASTIdentifier._(
+																						'two_digits',
+																						mockPos,
+																					),
+																					NumberSizesDecimalASTs.map((ns) =>
+																						ns(mockPos),
+																					),
+																					mockPos,
+																				),
+																			],
+																			mockPos,
+																		),
+																	],
+																	mockPos,
+																),
+															],
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('bol', mockPos),
+													[ASTTypePrimitive._('bool', mockPos)],
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('pth', mockPos),
+													[ASTTypePrimitive._('path', mockPos)],
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('rng', mockPos),
+													[
+														ASTObjectShape._(
+															[
+																ASTPropertyShape._(
+																	ASTIdentifier._('rng', mockPos),
+																	[ASTTypeRange._(mockPos)],
+																	mockPos,
+																),
+															],
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('tpl', mockPos),
+													[
+														ASTTupleShape._(
+															[
+																NumberSizesIntASTs.map((ns) => ns(mockPos)),
+																NumberSizesIntASTs.map((ns) => ns(mockPos)),
+																[ASTTypePrimitive._('string', mockPos)],
+																NumberSizesIntASTs.map((ns) => ns(mockPos)),
+																[ASTTypePrimitive._('string', mockPos)],
+															],
+															mockPos,
+														),
+													],
+													mockPos,
+												),
+											],
+											mockPos,
+										),
+									],
+								],
+							},
+							mockPos,
+						),
 					],
 				);
 			});
@@ -10174,18 +12250,35 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTObjectExpression._([
-							ASTProperty._(ASTIdentifier._('a'), ASTNumberLiteral._(1, undefined, [...numberSizesInts])),
-							ASTProperty._(
-								ASTIdentifier._('b'),
-								ASTTernaryExpression._({
-									test: ASTTernaryCondition._(ASTIdentifier._('someCondition')),
-									consequent: ASTTernaryConsequent._(ASTStringLiteral._('burnt-orange')),
-									alternate: ASTTernaryAlternate._(ASTStringLiteral._('')),
-								}),
-							),
-							ASTProperty._(ASTIdentifier._('c'), ASTBoolLiteral._(true)),
-						]),
+						ASTObjectExpression._(
+							[
+								ASTProperty._(
+									ASTIdentifier._('a', mockPos),
+									ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+									mockPos,
+								),
+								ASTProperty._(
+									ASTIdentifier._('b', mockPos),
+									ASTTernaryExpression._(
+										{
+											test: ASTTernaryCondition._(
+												ASTIdentifier._('someCondition', mockPos),
+												mockPos,
+											),
+											consequent: ASTTernaryConsequent._(
+												ASTStringLiteral._('burnt-orange', mockPos),
+												mockPos,
+											),
+											alternate: ASTTernaryAlternate._(ASTStringLiteral._('', mockPos), mockPos),
+										},
+										mockPos,
+									),
+									mockPos,
+								),
+								ASTProperty._(ASTIdentifier._('c', mockPos), ASTBoolLiteral._(true, mockPos), mockPos),
+							],
+							mockPos,
+						),
 					],
 				);
 			});
@@ -10210,15 +12303,22 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTObjectExpression._([
-							ASTProperty._(
-								ASTIdentifier._('a'),
-								ASTArrayExpression._({
-									items: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-									possibleTypes: [...NumberSizesIntASTs],
-								}),
-							),
-						]),
+						ASTObjectExpression._(
+							[
+								ASTProperty._(
+									ASTIdentifier._('a', mockPos),
+									ASTArrayExpression._(
+										{
+											items: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+											possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+										},
+										mockPos,
+									),
+									mockPos,
+								),
+							],
+							mockPos,
+						),
 					],
 				);
 			});
@@ -10254,20 +12354,35 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[
-						ASTObjectExpression._([
-							ASTProperty._(
-								ASTIdentifier._('a'),
-								ASTArrayExpression._({
-									items: [
-										ASTMemberExpression._({
-											object: ASTIdentifier._('foo'),
-											property: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-										}),
-									],
-									possibleTypes: [],
-								}),
-							),
-						]),
+						ASTObjectExpression._(
+							[
+								ASTProperty._(
+									ASTIdentifier._('a', mockPos),
+									ASTArrayExpression._(
+										{
+											items: [
+												ASTMemberExpression._(
+													{
+														object: ASTIdentifier._('foo', mockPos),
+														property: ASTNumberLiteral._(
+															1,
+															undefined,
+															[...numberSizesInts],
+															mockPos,
+														),
+													},
+													mockPos,
+												),
+											],
+											possibleTypes: [],
+										},
+										mockPos,
+									),
+									mockPos,
+								),
+							],
+							mockPos,
+						),
 					],
 				);
 			});
@@ -10289,14 +12404,17 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [ASTThisKeyword._()],
-						inferredPossibleTypes: [[]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							declaredTypes: [],
+							initialValues: [ASTThisKeyword._(mockPos)],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10328,19 +12446,25 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('foo')],
-						declaredTypes: [],
-						initialValues: [
-							ASTRangeExpression._({
-								lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							}),
-						],
-						inferredPossibleTypes: [[ASTTypeRange._()]],
-					}),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTRangeExpression._(
+									{
+										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[ASTTypeRange._(mockPos)]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10374,15 +12498,21 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTWhenExpression._({
-						expression: ASTIdentifier._('someNumber'),
-						cases: [
-							ASTWhenCase._({
-								values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-								consequent: ASTStringLiteral._('small'),
-							}),
-						],
-					}),
+					ASTWhenExpression._(
+						{
+							expression: ASTIdentifier._('someNumber', mockPos),
+							cases: [
+								ASTWhenCase._(
+									{
+										values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+										consequent: ASTStringLiteral._('small', mockPos),
+									},
+									mockPos,
+								),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10446,25 +12576,40 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTWhenExpression._({
-						expression: ASTIdentifier._('someNumber'),
-						cases: [
-							ASTWhenCase._({
-								values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts])],
-								consequent: ASTBlockStatement._([
-									ASTCallExpression._({
-										callee: ASTIdentifier._('doThing1'),
-										args: [],
-									}),
-									ASTCallExpression._({
-										callee: ASTIdentifier._('doThing2'),
-										args: [],
-									}),
-									ASTReturnStatement._([ASTStringLiteral._('large')]),
-								]),
-							}),
-						],
-					}),
+					ASTWhenExpression._(
+						{
+							expression: ASTIdentifier._('someNumber', mockPos),
+							cases: [
+								ASTWhenCase._(
+									{
+										values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+										consequent: ASTBlockStatement._(
+											[
+												ASTCallExpression._(
+													{
+														callee: ASTIdentifier._('doThing1', mockPos),
+														args: [],
+													},
+													mockPos,
+												),
+												ASTCallExpression._(
+													{
+														callee: ASTIdentifier._('doThing2', mockPos),
+														args: [],
+													},
+													mockPos,
+												),
+												ASTReturnStatement._([ASTStringLiteral._('large', mockPos)], mockPos),
+											],
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+							],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10612,61 +12757,124 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTVariableDeclaration._({
-						modifiers: [],
-						mutable: false,
-						identifiersList: [ASTIdentifier._('size')],
-						declaredTypes: [],
-						initialValues: [
-							ASTWhenExpression._({
-								expression: ASTIdentifier._('someNumber'),
-								cases: [
-									ASTWhenCase._({
-										values: [
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('size', mockPos)],
+							declaredTypes: [],
+							initialValues: [
+								ASTWhenExpression._(
+									{
+										expression: ASTIdentifier._('someNumber', mockPos),
+										cases: [
+											ASTWhenCase._(
+												{
+													values: [
+														ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+														ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+													],
+													consequent: ASTStringLiteral._('small', mockPos),
+												},
+												mockPos,
+											),
+											ASTWhenCase._(
+												{
+													values: [
+														ASTRangeExpression._(
+															{
+																lower: ASTNumberLiteral._(
+																	3,
+																	undefined,
+																	[...numberSizesInts],
+																	mockPos,
+																),
+																upper: ASTNumberLiteral._(
+																	10,
+																	undefined,
+																	[...numberSizesInts],
+																	mockPos,
+																),
+															},
+															mockPos,
+														),
+													],
+													consequent: ASTStringLiteral._('medium', mockPos),
+												},
+												mockPos,
+											),
+											ASTWhenCase._(
+												{
+													values: [
+														ASTNumberLiteral._(
+															11,
+															undefined,
+															[...numberSizesInts],
+															mockPos,
+														),
+													],
+													consequent: ASTBlockStatement._(
+														[
+															ASTCallExpression._(
+																{
+																	callee: ASTIdentifier._('doThing1', mockPos),
+																	args: [],
+																},
+																mockPos,
+															),
+															ASTCallExpression._(
+																{
+																	callee: ASTIdentifier._('doThing2', mockPos),
+																	args: [],
+																},
+																mockPos,
+															),
+															ASTReturnStatement._(
+																[ASTStringLiteral._('large', mockPos)],
+																mockPos,
+															),
+														],
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+											ASTWhenCase._(
+												{
+													values: [
+														ASTNumberLiteral._(
+															12,
+															undefined,
+															[...numberSizesInts],
+															mockPos,
+														),
+													],
+													consequent: ASTCallExpression._(
+														{
+															callee: ASTIdentifier._('doSomethingElse', mockPos),
+															args: [],
+														},
+														mockPos,
+													),
+												},
+												mockPos,
+											),
+											ASTWhenCase._(
+												{
+													values: [ASTRestElement._(mockPos)],
+													consequent: ASTStringLiteral._('off the charts', mockPos),
+												},
+												mockPos,
+											),
 										],
-										consequent: ASTStringLiteral._('small'),
-									}),
-									ASTWhenCase._({
-										values: [
-											ASTRangeExpression._({
-												lower: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-												upper: ASTNumberLiteral._(10, undefined, [...numberSizesInts]),
-											}),
-										],
-										consequent: ASTStringLiteral._('medium'),
-									}),
-									ASTWhenCase._({
-										values: [ASTNumberLiteral._(11, undefined, [...numberSizesInts])],
-										consequent: ASTBlockStatement._([
-											ASTCallExpression._({
-												callee: ASTIdentifier._('doThing1'),
-												args: [],
-											}),
-											ASTCallExpression._({
-												callee: ASTIdentifier._('doThing2'),
-												args: [],
-											}),
-											ASTReturnStatement._([ASTStringLiteral._('large')]),
-										]),
-									}),
-									ASTWhenCase._({
-										values: [ASTNumberLiteral._(12, undefined, [...numberSizesInts])],
-										consequent: ASTCallExpression._({
-											callee: ASTIdentifier._('doSomethingElse'),
-											args: [],
-										}),
-									}),
-									ASTWhenCase._({
-										values: [ASTRestElement._()],
-										consequent: ASTStringLiteral._('off the charts'),
-									}),
-								],
-							}),
-						],
-						inferredPossibleTypes: [[]],
-					}),
+									},
+									mockPos,
+								),
+							],
+							inferredPossibleTypes: [[]],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10692,13 +12900,19 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTRangeExpression._({
-						lower: ASTCallExpression._({
-							callee: ASTIdentifier._('foo'),
-							args: [],
-						}),
-						upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-					}),
+					ASTRangeExpression._(
+						{
+							lower: ASTCallExpression._(
+								{
+									callee: ASTIdentifier._('foo', mockPos),
+									args: [],
+								},
+								mockPos,
+							),
+							upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10732,21 +12946,30 @@ describe('parser.ts', (): void => {
 					[NT.SemicolonSeparator],
 				],
 				[
-					ASTArrayExpression._({
-						items: [
-							ASTBinaryExpression._({
-								operator: '<',
-								left: ASTNumberLiteral._(1, undefined, [...numberSizesInts]),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts]),
-							}),
-							ASTBinaryExpression._({
-								operator: '>',
-								left: ASTNumberLiteral._(4, undefined, [...numberSizesInts]),
-								right: ASTNumberLiteral._(3, undefined, [...numberSizesInts]),
-							}),
-						],
-						possibleTypes: [ASTTypePrimitive._('bool')],
-					}),
+					ASTArrayExpression._(
+						{
+							items: [
+								ASTBinaryExpression._(
+									{
+										operator: '<',
+										left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+								ASTBinaryExpression._(
+									{
+										operator: '>',
+										left: ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+										right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									},
+									mockPos,
+								),
+							],
+							possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+						},
+						mockPos,
+					),
 				],
 			);
 		});
@@ -10785,36 +13008,43 @@ describe('parser.ts', (): void => {
 					],
 				],
 				[
-					ASTFunctionDeclaration._({
-						modifiers: [],
-						name: ASTIdentifier._('foo'),
-						typeParams: [],
-						params: [
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('a'),
-								declaredType: ASTTypeNumber._('int16'),
-								defaultValue: ASTNumberLiteral._(1234, undefined, [
-									'int16',
-									'int32',
-									'int64',
-									'uint16',
-									'uint32',
-									'uint64',
-								]),
-							}),
-							ASTParameter._({
-								modifiers: [],
-								isRest: false,
-								name: ASTIdentifier._('b'),
-								declaredType: ASTTypePrimitive._('bool'),
-								defaultValue: ASTBoolLiteral._(true),
-							}),
-						],
-						returnTypes: [ASTTypePrimitive._('bool')],
-						body: ASTBlockStatement._([]),
-					}),
+					ASTFunctionDeclaration._(
+						{
+							modifiers: [],
+							name: ASTIdentifier._('foo', mockPos),
+							typeParams: [],
+							params: [
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('a', mockPos),
+										declaredType: ASTTypeNumber._('int16', mockPos),
+										defaultValue: ASTNumberLiteral._(
+											1234,
+											undefined,
+											['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
+											mockPos,
+										),
+									},
+									mockPos,
+								),
+								ASTParameter._(
+									{
+										modifiers: [],
+										isRest: false,
+										name: ASTIdentifier._('b', mockPos),
+										declaredType: ASTTypePrimitive._('bool', mockPos),
+										defaultValue: ASTBoolLiteral._(true, mockPos),
+									},
+									mockPos,
+								),
+							],
+							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+							body: ASTBlockStatement._([], mockPos),
+						},
+						mockPos,
+					),
 				],
 			);
 		});

@@ -83,7 +83,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 				return inferPossibleASTTypesFromASTAssignable(
 					(expr as ASTArrayExpression<ExpressionASTs>).items[0],
 					symbolTable,
-				).map((childType) => ASTArrayOf._(childType));
+				).map((childType) => ASTArrayOf._(childType, expr.pos));
 			}
 			break;
 		case ASTBinaryExpression:
@@ -98,7 +98,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 					case '<=':
 					case '&&':
 					case '||':
-						return [ASTTypePrimitiveBool];
+						return [ASTTypePrimitiveBool(expr.pos)];
 						break;
 					case '+':
 					case '-':
@@ -129,22 +129,22 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 
 									// return decimal number sizes that are at least as big as the left number's lowest bit count
 									return filterASTTypeNumbersWithBitCountsLowerThan(
-										[...NumberSizesDecimalASTs],
+										NumberSizesDecimalASTs.map((ns) => ns(expr.pos)),
 										lowestBitCount,
 									);
 								}
 
 								// take the left number size
-								return leftNumberPossibleSizes.map(ASTTypeNumber._);
+								return leftNumberPossibleSizes.map((ns) => ASTTypeNumber._(ns, expr.pos));
 							}
 
 							// or if both numbers are the same size, take that size
 							if (_.isEqual(leftNumberPossibleSizes, rightNumberPossibleSizes)) {
-								return leftNumberPossibleSizes.map(ASTTypeNumber._);
+								return leftNumberPossibleSizes.map((ns) => ASTTypeNumber._(ns, expr.pos));
 							}
 
-							return _.intersection(leftNumberPossibleSizes, rightNumberPossibleSizes).map(
-								ASTTypeNumber._,
+							return _.intersection(leftNumberPossibleSizes, rightNumberPossibleSizes).map((ns) =>
+								ASTTypeNumber._(ns, expr.pos),
 							);
 						}
 						break;
@@ -152,7 +152,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 			}
 			break;
 		case ASTBoolLiteral:
-			return [ASTTypePrimitiveBool];
+			return [ASTTypePrimitiveBool(expr.pos)];
 			break;
 		case ASTIdentifier:
 			{
@@ -169,7 +169,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 			}
 			break;
 		case ASTNumberLiteral:
-			return (expr as ASTNumberLiteral).possibleSizes.map((size) => ASTTypeNumber._(size));
+			return (expr as ASTNumberLiteral).possibleSizes.map((size) => ASTTypeNumber._(size, expr.pos));
 			break;
 		case ASTObjectExpression:
 			{
@@ -177,26 +177,27 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 					ASTPropertyShape._(
 						property.key,
 						inferPossibleASTTypesFromASTAssignable(property.value, symbolTable),
+						expr.pos,
 					),
 				);
 
-				return [ASTObjectShape._(propertiesShapes)];
+				return [ASTObjectShape._(propertiesShapes, expr.pos)];
 			}
 			break;
 		case ASTPath:
-			return [ASTTypePrimitivePath];
+			return [ASTTypePrimitivePath(expr.pos)];
 			break;
 		case ASTPostfixIfStatement:
 			return inferPossibleASTTypesFromASTAssignable((expr as ASTPostfixIfStatement).expression, symbolTable);
 			break;
 		case ASTRangeExpression:
-			return [ASTTypeRange._()];
+			return [ASTTypeRange._(expr.pos)];
 			break;
 		case ASTRegularExpression:
-			return [ASTTypePrimitiveRegex];
+			return [ASTTypePrimitiveRegex(expr.pos)];
 			break;
 		case ASTStringLiteral:
-			return [ASTTypePrimitiveString];
+			return [ASTTypePrimitiveString(expr.pos)];
 			break;
 		case ASTTernaryExpression:
 			{
@@ -219,7 +220,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 					inferPossibleASTTypesFromASTAssignable(item, symbolTable),
 				);
 
-				return [ASTTupleShape._(possibleShapes)];
+				return [ASTTupleShape._(possibleShapes, expr.pos)];
 			}
 			break;
 		case ASTUnaryExpression:
@@ -228,7 +229,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 				const operator = unaryExpression.operator;
 				switch (operator) {
 					case '!':
-						return [ASTTypePrimitiveBool];
+						return [ASTTypePrimitiveBool(expr.pos)];
 						break;
 
 					case '-':
@@ -245,7 +246,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 							}
 
 							// otherwise include all possible sizes, and map them to ASTTypeNumbers
-							return possibleSizes.map(ASTTypeNumber._);
+							return possibleSizes.map((ns) => ASTTypeNumber._(ns, expr.pos));
 						}
 
 						// todo check the possible types of other operands

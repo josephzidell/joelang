@@ -1,3 +1,5 @@
+import { Pos } from '../shared/pos';
+
 /** Node Types */
 export enum NT {
 	ArgumentsList = 'ArgumentsList',
@@ -180,21 +182,6 @@ export const validChildrenInWhenCaseValues = [
 	NT.RestElement,
 	NT.StringLiteral,
 ];
-
-/** A node's positional information */
-export type Pos = {
-	/** cursor position of the beginning of this node, counting chars from the beginning of the file */
-	start: number;
-
-	/** cursor position immediately after this node */
-	end: number;
-
-	/** line number this node begins at, counting from 1 */
-	line: number;
-
-	/** col position this node begins at, counting from 1, within the line of the first char (similar to `start`, but within the line - if the entire file were one line, then `col` would be `start + 1`) */
-	col: number;
-};
 
 export type Node = {
 	type: NT;
