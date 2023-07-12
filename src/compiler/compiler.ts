@@ -16,6 +16,7 @@ import { Node } from '../parser/types';
 import { handleProcessOutput } from '../shared/command';
 import { Result, error, ok } from '../shared/result';
 import LlvmIrConverter from './llvm_ir_converter';
+import { llcCommand } from './system';
 
 export class Compiler {
 	private cliArgs: string[];
@@ -272,7 +273,7 @@ export class Compiler {
 			const commands = [
 				// generate object file
 				[
-					`llc`,
+					llcCommand,
 					`-O2`,
 					`-filetype=obj`,
 					`-relocation-model=pic`,
