@@ -5,8 +5,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w &",
-    "lint": "eslint --ext .ts .",
-    "lint-fix": "eslint --ext .ts . --fix",
+    "lint": "tsc --noEmit && eslint --ext .ts .",
+    "lint-fix": "tsc --noEmit && eslint --ext .ts . --fix",
     "prettier": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "test": "jest --detectOpenHandles && npm run --silent test-integration",

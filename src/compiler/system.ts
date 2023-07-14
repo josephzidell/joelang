@@ -2,123 +2,120 @@ import { execSync } from 'child_process';
 
 const llvmVersion = 14;
 const llvmVersionForChoco = '14.0.6';
-export const llcCommand = isExecutableAvailable(`llc-${llvmVersion}`) ? `llc-${llvmVersion}` : 'llc';
 
-/**
- * Checks if the system requirements are met.
- *
- * If not, it will try to install the missing dependencies.
- *
- * If the requirements are not met and the dependencies cannot be installed, the process will exit.
- */
-export function checkSystemRequirements() {
-	// llvm
-	if (!isExecutableAvailable(`llvm-config-${llvmVersion}`) && !isExecutableAvailable('llvm-config')) {
-		console.error('llvm-config not found. Installing llvm...');
-		const installed = installProgram(`llvm-${llvmVersion}`, () => {
-			if (process.platform === 'win32') {
-				return [`choco install llvm --version=${llvmVersionForChoco}`];
+const system = {
+	/**
+	 * Checks if the system requirements are met.
+	 *
+	 * If the requirements are not met, a helpful Error will be thrown.
+	 */
+	checkRequirements() {
+		// llvm
+		if (!this.isExecutableAvailable(`llvm-config-${llvmVersion}`) && !this.isExecutableAvailable('llvm-config')) {
+			const commands = this.installationCommandsForProgram(`llvm-${llvmVersion}`, () => {
+				if (process.platform === 'win32') {
+					return [`choco install llvm --version=${llvmVersionForChoco}`];
+				}
+
+				const commands = [];
+				if (!this.isExecutableAvailable('wget')) {
+					commands.push(...this.installationCommandsForProgram('wget'));
+				}
+
+				commands.push('wget https://apt.llvm.org/llvm.sh', 'chmod +x llvm.sh', `sudo ./llvm.sh ${llvmVersion}`);
+
+				return commands;
+			});
+
+			let errorMessage = 'Joelang needs llvm to compile your code.';
+			if (commands.length > 0) {
+				errorMessage += ` You may install it by running the following command(s):\n\n${commands.join('\n')}`;
+			} else {
+				errorMessage += ' Please install it manually. See https://releases.llvm.org/';
 			}
 
-			if (!isExecutableAvailable('wget')) {
-				console.error('wget not found. Installing wget...');
-				installProgram('wget');
-			}
-
-			return ['wget https://apt.llvm.org/llvm.sh', 'chmod +x llvm.sh', `sudo ./llvm.sh ${llvmVersion}`];
-		});
-
-		if (!installed) {
-			process.exit(1);
+			throw new Error(errorMessage);
 		}
-	}
 
-	// gcc
-	if (!isExecutableAvailable('gcc')) {
-		console.error('gcc not found. Installing gcc...');
-		const installed = installProgram('gcc', () => {
-			if (process.platform === 'win32') {
-				return ['choco install mingw']; // the package is called mingw, but the executable is gcc
+		// gcc
+		if (!this.isExecutableAvailable('gcc')) {
+			const commands = this.installationCommandsForProgram('gcc', () => {
+				if (process.platform === 'win32') {
+					return ['choco install mingw']; // the package is called mingw, but the executable is gcc
+				}
+			});
+
+			let errorMessage = 'Joelang needs gcc to compile your code.';
+			if (commands.length > 0) {
+				errorMessage += ` You may install it by running the following command(s):\n\n${commands.join('\n')}`;
+			} else {
+				errorMessage += ' Please install it manually. See https://gcc.gnu.org/install/';
 			}
-		});
 
-		if (!installed) {
-			process.exit(1);
+			throw new Error(errorMessage);
 		}
-	}
-}
+	},
 
-/**
- * Checks if an executable is available.
- *
- * @param programName To check
- * @returns boolean
- */
-export function isExecutableAvailable(programName: string): boolean {
-	const command = process.platform === 'win32' ? 'where' : 'which';
-	try {
-		execSync(`${command} ${programName}`);
-		return true;
-	} catch {
-		return false;
-	}
-}
+	/**
+	 * Checks if an executable is available.
+	 *
+	 * @param programName To check
+	 * @returns boolean
+	 */
+	isExecutableAvailable(programName: string): boolean {
+		const command = process.platform === 'win32' ? 'where' : 'which';
+		try {
+			execSync(`${command} ${programName}`);
+			return true;
+		} catch {
+			return false;
+		}
+	},
 
-/**
- * Attempts to install a program.
- *
- * @param programName To install
- * @param installationCommands Optional callback to return the commands to install the program.
- *   If not provided, or if it returns undefined, it will try to install using the preferred package manager.
- * @returns
- */
-function installProgram(programName: string, installationCommands?: () => string[] | undefined): boolean {
-	try {
+	/**
+	 * Attempts to install a program.
+	 *
+	 * @param programName To install
+	 * @param installationCommands Optional callback to return the commands to install the program.
+	 *   If not provided, or if it returns undefined, it will try to install using the preferred package manager.
+	 * @returns
+	 */
+	installationCommandsForProgram(programName: string, installationCommands?: () => string[] | undefined): string[] {
 		if (typeof installationCommands === 'function') {
 			const commands = installationCommands();
 			if (typeof commands !== 'undefined' && commands.length > 0) {
-				console.log(`Installing ${programName}...`);
-				commands.forEach((command) => {
-					execSync(command);
-				});
-
-				return true;
+				return commands;
 			}
 		}
 
 		// otherwise, install using preferred package manager
 		switch (process.platform) {
 			case 'win32':
-				execSync(`choco install ${programName}`);
+				return [`choco install ${programName}`];
 				break;
 			case 'darwin':
-				execSync(`brew install ${programName}`);
+				return [`brew install ${programName}`];
 				break;
 			case 'linux':
-				if (isExecutableAvailable('apt')) {
-					execSync(`sudo apt install ${programName}`);
-				} else if (isExecutableAvailable('yum')) {
-					execSync(`sudo yum install ${programName}`);
-				} else if (isExecutableAvailable('dnf')) {
-					execSync(`sudo dnf install ${programName}`);
-				} else if (isExecutableAvailable('zypper')) {
-					execSync(`sudo zypper install ${programName}`);
-				} else if (isExecutableAvailable('pacman')) {
-					execSync(`sudo pacman -S ${programName}`);
-				} else {
-					console.log('Unsupported package manager.');
-					return false;
+				switch (true) {
+					case this.isExecutableAvailable('apt'):
+						return [`sudo apt install ${programName}`];
+					case this.isExecutableAvailable('yum'):
+						return [`sudo yum install ${programName}`];
+					case this.isExecutableAvailable('dnf'):
+						return [`sudo dnf install ${programName}`];
+					case this.isExecutableAvailable('zypper'):
+						return [`sudo zypper install ${programName}`];
+					case this.isExecutableAvailable('pacman'):
+						return [`sudo pacman -S ${programName}`];
 				}
-				break;
-			default:
-				console.log('Unsupported platform.');
-				return false;
 				break;
 		}
 
-		return true;
-	} catch (error) {
-		console.error(`Failed to install ${programName}.`);
-		return false;
-	}
-}
+		return [];
+	},
+};
+
+export const llcCommand = system.isExecutableAvailable(`llc-${llvmVersion}`) ? `llc-${llvmVersion}` : 'llc';
+
+export default system;

@@ -1,11 +1,24 @@
 import { Compiler } from './src/compiler/compiler';
-import { checkSystemRequirements } from './src/compiler/system';
+import System from './src/compiler/system';
 
-const args = process.argv.slice(2);
+// Asynchronous function to check system requirements and compile the code
+async function main(slicedArgs: string[]) {
+	// Check if the system meets the requirements for compilation
+	System.checkRequirements();
 
-void (async (): Promise<void> => {
-	await checkSystemRequirements();
-
-	const compiler = new Compiler(args);
+	// Create a new compiler instance with the given arguments
+	const compiler = new Compiler(slicedArgs);
+	// Compile the code
 	await compiler.compile();
+}
+
+(async (): Promise<void> => {
+	try {
+		await main(process.argv.slice(2));
+	} catch (error) {
+		// Log the error message and exit the process
+		console.error((error as Error).message);
+		console.error('\nExiting...');
+		process.exit(1);
+	}
 })();

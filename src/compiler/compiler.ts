@@ -35,23 +35,17 @@ export class Compiler {
 		ast: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.ast.json`),
 		symbols: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.symbolTable`),
 
-		// llvmIr currently supports multiple files, so we need to pass in the filename
-		llvmIr: (filename: string) => {
-			return path.join(this.buildDir, filename.replace('.joe', '.ll'));
-		},
-
-		llvmBitcode: () => {
-			return path.join(this.buildDir, `${this.sourceFilenameSansExt}.bc`);
-		},
+		llvmIr: (filename: string) => path.join(this.buildDir, filename.replace('.joe', '.ll')),
+		llvmBitcode: () => path.join(this.buildDir, `${this.sourceFilenameSansExt}.bc`),
 
 		executable: () => {
 			// for inline analyses, we don't care about the executable file,
 			// so it can go into the build directory. Otherwise, we need it.
-			let filePath = `${path.dirname(this.buildDir)}/${this.sourceFilenameSansExt}`;
 			if (this.source.fromStdin) {
-				filePath = `${this.buildDir}/${this.sourceFilenameSansExt}`;
+				return `${this.buildDir}/${this.sourceFilenameSansExt}`;
 			}
-			return filePath;
+
+			return `${path.dirname(this.buildDir)}/${this.sourceFilenameSansExt}`;
 		},
 	};
 
@@ -284,9 +278,6 @@ export class Compiler {
 
 				// generate executable
 				[`gcc`, `${this.buildDir}/${this.sourceFilenameSansExt}.o`, `-o`, executablePath],
-
-				// make executable
-				[`chmod`, `+x`, executablePath],
 			];
 
 			for await (const command of commands) {
