@@ -13049,4 +13049,14 @@ describe('parser.ts', (): void => {
 			);
 		});
 	});
+
+	describe('error scenarios', (): void => {
+		it('unexpected end of program', (): void => {
+			const result = parse('f main {');
+
+			// use assert instead of expect, since we need TS to narrow the type
+			assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+			expect(result.error.message).toBe('Unexpected end of program');
+		});
+	});
 });

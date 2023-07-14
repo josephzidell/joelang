@@ -109,6 +109,24 @@ export default class Parser {
 		return `${node.type}${separator}${this.lineage(node.parent, separator)}`;
 	}
 
+	private checkAtEof(): Result<Node> {
+		// console.debug({ currentRoot: this.currentRoot });
+
+		// ensure that the root is closed
+		if (this.currentRoot.type !== NT.Program) {
+			return error(
+				new ParserError(
+					ParserErrorCode.UnexpectedEndOfProgram,
+					'Unexpected end of program',
+					this.currentRoot,
+					this.getErrorContext(0),
+				),
+			);
+		}
+
+		return ok(this.root);
+	}
+
 	public parse(): Result<Node> {
 		do {
 			// before going on to the next token, update this.prevToken
@@ -122,7 +140,7 @@ export default class Parser {
 
 			const token = this.currentToken.value;
 			if (token.type === 'eof') {
-				return ok(this.root);
+				return this.checkAtEof();
 			}
 
 			if (this.debug) {

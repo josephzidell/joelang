@@ -287,19 +287,6 @@ describe('lexer.ts', (): void => {
 		it('number with valid size', (): void => {
 			expect(lex('51_uint8')).toMatchTokens([['number', '51_uint8']]);
 		});
-
-		it('number with invalid size', (): void => {
-			// arrange / act
-			const result = lex('51_foo32');
-
-			// assert
-			assert(result.outcome === 'error');
-			const error = result.error as LexerError;
-			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
-1 | 51_foo32
-  |   ^ Syntax Error. Unknown character: "_"
-  |`);
-		});
 	});
 
 	describe('operators', (): void => {
@@ -957,6 +944,34 @@ describe('lexer.ts', (): void => {
 				['path', '@/foo'],
 				['semicolon', ';'],
 			]);
+		});
+	});
+
+	describe('error scenarios', (): void => {
+		it('number with invalid size', (): void => {
+			// arrange / act
+			const result = lex('51_foo32');
+
+			// assert
+			assert(result.outcome === 'error');
+			const error = result.error as LexerError;
+			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+1 | 51_foo32
+  |   ^ Syntax Error. Unknown character: "_"
+  |`);
+		});
+
+		it ('unterminated string', (): void => {
+			// arrange / act
+			const result = lex('f main {print "Hello}');
+
+			// assert
+			assert(result.outcome === 'error');
+			const error = result.error as LexerError;
+			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+1 | f main {print "Hello}
+  |                      ^ Syntax Error. Expected closing quote
+  |`);
 		});
 	});
 });

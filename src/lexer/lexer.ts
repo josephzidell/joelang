@@ -381,6 +381,13 @@ export default class Lexer {
 				value += this.getChar();
 			}
 
+			// confirm this is a closing quote
+			if (typeof this.char === 'undefined' || this.char !== quoteChar) {
+				return error(
+					new LexerError('Syntax Error. Expected closing quote', this.tokens, this.getErrorContext(1)),
+				);
+			}
+
 			// skip the closing quote char
 			const token: Token = {
 				type: 'string',
