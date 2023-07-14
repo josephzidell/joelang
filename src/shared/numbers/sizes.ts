@@ -1,6 +1,6 @@
 export type BitCount = 8 | 16 | 32 | 64; // TODO add support for 128 bit numbers
 
-type SizeInfo = {
+export type SizeInfo = {
 	type: 'int' | 'uint' | 'dec';
 	bits: BitCount;
 	min: number;

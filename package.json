@@ -4,17 +4,25 @@
   "description": "A programming lang that aims to be simple to read",
   "scripts": {
     "build": "tsc",
-	"dev": "tsc -w &",
+    "dev": "tsc -w &",
   	"joec": ".bin/joec",
-    "lint": "eslint --ext .ts .",
-    "lint-fix": "eslint --ext .ts . --fix",
+    "lint": "tsc --noEmit && eslint --ext .ts .",
+    "lint-fix": "tsc --noEmit && eslint --ext .ts . --fix",
     "prettier": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "test": "jest --detectOpenHandles && npm run --silent test-integration",
     "test-integration": "joec examples/kitchen-sink/main.joe -a"
   },
+  "bin": "_build/compile.js",
   "pkg": {
-	"scripts": "_build/**/*.js"
+    "scripts": "_build/**/*.js",
+    "assets": [
+      "node_modules/llvm-bindings/build/Release/llvm-bindings.node"
+    ],
+    "targets": [
+      "node18-linux-x64"
+    ],
+    "outputPath": "."
   },
   "repository": {
     "type": "git",
@@ -33,29 +41,29 @@
   "homepage": "https://github.com/josephzidell/joelang#readme",
   "dependencies": {
     "fs-extra": "^11.1.1",
-    "jest": "^29.5.0",
-    "json-diff": "^1.0.3",
+    "jest": "^29.6.1",
+    "json-diff": "^1.0.6",
     "llvm-bindings": "^0.4.2",
     "lodash": "^4.17.21",
-    "type-fest": "^3.8.0",
-    "typescript": "^5.0.4"
+    "type-fest": "^3.13.0",
+    "typescript": "^5.1.6"
   },
   "devDependencies": {
-    "@babel/core": "^7.21.4",
-    "@babel/preset-env": "^7.21.4",
-    "@babel/preset-typescript": "^7.21.4",
+    "@babel/core": "^7.22.8",
+    "@babel/preset-env": "^7.22.7",
+    "@babel/preset-typescript": "^7.22.5",
     "@types/fs-extra": "^11.0.1",
-    "@types/jest": "^29.5.1",
-    "@types/json-diff": "^0.9.1",
-    "@types/lodash": "^4.14.194",
-    "@types/node": "^18.15.13",
-    "@typescript-eslint/eslint-plugin": "^5.59.0",
-    "@typescript-eslint/parser": "^5.57.1",
-    "babel-jest": "^29.5.0",
-    "eslint": "^8.39.0",
+    "@types/jest": "^29.5.3",
+    "@types/json-diff": "^1.0.0",
+    "@types/lodash": "^4.14.195",
+    "@types/node": "^20.4.1",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "babel-jest": "^29.6.1",
+    "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "prettier": "2.8.7",
-    "ts-jest": "^29.1.0"
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.1.1"
   }
 }
