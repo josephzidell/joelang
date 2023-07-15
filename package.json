@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w &",
+  	"joec": ".bin/joec",
     "lint": "tsc --noEmit && eslint --ext .ts .",
     "lint-fix": "tsc --noEmit && eslint --ext .ts . --fix",
     "prettier": "prettier --check .",

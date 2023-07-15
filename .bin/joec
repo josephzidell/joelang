@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env node
 
-# Get the directory of the current script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+// If run as an NPM script change working directory to current directory of calling
+// process. This allows developers to do `npm run joec ...` anywhere in the source
+// tree.
+(() => {
+	const process = require('node:process');
+	if (process.env.INIT_CWD) {
+		process.chdir(process.env.INIT_CWD);
+	}
+})();
 
-# Get the parent directory of the script
-PARENT_DIR="$(dirname "$SCRIPT_DIR")"
-
-node "$PARENT_DIR/_build/compile.js" "$@"
+require(require('node:path').resolve(__dirname, '..', '_build', 'compile.js'));
