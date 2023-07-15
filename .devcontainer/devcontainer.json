@@ -21,7 +21,15 @@
 	"postCreateCommand": "sudo DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt upgrade && sudo apt install -y cmake llvm-14 clang file",
 
 	// Configure tool-specific properties.
-	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"EditorConfig.EditorConfig",
+				"dbaeumer.vscode-eslint",
+				"GitHub.copilot"
+			],
+		},
+	},
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
