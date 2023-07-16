@@ -18,7 +18,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "sudo DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt upgrade && sudo apt install -y cmake llvm-14 clang file",
+	"postCreateCommand": "sudo DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt upgrade && sudo apt install -y cmake llvm-14 clang gdb file",
 
 	// Configure tool-specific properties.
 	"customizations": {
@@ -26,7 +26,8 @@
 			"extensions": [
 				"EditorConfig.EditorConfig",
 				"dbaeumer.vscode-eslint",
-				"GitHub.copilot"
+				"GitHub.copilot",
+				"colejcummins.llvm-syntax-highlighting"
 			],
 		},
 	},
