@@ -2,11 +2,13 @@ import fsPromises from 'fs/promises';
 import llvm, { TargetRegistry, config } from 'llvm-bindings';
 import {
 	AST,
+	ASTClassDeclaration,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
 	ASTNumberLiteral,
 	ASTPrintStatement,
 	ASTProgram,
+	ASTReturnStatement,
 	ASTType,
 	ASTTypeNumber,
 	ASTTypePrimitive,
@@ -18,6 +20,7 @@ import ErrorContext from '../shared/errorContext';
 import { NumberSize, SizeInfo, numberSizeDetails } from '../shared/numbers/sizes';
 import {
 	Result,
+	allOk,
 	anyIsError,
 	error,
 	flattenResults,
@@ -40,6 +43,13 @@ export default class LlvmIrConverter {
 	private targetMachine: llvm.TargetMachine;
 	private targetTriple: string;
 	private debug = false;
+
+	// Sometimes we need to track our own context which will cross function
+	// boundaries, and this avoids the complexity of passing extra params.
+	//
+	// NOTE: this may expand in the future. Right now, the only use-case is
+	// whether we're in `main()`.
+	private inMain = false;
 
 	constructor(debug: boolean) {
 		this.debug = debug;
@@ -150,6 +160,8 @@ export default class LlvmIrConverter {
 				return this.convertNumberLiteral(node as ASTNumberLiteral);
 			case 'ASTPrintStatement':
 				return this.convertPrintStatement(node as ASTPrintStatement);
+			case 'ASTReturnStatement':
+				return this.convertReturnStatement(node as ASTReturnStatement);
 			case 'ASTVariableDeclaration':
 				return this.convertVariableDeclaration(node as ASTVariableDeclaration);
 		}
@@ -186,14 +198,39 @@ export default class LlvmIrConverter {
 	}
 
 	private convertFunctionDeclaration(node: ASTFunctionDeclaration): Result<llvm.Function> {
+		// special handling for `main()`
+		const isMain = node.name?.name === 'main' && node.returnTypes.length === 0 && typeof node.body !== 'undefined';
+		if (node.name?.name === 'main' && node.returnTypes.length === 0 && typeof node.body !== 'undefined') {
+			this.inMain = true; // set context
+
+			node.returnTypes = [ASTTypeNumber._('int32', node.pos)]; // the position doesn't matter
+
+			// guarantee a return statement
+			const lastExpressionInBody = node.body.expressions.at(node.body.expressions.length - 1);
+			// append a `return 0;` for the exit code if there is no return
+			if (typeof lastExpressionInBody === 'undefined' || lastExpressionInBody.kind !== 'ReturnStatement') {
+				node.body.expressions.push(
+					ASTReturnStatement._([ASTNumberLiteral._(0, 'int32', ['int32'], node.pos)], node.pos),
+				);
+			}
+		}
+
 		// TODO handle multiple return types
 		const funcReturnTypeResult = this.convertType(node.returnTypes[0]);
 		if (funcReturnTypeResult.outcome === 'error') {
+			if (this.inMain && isMain) {
+				this.inMain = false;
+			}
+
 			return funcReturnTypeResult;
 		}
 
 		const params = flattenResults(node.params.map((param) => this.convertType(param.declaredType)));
 		if (params.outcome === 'error') {
+			if (this.inMain && isMain) {
+				this.inMain = false;
+			}
+
 			return params;
 		}
 
@@ -215,20 +252,29 @@ export default class LlvmIrConverter {
 		// convert body expressions
 		const conversionResult = this.convertNodes(node.body?.expressions ?? []);
 		if (conversionResult.outcome === 'error') {
+			if (this.inMain && isMain) {
+				this.inMain = false;
+			}
+
 			return conversionResult;
 		}
 
-		// return value
+		// return value for void
 		if (funcReturnTypeResult.value.getTypeID() === this.builder.getVoidTy().getTypeID()) {
 			this.builder.CreateRetVoid();
-		} else {
-			// TODO handle multiple return values
-			this.builder.CreateRet(conversionResult.value[0]);
 		}
 
 		// verify it
 		if (llvm.verifyFunction(func)) {
+			if (this.inMain && isMain) {
+				this.inMain = false;
+			}
+
 			return error(new CompilerError('Verifying function failed', this.filename, this.getErrorContext(node)));
+		}
+
+		if (this.inMain && isMain) {
+			this.inMain = false;
 		}
 
 		return ok(func);
@@ -291,6 +337,41 @@ export default class LlvmIrConverter {
 		const printfCall = this.builder.CreateCall(printfFunc, formatStrings);
 
 		return ok(printfCall);
+	}
+
+	private convertReturnStatement(ast: ASTReturnStatement): Result<llvm.Value> {
+		if (ast.expressions.length === 0) { // blank `return;`
+			// `main()` must return an int for the exit code
+			if (!this.inMain) {
+
+			}
+
+			return ok(this.builder.CreateRetVoid());
+		}
+
+		const exprToReturn: Array<Result<llvm.Value>> = ast.expressions.map((expr) => {
+			// if it's an identifier, get the value from the value map
+			if (expr.constructor.name === 'ASTIdentifier') {
+				return ifNotUndefined(
+					this.valueMap.get((expr as ASTIdentifier).name),
+					new CompilerError(
+						`ReturnStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,
+						this.filename,
+						this.getErrorContext(expr),
+					),
+				);
+			}
+
+			// each expression can only be one value
+			return this.convertNode(expr) as Result<llvm.Value>;
+		});
+		// check if any of the expressions failed
+		if (!allOk(exprToReturn)) {
+			return getFirstError(exprToReturn);
+		}
+
+		// TODO handle multiple return values
+		return ok(this.builder.CreateRet(exprToReturn[0].value));
 	}
 
 	// convert ASTType to LLVM IR type
