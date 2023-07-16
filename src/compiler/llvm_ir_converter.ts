@@ -2,7 +2,6 @@ import fsPromises from 'fs/promises';
 import llvm, { TargetRegistry, config } from 'llvm-bindings';
 import {
 	AST,
-	ASTClassDeclaration,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
 	ASTNumberLiteral,
@@ -199,8 +198,9 @@ export default class LlvmIrConverter {
 
 	private convertFunctionDeclaration(node: ASTFunctionDeclaration): Result<llvm.Function> {
 		// special handling for `main()`
-		const isMain = node.name?.name === 'main' && node.returnTypes.length === 0 && typeof node.body !== 'undefined';
-		if (node.name?.name === 'main' && node.returnTypes.length === 0 && typeof node.body !== 'undefined') {
+		let isMain = false;
+		if (node.name?.name === 'main' && typeof node.body !== 'undefined') {
+			isMain = true;
 			this.inMain = true; // set context
 
 			node.returnTypes = [ASTTypeNumber._('int32', node.pos)]; // the position doesn't matter
