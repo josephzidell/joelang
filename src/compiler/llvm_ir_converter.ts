@@ -341,9 +341,10 @@ export default class LlvmIrConverter {
 
 	private convertReturnStatement(ast: ASTReturnStatement): Result<llvm.Value> {
 		if (ast.expressions.length === 0) { // blank `return;`
-			// `main()` must return an int for the exit code
-			if (!this.inMain) {
-
+			// `main()` must return an int for the exit code, therefore
+			// we polyfill any empty return, including nested ones
+			if (this.inMain) {
+				return ok(this.builder.CreateRet(this.builder.getInt32(0)));
 			}
 
 			return ok(this.builder.CreateRetVoid());
