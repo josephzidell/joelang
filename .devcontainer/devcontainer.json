@@ -24,10 +24,11 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				"colejcummins.llvm-syntax-highlighting",
+				// "dbaeumer.vscode-eslint", // it's causing the Remote Extension Host to repeatedly close
 				"EditorConfig.EditorConfig",
-				"dbaeumer.vscode-eslint",
 				"GitHub.copilot",
-				"colejcummins.llvm-syntax-highlighting"
+				"sleistner.vscode-fileutils"
 			],
 		},
 	},
