@@ -63,6 +63,7 @@ import { analyze } from '../analyzer/util';
 import { primitiveTypes } from '../lexer/types';
 import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
 import { mockPos } from '../shared/pos';
+import { stackPairs } from './parser';
 import { NT } from './types';
 import { parse, testParseAndAnalyze } from './util';
 
@@ -13051,12 +13052,22 @@ describe('parser.ts', (): void => {
 	});
 
 	describe('error scenarios', (): void => {
-		it('unexpected end of program', (): void => {
-			const result = parse('f main {');
+		for (const [openToken, {pair: closeToken, message}] of Object.entries(stackPairs)) {
+			it(`unmatched open token: "${openToken}"`, (): void => {
+				const result = parse(openToken);
 
-			// use assert instead of expect, since we need TS to narrow the type
-			assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
-			expect(result.error.message).toBe('Unexpected end of program');
-		});
+				// use assert instead of expect, since we need TS to narrow the type
+				assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+				expect(result.error.message).toBe(`Unexpected end of program; expecting "${closeToken}"`);
+			});
+
+			it(`unexpected close token: "${closeToken}"`, (): void => {
+				const result = parse(closeToken);
+
+				// use assert instead of expect, since we need TS to narrow the type
+				assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+				expect(result.error.message).toBe(message);
+			});
+		}
 	});
 });

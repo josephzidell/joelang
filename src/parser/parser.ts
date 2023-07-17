@@ -7,6 +7,14 @@ import ParserError, { ParserErrorCode } from './error';
 import { ChangeNodeType, MakeNode, MakeUnaryExpressionNode } from './node';
 import { Node, NT, validNodeTypesAsMemberObject } from './types';
 
+type stackableToken = '[' | '(' | '{' | '<|';
+export const stackPairs = {
+	'(': {pair: ')', message: 'Unexpected close parens'},
+	'{': {pair: '}', message: 'Unexpected close brace'},
+	'[': {pair: ']', message: 'Unexpected close bracket'},
+	'<|': {pair: '|>', message: 'Unexpected close generics'},
+};
+
 export default class Parser {
 	prevToken: Token | undefined;
 
@@ -20,6 +28,12 @@ export default class Parser {
 
 	/** if on, will output the CST at the end */
 	debug = false;
+
+	/**
+	 * The stack holds the opening symbols in the order they were opened,
+	 * so that we can ensure that they are paired correctly and closed
+	 */
+	stack: stackableToken[] = [];
 
 	// node types that would come before a minus `-` symbol indicating it's a subtraction operator, rather than a unary operator
 	nodeTypesPrecedingArithmeticOperator: NT[] = [NT.NumberLiteral, NT.Identifier];
@@ -110,14 +124,12 @@ export default class Parser {
 	}
 
 	private checkAtEof(): Result<Node> {
-		// console.debug({ currentRoot: this.currentRoot });
-
-		// ensure that the root is closed
-		if (this.currentRoot.type !== NT.Program) {
+		// ensure that the stack is empty, ensuring opening symbols are closed
+		if (this.stack.length > 0) {
 			return error(
 				new ParserError(
 					ParserErrorCode.UnexpectedEndOfProgram,
-					'Unexpected end of program',
+					`Unexpected end of program; expecting "${stackPairs[this.stack[this.stack.length - 1]].pair}"`,
 					this.currentRoot,
 					this.getErrorContext(0),
 				),
@@ -148,6 +160,8 @@ export default class Parser {
 			}
 
 			if (token.type === 'paren_open') {
+				this.stack.push('(');
+
 				const [prev, prevType] = this.prev();
 				switch (prevType) {
 					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
@@ -247,6 +261,11 @@ export default class Parser {
 						break;
 				}
 			} else if (token.type === 'paren_close') {
+				const stackStatus = this.popStack('(');
+				if (stackStatus.outcome === 'error') {
+					return error(stackStatus.error);
+				}
+
 				// check if we're in a TernaryAlternate and then in a TernaryExpression, if so, it's finished
 				// eg `(foo ? true : false)`
 				this.endExpressionIfIn(NT.TernaryAlternate);
@@ -284,6 +303,8 @@ export default class Parser {
 				// eg `(x * -2)`
 				this.endExpressionIfIn(NT.UnaryExpression);
 			} else if (token.type === 'brace_open') {
+				this.stack.push('{');
+
 				this.endExpressionWhileIn([NT.BinaryExpression]);
 				this.endExpressionWhileIn([NT.FunctionSignature, NT.FunctionReturns]);
 				this.endExpressionIfIn(NT.Extension);
@@ -341,6 +362,11 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'brace_close') {
+				const stackStatus = this.popStack('{');
+				if (stackStatus.outcome === 'error') {
+					return error(stackStatus.error);
+				}
+
 				this.endExpression();
 
 				this.endExpressionIfIn(NT.LoopStatement);
@@ -353,6 +379,8 @@ export default class Parser {
 				this.endExpressionIfIn(NT.ObjectExpression);
 				this.endExpressionIfIn(NT.ObjectShape);
 			} else if (token.type === 'bracket_open') {
+				this.stack.push('[');
+
 				const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
 				const [, prevType] = this.prev();
 
@@ -394,6 +422,11 @@ export default class Parser {
 					}
 				}
 			} else if (token.type === 'bracket_close') {
+				const stackStatus = this.popStack('[');
+				if (stackStatus.outcome === 'error') {
+					return error(stackStatus.error);
+				}
+
 				this.endExpressionIfIn(NT.IfStatement);
 				this.endExpressionIfIn(NT.PostfixIfStatement);
 				this.endExpressionIfIn(NT.TernaryAlternate);
@@ -919,6 +952,8 @@ export default class Parser {
 					return result;
 				}
 			} else if (token.type === 'triangle_open') {
+				this.stack.push('<|');
+
 				/**
 				 *
 				 * + f foo<|T|> {} // FunctionDeclaration[TypeDeclaration[Identifier, TypeParametersList[TypeParameter...]], BlockStatement]
@@ -972,6 +1007,11 @@ export default class Parser {
 					this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
 				}
 			} else if (token.type === 'triangle_close') {
+				const stackStatus = this.popStack('<|');
+				if (stackStatus.outcome === 'error') {
+					return error(stackStatus.error);
+				}
+
 				this.endExpressionIfIn(NT.TypeArgumentsList);
 				this.endExpressionIfIn(NT.TypeInstantiationExpression);
 
@@ -1472,6 +1512,30 @@ export default class Parser {
 		}
 
 		return ok(this.root);
+	}
+
+	/**
+	 * Attempts to pop the stack and checks if the token matches.
+	 * If it does, it pops the stack, otherwise it returns an error.
+	 *
+	 * @param token To pop
+	 * @returns
+	 */
+	private popStack(token: stackableToken): Result<undefined, ParserError> {
+		if (this.stack.at(-1) === token) {
+			this.stack.pop();
+
+			return ok(undefined);
+		}
+
+		return error(
+			new ParserError(
+				ParserErrorCode.UnexpectedToken,
+				stackPairs[token].message,
+				this.currentRoot,
+				this.getErrorContext(1),
+			),
+		);
 	}
 
 	private parseClassOrEnumDeclaration(token: Token, nodeType: NT, name: string): Result<Node, Error, unknown> {

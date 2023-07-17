@@ -11,6 +11,7 @@ export enum ParserErrorCode {
 	UnknownKeyword = 'P003',
 	UnknownToken = 'P004',
 	UnexpectedEndOfProgram = 'P005',
+	UnexpectedToken = 'P006',
 }
 
 /**
