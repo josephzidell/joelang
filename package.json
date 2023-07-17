@@ -49,7 +49,7 @@
     "typescript": "^5.1.6"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.8",
+    "@babel/core": "^7.22.9",
     "@babel/preset-env": "^7.22.7",
     "@babel/preset-typescript": "^7.22.5",
     "@types/fs-extra": "^11.0.1",
