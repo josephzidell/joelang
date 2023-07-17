@@ -450,9 +450,6 @@ export class Compiler {
 	/** Runs the Semantic Analyzer */
 	private async runSemanticAnalyzer(cst: Node, parser: Parser): Promise<Result<[ASTProgram, SymbolTable]>> {
 		const analyzer = new SemanticAnalyzer(cst, parser);
-		if (this.source.fromStdin) {
-			analyzer.thisIsAnInlineAnalysis();
-		}
 
 		const analysisResult = analyzer.analyze();
 		switch (analysisResult.outcome) {

@@ -132,8 +132,8 @@ export default class SemanticAnalyzer {
 
 	private symbolTable: SymbolTable;
 
-	/** Inline analyses are more lenient than a file */
-	private isAnInlineAnalysis = false;
+	/** Snippets are more lenient than regular programs */
+	private isASnippet = false;
 
 	private debug = false;
 
@@ -145,12 +145,12 @@ export default class SemanticAnalyzer {
 		this.symbolTable = new SymbolTable('global');
 	}
 
-	thisIsAnInlineAnalysis() {
-		this.isAnInlineAnalysis = true;
+	thisIsASnippet() {
+		this.isASnippet = true;
 	}
 
 	analyze(): Result<[ASTProgram, SymbolTable]> {
-		if (this.debug && this.isAnInlineAnalysis) {
+		if (this.debug) {
 			console.info(`[SemanticAnalyzer] Analyzing '${this.parser.lexer.code}'`);
 		}
 
@@ -2259,14 +2259,12 @@ export default class SemanticAnalyzer {
 			NT.FunctionDeclaration,
 			NT.ImportDeclaration,
 			NT.InterfaceDeclaration,
-			NT.PrintStatement,
 			NT.SemicolonSeparator,
-			NT.VariableDeclaration,
 		];
 
-		// if this is an inline analysis, allow all ASTs in the program, to avoid having
-		// to wrap code in a function, class, or variable declaration just to analyze it
-		if (this.isAnInlineAnalysis) {
+		// if this is a snippet, allow all ASTs in the program, to avoid having to wrap
+		// code in a function, class, or variable declaration just to analyze it
+		if (this.isASnippet) {
 			validChildren = Object.values(NT);
 		}
 
@@ -2280,7 +2278,7 @@ export default class SemanticAnalyzer {
 			node,
 			validChildren,
 			AnalysisErrorCode.ExtraNodesFound,
-			(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}`,
+			(child: Node) => `A ${child.type} is not allowed directly in a ${node.type}. Please wrap in main()`,
 		);
 		switch (declarationsResult.outcome) {
 			case 'ok':
