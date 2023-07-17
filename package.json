@@ -45,7 +45,7 @@
     "json-diff": "^1.0.6",
     "llvm-bindings": "^0.4.2",
     "lodash": "^4.17.21",
-    "type-fest": "^3.13.0",
+    "type-fest": "^4.0.0",
     "typescript": "^5.1.6"
   },
   "devDependencies": {
