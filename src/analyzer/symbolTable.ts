@@ -12,7 +12,7 @@ import { Maybe, has, hasNot } from '../shared/maybe';
 import { Result, error, ok } from '../shared/result';
 import { ASTType } from './asts';
 
-type SymbolKind = string;
+type SymbolKind = 'function' | 'const' | 'let' | 'parameter';
 type SymbolTypes = ASTType[];
 
 // type Value = unknown;
@@ -41,7 +41,7 @@ class Scope {
 		this._parent = parent;
 	}
 
-	public define(name: string, kind: SymbolKind = '', types: SymbolTypes = [], value: unknown = undefined): void {
+	public define(name: string, kind: SymbolKind, types: SymbolTypes, value: unknown = undefined): void {
 		this.symbols.set(name, { kind, types, value });
 	}
 
@@ -49,7 +49,7 @@ class Scope {
 		const scope = this.lookupScope(name);
 		if (scope.has()) {
 			const symbol = scope.value.lookup(name);
-			if (symbol.outcome === 'error') {
+			if (!symbol.has()) {
 				return error(new Error(`Undefined variable: ${name}`));
 			}
 
@@ -65,7 +65,7 @@ class Scope {
 		const scope = this.lookupScope(name);
 		if (scope.has()) {
 			const symbol = scope.value.lookup(name);
-			if (symbol.outcome === 'error') {
+			if (!symbol.has()) {
 				return error(new Error(`Undefined variable: ${name}`));
 			}
 
@@ -77,18 +77,18 @@ class Scope {
 		return error(new Error(`Undefined variable: ${name}`));
 	}
 
-	public lookup(name: string): Result<SymbolInfo> {
+	public lookup(name: string): Maybe<SymbolInfo> {
 		const scope = this.lookupScope(name);
 		if (scope.has()) {
 			const symbol = scope.value.symbols.get(name);
 			if (symbol) {
-				return ok(symbol);
+				return has(symbol);
 			}
 
-			return error(new Error(`Undefined variable: ${name}`));
+			return hasNot();
 		}
 
-		return error(new Error(`Undefined variable: ${name}`));
+		return hasNot();
 	}
 
 	private lookupScope(name: string): Maybe<Scope> {
@@ -157,8 +157,8 @@ export class SymbolTable {
 	 */
 	public define(
 		name: string,
-		kind: SymbolKind = '',
-		types: SymbolTypes = [],
+		kind: SymbolKind,
+		types: SymbolTypes,
 		value: unknown = undefined,
 		inParent = false,
 	): void {
@@ -177,7 +177,7 @@ export class SymbolTable {
 		this.getCurrentScope().appendTypes(name, symbolTypes);
 	}
 
-	public lookup(name: string): Result<SymbolInfo> {
+	public lookup(name: string): Maybe<SymbolInfo> {
 		return this.getCurrentScope().lookup(name);
 	}
 

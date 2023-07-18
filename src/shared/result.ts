@@ -5,7 +5,7 @@ type ResultOk<T> = {
 	value: T;
 };
 
-type ResultError<E extends Error, ED> = {
+export type ResultError<E extends Error, ED> = {
 	outcome: 'error';
 	error: E;
 	data?: ED;
@@ -26,7 +26,7 @@ export function error<T, E extends Error = Error, ED = unknown>(error: E, data?:
 	return { outcome: 'error', error, data };
 }
 
-export function ifNotUndefined<T, E extends Error = Error, ED = unknown>(
+export function resultIfNotUndefined<T, E extends Error = Error, ED = unknown>(
 	value: T | undefined,
 	errorIfUndefined: E,
 	data?: ED,
@@ -38,7 +38,7 @@ export function ifNotUndefined<T, E extends Error = Error, ED = unknown>(
 	return ok(value);
 }
 
-export function mapResult<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
+export function mapResult<T, U, E extends Error = Error>(result: Result<T, E>, fn: (value: T) => U): Result<U, E> {
 	if (result.outcome === 'ok') {
 		return ok(fn(result.value));
 	}

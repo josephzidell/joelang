@@ -160,7 +160,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 
 				// look up the identifier in the symbol table
 				const lookupResult = symbolTable.lookup(identifier.name);
-				if (lookupResult.outcome === 'error') {
+				if (!lookupResult.has()) {
 					// TODO: return an undefined variable error
 					return [];
 				}

@@ -4,7 +4,7 @@ import { NumberSize, numberSizesAll } from '../shared/numbers/sizes';
 import { error, ok, Result } from '../shared/result';
 import LexerError from './error';
 import { declarableTypes, keywords, patterns, specialValueTypes, Token, TokenType } from './types';
-import { regexFlags, standardizeLineEndings } from './util';
+import { regexFlags } from './util';
 
 export default class Lexer {
 	/** position begins at 0 and counts till the end of the script */
@@ -45,9 +45,6 @@ export default class Lexer {
 	 */
 	constructor(code: string) {
 		this.code = code;
-
-		// fix line endings
-		this.code = standardizeLineEndings(this.code);
 	}
 
 	/**

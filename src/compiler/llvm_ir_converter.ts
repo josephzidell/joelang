@@ -24,7 +24,7 @@ import {
 	error,
 	flattenResults,
 	getFirstError,
-	ifNotUndefined,
+	resultIfNotUndefined,
 	ok,
 	unwrapResults,
 } from '../shared/result';
@@ -38,6 +38,7 @@ export default class LlvmIrConverter {
 	private builder!: llvm.IRBuilder;
 	private stdlib!: llvm.Module;
 	private filename = '';
+	private loc: string[] = [];
 	private valueMap = new Map<string, llvm.Value>();
 	private targetMachine: llvm.TargetMachine;
 	private targetTriple: string;
@@ -89,11 +90,12 @@ export default class LlvmIrConverter {
 		this.stdlib = convertStdLib(this.context);
 	}
 
-	public convert(files: Record<string, ASTProgram>): Record<string, Result<llvm.Module>> {
+	public convert(files: Record<string, { ast: ASTProgram; loc: string[] }>): Record<string, Result<llvm.Module>> {
 		const map = {} as Record<string, Result<llvm.Module>>;
 
-		for (const [filename, ast] of Object.entries(files)) {
+		for (const [filename, { ast, loc }] of Object.entries(files)) {
 			this.filename = filename;
+			this.loc = loc;
 			this.module = new llvm.Module(this.filename, this.context);
 			this.builder = new llvm.IRBuilder(this.context);
 
@@ -147,7 +149,12 @@ export default class LlvmIrConverter {
 	}
 
 	getErrorContext(node: AST, length?: number): ErrorContext {
-		return new ErrorContext(node.toString(), node.pos.line, node.pos.col, length ?? node.pos.end - node.pos.start);
+		return new ErrorContext(
+			this.loc[node.pos.line - 1],
+			node.pos.line,
+			node.pos.col,
+			length ?? node.pos.end - node.pos.start,
+		);
 	}
 
 	// convert an AST node to LLVM IR
@@ -311,7 +318,7 @@ export default class LlvmIrConverter {
 		const exprToPrint: Array<Result<llvm.Value | string>> = ast.expressions.map((expr) => {
 			// if it's an identifier, get the value from the value map
 			if (expr.constructor.name === 'ASTIdentifier') {
-				return ifNotUndefined(
+				return resultIfNotUndefined(
 					this.valueMap.get((expr as ASTIdentifier).name),
 					new CompilerError(
 						`PrintStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,
@@ -340,8 +347,9 @@ export default class LlvmIrConverter {
 	}
 
 	private convertReturnStatement(ast: ASTReturnStatement): Result<llvm.Value> {
-		if (ast.expressions.length === 0) { // blank `return;`
-			// `main()` must return an int for the exit code, therefore
+		if (ast.expressions.length === 0) {
+			// blank `return;`
+			// In C, `main()` must return an int for the exit code, therefore
 			// we polyfill any empty return, including nested ones
 			if (this.inMain) {
 				return ok(this.builder.CreateRet(this.builder.getInt32(0)));
@@ -353,7 +361,7 @@ export default class LlvmIrConverter {
 		const exprToReturn: Array<Result<llvm.Value>> = ast.expressions.map((expr) => {
 			// if it's an identifier, get the value from the value map
 			if (expr.constructor.name === 'ASTIdentifier') {
-				return ifNotUndefined(
+				return resultIfNotUndefined(
 					this.valueMap.get((expr as ASTIdentifier).name),
 					new CompilerError(
 						`ReturnStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,

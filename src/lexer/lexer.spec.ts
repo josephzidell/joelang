@@ -961,7 +961,7 @@ describe('lexer.ts', (): void => {
   |`);
 		});
 
-		it ('unterminated string', (): void => {
+		it('unterminated string', (): void => {
 			// arrange / act
 			const result = lex('f main {print "Hello}');
 

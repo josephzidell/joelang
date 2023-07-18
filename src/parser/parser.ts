@@ -9,10 +9,10 @@ import { Node, NT, validNodeTypesAsMemberObject } from './types';
 
 type stackableToken = '[' | '(' | '{' | '<|';
 export const stackPairs = {
-	'(': {pair: ')', message: 'Unexpected close parens'},
-	'{': {pair: '}', message: 'Unexpected close brace'},
-	'[': {pair: ']', message: 'Unexpected close bracket'},
-	'<|': {pair: '|>', message: 'Unexpected close generics'},
+	'(': { pair: ')', message: 'Unexpected close parens' },
+	'{': { pair: '}', message: 'Unexpected close brace' },
+	'[': { pair: ']', message: 'Unexpected close bracket' },
+	'<|': { pair: '|>', message: 'Unexpected close generics' },
 };
 
 export default class Parser {

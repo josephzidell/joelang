@@ -9,4 +9,5 @@ interface Options {
 interface Source {
 	fromStdin: boolean;
 	code: string;
+	loc: string[];
 }

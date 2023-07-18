@@ -97,9 +97,11 @@ import {
 	WhenCaseValueASTs,
 } from './asts';
 import AnalysisError, { AnalysisErrorCode } from './error';
+import { assignInferredPossibleTypes, isAssignable } from './helpers';
+import SemanticError from './semanticError';
+import Semantics from './semantics';
 import { SymbolTable } from './symbolTable';
 import visitorMap from './visitorMap';
-import { assignInferredPossibleTypes, isAssignable } from './helpers';
 
 // reusable handler callback for child nodes if we want to skip them
 const skipThisChild = (_child: Node) => ok(undefined);
@@ -126,7 +128,8 @@ export default class SemanticAnalyzer {
 	public get parser(): Parser {
 		return this._parser;
 	}
-	private readonly cst: Node;
+	public readonly cst: Node;
+	private readonly loc: string[];
 	private ast!: AST;
 	private astPointer = this.ast;
 
@@ -137,23 +140,35 @@ export default class SemanticAnalyzer {
 
 	private debug = false;
 
-	constructor(cst: Node, parser: Parser) {
+	constructor(cst: Node, parser: Parser, loc: string[], isASnippet: boolean) {
 		this.cst = cst;
 		this.currentNode = cst;
 		this._parser = parser;
+		this.loc = loc;
+		this.isASnippet = isASnippet;
 
 		this.symbolTable = new SymbolTable('global');
 	}
 
-	thisIsASnippet() {
-		this.isASnippet = true;
-	}
-
-	analyze(): Result<[ASTProgram, SymbolTable]> {
-		if (this.debug) {
-			console.info(`[SemanticAnalyzer] Analyzing '${this.parser.lexer.code}'`);
+	analyze(): Result<[ASTProgram, SymbolTable], AnalysisError | SemanticError> {
+		// step 1: generate the AST
+		const astGenerationResult = this.generateAST();
+		if (astGenerationResult.outcome === 'error') {
+			return astGenerationResult;
 		}
 
+		const [ast, symbolTable] = astGenerationResult.value;
+
+		// step 2: check semantics
+		const semanticErrors = new Semantics(ast, this.loc, this.isASnippet).checkForErrors();
+		if (semanticErrors.length > 0) {
+			return error(semanticErrors[0]); // TODO: return all errors
+		}
+
+		return ok([ast, symbolTable]);
+	}
+
+	private generateAST(): Result<[ASTProgram, SymbolTable], AnalysisError | SemanticError> {
 		// this will call child nodes recursively and build the AST
 		return mapResult(this.visitAST<ASTProgram>(this.cst), (ast: ASTProgram) => {
 			return [ast, this.symbolTable];
@@ -616,7 +631,7 @@ export default class SemanticAnalyzer {
 
 	/** Visitees */
 
-	visitAST<T = AST>(node: Node): Result<T> {
+	visitAST<T = AST>(node: Node): Result<T, AnalysisError> {
 		this.currentNode = node;
 
 		return visitorMap[node.type](node, this);

@@ -13052,7 +13052,7 @@ describe('parser.ts', (): void => {
 	});
 
 	describe('error scenarios', (): void => {
-		for (const [openToken, {pair: closeToken, message}] of Object.entries(stackPairs)) {
+		for (const [openToken, { pair: closeToken, message }] of Object.entries(stackPairs)) {
 			it(`unmatched open token: "${openToken}"`, (): void => {
 				const result = parse(openToken);
 

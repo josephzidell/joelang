@@ -6,16 +6,12 @@ import SemanticAnalyzer from './semanticAnalyzer';
 import { SymbolTable } from './symbolTable';
 
 /** Shortcut method to `new SemanticAnalysis(cst, parser).analyze()` */
-export const analyze = (code: string, isSnippet: boolean): Result<[ASTProgram, SymbolTable]> => {
+export const analyze = (code: string, isASnippet: boolean): Result<[ASTProgram, SymbolTable]> => {
 	const parser = new Parser(code);
 	const nodeResult = parser.parse();
 	switch (nodeResult.outcome) {
 		case 'ok': {
-			const analyzer = new SemanticAnalyzer(nodeResult.value, parser);
-
-			if (isSnippet) {
-				analyzer.thisIsASnippet();
-			}
+			const analyzer = new SemanticAnalyzer(nodeResult.value, parser, code.split('\n'), isASnippet);
 
 			return analyzer.analyze();
 		}

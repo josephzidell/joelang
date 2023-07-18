@@ -5,16 +5,18 @@ import { inspect } from 'util';
 import { ASTProgram } from '../analyzer/asts';
 import AnalysisError from '../analyzer/error';
 import SemanticAnalyzer from '../analyzer/semanticAnalyzer';
+import SemanticError from '../analyzer/semanticError';
 import { SymbolTable } from '../analyzer/symbolTable';
 import CompilerError from '../compiler/error';
 import LexerError from '../lexer/error';
 import Lexer from '../lexer/lexer';
+import { standardizeLineEndings } from '../lexer/util';
 import ParserError from '../parser/error';
 import Parser from '../parser/parser';
 import { simplifyTree } from '../parser/simplifier';
 import { Node } from '../parser/types';
 import { handleProcessOutput } from '../shared/command';
-import { Result, error, ok } from '../shared/result';
+import { Result, ResultError, error, ok } from '../shared/result';
 import LlvmIrConverter from './llvm_ir_converter';
 import { llcCommand } from './system';
 
@@ -24,6 +26,7 @@ export class Compiler {
 	private source: Source = {
 		fromStdin: false,
 		code: '',
+		loc: [],
 	};
 	private debug = false;
 	private stopAfterStep: StopCompilerAfterStep;
@@ -92,7 +95,7 @@ export class Compiler {
 		}
 
 		// continue to the compiler
-		const compilerResult = await this.runCompiler(analyzerResult.value[0]);
+		const compilerResult = await this.runCompiler(analyzerResult.value[0], this.source.loc);
 		if (compilerResult.outcome === 'error') {
 			this.handleErrorFromCompiler(compilerResult);
 
@@ -116,22 +119,53 @@ export class Compiler {
 		}
 	}
 
-	private handleErrorFromSemanticAnalyzer(analyzerResult: { outcome: 'error'; error: Error; data?: unknown }) {
-		const analyzerError = analyzerResult.error as AnalysisError;
+	private handleErrorFromSemanticAnalyzer(errorResult: ResultError<AnalysisError | SemanticError, unknown>) {
+		if (errorResult.error instanceof AnalysisError) {
+			const error = errorResult.error;
 
-		console.groupCollapsed(`Error[${analyzerError.getErrorCode()}]: ${analyzerError.message}`);
-		analyzerError
-			.getContext()
-			.toStringArray(analyzerError.message)
-			.forEach((str) => console.log(str));
-		console.groupEnd();
+			console.groupCollapsed(`Error[Analysis/${error.getErrorCode()}]: ${error.message}`);
+			error
+				.getContext()
+				.toStringArray(error.message)
+				.forEach((str) => console.info(str));
+			console.groupEnd();
+
+			if (this.debug) {
+				console.groupCollapsed('Current Node');
+				console.info(error.getNode());
+				console.groupEnd();
+
+				if (typeof errorResult.data !== 'undefined' && errorResult.data instanceof Node) {
+					console.groupCollapsed('CST');
+					const parseTree = simplifyTree([errorResult.data as unknown as Node]);
+					const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
+					console.info(output);
+					console.groupEnd();
+				}
+			}
+		} else if (errorResult.error instanceof SemanticError) {
+			const error = errorResult.error;
+
+			console.groupCollapsed(`Error[Semantics/${error.getErrorCode()}]: ${error.message}`);
+			error
+				.getContext()
+				.toStringArray(error.message)
+				.forEach((str) => console.info(str));
+			console.groupEnd();
+
+			if (this.debug) {
+				console.groupCollapsed('Current AST');
+				console.info(error.getAST());
+				console.groupEnd();
+			}
+		}
 	}
 
 	private handleErrorFromCompiler(compilerResult: { outcome: 'error'; error: Error; data?: unknown }) {
 		if (compilerResult.error instanceof CompilerError) {
 			const llvmIrError = compilerResult.error as CompilerError;
 
-			console.groupCollapsed(`Error[Compiler]: ${llvmIrError.getFilename()} ${llvmIrError.message}`);
+			console.groupCollapsed(`Error[Compiler/LLVM]: ${llvmIrError.getFilename()} ${llvmIrError.message}`);
 			llvmIrError
 				.getContext()
 				.toStringArray(llvmIrError.message)
@@ -194,7 +228,7 @@ export class Compiler {
 				{
 					const parserError = parserResult.error as ParserError;
 
-					console.groupCollapsed(`Error[${parserError.getErrorCode()}]: ${parserError.message}`);
+					console.groupCollapsed(`Error[Parser/${parserError.getErrorCode()}]: ${parserError.message}`);
 					parserError
 						.getContext()
 						.toStringArray(parserError.message)
@@ -227,11 +261,11 @@ export class Compiler {
 	}
 
 	/** Runs the Compiler */
-	private async runCompiler(ast: ASTProgram): Promise<Result<undefined>> {
+	private async runCompiler(ast: ASTProgram, loc: string[]): Promise<Result<undefined>> {
 		// convert AST to LLVM IR and compile
 		try {
 			const llvmIrConverter = new LlvmIrConverter(this.debug);
-			const conversions = llvmIrConverter.convert({ [`${this.sourceFilenameSansExt}.joe`]: ast });
+			const conversions = llvmIrConverter.convert({ [`${this.sourceFilenameSansExt}.joe`]: { ast, loc } });
 
 			for (const [filename, conversionResult] of Object.entries(conversions)) {
 				if (conversionResult.outcome === 'error') {
@@ -344,8 +378,12 @@ export class Compiler {
 	}
 
 	private async processOptions(): Promise<void> {
-		// get the input
+		// get the input and fix line endings
 		this.source.code = this.source.fromStdin ? await this.getSourceFromStdin() : await this.getSourceFromFile();
+		this.source.code = standardizeLineEndings(this.source.code);
+
+		// get the loc
+		this.source.loc = this.source.code.split('\n');
 
 		// right now, it's a bool
 		this.debug = this.cliArgs.includes('-d') || this.cliArgs.includes('--json');
@@ -448,8 +486,8 @@ export class Compiler {
 	}
 
 	/** Runs the Semantic Analyzer */
-	private async runSemanticAnalyzer(cst: Node, parser: Parser): Promise<Result<[ASTProgram, SymbolTable]>> {
-		const analyzer = new SemanticAnalyzer(cst, parser);
+	private async runSemanticAnalyzer(cst: Node, parser: Parser): Promise<Result<[ASTProgram, SymbolTable], AnalysisError | SemanticError>> {
+		const analyzer = new SemanticAnalyzer(cst, parser, this.source.loc, false);
 
 		const analysisResult = analyzer.analyze();
 		switch (analysisResult.outcome) {
@@ -507,27 +545,7 @@ export class Compiler {
 				}
 				break;
 			case 'error':
-				{
-					const analysisError = analysisResult.error as AnalysisError;
-
-					console.groupCollapsed(`Error[Analysis]: ${analysisError.message}`);
-					analysisError
-						.getContext()
-						.toStringArray(analysisError.message)
-						.forEach((str) => console.info(str));
-					console.groupEnd();
-
-					console.groupCollapsed('Current Node');
-					console.info(analysisError.getNode());
-					console.groupEnd();
-
-					console.groupCollapsed('CST');
-					const parseTree = simplifyTree([cst]);
-					const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
-					console.info(output);
-					console.groupEnd();
-				}
-
+				analysisResult.data = analyzer.cst;
 				return analysisResult;
 				break;
 		}

@@ -100,3 +100,11 @@ export function has<T>(value: T): MaybeHas<T> {
 export function hasNot(): MaybeHasNot {
 	return new MaybeHasNot();
 }
+
+export function maybeIfNotUndefined<T>(value: T | undefined): Maybe<T> {
+	if (typeof value === 'undefined') {
+		return hasNot();
+	}
+
+	return has(value);
+}
