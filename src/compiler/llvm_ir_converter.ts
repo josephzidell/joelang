@@ -298,11 +298,11 @@ export default class LlvmIrConverter {
 			// this is a placeholder
 			return error(new Error('Decimals not implemented yet in convertNumberLiteral()'));
 			// return ok(new llvm.APFloat(value));
-		} else {
-			// TODO handle signed/unsigned
-			return ok(this.builder.getIntN(size.bits, value));
-			// return ok(new llvm.APInt(size.bits, value, size.type.startsWith('u')));
 		}
+
+		// TODO handle signed/unsigned
+		return ok(this.builder.getIntN(size.bits, value));
+		// return ok(new llvm.APInt(size.bits, value, size.type.startsWith('u')));
 	}
 
 	// convert an ASTPrintStatement to an LLVM IR printf call
@@ -314,8 +314,7 @@ export default class LlvmIrConverter {
 			this.module,
 		);
 
-		// create format string
-		const exprToPrint: Array<Result<llvm.Value | string>> = ast.expressions.map((expr) => {
+		const exprToPrintResults: Array<Result<llvm.Value | string>> = ast.expressions.map((expr) => {
 			// if it's an identifier, get the value from the value map
 			if (expr.constructor.name === 'ASTIdentifier') {
 				return resultIfNotUndefined(
@@ -328,20 +327,47 @@ export default class LlvmIrConverter {
 				);
 			}
 
-			return ok(expr.toString());
+			return this.convertNode(expr) as Result<llvm.Value>;
 		});
 		// check if any of the expressions failed
-		if (anyIsError(exprToPrint)) {
-			return getFirstError(exprToPrint);
+		if (anyIsError(exprToPrintResults)) {
+			return getFirstError(exprToPrintResults);
 		}
 
-		const formatStrings = unwrapResults(exprToPrint).map((expr) =>
-			// TODO handle an llvm.Value
-			this.builder.CreateGlobalStringPtr(expr.toString()),
-		);
+		const exprToPrint = unwrapResults(exprToPrintResults);
+
+		// create format string
+		const formatStrings = exprToPrint.map((expr) => {
+			if (typeof expr === 'string') {
+				return '%s';
+			}
+
+			switch (expr.getType().getTypeID()) {
+				case this.builder.getInt8Ty().getTypeID():
+				case this.builder.getInt16Ty().getTypeID():
+				case this.builder.getInt32Ty().getTypeID():
+				case this.builder.getInt64Ty().getTypeID():
+				case this.builder.getInt128Ty().getTypeID():
+				case this.builder.getFloatTy().getTypeID():
+					return '%d';
+				default: // TODO handle other llvm.Value types
+					return '%s';
+			}
+		});
+
+		const format = this.builder.CreateGlobalStringPtr(formatStrings.join(' '));
+
+		// convert everything to `llvm.Value`s
+		const valuesToPrint = exprToPrint.map((expr) => {
+			if (typeof expr === 'string') {
+				return this.builder.CreateGlobalStringPtr(expr);
+			}
+
+			return expr;
+		});
 
 		// create printf call
-		const printfCall = this.builder.CreateCall(printfFunc, formatStrings);
+		const printfCall = this.builder.CreateCall(printfFunc, [format, ...valuesToPrint]);
 
 		return ok(printfCall);
 	}
