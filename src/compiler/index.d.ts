@@ -1,4 +1,4 @@
-type StopCompilerAfterStep = 'lex' | 'parse' | 'analyze' | undefined;
+type StopCompilerAfterStep = 'lex' | 'parse' | 'analyze' | 'll' | undefined;
 
 interface Options {
 	input: string;

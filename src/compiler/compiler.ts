@@ -290,6 +290,10 @@ export class Compiler {
 				}
 			}
 
+			if (this.stopAfterStep === 'll') {
+				process.exit(0);
+			}
+
 			const bitcodePath = this.targetPaths.llvmBitcode();
 			const generateBitcodeFileResult = await llvmIrConverter.generateBitcode(bitcodePath);
 			if (generateBitcodeFileResult.outcome === 'error') {
@@ -374,7 +378,12 @@ export class Compiler {
 			throw new Error('The -a option is not supported with the -l or -p options.');
 		}
 
-		return stopAfterLex ? 'lex' : stopAfterParse ? 'parse' : stopAfterAnalyze ? 'analyze' : undefined;
+		const stopAfterLLVM = this.cliArgs.includes('-ll');
+		if (stopAfterLLVM && (stopAfterAnalyze || stopAfterLex || stopAfterParse)) {
+			throw new Error('The -ll option is not supported with the -l, -p, or -a options.');
+		}
+
+		return stopAfterLex ? 'lex' : stopAfterParse ? 'parse' : stopAfterAnalyze ? 'analyze' : stopAfterLLVM ? 'll' : undefined;
 	}
 
 	private async processOptions(): Promise<void> {

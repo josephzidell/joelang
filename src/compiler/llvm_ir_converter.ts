@@ -24,8 +24,8 @@ import {
 	error,
 	flattenResults,
 	getFirstError,
-	resultIfNotUndefined,
 	ok,
+	resultIfNotUndefined,
 	unwrapResults,
 } from '../shared/result';
 import CompilerError from './error';
@@ -39,7 +39,7 @@ export default class LlvmIrConverter {
 	private stdlib!: llvm.Module;
 	private filename = '';
 	private loc: string[] = [];
-	private valueMap = new Map<string, llvm.Value>();
+	private valueMap = new Map<string, llvm.AllocaInst>();
 	private targetMachine: llvm.TargetMachine;
 	private targetTriple: string;
 	private debug = false;
@@ -316,15 +316,21 @@ export default class LlvmIrConverter {
 
 		const exprToPrintResults: Array<Result<llvm.Value | string>> = ast.expressions.map((expr) => {
 			// if it's an identifier, get the value from the value map
-			if (expr.constructor.name === 'ASTIdentifier') {
-				return resultIfNotUndefined(
-					this.valueMap.get((expr as ASTIdentifier).name),
-					new CompilerError(
-						`PrintStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,
-						this.filename,
-						this.getErrorContext(expr),
-					),
-				);
+			if (expr instanceof ASTIdentifier) {
+				const allocaInst = this.valueMap.get(expr.name);
+				if (typeof allocaInst === 'undefined') {
+					return error(
+						new CompilerError(
+							`PrintStatement: We don't recognize "${(expr as ASTIdentifier).name}"`,
+							this.filename,
+							this.getErrorContext(expr),
+						),
+					);
+				}
+
+				const load = this.builder.CreateLoad(allocaInst.getType().getPointerElementType(), allocaInst);
+
+				return ok(load);
 			}
 
 			return this.convertNode(expr) as Result<llvm.Value>;
@@ -334,10 +340,10 @@ export default class LlvmIrConverter {
 			return getFirstError(exprToPrintResults);
 		}
 
-		const exprToPrint = unwrapResults(exprToPrintResults);
+		const exprsToPrint = unwrapResults(exprToPrintResults);
 
 		// create format string
-		const formatStrings = exprToPrint.map((expr) => {
+		const formatStrings = exprsToPrint.map((expr) => {
 			if (typeof expr === 'string') {
 				return '%s';
 			}
@@ -358,7 +364,7 @@ export default class LlvmIrConverter {
 		const format = this.builder.CreateGlobalStringPtr(formatStrings.join(' '));
 
 		// convert everything to `llvm.Value`s
-		const valuesToPrint = exprToPrint.map((expr) => {
+		const valuesToPrint = exprsToPrint.map((expr) => {
 			if (typeof expr === 'string') {
 				return this.builder.CreateGlobalStringPtr(expr);
 			}
@@ -518,6 +524,16 @@ export default class LlvmIrConverter {
 				const allocaInst = this.builder.CreateAlloca(type.value, null, identifier.name);
 
 				this.valueMap.set(identifier.name, allocaInst);
+
+				const initialValue = ast.initialValues.at(index);
+				if (typeof initialValue !== 'undefined') {
+					const llvmValue = this.convertNode(initialValue);
+					if (llvmValue.outcome === 'error') {
+						return llvmValue;
+					}
+
+					this.builder.CreateStore(llvmValue.value as llvm.Value, allocaInst);
+				}
 
 				return ok(allocaInst);
 			} catch (err) {

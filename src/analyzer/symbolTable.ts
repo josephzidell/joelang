@@ -191,6 +191,10 @@ export class SymbolTable {
 		return this.pushScope('unknown');
 	}
 
+	public debug() {
+		console.dir(this.root, { depth: null });
+	}
+
 	/**
 	 * Override the default behavior when calling util.inspect()
 	 */
