@@ -8,6 +8,7 @@ import {
 	ASTPrintStatement,
 	ASTProgram,
 	ASTReturnStatement,
+	ASTStringLiteral,
 	ASTType,
 	ASTTypeNumber,
 	ASTTypePrimitive,
@@ -168,6 +169,8 @@ export default class LlvmIrConverter {
 				return this.convertPrintStatement(node as ASTPrintStatement);
 			case 'ASTReturnStatement':
 				return this.convertReturnStatement(node as ASTReturnStatement);
+			case 'ASTStringLiteral':
+				return this.convertStringLiteral(node as ASTStringLiteral);
 			case 'ASTVariableDeclaration':
 				return this.convertVariableDeclaration(node as ASTVariableDeclaration);
 		}
@@ -302,7 +305,6 @@ export default class LlvmIrConverter {
 
 		// TODO handle signed/unsigned
 		return ok(this.builder.getIntN(size.bits, value));
-		// return ok(new llvm.APInt(size.bits, value, size.type.startsWith('u')));
 	}
 
 	// convert an ASTPrintStatement to an LLVM IR printf call
@@ -413,6 +415,10 @@ export default class LlvmIrConverter {
 
 		// TODO handle multiple return values
 		return ok(this.builder.CreateRet(exprToReturn[0].value));
+	}
+
+	private convertStringLiteral(node: ASTStringLiteral): Result<llvm.ConstantInt> {
+		return ok(this.builder.CreateGlobalStringPtr(node.value));
 	}
 
 	// convert ASTType to LLVM IR type
