@@ -26,13 +26,25 @@ export function error<T, E extends Error = Error, ED = unknown>(error: E, data?:
 	return { outcome: 'error', error, data };
 }
 
-export function resultIfNotUndefined<T, E extends Error = Error, ED = unknown>(
+export function createResultFromPossiblyUndefined<T, E extends Error = Error, ED = unknown>(
 	value: T | undefined,
 	errorIfUndefined: E,
 	data?: ED,
 ): Result<T, E, ED> {
 	if (typeof value === 'undefined') {
 		return error(errorIfUndefined, data);
+	}
+
+	return ok(value);
+}
+
+export function createResultFromBoolean<T extends boolean, E extends Error = Error, ED = unknown>(
+	value: T,
+	errorIfFalse: E,
+	data?: ED,
+): Result<T, E, ED> {
+	if (value === false) {
+		return error(errorIfFalse, data);
 	}
 
 	return ok(value);
@@ -103,7 +115,7 @@ export function flattenResults<T, E extends Error = Error, ED = unknown>(
 	// This combines all the errors into a single error, recycling the first one
 	// since we need an instance of E, and I'm not sure how to create a new one
 	const firstError = errors[0];
-	firstError.message = `flatten: ${errors.map((error) => error.message).join(';')}`;
+	firstError.message = errors.map((error) => error.message).join(';');
 
 	return error(firstError);
 }

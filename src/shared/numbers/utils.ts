@@ -21,7 +21,10 @@ export const getLowestBitCountOf = (
 };
 
 /** Determines the possible sizes of a number */
-export const determinePossibleNumberSizes = (value: string): Result<NumberSize[]> => {
+export const determinePossibleNumberSizes = <E extends Error>(
+	value: string,
+	errFn: (value: string) => E,
+): Result<NumberSize[]> => {
 	// remove underscores
 	value = value.replace(/_/g, '');
 
@@ -83,7 +86,7 @@ export const determinePossibleNumberSizes = (value: string): Result<NumberSize[]
 		return ok(possibleSizes);
 	}
 
-	return error(new Error(`Invalid int: ${value}`));
+	return error(errFn(value));
 };
 
 /**

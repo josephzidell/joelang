@@ -6,7 +6,8 @@ import { ASTProgram } from '../analyzer/asts';
 import AnalysisError from '../analyzer/error';
 import SemanticAnalyzer from '../analyzer/semanticAnalyzer';
 import SemanticError from '../analyzer/semanticError';
-import { SymbolTable } from '../analyzer/symbolTable';
+import SymbolError from '../analyzer/symbolError';
+import { SymTree } from '../analyzer/symbolTable';
 import CompilerError from '../compiler/error';
 import LexerError from '../lexer/error';
 import Lexer from '../lexer/lexer';
@@ -28,6 +29,7 @@ export class Compiler {
 		code: '',
 		loc: [],
 	};
+	private isASnippet: boolean;
 	private debug = false;
 	private stopAfterStep: StopCompilerAfterStep;
 	private sourceFilenameSansExt = '.inline';
@@ -60,6 +62,8 @@ export class Compiler {
 		this.cliArgs = args;
 
 		this.source.fromStdin = this.cliArgs.includes('-i');
+
+		this.isASnippet = false;
 	}
 
 	public async compile(): Promise<void> {
@@ -95,19 +99,20 @@ export class Compiler {
 		}
 
 		// continue to the compiler
-		const compilerResult = await this.runCompiler(analyzerResult.value[0], this.source.loc);
+		const [ast, symTree] = analyzerResult.value;
+		const compilerResult = await this.runCompiler(ast, symTree, this.source.loc);
 		if (compilerResult.outcome === 'error') {
 			this.handleErrorFromCompiler(compilerResult);
 
 			// don't return since we still want this.afterCompiler() to run
 		}
 
-		await this.afterCompiler();
+		await this.afterCompiler(compilerResult.outcome === 'ok');
 	}
 
-	private async afterCompiler() {
+	private async afterCompiler(runExecutable: boolean) {
 		// for inline analyses, we need to run the executable
-		if (this.source.fromStdin) {
+		if (runExecutable && this.source.fromStdin) {
 			const childProcess = spawn(this.targetPaths.executable());
 
 			await handleProcessOutput(childProcess);
@@ -119,7 +124,9 @@ export class Compiler {
 		}
 	}
 
-	private handleErrorFromSemanticAnalyzer(errorResult: ResultError<AnalysisError | SemanticError, unknown>) {
+	private handleErrorFromSemanticAnalyzer(
+		errorResult: ResultError<AnalysisError | SemanticError | SymbolError, unknown>,
+	) {
 		if (errorResult.error instanceof AnalysisError) {
 			const error = errorResult.error;
 
@@ -135,7 +142,7 @@ export class Compiler {
 				console.info(error.getNode());
 				console.groupEnd();
 
-				if (typeof errorResult.data !== 'undefined' && errorResult.data instanceof Node) {
+				if (typeof errorResult.data !== 'undefined' && errorResult.data?.constructor.name === 'Node') {
 					console.groupCollapsed('CST');
 					const parseTree = simplifyTree([errorResult.data as unknown as Node]);
 					const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
@@ -158,6 +165,23 @@ export class Compiler {
 				console.info(error.getAST());
 				console.groupEnd();
 			}
+		} else if (errorResult.error instanceof SymbolError) {
+			const error = errorResult.error;
+
+			console.groupCollapsed(`Error[Symbol]: ${error.getErrorCode()} ${error.message}`);
+			error
+				.getContext()
+				.toStringArray(error.message)
+				.forEach((str) => console.info(str));
+			if (this.debug) {
+				error.getSymNode()?.getDebug();
+			}
+			console.groupEnd();
+		} else {
+			const error = errorResult.error as Error;
+
+			console.error(`Unhandled Error type in handleErrorFromSemanticAnalyzer: ${error.constructor.name}`);
+			console.error(`Error[Unknown]: ${error.message}`);
 		}
 	}
 
@@ -261,10 +285,10 @@ export class Compiler {
 	}
 
 	/** Runs the Compiler */
-	private async runCompiler(ast: ASTProgram, loc: string[]): Promise<Result<undefined>> {
+	private async runCompiler(ast: ASTProgram, symTree: SymTree, loc: string[]): Promise<Result<undefined>> {
 		// convert AST to LLVM IR and compile
 		try {
-			const llvmIrConverter = new LlvmIrConverter(this.debug);
+			const llvmIrConverter = new LlvmIrConverter(symTree, this.debug);
 			const conversions = llvmIrConverter.convert({ [`${this.sourceFilenameSansExt}.joe`]: { ast, loc } });
 
 			for (const [filename, conversionResult] of Object.entries(conversions)) {
@@ -383,7 +407,15 @@ export class Compiler {
 			throw new Error('The -ll option is not supported with the -l, -p, or -a options.');
 		}
 
-		return stopAfterLex ? 'lex' : stopAfterParse ? 'parse' : stopAfterAnalyze ? 'analyze' : stopAfterLLVM ? 'll' : undefined;
+		return stopAfterLex
+			? 'lex'
+			: stopAfterParse
+			? 'parse'
+			: stopAfterAnalyze
+			? 'analyze'
+			: stopAfterLLVM
+			? 'll'
+			: undefined;
 	}
 
 	private async processOptions(): Promise<void> {
@@ -495,14 +527,20 @@ export class Compiler {
 	}
 
 	/** Runs the Semantic Analyzer */
-	private async runSemanticAnalyzer(cst: Node, parser: Parser): Promise<Result<[ASTProgram, SymbolTable], AnalysisError | SemanticError>> {
-		const analyzer = new SemanticAnalyzer(cst, parser, this.source.loc, false);
+	private async runSemanticAnalyzer(
+		cst: Node,
+		parser: Parser,
+	): Promise<Result<[ASTProgram, SymTree], AnalysisError | SemanticError | SymbolError>> {
+		const analyzer = new SemanticAnalyzer(cst, parser, this.source.loc, {
+			isASnippet: false,
+			debug: this.debug,
+		});
 
 		const analysisResult = analyzer.analyze();
 		switch (analysisResult.outcome) {
 			case 'ok':
 				{
-					const [ast, symbols] = analysisResult.value;
+					const [ast, symTree] = analysisResult.value;
 
 					if (this.debug || this.stopAfterStep === 'analyze') {
 						// output ast
@@ -517,7 +555,7 @@ export class Compiler {
 						// output symbol table
 						console.groupCollapsed('\n=== Symbol Table ===\n');
 						console.info(
-							inspect(symbols, {
+							inspect(symTree.root.table, {
 								compact: 1,
 								showHidden: false,
 								depth: null,
@@ -543,8 +581,8 @@ export class Compiler {
 						}
 
 						{
-							const output = inspect(symbols, { compact: 1, showHidden: false, depth: null });
-							const symbolTableFilePath = await this.targetPaths.symbols();
+							const output = inspect(symTree, { compact: 1, showHidden: false, depth: null });
+							const symbolTableFilePath = this.targetPaths.symbols();
 
 							if (!(await this.writeToFile(symbolTableFilePath, output, 'Symbol Table'))) {
 								return analysisResult;

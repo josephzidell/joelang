@@ -783,7 +783,11 @@ export class ASTNumberLiteral extends AST {
 		return ast;
 	}
 
-	static convertNumberValueTo(value: string, pos: Pos): Result<ASTNumberLiteral> {
+	static convertNumberValueTo<E extends Error>(
+		value: string,
+		pos: Pos,
+		errFn: (value: string) => E,
+	): Result<ASTNumberLiteral> {
 		let declaredSize: NumberSize | undefined;
 		let possibleSizes: NumberSize[] = [];
 
@@ -802,7 +806,7 @@ export class ASTNumberLiteral extends AST {
 			declaredSize = undefined;
 
 			// get the possible sizes
-			const determinePossibleNumberSizesResult = determinePossibleNumberSizes(value);
+			const determinePossibleNumberSizesResult = determinePossibleNumberSizes(value, errFn);
 			if (determinePossibleNumberSizesResult.outcome === 'error') {
 				return determinePossibleNumberSizesResult;
 			}

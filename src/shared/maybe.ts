@@ -49,6 +49,25 @@ export abstract class Maybe<T> {
 		return hasNot();
 	}
 
+	public debug() {
+		if (this.has()) {
+			console.dir(
+				{
+					has: this._has,
+					value: this.value,
+				},
+				{ depth: null },
+			);
+		} else {
+			console.dir(
+				{
+					has: this._has,
+				},
+				{ depth: null },
+			);
+		}
+	}
+
 	static allHave<T>(maybes: Maybe<T>[]): maybes is MaybeHas<T>[] {
 		return maybes.every((maybe) => maybe.has());
 	}

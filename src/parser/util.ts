@@ -25,7 +25,7 @@ export function testParseAndAnalyze(
 
 /**
  * Analyze some code, expecting a SemanticError.
- * 
+ *
  * NOTE: unlike other testXyz() shortcut methods, this method
  * expects a full program including a `main()` function.
  */
@@ -33,6 +33,9 @@ export function testAnalyzeExpectingSemanticError(codeFullProgram: string, error
 	const result = analyze(codeFullProgram, false); // false because we're testing for any semantic error, so treat this as a full program
 	expect(result.outcome).toEqual('error'); // this is for Developer Experience
 	assert(result.outcome === 'error'); // this is for TypeScript
-	assert(result.error instanceof SemanticError, `Expected result.error to be an instance of SemanticError, but it was '${result.error}'`);
+	assert(
+		result.error instanceof SemanticError,
+		`Expected result.error to be an instance of SemanticError, but it was '${result.error}'`,
+	);
 	expect(result.error.getErrorCode()).toEqual(errorCode);
 }

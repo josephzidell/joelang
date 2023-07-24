@@ -1,11 +1,7 @@
 import _ from 'lodash';
 import { Node } from '../parser/types';
-import { numberSizesSignedInts } from '../shared/numbers/sizes';
-import {
-	filterASTTypeNumbersWithBitCountsLowerThan,
-	getLowestBitCountOf,
-	getPossibleSizesFromNumberOrUnary,
-} from '../shared/numbers/utils';
+import { getNumberSizesFromTypes, numberSizeDetails, numberSizesSignedInts } from '../shared/numbers/sizes';
+import { filterASTTypeNumbersWithBitCountsLowerThan, getLowestBitCountOf } from '../shared/numbers/utils';
 import { Result, ok } from '../shared/result';
 import {
 	AST,
@@ -13,6 +9,7 @@ import {
 	ASTArrayOf,
 	ASTBinaryExpression,
 	ASTBoolLiteral,
+	ASTCallExpression,
 	ASTIdentifier,
 	ASTNumberLiteral,
 	ASTObjectExpression,
@@ -54,12 +51,12 @@ export function assignInferredPossibleTypes(
 	valueAST: AssignableASTs,
 	valueNode: Node,
 	assigner: (possibleTypes: ASTType[]) => void,
-	symbolTable: SymbolTable,
+	options: Options,
 ): Result<void> {
 	// whether we got types or not, call the assigner.
 	// Worst case, we could not infer possible types: ok :) 🤷 ¯\_(ツ)_/¯
 	// TODO: This will change as the compiler is built out more
-	assigner(inferPossibleASTTypesFromASTAssignable(valueAST, symbolTable));
+	assigner(inferPossibleASTTypesFromASTAssignable(valueAST, options));
 
 	// either way, we're done
 	return ok(undefined);
@@ -69,7 +66,7 @@ export function assignInferredPossibleTypes(
  * Attempts to infer possible ASTTypes from an ASTAssignable.
  * This is very forgiving, and only returns an error in extremely unlikely cases.
  */
-export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: SymbolTable): ASTType[] {
+export function inferPossibleASTTypesFromASTAssignable(expr: AST, options: Options): ASTType[] {
 	switch (expr.constructor) {
 		case ASTArrayExpression:
 			{
@@ -82,7 +79,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 				// if we can infer the type of the child, we can infer the type of the array
 				return inferPossibleASTTypesFromASTAssignable(
 					(expr as ASTArrayExpression<ExpressionASTs>).items[0],
-					symbolTable,
+					options,
 				).map((childType) => ASTArrayOf._(childType, expr.pos));
 			}
 			break;
@@ -113,8 +110,19 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 							>;
 
 							// each side could either be an ASTNumberLiteral or an ASTUnaryExpression
-							const leftNumberPossibleSizes = getPossibleSizesFromNumberOrUnary(binaryExpr.left);
-							const rightNumberPossibleSizes = getPossibleSizesFromNumberOrUnary(binaryExpr.right);
+							const leftNumberPossibleTypes = inferPossibleASTTypesFromASTAssignable(
+								binaryExpr.left,
+								options,
+							);
+							const rightNumberPossibleTypes = inferPossibleASTTypesFromASTAssignable(
+								binaryExpr.right,
+								options,
+							);
+
+							// ensure all are ASTTypeNumbers and get sizes
+
+							const leftNumberPossibleSizes = getNumberSizesFromTypes(leftNumberPossibleTypes);
+							const rightNumberPossibleSizes = getNumberSizesFromTypes(rightNumberPossibleTypes);
 
 							// for exponent
 							if (operator === '^e') {
@@ -154,18 +162,70 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 		case ASTBoolLiteral:
 			return [ASTTypePrimitiveBool(expr.pos)];
 			break;
+		case ASTCallExpression:
+			{
+				const callExpr = expr as ASTCallExpression;
+				switch (callExpr.callee.constructor) {
+					// TODO ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression
+					case ASTIdentifier:
+						return inferPossibleASTTypesFromASTAssignable(callExpr.callee, options);
+				}
+				// // look up the callee in the symbol table
+				// const lookupResult = symbolTable.lookup(callExpr.callee.);
+			}
+			break;
 		case ASTIdentifier:
 			{
 				const identifier = expr as ASTIdentifier;
 
 				// look up the identifier in the symbol table
-				const lookupResult = symbolTable.lookup(identifier.name);
+				const lookupResult = SymbolTable.lookup(
+					identifier.name,
+					['function', 'parameter', 'variable'],
+					options,
+				);
 				if (!lookupResult.has()) {
 					// TODO: return an undefined variable error
 					return [];
 				}
 
-				return lookupResult.value.types;
+				if (lookupResult.value.kind === 'function') {
+					// if the function has declared return types, return those
+					if (lookupResult.value.returnTypes) {
+						return lookupResult.value.returnTypes;
+					}
+
+					// otherwise, we can't infer anything
+					return [];
+				} else if (lookupResult.value.kind === 'variable') {
+					// if the variable has a declared type, return that
+					if (lookupResult.value.declaredType) {
+						return [lookupResult.value.declaredType];
+					}
+
+					// if the variable has a value, infer the type of the value
+					if (lookupResult.value.value) {
+						return inferPossibleASTTypesFromASTAssignable(lookupResult.value.value, options);
+					}
+
+					// otherwise, we can't infer anything
+					return [];
+				} else if (lookupResult.value.kind === 'parameter') {
+					// if the parameter has a declared type, return that
+					if (lookupResult.value.type) {
+						return [lookupResult.value.type];
+					}
+
+					// if the parameter has a default value, infer the type of the value
+					if (lookupResult.value.defaultValue) {
+						return inferPossibleASTTypesFromASTAssignable(lookupResult.value.defaultValue, options);
+					}
+
+					// otherwise, we can't infer anything
+					return [];
+				}
+
+				return [];
 			}
 			break;
 		case ASTNumberLiteral:
@@ -176,7 +236,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 				const propertiesShapes = (expr as ASTObjectExpression).properties.map((property) =>
 					ASTPropertyShape._(
 						property.key,
-						inferPossibleASTTypesFromASTAssignable(property.value, symbolTable),
+						inferPossibleASTTypesFromASTAssignable(property.value, options),
 						expr.pos,
 					),
 				);
@@ -188,7 +248,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 			return [ASTTypePrimitivePath(expr.pos)];
 			break;
 		case ASTPostfixIfStatement:
-			return inferPossibleASTTypesFromASTAssignable((expr as ASTPostfixIfStatement).expression, symbolTable);
+			return inferPossibleASTTypesFromASTAssignable((expr as ASTPostfixIfStatement).expression, options);
 			break;
 		case ASTRangeExpression:
 			return [ASTTypeRange._(expr.pos)];
@@ -202,14 +262,8 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 		case ASTTernaryExpression:
 			{
 				const ternaryExpr = expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>;
-				const typesOfConsequent = inferPossibleASTTypesFromASTAssignable(
-					ternaryExpr.consequent.value,
-					symbolTable,
-				);
-				const typesOfAlternate = inferPossibleASTTypesFromASTAssignable(
-					ternaryExpr.alternate.value,
-					symbolTable,
-				);
+				const typesOfConsequent = inferPossibleASTTypesFromASTAssignable(ternaryExpr.consequent.value, options);
+				const typesOfAlternate = inferPossibleASTTypesFromASTAssignable(ternaryExpr.alternate.value, options);
 
 				return _.intersectionBy(typesOfConsequent, typesOfAlternate, astUniqueness);
 			}
@@ -217,7 +271,7 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 		case ASTTupleExpression:
 			{
 				const possibleShapes = (expr as ASTTupleExpression).items.map((item) =>
-					inferPossibleASTTypesFromASTAssignable(item, symbolTable),
+					inferPossibleASTTypesFromASTAssignable(item, options),
 				);
 
 				return [ASTTupleShape._(possibleShapes, expr.pos)];
@@ -254,8 +308,22 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 				}
 			}
 			break;
+		// case ASTWhenExpression:
+		// 	{
+		// 		const whenExpr = expr as ASTWhenExpression;
+
+		// 		// get possible types from the first when case
+		// 		const possibleTypesFromWhenCases = whenExpr.cases.map((whenCase) => {
+		// 			return inferPossibleASTTypesFromASTAssignable(whenCase.consequent, symbolTable);
+		// 		});
+
+		// 		const intersection = intersectN(possibleTypesFromWhenCases);
+
+		// 		return intersection;
+		// 	}
+		// 	break;
 		default:
-			// console.log('inferPossibleASTTypesFromASTAssignable: unhandled expression type', expr.constructor.name);
+			console.error('inferPossibleASTTypesFromASTAssignable: unhandled expression type', expr.constructor.name);
 			// TODO more work needed here. Discover inferred type of CallExpression, MemberExpression, MemberListExpression, and more
 			return [];
 	}
@@ -264,8 +332,100 @@ export function inferPossibleASTTypesFromASTAssignable(expr: AST, symbolTable: S
 }
 
 /** function to check if a value may be assigned to a variable/parameter of a given type */
-export function isAssignable(value: AssignableASTs, type: ASTType, symbolTable: SymbolTable): boolean {
-	const inferredTypes = inferPossibleASTTypesFromASTAssignable(value, symbolTable);
+export function isAssignable(value: AssignableASTs, type: ASTType, options: Options): [boolean, ASTType[]] {
+	const inferredTypes = inferPossibleASTTypesFromASTAssignable(value, options);
+	const inferredTypesMapped = inferredTypes.map(astUniqueness);
+	const typeUnique = astUniqueness(type);
 
-	return inferredTypes.map(astUniqueness).includes(astUniqueness(type));
+	const includes = inferredTypesMapped.includes(typeUnique);
+	// most of time checking whether the inferred types include the destination
+	// type suffices. However, for numbers the behavior can be different in that
+	// a small number can be assigned to a larger number, being careful that
+	// ints/uints/decs remain separate.
+	if (includes || !(type instanceof ASTTypeNumber && inferredTypes.some((t) => t.kind === 'TypeNumber'))) {
+		return [includes, inferredTypes];
+	}
+
+	// check if all of the inferred number sizes are smaller than the desination size
+	const inferredSizes = getNumberSizesFromTypes(inferredTypes).map((size) => numberSizeDetails[size]);
+
+	// check int vs uint vs dec
+	const destSize = numberSizeDetails[type.size];
+
+	// check if any inferred type's type (int/uint/dec) does not match the desintation's
+	if (inferredSizes.some((inferredSize) => inferredSize.type !== destSize.type)) {
+		return [false, inferredTypes];
+	}
+
+	// check if all inferred types' bits are smaller than the desintation's
+	if (inferredSizes.some((size) => size.bits > destSize.bits)) {
+		return [false, inferredTypes];
+	}
+
+	return [true, inferredTypes];
+}
+
+/**
+ * Finds the intersection of 2 arrays
+ *
+ * @param items1 Array 1
+ * @param items2 Array 2
+ * @returns
+ */
+export function intersect<T>(items1: T[], items2: T[]): T[] {
+	const map = new Map<T, number>();
+	for (const item of items1) {
+		map.set(item, (map.get(item) ?? 0) + 1);
+	}
+
+	const res = [];
+	for (const item of items2) {
+		if (map.has(item) && map.get(item) !== 0) {
+			res.push(item);
+			map.set(item, (map.get(item) ?? 0) - 1);
+		}
+	}
+	return res;
+}
+
+/**
+ * Finds the intersection of N arrays
+ *
+ * @param items Array of arrays
+ * @returns A 1D array
+ */
+export function intersectN<T>(...items: T[][]) {
+	return items.reduce(intersect);
+}
+
+/**
+ * Finds duplictes in a string array, and gives them back by index.
+ *
+ * Example:
+ * ```
+ * findDuplicates(['a', 'b', 'a', 'c', 'b'])); // [[0, 2], [1, 4]]
+ * ```
+ *
+ * @param arr In which to check
+ * @returns An array of arrays
+ */
+export function findDuplicates(arr: string[]): number[][] {
+	const indices: { [key: string]: number[] } = {};
+	const duplicates: number[][] = [];
+
+	for (let i = 0; i < arr.length; i++) {
+		if (indices[arr[i]]) {
+			indices[arr[i]].push(i);
+		} else {
+			indices[arr[i]] = [i];
+		}
+	}
+
+	for (const key in indices) {
+		if (indices[key].length > 1) {
+			duplicates.push(indices[key]);
+		}
+	}
+
+	return duplicates;
 }

@@ -1,6 +1,6 @@
 import { Get } from 'type-fest';
 import { AST, ASTProgram } from './src/analyzer/asts';
-import { SymbolTable } from './src/analyzer/symbolTable';
+import { SymTab } from './src/analyzer/symbolTable';
 import { Token, TokenType } from './src/lexer/types';
 import { SParseTree, simplifyTree } from './src/parser/simplifier';
 import { Node } from './src/parser/types';
@@ -196,7 +196,7 @@ expect.extend({
 	},
 });
 export function matchAST(
-	actualASTResult: Result<[ASTProgram, SymbolTable]>,
+	actualASTResult: Result<[ASTProgram, SymTab]>,
 	expectedASTProgramDeclarations: Get<ASTProgram, 'declarations'>,
 ): CustomMatcherResult {
 	switch (actualASTResult.outcome) {

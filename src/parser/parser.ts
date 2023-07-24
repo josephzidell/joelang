@@ -18,7 +18,7 @@ export const stackPairs = {
 export default class Parser {
 	prevToken: Token | undefined;
 
-	currentToken: Result<Token> = error(new Error('No tokens found'));
+	currentToken: Result<Token>;
 
 	/** Root node of the Concrete Syntax Tree (CST) */
 	root: Node;
@@ -91,10 +91,20 @@ export default class Parser {
 
 		this.currentRoot = this.root;
 
+		// initialize
+		this.currentToken = error(
+			new ParserError(
+				ParserErrorCode.UnexpectedEndOfProgram,
+				'No tokens found',
+				this.currentRoot,
+				new ErrorContext(this.lexer.code, 1, 1, 0),
+			),
+		);
+
 		this.debug = debug;
 
 		if (this.debug) {
-			console.debug('Getting started parsing');
+			console.debug('Parser: Getting started parsing');
 		}
 	}
 
@@ -156,7 +166,7 @@ export default class Parser {
 			}
 
 			if (this.debug) {
-				console.debug(`Found token type "${token.type}" with value "${token.value}"`);
+				console.debug(`Parser: Found token type "${token.type}" with value "${token.value}"`);
 			}
 
 			if (token.type === 'paren_open') {
@@ -329,19 +339,19 @@ export default class Parser {
 				const nodeTypesThatParentAnObjectShape: NT[] = [NT.ArgumentsList, NT.TypeArgumentsList];
 				if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
 					if (this.debug) {
-						console.debug('Beginning an ObjectShape');
+						console.debug('Parser: Beginning an ObjectShape');
 					}
 
 					this.beginExpressionWith(MakeNode(NT.ObjectShape, token, this.currentRoot, true));
 				} else if (nodeTypesThatParentAnObjectExpression.includes(this.currentRoot.type)) {
 					if (this.debug) {
-						console.debug('Beginning an ObjectExpression');
+						console.debug('Parser: Beginning an ObjectExpression');
 					}
 
 					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
 				} else if (typeof prevType === 'undefined') {
 					if (this.debug) {
-						console.debug('Beginning a BlockStatement');
+						console.debug('Parser: Beginning a BlockStatement');
 					}
 
 					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
@@ -350,13 +360,13 @@ export default class Parser {
 					(this.currentRoot.type === NT.Property && prevType === NT.Identifier)
 				) {
 					if (this.debug) {
-						console.debug('Beginning an ObjectExpression');
+						console.debug('Parser: Beginning an ObjectExpression');
 					}
 
 					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
 				} else {
 					if (this.debug) {
-						console.debug('Beginning a BlockStatement');
+						console.debug('Parser: Beginning a BlockStatement');
 					}
 
 					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
@@ -365,6 +375,37 @@ export default class Parser {
 				const stackStatus = this.popStack('{');
 				if (stackStatus.outcome === 'error') {
 					return error(stackStatus.error);
+				}
+
+				// check that a semicolon wasn't expected
+				const nodeTypesThatRequireASemicolonAndNotABraceClose: NT[] = [
+					NT.AssignablesList,
+					NT.AssignmentExpression,
+					NT.BinaryExpression,
+					NT.MemberExpression,
+					NT.MemberListExpression,
+					NT.PostfixIfStatement,
+					NT.PrintStatement,
+					NT.Property,
+					NT.RangeExpression,
+					NT.RegularExpression,
+					NT.ReturnStatement,
+					NT.TernaryAlternate,
+					NT.TernaryExpression,
+					NT.TypeArgumentsList,
+					NT.UnaryExpression,
+					NT.VariableDeclaration,
+				];
+
+				if (nodeTypesThatRequireASemicolonAndNotABraceClose.includes(this.currentRoot.type)) {
+					return error(
+						new ParserError(
+							ParserErrorCode.UnexpectedToken,
+							'Unexpected close brace, expecting a semicolon',
+							this.currentRoot,
+							this.getErrorContext(token.value.length),
+						),
+					);
 				}
 
 				this.endExpression();
@@ -541,7 +582,9 @@ export default class Parser {
 
 				if (this.debug) {
 					console.debug(
-						`Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${token.value}"`,
+						`Parser: Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${
+							token.value
+						}"`,
 					);
 				}
 
@@ -558,7 +601,7 @@ export default class Parser {
 				this.addNode(MakeNode(NT.StringLiteral, token, this.currentRoot));
 			} else if (token.type === 'identifier') {
 				if (this.debug) {
-					console.debug(`Handling identifier "${token.value}"`);
+					console.debug(`Parser: Handling identifier "${token.value}"`);
 				}
 
 				// check if we're in one of the known Parent node types, if so, begin a child
@@ -566,7 +609,7 @@ export default class Parser {
 					const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
 					if (this.debug) {
 						console.debug(
-							`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`,
+							`Parser: Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`,
 						);
 					}
 
@@ -577,7 +620,7 @@ export default class Parser {
 				if (this.currentRoot.type === NT.VariableDeclaration) {
 					if (this.debug) {
 						console.debug(
-							`Creating an AssigneesList Node in ${this.currentRoot.type} for "${token.value}"`,
+							`Parser: Creating an AssigneesList Node in ${this.currentRoot.type} for "${token.value}"`,
 						);
 					}
 
@@ -586,7 +629,9 @@ export default class Parser {
 				}
 
 				if (this.debug) {
-					console.debug(`Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`);
+					console.debug(
+						`Parser: Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`,
+					);
 				}
 
 				this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
@@ -922,7 +967,7 @@ export default class Parser {
 					const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
 					if (this.debug) {
 						console.debug(
-							`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`,
+							`Parser: Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`,
 						);
 					}
 
@@ -1141,7 +1186,7 @@ export default class Parser {
 				this.addNode(MakeNode(NT.ThisKeyword, token, this.currentRoot, true));
 			} else if (token.type === 'keyword') {
 				if (this.debug) {
-					console.debug(`Handling keyword "${token.value}"`);
+					console.debug(`Parser: Handling keyword "${token.value}"`);
 				}
 
 				switch (token.value) {
@@ -1156,7 +1201,7 @@ export default class Parser {
 
 						if (this.currentRoot.type !== NT.ModifiersList) {
 							if (this.debug) {
-								console.debug('Beginning a ModifiersList');
+								console.debug('Parser: Beginning a ModifiersList');
 							}
 
 							this.beginExpressionWith(MakeNode(NT.ModifiersList, token, this.currentRoot, true));
@@ -1164,7 +1209,9 @@ export default class Parser {
 
 						if (this.debug) {
 							console.debug(
-								`Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`,
+								`Parser: Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${
+									token.value
+								}"`,
 							);
 						}
 
@@ -1194,7 +1241,7 @@ export default class Parser {
 							if (this.currentRoot.type === NT.ModifiersList) {
 								if (this.debug) {
 									console.debug(
-										'Currently there is a ModifiersList open; now beginning VariableDeclaration and adopting the ModifiersList',
+										'Parser: Currently there is a ModifiersList open; now beginning VariableDeclaration and adopting the ModifiersList',
 									);
 								}
 
@@ -1204,7 +1251,7 @@ export default class Parser {
 							} else {
 								if (this.debug) {
 									console.debug(
-										'There is no ModifiersList open; now beginning a VariableDeclaration',
+										'Parser: There is no ModifiersList open; now beginning a VariableDeclaration',
 									);
 								}
 
@@ -1285,7 +1332,7 @@ export default class Parser {
 							if (this.currentRoot.type === NT.ModifiersList) {
 								if (this.debug) {
 									console.debug(
-										'Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList',
+										'Parser: Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList',
 									);
 								}
 
@@ -1295,7 +1342,7 @@ export default class Parser {
 							} else {
 								if (this.debug) {
 									console.debug(
-										'There is no ModifiersList open; now beginning a FunctionDeclaration',
+										'Parser: There is no ModifiersList open; now beginning a FunctionDeclaration',
 									);
 								}
 
@@ -1366,7 +1413,7 @@ export default class Parser {
 								) {
 									if (this.debug) {
 										console.debug(
-											'Found an "if" statement after another "if" without an "else"; now closing the first IfStatement',
+											'Parser: Found an "if" statement after another "if" without an "else"; now closing the first IfStatement',
 										);
 									}
 
@@ -1508,7 +1555,7 @@ export default class Parser {
 		} while (this.currentToken.outcome === 'ok');
 
 		if (this.debug) {
-			console.debug(inspect(this.root, { showHidden: true, depth: null }));
+			console.debug(`Parser: ${inspect(this.root, { showHidden: true, depth: null })}`);
 		}
 
 		return ok(this.root);
@@ -1544,7 +1591,7 @@ export default class Parser {
 		if (this.currentRoot.type === NT.ModifiersList) {
 			if (this.debug) {
 				console.debug(
-					`Currently there is a ModifiersList open; now beginning ${name} and adopting the ModifiersList`,
+					`Parser: Currently there is a ModifiersList open; now beginning ${name} and adopting the ModifiersList`,
 				);
 			}
 
@@ -1553,7 +1600,7 @@ export default class Parser {
 			);
 		} else {
 			if (this.debug) {
-				console.debug(`There is no ModifiersList open; now beginning a ${name}`);
+				console.debug(`Parser: There is no ModifiersList open; now beginning a ${name}`);
 			}
 
 			// beginExpressionWith doesn't return a Result<>
@@ -1823,7 +1870,7 @@ export default class Parser {
 			// Note in this case, it IS possible for adoptee to be a Parenthesized, and while under
 			// many circumstances, we would want to get the effective type, but here we want to log
 			// the actual type for debugging, so we use adoptee.type instead of the effective type.
-			console.debug(`Moving ${adoptee.type} to under ${newKid.type}`);
+			console.debug(`Parser: Moving ${adoptee.type} to under ${newKid.type}`);
 		}
 
 		// make a reference for convenience
@@ -1844,7 +1891,9 @@ export default class Parser {
 
 				if (this.debug) {
 					console.debug(
-						`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`,
+						`Parser: Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(
+							this.currentRoot,
+						)}`,
 					);
 				}
 
@@ -1889,10 +1938,7 @@ export default class Parser {
 		copy.parent = undefined;
 		// adopteesParent.children.pop();
 		const childIndex = adopteesParent.children.indexOf(adoptee);
-		// console.debug({before: true, childIndex, children: {...adopteesParent.children}});
 		adopteesParent.children.splice(childIndex, 1);
-		// console.debug({after: true, children: {...adopteesParent.children}});
-		// console.debug(adopteesParent.children);
 
 		// (b) Attach currentRoot to newKid's children
 		if (addToEnd) {
@@ -1914,7 +1960,7 @@ export default class Parser {
 	private endExpression() {
 		if (this.debug) {
 			console.debug(
-				`Ending a ${this.lineage(this.currentRoot)}; this.currentRoot is now ${this.lineage(
+				`Parser: Ending a ${this.lineage(this.currentRoot)}; this.currentRoot is now ${this.lineage(
 					this.currentRoot.parent,
 				)}`,
 			);

@@ -6,15 +6,16 @@ import { AST } from './asts';
  */
 
 export enum SemanticErrorCode {
-	MainFunctionNotFound = 'S001',
-	MainFunctionHasReturnType = 'S002',
-	MainFunctionHasParameters = 'S003',
-	MainFunctionHasTypeParameters = 'S004',
+	FunctionNotFound = 'S001',
+	ReturnTypeNotExpected = 'S002',
+	ParameterNotExpected = 'S003',
+	TypeParametersNotExpected = 'S004',
+	DuplicateIdentifier = 'S005',
 }
 
 /**
- * Custom error class so that we can display the already-extracted tokens
- * which will help the user see where the lexer is up to and got stuck
+ * Custom error class so that we can display the Abstract Syntax Tree
+ * which will help the user see where the Semantics checks is up to and got stuck
  */
 export default class SemanticError extends TypeError {
 	private errorCode;

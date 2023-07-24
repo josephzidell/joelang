@@ -1,3 +1,5 @@
+import { ASTType, ASTTypeNumber } from '../../analyzer/asts';
+
 export type BitCount = 8 | 16 | 32 | 64; // TODO add support for 128 bit numbers
 
 export type SizeInfo = {
@@ -79,3 +81,7 @@ export const numberSizeDetails: Record<NumberSize, SizeInfo> = {
 		max: 9.999999999999999e384,
 	},
 };
+
+export function getNumberSizesFromTypes(types: ASTType[]): NumberSize[] {
+	return types.filter((type) => type instanceof ASTTypeNumber).map((type) => (type as ASTTypeNumber).size);
+}

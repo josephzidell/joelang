@@ -18,6 +18,9 @@ async function main(slicedArgs: string[]) {
 	} catch (error) {
 		// Log the error message and exit the process
 		console.error((error as Error).message);
+		if (process.argv.includes('-d')) {
+			console.error((error as Error).stack);
+		}
 		console.error('\nExiting...');
 		process.exit(1);
 	}

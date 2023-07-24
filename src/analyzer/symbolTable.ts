@@ -1,206 +1,616 @@
-// write a symbol table class that can be used to store and retrieve symbols
-// the symbol table should be able to store and retrieve symbols by name
-// the symbol table should be able to store and retrieve symbols by type
-// the symbol table should be able to store and retrieve symbols by scope
-// the symbol table should be able to store and retrieve symbols by name and scope
-// the symbol table should be able to store and retrieve symbols by type and scope
-// the symbol table should be able to store and retrieve symbols by name and type
-// the symbol table should be able to store and retrieve symbols by name, type, and scope
-
-import util from 'util';
+import llvm from 'llvm-bindings';
+import _ from 'lodash';
+import { Get } from 'type-fest';
+import ErrorContext from '../shared/errorContext';
 import { Maybe, has, hasNot } from '../shared/maybe';
+import { Pos } from '../shared/pos';
 import { Result, error, ok } from '../shared/result';
-import { ASTType } from './asts';
+import { ASTType, AssignableASTs } from './asts';
+import SymbolError, { SymbolErrorCode } from './symbolError';
 
-type SymbolKind = 'function' | 'const' | 'let' | 'parameter';
-type SymbolTypes = ASTType[];
+interface Sym {
+	pos: Pos;
+}
 
-// type Value = unknown;
+export type FuncSym = {
+	kind: 'function';
+	typeParams: ASTType[];
+	params: ASTType[];
+	returnTypes: ASTType[];
+	llvmFunction?: llvm.Function;
+} & Sym;
 
-type SymbolInfo = {
-	kind: SymbolKind;
-	types: SymbolTypes;
-	value?: unknown;
-};
+export type ParamSym = {
+	kind: 'parameter';
+	type: ASTType;
+	defaultValue?: AssignableASTs;
+	rest: boolean;
+	llvmArgument?: llvm.Argument;
+} & Sym;
 
-class Scope {
-	// each scope needs a name; first one is 'global'
+export type VarSym = {
+	kind: 'variable';
+	mutable: boolean;
+	declaredType?: ASTType;
+	value?: AssignableASTs;
+	allocaInst?: llvm.AllocaInst;
+} & Sym;
+
+type SymbolInfo = FuncSym | ParamSym | VarSym;
+type SymbolKind = Get<SymbolInfo, 'kind'>;
+
+export class SymNode {
+	// each node needs a name; root is 'global'
 	public name: string;
-	private readonly symbols: Map<string, SymbolInfo> = new Map<string, SymbolInfo>();
+	public readonly table: SymTab;
 
-	/** Child scopes */
-	public readonly children: Scope[] = [];
+	/** Child nodes */
+	public readonly children: Record<string, SymNode> = {};
 
-	private _parent: Maybe<Scope>;
-	public get parent(): Maybe<Scope> {
+	public readonly pos: Pos;
+
+	private debug: boolean;
+
+	private _parent: Maybe<SymNode>;
+	public get parent(): Maybe<SymNode> {
 		return this._parent;
 	}
 
-	constructor(name: string, parent: Maybe<Scope>) {
+	constructor(name: string, parent: Maybe<SymNode>, pos: Pos, options: Options) {
 		this.name = name;
+		this.table = new SymTab(this, options);
 		this._parent = parent;
+		this.pos = pos;
+		this.debug = options.debug;
 	}
 
-	public define(name: string, kind: SymbolKind, types: SymbolTypes, value: unknown = undefined): void {
-		this.symbols.set(name, { kind, types, value });
+	public createChild(name: string, pos: Pos) {
+		if (this.debug) {
+			console.log(`SymNode: Creating child ${name}`);
+		}
+
+		const newNode = new SymNode(name, has(this), pos, { debug: this.debug });
+		this.children[name] = newNode;
+
+		return newNode;
 	}
 
-	public assignKind(name: string, symbolKind: SymbolKind): Result<boolean> {
-		const scope = this.lookupScope(name);
-		if (scope.has()) {
-			const symbol = scope.value.lookup(name);
-			if (!symbol.has()) {
-				return error(new Error(`Undefined variable: ${name}`));
+	public getDebug(): void {
+		console.dir(
+			{
+				name: this.name,
+				symTab: this.table,
+				parent: this._parent,
+			},
+			{ depth: null },
+		);
+	}
+}
+
+export class SymTree {
+	/** Root of the tree. Never changes. */
+	public readonly root: SymNode;
+
+	/** Pointer to the current SymNode. Changes frequently. */
+	private currentNode: SymNode;
+
+	public readonly loc: string[];
+	private debug: boolean;
+
+	constructor(rootNodeName: string, pos: Pos, loc: string[], options: Options) {
+		this.loc = loc;
+		this.debug = options.debug;
+
+		if (this.debug) {
+			console.log(`SymTree: Beginning with root node ${rootNodeName}`);
+		}
+		this.root = new SymNode(rootNodeName, hasNot(), pos, options);
+
+		this.currentNode = this.root;
+	}
+
+	public getCurrentNode() {
+		return this.currentNode;
+	}
+
+	public createNewSymNodeAndEnter(name: string, pos: Pos): SymNode {
+		if (this.debug) {
+			console.log(`SymTree: Creating new SymNode ${name}`);
+		}
+
+		const newNode = this.currentNode.createChild(name, pos);
+
+		this.currentNode = newNode;
+
+		return newNode;
+	}
+
+	/** Proxies any action to the current SymNode's SymTab */
+	public proxy<R>(what: (symTab: SymTab, symNode: SymNode, symTree: SymTree) => R): R {
+		return what(this.currentNode.table, this.currentNode, this);
+	}
+
+	/** Enters a child's SymNode */
+	public enter(name: string): Result<SymNode> {
+		if (!(name in this.currentNode.children)) {
+			return error(
+				new SymbolError(
+					SymbolErrorCode.SymNodeNotFound,
+					`Cannot find child SymNode ${name}`,
+					this.currentNode,
+					this.getErrorContext(this.currentNode.pos),
+				),
+			);
+		}
+
+		this.currentNode = this.currentNode.children[name];
+
+		return ok(this.currentNode);
+	}
+
+	/** Exits the current SymNode and traverses to its parent. */
+	public exit(): Result<SymNode> {
+		if (!this.currentNode.parent.has()) {
+			return error(
+				new SymbolError(
+					SymbolErrorCode.AtTopAndNotExpectingToBe,
+					"We're at the top SymNode; cannot exit",
+					this.currentNode,
+					this.getErrorContext(this.currentNode.pos),
+				),
+			);
+		}
+
+		if (this.debug) {
+			console.log(
+				`SymTree: Exiting SymNode ${this.currentNode.name} to ${
+					this.currentNode.parent.has() ? this.currentNode.parent.value.name : '<no parent>'
+				}`,
+			);
+		}
+
+		this.currentNode = this.currentNode.parent.value;
+
+		return ok(this.currentNode);
+	}
+
+	/** Update the current SymNode's name */
+	public updateSymNodeName(name: string): void {
+		if (this.debug) {
+			console.log(`SymTree: Renaming SymNode ${this.currentNode.name} to ${name}`);
+		}
+
+		// get the underlying node
+		const node = this.currentNode;
+
+		// capture old name
+		const oldName = _.clone(node.name);
+
+		// change the name
+		node.name = name;
+
+		// change the name in the parent's children list
+		if (this.currentNode !== this.root) {
+			if (this.currentNode.parent.has()) {
+				// copy data from old key to new
+				this.currentNode.parent.value.children[name] = this.currentNode.parent.value.children[oldName];
+
+				// delete old
+				delete this.currentNode.parent.value.children[oldName];
+			}
+		}
+	}
+
+	public getCurrentOrParentNode(useParent: boolean): Result<SymNode> {
+		if (useParent) {
+			if (!this.currentNode.parent.has()) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.AtTopAndNotExpectingToBe,
+						"We're at the top SymNode; there is no parent",
+						this.currentNode,
+						this.getErrorContext(this.currentNode.pos),
+					),
+				);
 			}
 
-			symbol.value.kind = symbolKind;
-			scope.value.symbols.set(name, symbol.value);
-			return ok(true);
+			return ok(this.currentNode.parent.value);
 		}
 
-		return error(new Error(`Undefined variable: ${name}`));
+		return ok(this.currentNode);
 	}
 
-	public appendTypes(name: string, symbolTypes: SymbolTypes): Result<boolean> {
-		const scope = this.lookupScope(name);
-		if (scope.has()) {
-			const symbol = scope.value.lookup(name);
-			if (!symbol.has()) {
-				return error(new Error(`Undefined variable: ${name}`));
-			}
-
-			symbol.value.types.push(...symbolTypes);
-			scope.value.symbols.set(name, symbol.value);
-			return ok(true);
-		}
-
-		return error(new Error(`Undefined variable: ${name}`));
-	}
-
-	public lookup(name: string): Maybe<SymbolInfo> {
-		const scope = this.lookupScope(name);
-		if (scope.has()) {
-			const symbol = scope.value.symbols.get(name);
-			if (symbol) {
-				return has(symbol);
-			}
-
-			return hasNot();
-		}
-
-		return hasNot();
-	}
-
-	private lookupScope(name: string): Maybe<Scope> {
-		if (this.symbols.has(name)) {
-			return has(this);
-		}
-
-		if (this.parent.has()) {
-			return this.parent.value.lookupScope(name);
-		}
-
-		return hasNot();
-	}
-
-	/**
-	 * Override the default behavior when calling util.inspect()
-	 */
-	[util.inspect.custom](depth: number, options: util.InspectOptions): string {
-		// we need to explicitly display the class name since it
-		// disappears when using a custom inspect function.
-		return `${this.name} ${util.inspect(this.symbols, options)} ${util.inspect(this.children, options)}`;
+	getErrorContext(pos: Pos, length?: number): ErrorContext {
+		return new ErrorContext(this.loc[pos.line - 1], pos.line, pos.col, length ?? pos.end - pos.start);
 	}
 }
 
 export class SymbolTable {
-	private root!: Scope;
-	private currentScope: Maybe<Scope>;
+	static tree: SymTree;
 
-	constructor(scopeName: string) {
-		this.root = new Scope(scopeName, hasNot());
-		this.currentScope = has(this.root);
-	}
+	////////////////////////////////
+	// Methods for inserting records
+	////////////////////////////////
 
-	public pushScope(name: string): Scope {
-		const parent = this.currentScope;
+	public static newTree(rootNodeName: string, pos: Pos, loc: string[], options: Options) {
+		const tree = new SymTree(rootNodeName, pos, loc, options);
 
-		const newScope = new Scope(name, parent);
-		parent.map((parent) => parent.children.push(newScope));
+		SymbolTable.tree = tree;
 
-		this.currentScope = has(newScope);
-
-		return newScope;
-	}
-
-	/** Update the current scope's name */
-	public setScopeName(name: string): void {
-		this.currentScope.map((value) => (value.name = name));
-	}
-
-	public popScope(): void {
-		if (this.currentScope.has()) {
-			this.currentScope = this.currentScope.value.parent;
-		} else {
-			this.currentScope = hasNot(); // at the top level
-		}
+		return tree;
 	}
 
 	/**
-	 * Defines a symbol
+	 * Defines a function symbol
 	 *
-	 * @param name Symbol name
-	 * @param kind Symbol kind
-	 * @param types Possible types
-	 * @param value The value, if any
-	 * @param inParent Defaulting to false, should the symbol be defined in the parent scope or the current scope?
+	 * @param name Function name
+	 * @param typeParams Type parameters
+	 * @param params Parameters
+	 * @param returnTypes Return types
 	 */
-	public define(
+	public static insertFunction(
 		name: string,
-		kind: SymbolKind,
-		types: SymbolTypes,
-		value: unknown = undefined,
-		inParent = false,
-	): void {
-		if (inParent && this.currentScope.has() && this.currentScope.value.parent.has()) {
-			this.currentScope.value.parent.value.define(name, kind, types, value);
-		} else {
-			this.getCurrentScope().define(name, kind, types, value);
+		typeParams: ASTType[],
+		params: ASTType[],
+		returnTypes: ASTType[],
+		pos: Pos,
+	): Result<FuncSym> {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			if (symTab.containsOfAnyType(name)) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.DuplicateIdentifier,
+						`Symbol: insertFunction: There already is an item named ${name} in the Symbol Table`,
+						symNode,
+						SymbolTable.getErrorContext(pos),
+					),
+				);
+			}
+
+			const functionSymbol: FuncSym = {
+				kind: 'function',
+				typeParams,
+				params,
+				returnTypes,
+				llvmFunction: undefined,
+				pos,
+			};
+
+			symTab.symbols.set(name, functionSymbol);
+
+			return ok(functionSymbol);
+		});
+	}
+
+	/**
+	 * Defines a parameter symbol
+	 *
+	 * @param name Parameter name
+	 * @param type Parameter type
+	 * @param defaultValue Default value, if any
+	 * @param rest Is this a rest parameter?
+	 */
+	public static insertParameter(
+		name: string,
+		type: ASTType,
+		defaultValue: AssignableASTs | undefined,
+		rest: boolean,
+		llvmArgument: llvm.Argument | undefined,
+		pos: Pos,
+	): Result<ParamSym> {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			if (symTab.containsOfAnyType(name)) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.DuplicateIdentifier,
+						`Symbol: insertParameter: There already is an item named ${name} in the Symbol Table`,
+						symNode,
+						SymbolTable.getErrorContext(pos),
+					),
+				);
+			}
+
+			const parameterSymbol: ParamSym = {
+				kind: 'parameter',
+				type,
+				defaultValue,
+				rest,
+				llvmArgument,
+				pos,
+			};
+
+			symTab.symbols.set(name, parameterSymbol);
+
+			return ok(parameterSymbol);
+		});
+	}
+
+	/**
+	 * Defines a variable symbol
+	 *
+	 * @param name Variable name
+	 * @param kind const or let
+	 * @param declaredType Declared type, if any
+	 * @param value The current value, if any
+	 */
+	public static insertVariable(
+		name: string,
+		mutable: boolean,
+		declaredType: ASTType | undefined,
+		value: AssignableASTs | undefined,
+		pos: Pos,
+	): Result<VarSym> {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			if (symTab.containsOfAnyType(name)) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.DuplicateIdentifier,
+						`Symbol: insertVariable: There already is an item named ${name} in the Symbol Table`,
+						symNode,
+						SymbolTable.getErrorContext(pos),
+					),
+				);
+			}
+
+			const variableSymbol: VarSym = { kind: 'variable', mutable, declaredType, value, pos };
+
+			symTab.symbols.set(name, variableSymbol);
+
+			return ok(variableSymbol);
+		});
+	}
+
+	///////////////////////////////
+	// Methods for updating records
+	///////////////////////////////
+
+	/**
+	 * Updates the name of a symbol.
+	 *
+	 * @param oldName
+	 * @param newName
+	 * @param kind
+	 * @param inParent Defaulting to false, should the symbol be defined in the parent node or the current node?
+	 * @returns
+	 */
+	public static updateSymbolName(oldName: string, newName: string, kind: SymbolKind, inParent = false): boolean {
+		return SymbolTable.tree.proxy((_symTab: SymTab, _symNode: SymNode, symTree: SymTree) => {
+			const nodeToWorkIn = symTree.getCurrentOrParentNode(inParent);
+			if (nodeToWorkIn.outcome === 'error') {
+				return false;
+			}
+
+			return nodeToWorkIn.value.table.updateSymbolName(oldName, newName, kind);
+		});
+	}
+
+	public static setFunctionLLVMFunction(
+		name: string,
+		llvmFunction: llvm.Function,
+		options: Options,
+	): Result<FuncSym> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting llvm.Function for ${name}`);
 		}
+
+		return SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setFunctionData(name, (funcSymbol) => {
+				funcSymbol.llvmFunction = llvmFunction;
+			});
+		});
 	}
 
-	public assignKind(name: string, symbolKind: SymbolKind): void {
-		this.getCurrentScope().assignKind(name, symbolKind);
-	}
-
-	public appendTypes(name: string, symbolTypes: SymbolTypes): void {
-		this.getCurrentScope().appendTypes(name, symbolTypes);
-	}
-
-	public lookup(name: string): Maybe<SymbolInfo> {
-		return this.getCurrentScope().lookup(name);
-	}
-
-	private getCurrentScope(): Scope {
-		if (this.currentScope.has()) {
-			return this.currentScope.value;
+	public static setFunctionReturnTypes(name: string, returnTypes: ASTType[], options: Options): Result<FuncSym> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting return types for ${name} ...`);
 		}
 
-		// this in an interesting case. More research is
-		// needed to determine if this could happen.
-		return this.pushScope('unknown');
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setFunctionData(name, (funcSymbol) => {
+				funcSymbol.returnTypes = returnTypes;
+			});
+		});
+		if (result.outcome === 'error') {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting return types for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
 	}
 
-	public debug() {
-		console.dir(this.root, { depth: null });
+	public static setParameterLlvmArgument(
+		name: string,
+		llvmArgument: llvm.Argument,
+		options: Options,
+	): Result<ParamSym> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting llvm.Argument for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setParameterData(name, (paramSymbol) => {
+				paramSymbol.llvmArgument = llvmArgument;
+			});
+		});
+		if (result.outcome === 'error') {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting llvm.Argument for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setVariableAllocaInst(name: string, allocaInst: llvm.AllocaInst, options: Options): Result<VarSym> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting AllocaInst for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setVariableData(name, (variableSymbol) => {
+				variableSymbol.allocaInst = allocaInst;
+			});
+		});
+		if (result.outcome === 'error') {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting AllocaInst for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	//////////////////////////////
+	// Methods for reading records
+	//////////////////////////////
+
+	// these are like usages, which specify the return type symbol when we know for sure what it is
+	public static lookup(name: string, kinds: ['function'], options: Options): Maybe<FuncSym>;
+	public static lookup(name: string, kinds: ['parameter'], options: Options): Maybe<ParamSym>;
+	public static lookup(name: string, kinds: ['variable'], options: Options): Maybe<VarSym>;
+	public static lookup(name: string, kinds: SymbolKind[], options: Options): Maybe<SymbolInfo>;
+	public static lookup(name: string, kinds: SymbolKind[], options: Options): Maybe<SymbolInfo> {
+		if (options.debug) {
+			console.log(`SymbolTable.lookup('${name}')`);
+		}
+
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			let found = false;
+			let nodeToCheck = symNode;
+			let table = symTab;
+
+			while (!found) {
+				if (options.debug) {
+					console.log(`SymbolTable.lookup('${name}'): looking in ${nodeToCheck.name}'s SymTab`);
+					console.debug({ table, kinds });
+				}
+
+				const foundHere = table.contains(name, kinds);
+				if (foundHere.has()) {
+					found = true;
+
+					return foundHere;
+				} else if (nodeToCheck.parent.has()) {
+					nodeToCheck = nodeToCheck.parent.value;
+					table = nodeToCheck.table;
+				} else {
+					return hasNot();
+				}
+			}
+
+			return hasNot();
+		});
+	}
+
+	public static getErrorContext(pos: Pos, length?: number): ErrorContext {
+		return new ErrorContext(SymbolTable.tree.loc[pos.line - 1], pos.line, pos.col, length ?? pos.end - pos.start);
+	}
+
+	public static debug() {
+		console.dir(
+			{
+				root: SymbolTable.tree.root,
+				currentNode: SymbolTable.tree.getCurrentNode(),
+			},
+			{ depth: null },
+		);
+	}
+
+	// /**
+	//  * Override the default behavior when calling util.inspect()
+	//  */
+	// [util.inspect.custom](depth: number, options: util.InspectOptions): string {
+	// 	// we need to explicitly display the class name since it
+	// 	// disappears when using a custom inspect function.
+	// 	return `${this.constructor.name} ${util.inspect(this.getCurrentNode().mustGetValue(), options)}`;
+	// }
+}
+
+export class SymTab {
+	/** Reference to the SymNode to which this SymTab belongs */
+	private readonly ownerNode: SymNode;
+
+	public symbols: Map<string, SymbolInfo>;
+
+	private debug: boolean;
+
+	constructor(ownerNode: SymNode, options: Options) {
+		this.ownerNode = ownerNode;
+
+		this.symbols = new Map<string, SymbolInfo>();
+
+		this.debug = options.debug;
+	}
+
+	public updateSymbolName(oldName: string, newName: string, kind: SymbolKind): boolean {
+		const maybe = this.contains(oldName, [kind]).map((symbol) => {
+			this.symbols.set(newName, symbol);
+
+			return this.symbols.delete(oldName);
+		});
+
+		return maybe.has() && maybe.value;
+	}
+
+	public setFunctionData(name: string, setter: (funcSymbol: FuncSym) => void): Result<FuncSym> {
+		return this.setData<FuncSym>('function', name, setter);
+	}
+
+	public setParameterData(name: string, setter: (varSymbol: ParamSym) => void): Result<ParamSym> {
+		return this.setData<ParamSym>('parameter', name, setter);
+	}
+
+	public setVariableData(name: string, setter: (varSymbol: VarSym) => void): Result<VarSym> {
+		return this.setData<VarSym>('variable', name, setter);
+	}
+
+	/** Most generic method for setting some data on some symbol */
+	private setData<S extends SymbolInfo>(kind: SymbolKind, name: string, setter: (funcSymbol: S) => void): Result<S> {
+		const symbol = SymbolTable.lookup(name, [kind], {
+			debug: this.debug,
+		}) as Maybe<S>;
+		if (!symbol.has()) {
+			return error(
+				new SymbolError(
+					SymbolErrorCode.UnknownSymbol,
+					`Undefined ${kind}: ${name}`,
+					this.ownerNode,
+					this.getErrorContext(this.ownerNode.pos),
+				),
+			);
+		}
+
+		setter(symbol.value);
+
+		this.symbols.set(name, symbol.value);
+
+		return ok(symbol.value);
+	}
+
+	public contains(name: string, kinds: SymbolKind[]): Maybe<SymbolInfo> {
+		const symbol = this.symbols.get(name);
+		if (typeof symbol !== 'undefined' && kinds.includes(symbol.kind)) {
+			return has(symbol);
+		}
+
+		return hasNot();
+	}
+
+	public containsOfAnyType(name: string): boolean {
+		return this.contains(name, ['function', 'parameter', 'variable']).has();
+	}
+
+	public getErrorContext(pos: Pos, length?: number): ErrorContext {
+		return new ErrorContext(SymbolTable.tree.loc[pos.line - 1], pos.line, pos.col, length ?? pos.end - pos.start);
 	}
 
 	/**
 	 * Override the default behavior when calling util.inspect()
 	 */
-	[util.inspect.custom](depth: number, options: util.InspectOptions): string {
-		// we need to explicitly display the class name since it
-		// disappears when using a custom inspect function.
-		return `${this.constructor.name} ${util.inspect(this.currentScope.mustGetValue(), options)}`;
-	}
+	// [util.inspect.custom](depth: number, options: util.InspectOptions): string {
+	// 	// we need to explicitly display the class name since it
+	// 	// disappears when using a custom inspect function.
+	// 	return `${this.name} ${util.inspect(this.symbols, options)} ${util.inspect(this.children, options)}`;
+	// }
 }

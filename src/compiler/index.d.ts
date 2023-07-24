@@ -1,6 +1,6 @@
 type StopCompilerAfterStep = 'lex' | 'parse' | 'analyze' | 'll' | undefined;
 
-interface Options {
+interface CompilerOptions {
 	input: string;
 	debug: boolean;
 	stopAfterStep: StopCompilerAfterStep;

@@ -12,7 +12,7 @@ export enum AnalysisErrorCode {
 	IdentifierExpected = 'A005',
 	KeywordExpected = 'A006',
 	ExpressionExpected = 'A007',
-	SemicolonExpected = 'A008', // kinda passive aggressive, but ok, lol
+	SemicolonExpected = 'A008',
 	TypeExpected = 'A009',
 	NumberLiteralExpected = 'A010',
 	BoolLiteralExpected = 'A011',
@@ -44,14 +44,18 @@ export enum AnalysisErrorCode {
 	ValueExpected = 'A037',
 	IterableExpected = 'A038',
 	InKeywordExpected = 'A039',
-	JoeDocExpected = 'A040', // TBD if this will ever actually be used / enforced
+	JoeDocExpected = 'A040',
 	PathExpected = 'A041',
 	FromKeywordExpected = 'A042',
+	UnknownValue = 'A043',
+	ReturnStatementExpected = 'A044',
+	ParameterNotExpected = 'A045',
+	InvalidNumberFound = 'A046',
 }
 
 /**
- * Custom error class so that we can display the already-extracted tokens
- * which will help the user see where the lexer is up to and got stuck
+ * Custom error class so that we can display the Node
+ * which will help the user see where the analyzer is up to and got stuck
  */
 export default class AnalysisError extends TypeError {
 	private errorCode;

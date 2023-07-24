@@ -10,14 +10,16 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitArgumentList(node) as Result<T, AnalysisError>,
 	[NT.ArrayExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitArrayExpression(node) as Result<T, AnalysisError>,
-	[NT.ArrayOf]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitArrayOf(node) as Result<T, AnalysisError>,
+	[NT.ArrayOf]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitArrayOf(node) as Result<T, AnalysisError>,
 	[NT.AssignablesList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitAssignablesList(node) as Result<T, AnalysisError>,
 	[NT.AssigneesList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitAssigneesList(node) as Result<T, AnalysisError>,
 	[NT.AssignmentExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitAssignmentExpression(node) as Result<T, AnalysisError>,
-	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
 	[NT.BinaryExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitBinaryExpression(node) as Result<T, AnalysisError>,
 	[NT.BlockStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -32,9 +34,12 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T, AnalysisError>,
 	[NT.ClassImplementsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitClassImplementsList(node) as Result<T, AnalysisError>,
-	[NT.ColonSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.CommaSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.Comment]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.ColonSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.CommaSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.Comment]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
 	[NT.DoneStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitDoneStatement(node) as Result<T, AnalysisError>,
 	[NT.ElseStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -47,7 +52,8 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitExtensionsList(node) as Result<T, AnalysisError>,
 	[NT.ForStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitForStatement(node) as Result<T, AnalysisError>,
-	[NT.FromKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.FromKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
 	[NT.FunctionDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitFunctionDeclaration(node) as Result<T, AnalysisError>,
 	[NT.FunctionReturns]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -60,10 +66,12 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitIfStatement(node) as Result<T, AnalysisError>,
 	[NT.ImportDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitImportDeclaration(node) as Result<T, AnalysisError>,
-	[NT.InKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.InKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
 	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitInterfaceDeclaration(node) as Result<T, AnalysisError>,
-	[NT.JoeDoc]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitJoeDoc(node) as Result<T, AnalysisError>,
+	[NT.JoeDoc]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitJoeDoc(node) as Result<T, AnalysisError>,
 	[NT.LoopStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitLoopStatement(node) as Result<T, AnalysisError>,
 	[NT.MemberExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -72,7 +80,8 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitMemberList(node) as Result<T, AnalysisError>,
 	[NT.MemberListExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitMemberListExpression(node) as Result<T, AnalysisError>,
-	[NT.Modifier]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitModifier(node) as Result<T, AnalysisError>,
+	[NT.Modifier]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitModifier(node) as Result<T, AnalysisError>,
 	[NT.ModifiersList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitModifiersList(node) as Result<T, AnalysisError>,
 	[NT.NextStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -89,13 +98,16 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitParametersList(node) as Result<T, AnalysisError>,
 	[NT.Parenthesized]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitParenthesized(node) as Result<T, AnalysisError>,
-	[NT.Path]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitPath(node) as Result<T, AnalysisError>,
+	[NT.Path]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitPath(node) as Result<T, AnalysisError>,
 	[NT.PostfixIfStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitPostfixIfStatement(node) as Result<T, AnalysisError>,
 	[NT.PrintStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitPrintStatement(node) as Result<T, AnalysisError>,
-	[NT.Program]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitProgram(node) as Result<T, AnalysisError>,
-	[NT.Property]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitProperty(node) as Result<T, AnalysisError>,
+	[NT.Program]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitProgram(node) as Result<T, AnalysisError>,
+	[NT.Property]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitProperty(node) as Result<T, AnalysisError>,
 	[NT.PropertyShape]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitPropertyShape(node) as Result<T, AnalysisError>,
 	[NT.RangeExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -106,8 +118,10 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitRestElement(node) as Result<T, AnalysisError>,
 	[NT.ReturnStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitReturnStatement(node) as Result<T, AnalysisError>,
-	[NT.RightArrowOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.SemicolonSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.RightArrowOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
+	[NT.SemicolonSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.noop(node) as Result<T, AnalysisError>,
 	[NT.StringLiteral]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitStringLiteral(node) as Result<T, AnalysisError>,
 	[NT.TernaryAlternate]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -124,7 +138,8 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitTupleExpression(node) as Result<T, AnalysisError>,
 	[NT.TupleShape]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitTupleShape(node) as Result<T, AnalysisError>,
-	[NT.Type]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitType(node) as Result<T, AnalysisError>,
+	[NT.Type]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitType(node) as Result<T, AnalysisError>,
 	[NT.TypeArgumentsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitTypeArgumentsList(node) as Result<T, AnalysisError>,
 	[NT.TypeInstantiationExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -137,7 +152,8 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitUnaryExpression(node as UnaryExpressionNode) as Result<T, AnalysisError>,
 	[NT.VariableDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitVariableDeclaration(node) as Result<T, AnalysisError>,
-	[NT.WhenCase]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> => analyzer.visitWhenCase(node) as Result<T, AnalysisError>,
+	[NT.WhenCase]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitWhenCase(node) as Result<T, AnalysisError>,
 	[NT.WhenCaseConsequent]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitWhenCaseConsequent(node) as Result<T, AnalysisError>,
 	[NT.WhenCaseValues]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
