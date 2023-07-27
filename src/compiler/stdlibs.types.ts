@@ -1,38 +1,35 @@
 import llvm from 'llvm-bindings';
 
-export const cFuncTypes = {
-	printf: (builder: llvm.IRBuilder): llvm.FunctionType => {
-		return llvm.FunctionType.get(builder.getInt32Ty(), [builder.getInt8PtrTy()], true);
-	},
-	readStr: (builder: llvm.IRBuilder): llvm.FunctionType => {
-		return llvm.FunctionType.get(builder.getInt8PtrTy(), [], false);
-	},
+const cFuncs = ['printf', 'readStr'] as const;
+type cFunc = (typeof cFuncs)[number];
+
+/**
+ * stdlibFuncTypes is a map of stdlib function names to their llvm.FunctionType
+ */
+export const stdlibLlvmFuncTypes: { [key in cFunc]: (builder: llvm.IRBuilder) => llvm.FunctionType } = {
+	printf: (builder: llvm.IRBuilder): llvm.FunctionType =>
+		llvm.FunctionType.get(builder.getInt32Ty(), [builder.getInt8PtrTy()], true),
+	readStr: (builder: llvm.IRBuilder): llvm.FunctionType => llvm.FunctionType.get(builder.getInt8PtrTy(), [], false),
 };
 
-export const cFuncMap = {
-	printf: (module: llvm.Module, builder: llvm.IRBuilder) => {
-		return (
-			module.getFunction('printf') ||
-			llvm.Function.Create(
-				cFuncTypes.printf(builder),
-				llvm.Function.LinkageTypes.ExternalLinkage,
-				'printf',
-				module,
-			)
-		);
-	},
-	readStr: (module: llvm.Module, builder: llvm.IRBuilder): llvm.Function => {
-		// Declare the readStr function
-		return (
-			module.getFunction('readStr') ||
-			llvm.Function.Create(
-				cFuncTypes.readStr(builder),
-				llvm.Function.LinkageTypes.ExternalLinkage,
-				'readStr',
-				module,
-			)
-		);
-	},
+/**
+ * stdlibFuncs will get the llvm.Function from the module or declare it if it doesn't exist
+ *
+ * @param name the name of the function
+ * @param module the llvm.Module
+ * @param builder the llvm.IRBuilder
+ * @returns the llvm.Function
+ */
+export const stdlibLlvmFunc = (name: cFunc, module: llvm.Module, builder: llvm.IRBuilder) => {
+	return (
+		module.getFunction(name) ||
+		llvm.Function.Create(
+			stdlibLlvmFuncTypes[name](builder),
+			llvm.Function.LinkageTypes.ExternalLinkage,
+			name,
+			module,
+		)
+	);
 };
 
 /**
@@ -52,18 +49,13 @@ export class Proxy {
 		this.builder = builder;
 	}
 
-	public readStr(): llvm.CallInst {
-		const readStrFunc = cFuncMap.readStr(this.module, this.builder);
-
-		return this.builder.CreateCall(readStrFunc, [], 'readStrCall');
-	}
-
 	public printf(format: string, ...values: Array<string | llvm.Value>): llvm.CallInst {
 		const formatStr = this.builder.CreateGlobalStringPtr(format);
 
 		// create printf call
-		const printfFunc = cFuncMap.printf(this.module, this.builder);
-		const printfCall = this.builder.CreateCall(printfFunc, [
+		const printfFunc = stdlibLlvmFunc('printf', this.module, this.builder);
+
+		return this.builder.CreateCall(printfFunc, [
 			formatStr,
 			...values.map((expr) => {
 				// convert everything to `llvm.Value`s
@@ -74,7 +66,11 @@ export class Proxy {
 				return expr;
 			}),
 		]);
+	}
 
-		return printfCall;
+	public readStr(): llvm.CallInst {
+		const readStrFunc = stdlibLlvmFunc('readStr', this.module, this.builder);
+
+		return this.builder.CreateCall(readStrFunc, 'readStrCall');
 	}
 }

@@ -39,8 +39,7 @@ import {
 	unwrapResults,
 } from '../shared/result';
 import CompilerError from './error';
-import defineStdLib from './stdlib';
-import { Proxy, cFuncMap } from './stdlibs.types';
+import { Proxy, stdlibLlvmFunc } from './stdlibs.types';
 
 export default class LlvmIrConverter {
 	private context: llvm.LLVMContext;
@@ -149,7 +148,7 @@ export default class LlvmIrConverter {
 
 		SymbolTable.tree.proxy((symTab: SymTab) => {
 			return symTab.setFunctionData('readStr', (funcSymbol: FuncSym) => {
-				funcSymbol.llvmFunction = cFuncMap.readStr(this.module, this.builder);
+				funcSymbol.llvmFunction = stdlibLlvmFunc('readStr', this.module, this.builder);
 			});
 		});
 
@@ -169,8 +168,6 @@ export default class LlvmIrConverter {
 		if (conversionResult.outcome === 'error') {
 			return error(conversionResult.error, this.module);
 		}
-
-		defineStdLib(this.context, this.module, this.builder);
 
 		if (llvm.verifyModule(this.module)) {
 			return error(
