@@ -75,8 +75,8 @@ export function anyIsError<T>(results: Result<T>[]): boolean {
 }
 
 // get first error
-export function getFirstError<T>(results: Result<T>[]): ResultError<Error, unknown> {
-	return results.find((result) => result.outcome === 'error') as ResultError<Error, unknown>;
+export function getFirstError<T, E extends Error, ED = unknown>(results: Result<T, E, ED>[]): ResultError<E, ED> {
+	return results.find((result) => result.outcome === 'error') as ResultError<E, ED>;
 }
 
 /**

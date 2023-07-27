@@ -66,7 +66,12 @@ export class Compiler {
 		this.isASnippet = false;
 	}
 
-	public async compile(): Promise<void> {
+	/**
+	 * Compile the code.
+	 *
+	 * @returns `true` if the compilation was successful, `false` otherwise
+	 */
+	public async compile(): Promise<boolean> {
 		await this.processOptions();
 
 		// if the user wants to stop after lex, we don't need to do anything else
@@ -83,7 +88,7 @@ export class Compiler {
 		if (parserResult.outcome === 'error') {
 			this.handleErrorFromParser(parserResult);
 
-			return;
+			return false;
 		}
 		await this.afterParser(parser, parserResult);
 		if (this.stopAfterStep === 'parse') {
@@ -95,7 +100,7 @@ export class Compiler {
 		if (analyzerResult.outcome === 'error') {
 			this.handleErrorFromSemanticAnalyzer(analyzerResult);
 
-			return;
+			return false;
 		}
 
 		// continue to the compiler
@@ -104,10 +109,14 @@ export class Compiler {
 		if (compilerResult.outcome === 'error') {
 			this.handleErrorFromCompiler(compilerResult);
 
-			// don't return since we still want this.afterCompiler() to run
+			await this.afterCompiler(false);
+
+			return false;
 		}
 
 		await this.afterCompiler(compilerResult.outcome === 'ok');
+
+		return true;
 	}
 
 	private async afterCompiler(runExecutable: boolean) {
@@ -285,33 +294,40 @@ export class Compiler {
 	}
 
 	/** Runs the Compiler */
-	private async runCompiler(ast: ASTProgram, symTree: SymTree, loc: string[]): Promise<Result<undefined>> {
+	private async runCompiler(ast: ASTProgram, symTree: SymTree, loc: string[]): Promise<Result<unknown>> {
 		// convert AST to LLVM IR and compile
 		try {
 			const llvmIrConverter = new LlvmIrConverter(symTree, this.debug);
-			const conversions = llvmIrConverter.convert({ [`${this.sourceFilenameSansExt}.joe`]: { ast, loc } });
+			const filename = `${this.sourceFilenameSansExt}.joe`;
+			const conversionResult = llvmIrConverter.convert(filename, ast, loc);
 
-			for (const [filename, conversionResult] of Object.entries(conversions)) {
-				if (conversionResult.outcome === 'error') {
-					return conversionResult;
-				}
+			// if the conversion was successful, the module will be in the value property
+			// otherwise, it will be in the data property
+			// Although usually we would return early in the case of an error, however
+			// we want to output the LLVM IR even if there is an error
+			const llvmModule = conversionResult.outcome === 'ok' ? conversionResult.value : conversionResult.data;
+			if (typeof llvmModule === 'undefined') {
+				return conversionResult;
+			}
 
-				const llvmModule = conversionResult.value;
-				if (this.debug) {
-					console.groupCollapsed('\n=== LLVM IR ===\n');
-					console.info(llvmModule.print());
-					console.groupEnd();
-				}
+			if (this.debug) {
+				console.groupCollapsed('\n=== LLVM IR ===\n');
+				console.info(llvmModule.print());
+				console.groupEnd();
+			}
 
-				const output = llvmModule.print();
-				const llvmIrFilePath = this.targetPaths.llvmIr(filename);
+			const output = llvmModule.print();
+			const llvmIrFilePath = this.targetPaths.llvmIr(filename);
 
-				try {
-					await fsPromises.writeFile(llvmIrFilePath, output);
-				} catch (err) {
-					console.error(`%cError[Compiler]: ${llvmIrFilePath}: ${(err as Error).message}`, 'color: red');
-					continue;
-				}
+			try {
+				await fsPromises.writeFile(llvmIrFilePath, output);
+			} catch (err) {
+				console.error(`%cError[Compiler]: ${llvmIrFilePath}: ${(err as Error).message}`, 'color: red');
+			}
+
+			// now, we return early if there was a conversion error
+			if (conversionResult.outcome === 'error') {
+				process.exit(-1);
 			}
 
 			if (this.stopAfterStep === 'll') {
@@ -339,7 +355,13 @@ export class Compiler {
 				],
 
 				// generate executable
-				[`gcc`, `${this.buildDir}/${this.sourceFilenameSansExt}.o`, `-o`, executablePath],
+				[
+					`gcc`,
+					`${this.buildDir}/${this.sourceFilenameSansExt}.o`,
+					`${process.env.PWD}/stdlib/c/io.o`,
+					`-o`,
+					executablePath,
+				],
 			];
 
 			for await (const command of commands) {

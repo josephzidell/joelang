@@ -2,10 +2,13 @@ import fsPromises from 'fs/promises';
 import llvm, { TargetRegistry, config } from 'llvm-bindings';
 import {
 	AST,
+	ASTBinaryExpression,
+	ASTBoolLiteral,
 	ASTCallExpression,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
 	ASTNumberLiteral,
+	ASTParameter,
 	ASTPrintStatement,
 	ASTProgram,
 	ASTReturnStatement,
@@ -13,12 +16,16 @@ import {
 	ASTType,
 	ASTTypeNumber,
 	ASTTypePrimitive,
+	ASTUnaryExpression,
 	ASTVariableDeclaration,
+	AssignableASTs,
+	ExpressionASTs,
 	primitiveAstType,
 } from '../analyzer/asts';
-import { FunctionSymbol, SymbolTable } from '../analyzer/symbolTable';
+import SymbolError from '../analyzer/symbolError';
+import { FuncSym, ParamSym, SymTab, SymTree, SymbolTable, VarSym } from '../analyzer/symbolTable';
 import ErrorContext from '../shared/errorContext';
-import { Maybe } from '../shared/maybe';
+import { Maybe, has, hasNot } from '../shared/maybe';
 import { NumberSize, SizeInfo, numberSizeDetails } from '../shared/numbers/sizes';
 import {
 	Result,
@@ -32,20 +39,21 @@ import {
 	unwrapResults,
 } from '../shared/result';
 import CompilerError from './error';
-import convertStdLib from './stdlib';
-import { cFuncTypes } from './stdlibs.types';
+import defineStdLib from './stdlib';
+import { Proxy, cFuncMap } from './stdlibs.types';
 
 export default class LlvmIrConverter {
 	private context: llvm.LLVMContext;
 	private module!: llvm.Module;
 	private builder!: llvm.IRBuilder;
 	private stdlib!: llvm.Module;
+	private proxy!: Proxy;
 	private filename = '';
 	private loc: string[] = [];
-	private valueMap = new Map<string, llvm.AllocaInst>();
+	private valueMap = new Map<string, llvm.AllocaInst | llvm.Argument>();
 	private targetMachine: llvm.TargetMachine;
 	private targetTriple: string;
-	private symbolTable: SymbolTable;
+	private symTree: SymTree;
 	private debug = false;
 
 	// Sometimes we need to track our own context which will cross function
@@ -55,8 +63,8 @@ export default class LlvmIrConverter {
 	// whether we're in `main()`.
 	private inMain = false;
 
-	constructor(symbolTable: SymbolTable, debug: boolean) {
-		this.symbolTable = symbolTable;
+	constructor(symTree: SymTree, debug: boolean) {
+		this.symTree = symTree;
 		this.debug = debug;
 
 		// following https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl08.html
@@ -91,53 +99,87 @@ export default class LlvmIrConverter {
 		// 8.3 TargetMachine
 		this.targetMachine = target.createTargetMachine(this.targetTriple, 'x86-64', '');
 
+		// // set the func in the symbol table
+		// const wasSet = SymbolTable.setFunctionLLVMFunction(funcName, func, {
+		// 	debug: this.debug,
+		// });
+
 		// convert the stdlib
-		this.stdlib = convertStdLib(this.context);
+		// let _builder: llvm.IRBuilder;
+		// this.module = new llvm.Module('stdlib', this.context);
+		// this.stdlib = this.module;
+		// this.builder = new llvm.IRBuilder(this.context);
+
+		// // console.debug(this.symTree.proxy())
+		// this.symTree.proxy((symTab: SymTab) => {
+		// 	return symTab.setFunctionData('readStr', (funcSymbol: FuncSym) => {
+		// 		funcSymbol.llvmFunction = llvmFunctions.readStr(this.stdlib, this.builder, this.context);
+		// 	});
+		// });
+		// console.debug({wasSet})
 	}
 
-	public convert(files: Record<string, { ast: ASTProgram; loc: string[] }>): Record<string, Result<llvm.Module>> {
-		const map = {} as Record<string, Result<llvm.Module>>;
+	private static newModule(
+		name: string,
+		context: llvm.LLVMContext,
+		t3: string,
+		machine: llvm.TargetMachine,
+	): llvm.Module {
+		const module = new llvm.Module(name, context);
 
-		for (const [filename, { ast, loc }] of Object.entries(files)) {
-			this.filename = filename;
-			this.loc = loc;
-			this.module = new llvm.Module(this.filename, this.context);
-			this.builder = new llvm.IRBuilder(this.context);
+		// 8.4 Configuring the Module
+		module.setDataLayout(machine.createDataLayout());
+		module.setTargetTriple(t3);
+		module.setModuleIdentifier(name);
 
-			// 8.4 Configuring the Module
-			this.module.setDataLayout(this.targetMachine.createDataLayout());
-			this.module.setTargetTriple(this.targetTriple);
-			this.module.setModuleIdentifier(this.filename);
+		return module;
+	}
 
-			// 8.5 Emit Object Code
-			if (this.debug) {
-				console.debug({
-					ModuleIdentifier: this.module.getModuleIdentifier(),
-					SourceFileName: this.module.getSourceFileName(),
-					Name: this.module.getName(),
-					TargetTriple: this.module.getTargetTriple(),
-					Print: this.module.print(),
-				});
-			}
+	public convert(
+		filename: string,
+		ast: ASTProgram,
+		loc: string[],
+	): Result<llvm.Module, CompilerError | SymbolError, llvm.Module> {
+		this.filename = filename;
+		this.loc = loc;
 
-			// walk the AST and convert each node to LLVM IR
-			const conversionResult = this.convertNodes(ast.declarations);
-			if (conversionResult.outcome === 'error') {
-				map[this.filename] = error(conversionResult.error);
-				continue;
-			}
+		this.module = LlvmIrConverter.newModule(this.filename, this.context, this.targetTriple, this.targetMachine);
+		this.builder = new llvm.IRBuilder(this.context);
+		this.proxy = new Proxy(this.context, this.module, this.builder);
 
-			if (llvm.verifyModule(this.module)) {
-				map[this.filename] = error(
-					new CompilerError('Verifying module failed', this.filename, this.getErrorContext(ast, 1)),
-				);
-				continue;
-			}
+		SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setFunctionData('readStr', (funcSymbol: FuncSym) => {
+				funcSymbol.llvmFunction = cFuncMap.readStr(this.module, this.builder);
+			});
+		});
 
-			map[this.filename] = ok(this.module);
+		// 8.5 Emit Object Code
+		if (this.debug) {
+			console.debug({
+				ModuleIdentifier: this.module.getModuleIdentifier(),
+				SourceFileName: this.module.getSourceFileName(),
+				Name: this.module.getName(),
+				TargetTriple: this.module.getTargetTriple(),
+				Print: this.module.print(),
+			});
 		}
 
-		return map;
+		// walk the AST and convert each node to LLVM IR
+		const conversionResult = this.convertNodes(ast.declarations);
+		if (conversionResult.outcome === 'error') {
+			return error(conversionResult.error, this.module);
+		}
+
+		defineStdLib(this.context, this.module, this.builder);
+
+		if (llvm.verifyModule(this.module)) {
+			return error(
+				new CompilerError('Verifying module failed', this.filename, this.getErrorContext(ast, 1)),
+				this.module,
+			);
+		}
+
+		return ok(this.module);
 	}
 
 	public async generateBitcode(filePath: string): Promise<Result<undefined>> {
@@ -163,8 +205,12 @@ export default class LlvmIrConverter {
 	}
 
 	// convert an AST node to LLVM IR
-	private convertNode(node: AST): Result<llvm.Value | llvm.Value[]> {
+	private convertNode(node: AST): Result<llvm.Value | llvm.Value[], CompilerError | SymbolError> {
 		switch (node.constructor.name) {
+			case 'ASTBinaryExpression':
+				return this.convertBinaryExpression(node as ASTBinaryExpression<AssignableASTs, AssignableASTs>);
+			case 'ASTBoolLiteral':
+				return this.convertBoolLiteral(node as ASTBoolLiteral);
 			case 'ASTCallExpression':
 				return this.convertCallExpression(node as ASTCallExpression);
 			case 'ASTFunctionDeclaration':
@@ -173,6 +219,18 @@ export default class LlvmIrConverter {
 				return this.convertIdentifier(node as ASTIdentifier);
 			case 'ASTNumberLiteral':
 				return this.convertNumberLiteral(node as ASTNumberLiteral);
+			case 'ASTParameter':
+				{
+					// no need to convert parameters as the function declaration takes care of that
+					const result = this.checkParameter(node as ASTParameter);
+					if (result.outcome === 'error') {
+						return result;
+					}
+
+					// an "array" of llvm.Values. This value will never be used
+					return ok([]);
+				}
+				break;
 			case 'ASTPrintStatement':
 				return this.convertPrintStatement(node as ASTPrintStatement);
 			case 'ASTReturnStatement':
@@ -193,7 +251,7 @@ export default class LlvmIrConverter {
 	}
 
 	// convert multiple AST nodes to LLVM IR
-	private convertNodes(nodes: AST[]): Result<llvm.Value[]> {
+	private convertNodes(nodes: AST[]): Result<llvm.Value[], CompilerError | SymbolError> {
 		const values: llvm.Value[] = [];
 
 		for (const node of nodes) {
@@ -214,25 +272,179 @@ export default class LlvmIrConverter {
 		return ok(values);
 	}
 
-	private convertCallExpression(node: ASTCallExpression): Result<llvm.Value> {
-		const callExpr = node as ASTCallExpression;
+	/**
+	 * ICmpEQ: equal to
+	 * ICmpNE: not equal to
+	 * ICmpUGT: unsigned greater than
+	 * ICmpUGE: unsigned greater than or equal to
+	 * ICmpULT: unsigned less than
+	 * ICmpULE: unsigned less than or equal to
+	 * ICmpSGT: signed greater than
+	 * ICmpSGE: signed greater than or equal to
+	 * ICmpSLT: signed less than
+	 * ICmpSLE: signed less than or equal to
+	 * @param ast
+	 * @returns
+	 */
+	private convertBinaryExpression(
+		ast: ASTBinaryExpression<ExpressionASTs, ExpressionASTs>,
+	): Result<llvm.Value, CompilerError | SymbolError> {
+		const { operator, left, right } = ast;
+
+		const leftResult = this.convertNode(left);
+		if (leftResult.outcome === 'error') {
+			return leftResult;
+		}
+
+		const rightResult = this.convertNode(right);
+		if (rightResult.outcome === 'error') {
+			return rightResult;
+		}
+
+		const leftValue = leftResult.value as llvm.Value;
+		const rightValue = rightResult.value as llvm.Value;
+
+		// https://calculla.com/math_operands_names
+		switch (operator) {
+			case '+': {
+				// return ok(this.builder.CreateAdd(leftValue, rightValue, 'result of "+"'));
+				// Create an add instruction that adds the parameters together
+				if (this.debug) {
+					console.debug(`IR Converter: Creating Add with left ${left} and right ${right} called result`);
+				}
+				const sum = this.builder.CreateAdd(leftValue, rightValue, 'result');
+
+				// equivalent to: const overflow = sum < leftValue
+				if (this.debug) {
+					console.debug(`IR Converter: Creating ICmpSLT with sum called overflow`);
+				}
+				const overflow = this.builder.CreateICmpSLT(sum, leftValue, 'overflow');
+
+				const funcName = SymbolTable.tree.getCurrentNode().name;
+				const maybeFunc = SymbolTable.lookup(funcName, ['function'], {
+					debug: this.debug,
+				});
+				const llvmFunction = maybeFunc.map((func) => func.llvmFunction);
+				const func = llvmFunction.has() ? llvmFunction.value : undefined;
+				if (typeof func === 'undefined') {
+					return error(
+						new CompilerError(
+							`No llvm.Function found for ${funcName}`,
+							this.filename,
+							this.getErrorContext(ast),
+						),
+					);
+				}
+
+				// Create a conditional branch instruction that branches to an error handling block if there was an overflow
+				if (this.debug) {
+					console.debug(`IR Converter: Creating BasicBlock "error"`);
+				}
+				const errorBlock = llvm.BasicBlock.Create(this.context, 'error', func);
+				if (this.debug) {
+					console.debug(`IR Converter: Creating BasicBlock "continue"`);
+				}
+				const continueBlock = llvm.BasicBlock.Create(this.context, 'continue', func);
+				if (this.debug) {
+					console.debug(`IR Converter: Creating CondBr`);
+				}
+				this.builder.CreateCondBr(overflow, errorBlock, continueBlock);
+
+				// now deal with errorBlock
+				if (this.debug) {
+					console.debug('IR Converter: Setting Insert Point to errorBlock');
+				}
+				this.builder.SetInsertPoint(errorBlock);
+				// print an error message, and return a special error value
+				if (this.debug) {
+					console.debug(`IR Converter: Printing error message`);
+				}
+				this.proxy.printf('%s', 'Error: overflow detected\n');
+
+				if (maybeFunc.has()) {
+					const returnType = this.convertType(maybeFunc.value.returnTypes[0]);
+					if (returnType.outcome === 'ok') {
+						if (this.debug) {
+							console.debug(`IR Converter: Creating Return 0`);
+						}
+						this.builder.CreateRet(llvm.ConstantInt.get(returnType.value, 0));
+					} // ignore error
+				}
+
+				// now deal with continueBlock
+				if (this.debug) {
+					console.debug('IR Converter: Setting Insert Point to continueBlock');
+				}
+				this.builder.SetInsertPoint(continueBlock);
+				// do NOT create a return here, to allow other expressions to be converted
+
+				return ok(sum);
+			}
+			case '-':
+				return ok(this.builder.CreateSub(leftValue, rightValue, 'result of "-"'));
+			case '*':
+				return ok(this.builder.CreateMul(leftValue, rightValue, 'result of "*"'));
+			case '/':
+				return ok(this.builder.CreateSDiv(leftValue, rightValue, 'result of "/"'));
+			case '%':
+				return ok(this.builder.CreateSRem(leftValue, rightValue, 'result of "%"'));
+			case '==':
+				return ok(this.builder.CreateICmpEQ(leftValue, rightValue, 'result of "=="'));
+			case '!=':
+				return ok(this.builder.CreateICmpNE(leftValue, rightValue, 'result of "!="'));
+			case '<':
+				return ok(this.builder.CreateICmpSLT(leftValue, rightValue, 'result of "<"'));
+			case '<=':
+				return ok(this.builder.CreateICmpSLE(leftValue, rightValue, 'result of "<="'));
+			case '>':
+				return ok(this.builder.CreateICmpSGT(leftValue, rightValue, 'result of ">"'));
+			case '>=':
+				return ok(this.builder.CreateICmpSGE(leftValue, rightValue, 'result of ">="'));
+			default:
+				return error(
+					new CompilerError(`We don't recognize "${operator}"`, this.filename, this.getErrorContext(ast)),
+				);
+		}
+	}
+
+	private convertBoolLiteral(node: ASTBoolLiteral): Result<llvm.ConstantInt, CompilerError | SymbolError> {
+		const boolType = this.builder.getInt1Ty();
+
+		const val = node.value;
+		if (val instanceof ASTUnaryExpression) {
+			const unariedVal = this.convertNode(val);
+			if (unariedVal.outcome === 'error') {
+				return unariedVal;
+			}
+
+			// TODO
+			// return ok(llvm.ConstantInt.get(boolType, unariedVal.value as llvm.Value, true));
+		}
+
+		return ok(llvm.ConstantInt.get(boolType, val ? 1 : 0, true));
+	}
+
+	private convertCallExpression(ast: ASTCallExpression): Result<llvm.Value, CompilerError | SymbolError> {
+		const callExpr = ast as ASTCallExpression;
 		switch (callExpr.callee.constructor) {
 			// TODO ASTCallExpression | ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression
 			case ASTIdentifier:
 				{
-					const callee = node.callee as ASTIdentifier;
-					const funcLookupMaybe = this.symbolTable.lookup(callee.name, ['function']) as Maybe<FunctionSymbol>;
+					const callee = ast.callee as ASTIdentifier;
+					const funcLookupMaybe = SymbolTable.lookup(callee.name, ['function'], {
+						debug: this.debug,
+					}) as Maybe<FuncSym>;
 					if (!funcLookupMaybe.has()) {
 						return error(
 							new CompilerError(
-								`We don't recognize "${callee.name}"`,
+								`We don't recognize the "${callee.name}" function`,
 								this.filename,
-								this.getErrorContext(node),
+								this.getErrorContext(ast.callee),
 							),
 						);
 					}
 
-					const args = flattenResults(node.args.map((arg) => this.convertNode(arg)));
+					const args = flattenResults(ast.args.map((arg) => this.convertNode(arg)));
 					if (args.outcome === 'error') {
 						return args;
 					}
@@ -243,9 +455,14 @@ export default class LlvmIrConverter {
 							new CompilerError(
 								`Function ${callee.name} has no LLVM IR function`,
 								this.filename,
-								this.getErrorContext(node),
+								this.getErrorContext(ast),
 							),
 						);
+					}
+
+					// TODO move this to a class that would be imported in the code
+					if (callee.name === 'readStr' && args.value.length === 0) {
+						return ok(this.proxy.readStr());
 					}
 
 					// TODO handle multiple return types
@@ -257,7 +474,9 @@ export default class LlvmIrConverter {
 		}
 	}
 
-	private convertFunctionDeclaration(node: ASTFunctionDeclaration): Result<llvm.Function> {
+	private convertFunctionDeclaration(
+		node: ASTFunctionDeclaration,
+	): Result<llvm.Function, CompilerError | SymbolError> {
 		// special handling for `main()`
 		let isMain = false;
 		if (node.name?.name === 'main' && typeof node.body !== 'undefined') {
@@ -277,29 +496,38 @@ export default class LlvmIrConverter {
 		}
 
 		// TODO handle multiple return types
-		const funcReturnTypeResult = this.convertType(node.returnTypes[0]);
-		if (funcReturnTypeResult.outcome === 'error') {
+		const returnTypeResult = this.convertType(node.returnTypes[0]);
+		if (returnTypeResult.outcome === 'error') {
 			if (this.inMain && isMain) {
 				this.inMain = false;
 			}
 
-			return funcReturnTypeResult;
+			return returnTypeResult;
 		}
 
-		const params = this.convertTypes(node.params);
-		if (params.outcome === 'error') {
+		// params
+		const paramTypesResult = flattenResults(node.params.map((p) => this.convertType(p.declaredType)));
+		// const paramNodesResult = this.convertNodes(node.params);
+		if (paramTypesResult.outcome === 'error') {
 			if (this.inMain && isMain) {
 				this.inMain = false;
 			}
 
-			return params;
+			return paramTypesResult;
 		}
+
+		// check if last param is rest. We already ensured that it must be the last one
+		const isLastParamRest = node.params.at(-1)?.isRest ?? false;
 
 		// create function type
 		const functionType = llvm.FunctionType.get(
-			funcReturnTypeResult.value,
-			params.value,
-			node.params.some((p) => p.isRest),
+			returnTypeResult.value,
+			paramTypesResult.value,
+			// node.params.map((p) => this.convertType(p.declaredType)),
+			// paramNodesResult.value.map((node) => {
+			// 	return node.getType();
+			// }),
+			isLastParamRest,
 		);
 
 		// TOOD deal with anon functions
@@ -313,8 +541,54 @@ export default class LlvmIrConverter {
 			this.module,
 		);
 
+		if (!isMain) {
+			// console.debug({nodeParams: node.params, funcParamArguments})
+			// Object.entries(funcParamArguments).forEach(([paramName, llvmArgument]) => {
+			// 	this.symbolTable.setParameterLlvmArgument(paramName, llvmArgument);
+			// });
+			// console.log(`--------------------- ${funcName}: After Setting Parameter llvm.Argument ------------------------`);
+			// this.symbolTable.debug();
+		}
+
+		// TODO deal with anon funcs
+		if (this.debug) {
+			console.log(`IR Converter: converting FunctionDeclaration ${funcName}`);
+		}
+		const wasAbleToEnter = SymbolTable.tree.enter(funcName);
+		if (wasAbleToEnter.outcome === 'error') {
+			return wasAbleToEnter;
+		}
+
+		// set the func in the symbol table
+		const wasSet = SymbolTable.setFunctionLLVMFunction(funcName, func, {
+			debug: this.debug,
+		});
+		if (wasSet.outcome === 'error') {
+			return wasSet;
+		}
+
+		// const funcParamArguments: Record<string, llvm.Argument> =
+		node.params.map((param, index) => {
+			const llvmArgument = func.getArg(index);
+
+			if (this.debug) {
+				console.log(`IR Converter: Setting Parameter llvm.Arguments for ${funcName}(${param.name.name})`);
+			}
+			const wasSet = SymbolTable.setParameterLlvmArgument(param.name.name, llvmArgument, {
+				debug: this.debug,
+			});
+			if (wasSet.outcome === 'error') {
+				return [param.name, wasSet];
+			}
+
+			return [param.name, ok(llvmArgument)];
+		});
+
 		// create block for function body
 		const entryBB = llvm.BasicBlock.Create(this.context, 'entry', func);
+		if (this.debug) {
+			console.debug('IR Converter: Setting Insert Point to entry');
+		}
 		this.builder.SetInsertPoint(entryBB);
 
 		// convert body expressions
@@ -324,12 +598,14 @@ export default class LlvmIrConverter {
 				this.inMain = false;
 			}
 
-			return conversionResult;
-		}
+			if (this.debug) {
+				console.log(
+					`IR Converter: stopped converting FunctionDeclaration ${funcName} due to error converting body nodes`,
+				);
+			}
+			SymbolTable.tree.exit();
 
-		// return value for void
-		if (funcReturnTypeResult.value.getTypeID() === this.builder.getVoidTy().getTypeID()) {
-			this.builder.CreateRetVoid();
+			return conversionResult;
 		}
 
 		// verify it
@@ -338,25 +614,76 @@ export default class LlvmIrConverter {
 				this.inMain = false;
 			}
 
+			if (this.debug) {
+				console.log(
+					`IR Converter: stopped converting FunctionDeclaration ${funcName} due to error verifying the function`,
+				);
+			}
+			SymbolTable.tree.exit();
+
 			return error(new CompilerError('Verifying function failed', this.filename, this.getErrorContext(node)));
 		}
-
-		// set the func in the symbol table
-		this.symbolTable.setFunctionLLVMFunction(funcName, func);
 
 		if (this.inMain && isMain) {
 			this.inMain = false;
 		}
 
+		if (this.debug) {
+			console.log(`IR Converter: finished converting FunctionDeclaration ${funcName}`);
+		}
+		SymbolTable.tree.exit();
+
 		return ok(func);
 	}
 
-	private convertIdentifier(node: ASTIdentifier): Result<llvm.Value> {
-		const allocaInst = this.valueMap.get(node.name);
+	private convertIdentifier(node: ASTIdentifier): Result<llvm.Value, CompilerError | SymbolError> {
+		const aParam = this.getParameter(node);
+		if (aParam.has()) {
+			return ok(aParam.value);
+		}
+
+		return this.getVariable(node);
+	}
+
+	private getParameter(node: ASTIdentifier): Maybe<llvm.Argument> {
+		const maybeSymbolInfo = SymbolTable.lookup(node.name, ['parameter'], {
+			debug: this.debug,
+		});
+		if (!maybeSymbolInfo.has()) {
+			return hasNot();
+		}
+
+		const llvmArgument = (maybeSymbolInfo.value as ParamSym).llvmArgument;
+		if (typeof llvmArgument === 'undefined') {
+			if (this.debug) {
+				console.debug(`IR Converter: Found parameter ${node.name}, but it doesn't have an llvmArgument`);
+			}
+
+			return hasNot();
+		}
+
+		return has(llvmArgument);
+	}
+
+	private getVariable(node: ASTIdentifier): Result<llvm.Value, CompilerError> {
+		const maybeSymbolInfo = SymbolTable.lookup(node.name, ['variable'], {
+			debug: this.debug,
+		});
+		const err = error<llvm.Value, CompilerError>(
+			new CompilerError(
+				`We don't recognize the "${node.name}" Identifier`,
+				this.filename,
+				this.getErrorContext(node),
+			),
+		);
+
+		if (!maybeSymbolInfo.has()) {
+			return err;
+		}
+
+		const allocaInst = (maybeSymbolInfo.value as VarSym).allocaInst;
 		if (typeof allocaInst === 'undefined') {
-			return error(
-				new CompilerError(`We don't recognize "${node.name}"`, this.filename, this.getErrorContext(node)),
-			);
+			return err;
 		}
 
 		const load = this.builder.CreateLoad(allocaInst.getType().getPointerElementType(), allocaInst);
@@ -364,7 +691,7 @@ export default class LlvmIrConverter {
 		return ok(load);
 	}
 
-	private convertNumberLiteral(node: ASTNumberLiteral): Result<llvm.ConstantInt> {
+	private convertNumberLiteral(node: ASTNumberLiteral): Result<llvm.ConstantInt, CompilerError | SymbolError> {
 		const size: SizeInfo = numberSizeDetails[node.declaredSize ?? node.possibleSizes[0]];
 
 		let value;
@@ -385,20 +712,54 @@ export default class LlvmIrConverter {
 		}
 
 		// TODO handle signed/unsigned
+		// llvm.ConstantInt.get()
 		return ok(this.builder.getIntN(size.bits, value));
 	}
 
-	// convert an ASTPrintStatement to an LLVM IR printf call
-	private convertPrintStatement(ast: ASTPrintStatement): Result<llvm.Value> {
-		const printfFunc = llvm.Function.Create(
-			cFuncTypes.printf(this.builder),
-			llvm.Function.LinkageTypes.ExternalLinkage,
-			'printf',
-			this.module,
-		);
+	/** Unline other convertXyz methods, this does no conversion, but rather checks */
+	private checkParameter(ast: ASTParameter): Result<undefined, CompilerError | SymbolError> {
+		const astType = ast.declaredType;
+		if (typeof astType === 'undefined') {
+			return error(
+				new CompilerError(
+					`convertVariableDeclaration: We don't know the type of "${ast.name.name}"`,
+					this.filename,
+					this.getErrorContext(ast),
+				),
+			);
+		}
 
-		const exprToPrintResults: Array<Result<llvm.Value | string>> = ast.expressions.map((expr) => {
-			return this.convertNode(expr) as Result<llvm.Value>;
+		const type = this.convertType(astType);
+		if (type.outcome === 'error') {
+			return type;
+		}
+
+		return ok(undefined);
+		// try {
+		// 	const allocaInst = this.builder.CreateAlloca(type.value, null, ast.name.name);
+
+		// 	this.valueMap.set(ast.name.name, allocaInst);
+
+		// 	const defaultValue = ast.defaultValue;
+		// 	if (typeof defaultValue !== 'undefined') {
+		// 		const llvmValue = this.convertNode(defaultValue);
+		// 		if (llvmValue.outcome === 'error') {
+		// 			return llvmValue;
+		// 		}
+
+		// 		this.builder.CreateStore(llvmValue.value as llvm.Value, allocaInst);
+		// 	}
+
+		// 	return ok(allocaInst);
+		// } catch (err) {
+		// 	return error(err as Error);
+		// }
+	}
+
+	// convert an ASTPrintStatement to an LLVM IR printf call
+	private convertPrintStatement(ast: ASTPrintStatement): Result<llvm.Value, CompilerError | SymbolError> {
+		const exprToPrintResults: Array<Result<llvm.Value | string, CompilerError>> = ast.expressions.map((expr) => {
+			return this.convertNode(expr) as Result<llvm.Value, CompilerError>;
 		});
 		// check if any of the expressions failed
 		if (anyIsError(exprToPrintResults)) {
@@ -428,24 +789,12 @@ export default class LlvmIrConverter {
 			}
 		});
 
-		const format = this.builder.CreateGlobalStringPtr(formatStrings.join(' '));
+		const format = formatStrings.join(' ');
 
-		// convert everything to `llvm.Value`s
-		const valuesToPrint = exprsToPrint.map((expr) => {
-			if (typeof expr === 'string') {
-				return this.builder.CreateGlobalStringPtr(expr);
-			}
-
-			return expr;
-		});
-
-		// create printf call
-		const printfCall = this.builder.CreateCall(printfFunc, [format, ...valuesToPrint]);
-
-		return ok(printfCall);
+		return ok(this.proxy.printf(format, ...exprsToPrint));
 	}
 
-	private convertReturnStatement(ast: ASTReturnStatement): Result<llvm.Value> {
+	private convertReturnStatement(ast: ASTReturnStatement): Result<llvm.Value, CompilerError | SymbolError> {
 		if (ast.expressions.length === 0) {
 			// blank `return;`
 			// In C, `main()` must return an int for the exit code, therefore
@@ -457,9 +806,9 @@ export default class LlvmIrConverter {
 			return ok(this.builder.CreateRetVoid());
 		}
 
-		const exprsToReturn: Array<Result<llvm.Value>> = ast.expressions.map((expr) => {
+		const exprsToReturn: Array<Result<llvm.Value, CompilerError>> = ast.expressions.map((expr) => {
 			// each expression can only be one value
-			return this.convertNode(expr) as Result<llvm.Value>;
+			return this.convertNode(expr) as Result<llvm.Value, CompilerError>;
 		});
 		// check if any of the expressions failed
 		if (!allOk(exprsToReturn)) {
@@ -467,15 +816,18 @@ export default class LlvmIrConverter {
 		}
 
 		// TODO handle multiple return values
+		if (this.debug) {
+			console.debug(`IR Converter: Creating Return`);
+		}
 		return ok(this.builder.CreateRet(exprsToReturn[0].value));
 	}
 
-	private convertStringLiteral(node: ASTStringLiteral): Result<llvm.ConstantInt> {
+	private convertStringLiteral(node: ASTStringLiteral): Result<llvm.ConstantInt, CompilerError | SymbolError> {
 		return ok(this.builder.CreateGlobalStringPtr(node.value));
 	}
 
 	// convert ASTType to LLVM IR type
-	private convertType(ast: ASTType | undefined): Result<llvm.Type> {
+	private convertType(ast: ASTType | undefined): Result<llvm.Type, CompilerError | SymbolError> {
 		if (typeof ast === 'undefined') {
 			return ok(this.builder.getVoidTy());
 		}
@@ -487,7 +839,7 @@ export default class LlvmIrConverter {
 					if (typeof arg === 'undefined') {
 						return error(
 							new CompilerError(
-								`We don't recognize "${(ast as ASTIdentifier).name}"`,
+								`We don't recognize the "${(ast as ASTIdentifier).name}" Identifier`,
 								this.filename,
 								this.getErrorContext(ast),
 							),
@@ -560,12 +912,12 @@ export default class LlvmIrConverter {
 		);
 	}
 
-	private convertTypes(asts: ASTType[]): Result<llvm.Type[]> {
+	private convertTypes(asts: ASTType[]): Result<llvm.Type[], CompilerError | SymbolError> {
 		return flattenResults(asts.map((ast) => this.convertType(ast)));
 	}
 
 	// convert an ASTVariableDeclaration to an LLVM IR alloca instruction
-	private convertVariableDeclaration(ast: ASTVariableDeclaration): Result<llvm.Value[]> {
+	private convertVariableDeclaration(ast: ASTVariableDeclaration): Result<llvm.Value[], CompilerError | SymbolError> {
 		const allocas = ast.identifiersList.map((identifier, index) => {
 			const astType = ast.declaredTypes.at(index) || ast.inferredPossibleTypes.at(index)?.at(0);
 			if (typeof astType === 'undefined') {
@@ -586,7 +938,13 @@ export default class LlvmIrConverter {
 			try {
 				const allocaInst = this.builder.CreateAlloca(type.value, null, identifier.name);
 
-				this.valueMap.set(identifier.name, allocaInst);
+				const wasSet = SymbolTable.setVariableAllocaInst(identifier.name, allocaInst, {
+					debug: this.debug,
+				});
+				if (wasSet.outcome === 'error') {
+					return wasSet;
+				}
+				// this.valueMap.set(identifier.name, allocaInst);
 
 				const initialValue = ast.initialValues.at(index);
 				if (typeof initialValue !== 'undefined') {
@@ -600,9 +958,9 @@ export default class LlvmIrConverter {
 
 				return ok(allocaInst);
 			} catch (err) {
-				return error(err as Error);
+				return error(err as CompilerError | SymbolError);
 			}
-		}) satisfies Result<llvm.Value>[];
+		}) satisfies Result<llvm.Value, CompilerError | SymbolError>[];
 
 		return flattenResults(allocas);
 	}

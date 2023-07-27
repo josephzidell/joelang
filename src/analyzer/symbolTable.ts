@@ -5,7 +5,7 @@ import ErrorContext from '../shared/errorContext';
 import { Maybe, has, hasNot } from '../shared/maybe';
 import { Pos } from '../shared/pos';
 import { Result, error, ok } from '../shared/result';
-import { ASTType, AssignableASTs } from './asts';
+import { ASTType, ASTTypePrimitiveString, AssignableASTs } from './asts';
 import SymbolError, { SymbolErrorCode } from './symbolError';
 
 interface Sym {
@@ -91,6 +91,9 @@ export class SymTree {
 	/** Root of the tree. Never changes. */
 	public readonly root: SymNode;
 
+	/** Root of the stdlib tree. Never changes. */
+	public readonly stdlib: SymNode;
+
 	/** Pointer to the current SymNode. Changes frequently. */
 	private currentNode: SymNode;
 
@@ -107,6 +110,26 @@ export class SymTree {
 		this.root = new SymNode(rootNodeName, hasNot(), pos, options);
 
 		this.currentNode = this.root;
+
+		// setup the stdlib SymNode, which comes with a SymTab
+		this.stdlib = this.getStdlibSymNode(pos, options);
+	}
+
+	private getStdlibSymNode(pos: Pos, options: Options): SymNode {
+		const symNode = new SymNode('stdlib', hasNot(), pos, options);
+
+		const readStrFunctionSymbol: FuncSym = {
+			kind: 'function',
+			typeParams: [],
+			params: [],
+			returnTypes: [ASTTypePrimitiveString(pos)],
+			llvmFunction: undefined,
+			pos,
+		};
+
+		symNode.table.symbols.set('readStr', readStrFunctionSymbol);
+
+		return symNode;
 	}
 
 	public getCurrentNode() {
@@ -126,12 +149,12 @@ export class SymTree {
 	}
 
 	/** Proxies any action to the current SymNode's SymTab */
-	public proxy<R>(what: (symTab: SymTab, symNode: SymNode, symTree: SymTree) => R): R {
-		return what(this.currentNode.table, this.currentNode, this);
+	public proxy<R>(what: (symTab: SymTab, symNode: SymNode, symTree: SymTree, stdlib: SymNode) => R): R {
+		return what(this.currentNode.table, this.currentNode, this, this.stdlib);
 	}
 
 	/** Enters a child's SymNode */
-	public enter(name: string): Result<SymNode> {
+	public enter(name: string): Result<SymNode, SymbolError> {
 		if (!(name in this.currentNode.children)) {
 			return error(
 				new SymbolError(
@@ -149,7 +172,7 @@ export class SymTree {
 	}
 
 	/** Exits the current SymNode and traverses to its parent. */
-	public exit(): Result<SymNode> {
+	public exit(): Result<SymNode, SymbolError> {
 		if (!this.currentNode.parent.has()) {
 			return error(
 				new SymbolError(
@@ -388,7 +411,7 @@ export class SymbolTable {
 		name: string,
 		llvmFunction: llvm.Function,
 		options: Options,
-	): Result<FuncSym> {
+	): Result<FuncSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting llvm.Function for ${name}`);
 		}
@@ -400,7 +423,11 @@ export class SymbolTable {
 		});
 	}
 
-	public static setFunctionReturnTypes(name: string, returnTypes: ASTType[], options: Options): Result<FuncSym> {
+	public static setFunctionReturnTypes(
+		name: string,
+		returnTypes: ASTType[],
+		options: Options,
+	): Result<FuncSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting return types for ${name} ...`);
 		}
@@ -423,7 +450,7 @@ export class SymbolTable {
 		name: string,
 		llvmArgument: llvm.Argument,
 		options: Options,
-	): Result<ParamSym> {
+	): Result<ParamSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting llvm.Argument for ${name} ...`);
 		}
@@ -442,7 +469,11 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setVariableAllocaInst(name: string, allocaInst: llvm.AllocaInst, options: Options): Result<VarSym> {
+	public static setVariableAllocaInst(
+		name: string,
+		allocaInst: llvm.AllocaInst,
+		options: Options,
+	): Result<VarSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting AllocaInst for ${name} ...`);
 		}
@@ -475,7 +506,7 @@ export class SymbolTable {
 			console.log(`SymbolTable.lookup('${name}')`);
 		}
 
-		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode, _symTree: SymTree, stdlib: SymNode) => {
 			let found = false;
 			let nodeToCheck = symNode;
 			let table = symTab;
@@ -495,7 +526,8 @@ export class SymbolTable {
 					nodeToCheck = nodeToCheck.parent.value;
 					table = nodeToCheck.table;
 				} else {
-					return hasNot();
+					// check stdlib
+					return stdlib.table.contains(name, kinds);
 				}
 			}
 
@@ -553,20 +585,24 @@ export class SymTab {
 		return maybe.has() && maybe.value;
 	}
 
-	public setFunctionData(name: string, setter: (funcSymbol: FuncSym) => void): Result<FuncSym> {
+	public setFunctionData(name: string, setter: (funcSymbol: FuncSym) => void): Result<FuncSym, SymbolError> {
 		return this.setData<FuncSym>('function', name, setter);
 	}
 
-	public setParameterData(name: string, setter: (varSymbol: ParamSym) => void): Result<ParamSym> {
+	public setParameterData(name: string, setter: (varSymbol: ParamSym) => void): Result<ParamSym, SymbolError> {
 		return this.setData<ParamSym>('parameter', name, setter);
 	}
 
-	public setVariableData(name: string, setter: (varSymbol: VarSym) => void): Result<VarSym> {
+	public setVariableData(name: string, setter: (varSymbol: VarSym) => void): Result<VarSym, SymbolError> {
 		return this.setData<VarSym>('variable', name, setter);
 	}
 
 	/** Most generic method for setting some data on some symbol */
-	private setData<S extends SymbolInfo>(kind: SymbolKind, name: string, setter: (funcSymbol: S) => void): Result<S> {
+	private setData<S extends SymbolInfo>(
+		kind: SymbolKind,
+		name: string,
+		setter: (funcSymbol: S) => void,
+	): Result<S, SymbolError> {
 		const symbol = SymbolTable.lookup(name, [kind], {
 			debug: this.debug,
 		}) as Maybe<S>;

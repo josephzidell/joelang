@@ -8,8 +8,11 @@ async function main(slicedArgs: string[]) {
 
 	// Create a new compiler instance with the given arguments
 	const compiler = new Compiler(slicedArgs);
+
 	// Compile the code
-	await compiler.compile();
+	const wasSuccessful = await compiler.compile();
+
+	process.exit(wasSuccessful ? 0 : 1);
 }
 
 (async (): Promise<void> => {

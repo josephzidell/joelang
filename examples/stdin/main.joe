@@ -1,0 +1,8 @@
+f getName -> string {
+	return readStr();
+}
+
+f main{
+	print 'Your name? ';
+	print getName();
+}
