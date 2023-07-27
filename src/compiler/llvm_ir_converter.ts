@@ -457,7 +457,7 @@ export default class LlvmIrConverter {
 						);
 					}
 
-					// TODO move this to a class that would be imported in the code
+					// TODO move this to a class that would be `use`d in the code
 					if (callee.name === 'readStr' && args.value.length === 0) {
 						return ok(this.proxy.readStr());
 					}

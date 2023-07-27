@@ -1430,9 +1430,6 @@ export default class Parser {
 
 						this.beginExpressionWith(MakeNode(NT.ClassImplementsList, token, this.currentRoot, true));
 						break;
-					case 'import':
-						this.beginExpressionWith(MakeNode(NT.ImportDeclaration, token, this.currentRoot, true));
-						break;
 					case 'in':
 						{
 							// eg. for const i in ary {}, so we end the VariableDeclaration
@@ -1504,6 +1501,9 @@ export default class Parser {
 						break;
 					case 'return':
 						this.beginExpressionWith(MakeNode(NT.ReturnStatement, token, this.currentRoot, true));
+						break;
+					case 'use':
+						this.beginExpressionWith(MakeNode(NT.UseDeclaration, token, this.currentRoot, true));
 						break;
 					case 'when':
 						this.beginExpressionWith(MakeNode(NT.WhenExpression, token, this.currentRoot, true));

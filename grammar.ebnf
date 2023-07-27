@@ -95,7 +95,7 @@ functionParams = "(" , [ param , { "," , param } ] , ")" ;
 
 # statements
 
-import = "import" , identifier , "from" , path ;
+use = "use" , identifier , [ "from" , path ] ;
 
 extends = "extends" , identifierWithPossibleGenericTypes , { "," ,  identifierWithPossibleGenericTypes } ;
 
@@ -112,7 +112,7 @@ class = [ modifiers ] , "class" , identifier , [ genericTypes ] , [ extends ] , 
 
 interface = [ modifiers ] , "interface" , identifier , [ genericTypes ] , [ extends ] , "{" , { variableDeclaration } , { functionSignature } , "}" ;
 
-program = { import } , { ( namedFunction | class | interface ) } ;
+program = { use } , { ( namedFunction | class | interface ) } ;
 
 shortVariableDeclaration = [ modifiers ] , ( "const" | "let" ) , possibleBoolIdentifier , { "," , possibleBoolIdentifier } ;
 

@@ -1,7 +1,7 @@
 # This is sample .joe file to prove the lexer and parser works.
 # Note this file may not necessarily be syntactically correct.
 
-import someFile from ./some_file.joe;
+use someFile from ./some_file.joe;
 
 f main {
 	// instantiate and call a method

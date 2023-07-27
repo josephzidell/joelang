@@ -31,7 +31,6 @@ export enum NT {
 	FunctionReturns = 'FunctionReturns',
 	Identifier = 'Identifier',
 	IfStatement = 'IfStatement',
-	ImportDeclaration = 'ImportDeclaration',
 	InKeyword = 'InKeyword',
 	InterfaceDeclaration = 'InterfaceDeclaration',
 	JoeDoc = 'JoeDoc', // for Class, Function, Interface, or Variable
@@ -74,6 +73,7 @@ export enum NT {
 	TypeParameter = 'TypeParameter',
 	TypeParametersList = 'TypeParametersList',
 	UnaryExpression = 'UnaryExpression',
+	UseDeclaration = 'UseDeclaration',
 	VariableDeclaration = 'VariableDeclaration',
 	WhenExpression = 'WhenExpression',
 	WhenCase = 'WhenCase',

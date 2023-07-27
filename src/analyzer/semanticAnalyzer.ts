@@ -39,7 +39,6 @@ import {
 	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTIfStatement,
-	ASTImportDeclaration,
 	ASTInterfaceDeclaration,
 	ASTJoeDoc,
 	ASTLoopStatement,
@@ -83,6 +82,7 @@ import {
 	ASTTypeRange,
 	ASTUnaryExpression,
 	astUniqueness,
+	ASTUseDeclaration,
 	ASTVariableDeclaration,
 	ASTWhenCase,
 	ASTWhenExpression,
@@ -935,7 +935,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitBlockStatement(node: Node): Result<ASTBlockStatement> {
-		const validChildren = Object.values(NT).filter((nt) => nt !== NT.ImportDeclaration);
+		const validChildren = Object.values(NT).filter((nt) => nt !== NT.UseDeclaration);
 
 		const ast = new ASTBlockStatement(node.pos);
 
@@ -1726,68 +1726,6 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitImportDeclaration(node: Node): Result<ASTImportDeclaration> {
-		const ast = new ASTImportDeclaration(node.pos);
-
-		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
-			// first child: the identifier
-			{
-				type: NT.Identifier,
-				required: true,
-				callback: (child) => {
-					const visitResult = this.visitIdentifier(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.identifier = visitResult.value;
-							return ok(undefined);
-							break;
-						case 'error':
-							return visitResult;
-							break;
-					}
-				},
-				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) => messageStencil('ImportDeclaration', 'an Identifier', child),
-			},
-
-			// second child: the "from" keyword
-			{
-				type: NT.FromKeyword,
-				required: true,
-				callback: skipThisChild,
-				errorCode: AnalysisErrorCode.FromKeywordExpected,
-				errorMessage: (child: Node | undefined) => messageStencil('ImportDeclaration', '"from"', child),
-			},
-
-			// third child: the path
-			{
-				type: NT.Path,
-				required: true,
-				callback: (child) => {
-					const visitResult = this.visitPath(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.source = visitResult.value;
-							return ok(undefined);
-							break;
-						case 'error':
-							return visitResult;
-							break;
-					}
-				},
-				errorCode: AnalysisErrorCode.PathExpected,
-				errorMessage: (child: Node | undefined) => messageStencil('ImportDeclaration', 'a Path', child),
-			},
-		]);
-		if (handlingResult.outcome === 'error') {
-			return handlingResult;
-		}
-
-		this.astPointer = this.ast = ast;
-
-		return ok(ast);
-	}
-
 	visitInterfaceDeclaration(node: Node): Result<ASTInterfaceDeclaration> {
 		const ast = new ASTInterfaceDeclaration(node.pos);
 
@@ -2413,9 +2351,9 @@ export default class SemanticAnalyzer {
 			NT.Comment,
 			NT.EnumDeclaration,
 			NT.FunctionDeclaration,
-			NT.ImportDeclaration,
 			NT.InterfaceDeclaration,
 			NT.SemicolonSeparator,
+			NT.UseDeclaration,
 		];
 
 		// if this is a snippet, allow all ASTs in the program, to avoid having to wrap
@@ -2426,7 +2364,7 @@ export default class SemanticAnalyzer {
 
 		const ast = new ASTProgram(node.pos);
 
-		// the imports
+		// the uses
 		// skip for now
 
 		// the declarations
@@ -3405,6 +3343,68 @@ export default class SemanticAnalyzer {
 				),
 				this.ast,
 			);
+		}
+
+		this.astPointer = this.ast = ast;
+
+		return ok(ast);
+	}
+
+	visitUseDeclaration(node: Node): Result<ASTUseDeclaration> {
+		const ast = new ASTUseDeclaration(node.pos);
+
+		const handlingResult = this.handleNodesChildrenOfDifferentTypes(node, [
+			// first child: the identifier
+			{
+				type: NT.Identifier,
+				required: true,
+				callback: (child) => {
+					const visitResult = this.visitIdentifier(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.identifier = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+				},
+				errorCode: AnalysisErrorCode.IdentifierExpected,
+				errorMessage: (child: Node | undefined) => messageStencil('UseDeclaration', 'an Identifier', child),
+			},
+
+			// second child: the "from" keyword
+			{
+				type: NT.FromKeyword,
+				required: false,
+				callback: skipThisChild,
+			},
+
+			// third child: the path
+			{
+				type: NT.Path,
+				required: (child, childIndex, allChildren) => {
+					return allChildren[childIndex - 1]?.type === NT.FromKeyword;
+				},
+				callback: (child) => {
+					const visitResult = this.visitPath(child);
+					switch (visitResult.outcome) {
+						case 'ok':
+							ast.source = visitResult.value;
+							return ok(undefined);
+							break;
+						case 'error':
+							return visitResult;
+							break;
+					}
+				},
+				errorCode: AnalysisErrorCode.PathExpected,
+				errorMessage: (child: Node | undefined) => messageStencil('ImportDeclaration', 'a Path', child),
+			},
+		]);
+		if (handlingResult.outcome === 'error') {
+			return handlingResult;
 		}
 
 		this.astPointer = this.ast = ast;

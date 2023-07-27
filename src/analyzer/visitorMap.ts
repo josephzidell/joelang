@@ -64,8 +64,6 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitIdentifier(node) as Result<T, AnalysisError>,
 	[NT.IfStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitIfStatement(node) as Result<T, AnalysisError>,
-	[NT.ImportDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitImportDeclaration(node) as Result<T, AnalysisError>,
 	[NT.InKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.noop(node) as Result<T, AnalysisError>,
 	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
@@ -150,6 +148,8 @@ const visitorMap: Record<NT, visitor> = {
 		analyzer.visitTypeParametersList(node) as Result<T, AnalysisError>,
 	[NT.UnaryExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitUnaryExpression(node as UnaryExpressionNode) as Result<T, AnalysisError>,
+	[NT.UseDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
+		analyzer.visitUseDeclaration(node) as Result<T, AnalysisError>,
 	[NT.VariableDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
 		analyzer.visitVariableDeclaration(node) as Result<T, AnalysisError>,
 	[NT.WhenCase]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>

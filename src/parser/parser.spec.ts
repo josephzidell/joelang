@@ -17,7 +17,6 @@ import {
 	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTIfStatement,
-	ASTImportDeclaration,
 	ASTInterfaceDeclaration,
 	ASTJoeDoc,
 	ASTLoopStatement,
@@ -53,6 +52,7 @@ import {
 	ASTTypePrimitive,
 	ASTTypeRange,
 	ASTUnaryExpression,
+	ASTUseDeclaration,
 	ASTVariableDeclaration,
 	ASTWhenCase,
 	ASTWhenExpression,
@@ -5301,58 +5301,6 @@ describe('parser.ts', (): void => {
 		});
 	});
 
-	describe('ImportDeclaration', (): void => {
-		describe('imports', (): void => {
-			it('single, default import', (): void => {
-				testParseAndAnalyze(
-					'import mainJoeFile from ./some/dir/;import another from @/lexer.joe;',
-					[
-						[
-							NT.ImportDeclaration,
-							[[NT.Identifier, 'mainJoeFile'], [NT.FromKeyword], [NT.Path, './some/dir/']],
-						],
-						[NT.SemicolonSeparator],
-						[
-							NT.ImportDeclaration,
-							[[NT.Identifier, 'another'], [NT.FromKeyword], [NT.Path, '@/lexer.joe']],
-						],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTImportDeclaration._(
-							{
-								identifier: ASTIdentifier._('mainJoeFile', mockPos),
-								source: ASTPath._(
-									{
-										absolute: false,
-										path: './some/dir/',
-										isDir: true,
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-						ASTImportDeclaration._(
-							{
-								identifier: ASTIdentifier._('another', mockPos),
-								source: ASTPath._(
-									{
-										absolute: true,
-										path: '@/lexer.joe',
-										isDir: false,
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
-				);
-			});
-		});
-	});
-
 	describe('InterfaceDeclaration', (): void => {
 		it('empty interface', (): void => {
 			testParseAndAnalyze(
@@ -9558,6 +9506,55 @@ describe('parser.ts', (): void => {
 								extends: [],
 								implements: [],
 								body: ASTBlockStatement._([], mockPos),
+							},
+							mockPos,
+						),
+					],
+				);
+			});
+		});
+	});
+
+	describe('UseDeclaration', (): void => {
+		describe('uses', (): void => {
+			it('single, default use', (): void => {
+				testParseAndAnalyze(
+					'use mainJoeFile from ./some/dir/;use another from @/lexer.joe;',
+					[
+						[
+							NT.UseDeclaration,
+							[[NT.Identifier, 'mainJoeFile'], [NT.FromKeyword], [NT.Path, './some/dir/']],
+						],
+						[NT.SemicolonSeparator],
+						[NT.UseDeclaration, [[NT.Identifier, 'another'], [NT.FromKeyword], [NT.Path, '@/lexer.joe']]],
+						[NT.SemicolonSeparator],
+					],
+					[
+						ASTUseDeclaration._(
+							{
+								identifier: ASTIdentifier._('mainJoeFile', mockPos),
+								source: ASTPath._(
+									{
+										absolute: false,
+										path: './some/dir/',
+										isDir: true,
+									},
+									mockPos,
+								),
+							},
+							mockPos,
+						),
+						ASTUseDeclaration._(
+							{
+								identifier: ASTIdentifier._('another', mockPos),
+								source: ASTPath._(
+									{
+										absolute: true,
+										path: '@/lexer.joe',
+										isDir: false,
+									},
+									mockPos,
+								),
 							},
 							mockPos,
 						),

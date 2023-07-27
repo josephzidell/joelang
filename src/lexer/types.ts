@@ -113,7 +113,6 @@ export const keywords = [
 	'from',
 	'if',
 	'implements',
-	'import',
 	'in',
 	'interface',
 	'let',
@@ -124,6 +123,7 @@ export const keywords = [
 	'readonly',
 	'return',
 	'static',
+	'use',
 	'when',
 ] as const;
 

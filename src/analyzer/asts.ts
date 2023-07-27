@@ -572,24 +572,6 @@ export class ASTIfStatement extends AST {
 	}
 }
 
-export class ASTImportDeclaration extends AST {
-	kind = 'ImportDeclaration';
-	identifier!: ASTIdentifier;
-	source!: ASTPath;
-
-	// factory function
-	static _({ identifier, source }: { identifier: ASTIdentifier; source: ASTPath }, pos: Pos): ASTImportDeclaration {
-		const ast = new ASTImportDeclaration(pos);
-		ast.identifier = identifier;
-		ast.source = source;
-		return ast;
-	}
-
-	toString(): string {
-		return `import ${this.identifier.toString()} from ${this.source.toString()}`;
-	}
-}
-
 export class ASTInterfaceDeclaration extends ASTDeclaration {
 	kind = 'InterfaceDeclaration';
 
@@ -1480,6 +1462,31 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 			this.initialValues.length > 0 ? ` = ${this.initialValues.map((i) => i.toString()).join(', ')}` : '';
 
 		return `${joedocString}${modifiersString}${mutableString} ${identifiersString}${declaredTypesString}${initialValuesString}`;
+	}
+}
+
+export class ASTUseDeclaration extends AST {
+	kind = 'UseDeclaration';
+	identifier!: ASTIdentifier | ASTMemberExpression;
+	source?: ASTPath;
+
+	// factory function
+	static _(
+		{ identifier, source }: { identifier: ASTIdentifier | ASTMemberExpression; source?: ASTPath },
+		pos: Pos,
+	): ASTUseDeclaration {
+		const ast = new ASTUseDeclaration(pos);
+		ast.identifier = identifier;
+		ast.source = source;
+		return ast;
+	}
+
+	toString(): string {
+		if (typeof this.source === 'undefined') {
+			return `use ${this.identifier.toString()}`;
+		}
+
+		return `use ${this.identifier.toString()} from ${this.source.toString()}`;
 	}
 }
 
