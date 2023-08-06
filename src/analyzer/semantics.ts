@@ -23,13 +23,7 @@ import {
 	ASTVariableDeclaration,
 	MemberExpressionObjectASTs,
 } from './asts';
-import {
-	findDuplicates,
-	getErrorContext,
-	getSingleInferredASTTypeFromASTAssignable,
-	isAssignable,
-	isTypeAssignable,
-} from './helpers';
+import { findDuplicates, getErrorContext, getSingleInferredASTTypeFromASTAssignable, isAssignable, isTypeAssignable } from './helpers';
 import SemanticError, { SemanticErrorCode } from './semanticError';
 import SymbolError from './symbolError';
 import {
@@ -351,50 +345,17 @@ export default class Semantics {
 		return ok(undefined);
 	}
 
-	public getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: ['class'],
-	): Result<ClassSym, SemanticError>;
+	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['class']): Result<ClassSym, SemanticError>;
 	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['enum']): Result<EnumSym, SemanticError>;
-	public getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: ['function'],
-	): Result<FuncSym, SemanticError>;
-	public getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: ['interface'],
-	): Result<InterfaceSym, SemanticError>;
-	public getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: ['parameter'],
-	): Result<ParamSym, SemanticError>;
-	public getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: ['variable'],
-	): Result<VarSym, SemanticError>;
-	public getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: SymbolKind[],
-	): Result<SymbolInfo, SemanticError>;
-	getSymbolForIdentifier(
-		ast: ASTIdentifier,
-		word: string,
-		symKinds: SymbolKind[],
-	): Result<SymbolInfo, SemanticError> {
+	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['function']): Result<FuncSym, SemanticError>;
+	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['interface']): Result<InterfaceSym, SemanticError>;
+	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['parameter']): Result<ParamSym, SemanticError>;
+	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['variable']): Result<VarSym, SemanticError>;
+	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: SymbolKind[]): Result<SymbolInfo, SemanticError>;
+	getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: SymbolKind[]): Result<SymbolInfo, SemanticError> {
 		return CreateResultFrom.maybe(
 			SymbolTable.lookup(ast.fqn, symKinds, this.options),
-			new SemanticError(
-				SemanticErrorCode.FunctionNotFound,
-				`${word} ${ast.fqn} not found`,
-				ast,
-				this.getErrorContext(ast),
-			),
+			new SemanticError(SemanticErrorCode.FunctionNotFound, `${word} ${ast.fqn} not found`, ast, this.getErrorContext(ast)),
 		);
 	}
 
@@ -763,14 +724,7 @@ export default class Semantics {
 		);
 
 		if (!mainFunction.has()) {
-			return error(
-				new SemanticError(
-					SemanticErrorCode.FunctionNotFound,
-					'No main() function found',
-					ast,
-					this.getErrorContext(ast),
-				),
-			);
+			return error(new SemanticError(SemanticErrorCode.FunctionNotFound, 'No main() function found', ast, this.getErrorContext(ast)));
 		}
 
 		// check that `main()` has no type parameters

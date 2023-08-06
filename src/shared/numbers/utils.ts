@@ -9,22 +9,14 @@ import { BitCount, NumberSize, numberSizeDetails } from './sizes';
  * @param optionalMoreNumberSizes More number sizes to compare
  * @returns A number bit size that is the lowest bit size of all the number sizes
  */
-export const getLowestBitCountOf = (
-	requiredNumberSize: NumberSize,
-	...optionalMoreNumberSizes: NumberSize[]
-): BitCount => {
-	const bitCounts = [requiredNumberSize, ...optionalMoreNumberSizes].map(
-		(numberSize) => numberSizeDetails[numberSize].bits,
-	);
+export const getLowestBitCountOf = (requiredNumberSize: NumberSize, ...optionalMoreNumberSizes: NumberSize[]): BitCount => {
+	const bitCounts = [requiredNumberSize, ...optionalMoreNumberSizes].map((numberSize) => numberSizeDetails[numberSize].bits);
 
 	return Math.min(...bitCounts) as BitCount;
 };
 
 /** Determines the possible sizes of a number */
-export const determinePossibleNumberSizes = <E extends Error>(
-	value: string,
-	errFn: (value: string) => E,
-): Result<NumberSize[], E> => {
+export const determinePossibleNumberSizes = <E extends Error>(value: string, errFn: (value: string) => E): Result<NumberSize[], E> => {
 	// remove underscores
 	value = value.replace(/_/g, '');
 
@@ -98,16 +90,11 @@ export const determinePossibleNumberSizes = <E extends Error>(
  * @example
  * filterASTTypeNumbersWithBitCountsLowerThan([ASTTypeNumber._('uint8'), ASTTypeNumber._('int16')], 16) // returns [ASTTypeNumber._('int16')]
  */
-export const filterASTTypeNumbersWithBitCountsLowerThan = (
-	asts: ASTTypeNumber[],
-	bitCount: BitCount,
-): ASTTypeNumber[] => {
+export const filterASTTypeNumbersWithBitCountsLowerThan = (asts: ASTTypeNumber[], bitCount: BitCount): ASTTypeNumber[] => {
 	return asts.filter((ast) => numberSizeDetails[ast.size].bits >= bitCount);
 };
 
-export function getPossibleSizesFromNumberOrUnary(
-	expr: ASTNumberLiteral | ASTUnaryExpression<ASTNumberLiteral>,
-): NumberSize[] {
+export function getPossibleSizesFromNumberOrUnary(expr: ASTNumberLiteral | ASTUnaryExpression<ASTNumberLiteral>): NumberSize[] {
 	if (expr.constructor === ASTNumberLiteral) {
 		return expr.possibleSizes;
 	}

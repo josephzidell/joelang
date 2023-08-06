@@ -248,8 +248,7 @@ export class ASTCallExpression extends AST {
 	}
 
 	toString(): string {
-		const typeArgsString =
-			this.typeArgs.length > 0 ? `<| ${this.typeArgs.map((typeArg) => typeArg.toString()).join(', ')} |>` : '';
+		const typeArgsString = this.typeArgs.length > 0 ? `<| ${this.typeArgs.map((typeArg) => typeArg.toString()).join(', ')} |>` : '';
 
 		return `${this.callee.toString()}${typeArgsString}(${this.args.map((arg) => arg.toString()).join(', ')})`;
 	}
@@ -299,18 +298,12 @@ export class ASTClassDeclaration extends ASTDeclaration {
 	}
 
 	toString(): string {
-		const modifiersString =
-			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const typeParamsString =
-			this.typeParams.length > 0
-				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
-				: '';
-		const extendsString =
-			this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const extendsString = this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
 		const implementsString =
-			this.implements.length > 0
-				? ` implements ${this.implements.map((implement) => implement.toString()).join(', ')}`
-				: '';
+			this.implements.length > 0 ? ` implements ${this.implements.map((implement) => implement.toString()).join(', ')}` : '';
 
 		return `${modifiersString}class ${this.name.toString()}${typeParamsString}${extendsString}${implementsString}{...}`;
 	}
@@ -369,14 +362,10 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 	}
 
 	toString(): string {
-		const modifiersString =
-			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const typeParamsString =
-			this.typeParams.length > 0
-				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
-				: '';
-		const extendsString =
-			this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const extendsString = this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
 
 		return `${modifiersString}enum ${this.name.toString()}${typeParamsString}${extendsString}{...}`;
 	}
@@ -463,19 +452,13 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	}
 
 	toString(): string {
-		const modifiersString =
-			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const nameString = this.name.name.includes('.f_anon_') ? '' : this.name.toString();
 		const typeParamsString =
-			this.typeParams.length > 0
-				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
-				: '';
-		const paramsString =
-			this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
+			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const paramsString = this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
 		const returnTypesString =
-			this.returnTypes.length > 0
-				? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}`
-				: '';
+			this.returnTypes.length > 0 ? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}` : '';
 
 		return `${modifiersString}f ${nameString}${typeParamsString}${paramsString}${returnTypesString}{...}`;
 	}
@@ -509,15 +492,10 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 
 	toString(): string {
 		const typeParamsString =
-			this.typeParams.length > 0
-				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
-				: '';
-		const paramsString =
-			this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
+			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const paramsString = this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
 		const returnTypesString =
-			this.returnTypes.length > 0
-				? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}`
-				: '';
+			this.returnTypes.length > 0 ? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}` : '';
 
 		return `f ${typeParamsString}${paramsString}${returnTypesString}`;
 	}
@@ -627,14 +605,10 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 	}
 
 	toString(): string {
-		const modifiersString =
-			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const typeParamsString =
-			this.typeParams.length > 0
-				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
-				: '';
-		const extendsString =
-			this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const extendsString = this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
 
 		return `${modifiersString}interface ${this.name.toString()}${typeParamsString}${extendsString} {...}`;
 	}
@@ -782,11 +756,7 @@ export class ASTNumberLiteral extends AST {
 		return ast;
 	}
 
-	static convertNumberValueTo<E extends Error>(
-		value: string,
-		pos: Pos,
-		errFn: (value: string) => E,
-	): Result<ASTNumberLiteral, E> {
+	static convertNumberValueTo<E extends Error>(value: string, pos: Pos, errFn: (value: string) => E): Result<ASTNumberLiteral, E> {
 		let declaredSize: NumberSize | undefined;
 		let possibleSizes: NumberSize[] = [];
 
@@ -939,8 +909,7 @@ export class ASTParameter extends AST {
 	}
 
 	toString(): string {
-		const modifiersString =
-			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const restString = this.isRest ? '...' : '';
 		const typeString = `: ${this.type.toString()}`;
 		const defaultValueString = this.defaultValue ? ` = ${this.defaultValue.toString()}` : '';
@@ -975,10 +944,7 @@ export class ASTPostfixIfStatement extends AST {
 	test!: ExpressionASTs;
 
 	// factory function
-	static _(
-		{ expression, test }: { expression: ExpressionASTs; test: ExpressionASTs },
-		pos: Pos,
-	): ASTPostfixIfStatement {
+	static _({ expression, test }: { expression: ExpressionASTs; test: ExpressionASTs }, pos: Pos): ASTPostfixIfStatement {
 		const ast = new ASTPostfixIfStatement(pos);
 		ast.expression = expression;
 		ast.test = test;
@@ -1322,10 +1288,7 @@ export const NumberSizesUnsignedIntASTs = [
 	(pos: Pos) => ASTTypeNumber._('uint64', pos),
 ] as const;
 export const NumberSizesIntASTs = [...NumberSizesSignedIntASTs, ...NumberSizesUnsignedIntASTs] as const;
-export const NumberSizesDecimalASTs = [
-	(pos: Pos) => ASTTypeNumber._('dec32', pos),
-	(pos: Pos) => ASTTypeNumber._('dec64', pos),
-] as const;
+export const NumberSizesDecimalASTs = [(pos: Pos) => ASTTypeNumber._('dec32', pos), (pos: Pos) => ASTTypeNumber._('dec64', pos)] as const;
 export const NumberSizesAllASTs = [...NumberSizesIntASTs, ...NumberSizesDecimalASTs] as const;
 
 export class ASTTypeRange extends AST {
@@ -1358,12 +1321,7 @@ export class ASTTypeParameter extends AST {
 	defaultType?: ASTType;
 
 	// factory function
-	static _(
-		type: ASTType,
-		constraint: ASTType | undefined,
-		defaultType: ASTType | undefined,
-		pos: Pos,
-	): ASTTypeParameter {
+	static _(type: ASTType, constraint: ASTType | undefined, defaultType: ASTType | undefined, pos: Pos): ASTTypeParameter {
 		const ast = new ASTTypeParameter(pos);
 		ast.type = type;
 
@@ -1476,14 +1434,11 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 	toString(): string {
 		const joedocString = this.joeDoc ? `${this.joeDoc.toString()}\n` : '';
-		const modifiersString =
-			this.modifiers.length > 0 ? `${this.modifiers.map((m) => m.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((m) => m.toString()).join(' ')} ` : '';
 		const mutableString = this.mutable ? 'const' : 'let';
 		const identifiersString = this.identifiersList.map((i) => i.toString()).join(', ');
-		const declaredTypesString =
-			this.declaredTypes.length > 0 ? `: ${this.declaredTypes.map((t) => t.toString()).join(', ')}` : '';
-		const initialValuesString =
-			this.initialValues.length > 0 ? ` = ${this.initialValues.map((i) => i.toString()).join(', ')}` : '';
+		const declaredTypesString = this.declaredTypes.length > 0 ? `: ${this.declaredTypes.map((t) => t.toString()).join(', ')}` : '';
+		const initialValuesString = this.initialValues.length > 0 ? ` = ${this.initialValues.map((i) => i.toString()).join(', ')}` : '';
 
 		return `${joedocString}${modifiersString}${mutableString} ${identifiersString}${declaredTypesString}${initialValuesString}`;
 	}
@@ -1495,10 +1450,7 @@ export class ASTUseDeclaration extends AST {
 	source?: ASTPath;
 
 	// factory function
-	static _(
-		{ identifier, source }: { identifier: ASTIdentifier | ASTMemberExpression; source?: ASTPath },
-		pos: Pos,
-	): ASTUseDeclaration {
+	static _({ identifier, source }: { identifier: ASTIdentifier | ASTMemberExpression; source?: ASTPath }, pos: Pos): ASTUseDeclaration {
 		const ast = new ASTUseDeclaration(pos);
 		ast.identifier = identifier;
 		ast.source = source;

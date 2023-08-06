@@ -123,12 +123,7 @@ export const AssignableTypes: NT[] = [
 	NT.TypeInstantiationExpression,
 ];
 
-export const CallableTypes: NT[] = [
-	NT.CallExpression,
-	NT.Identifier,
-	NT.MemberExpression,
-	NT.TypeInstantiationExpression,
-];
+export const CallableTypes: NT[] = [NT.CallExpression, NT.Identifier, NT.MemberExpression, NT.TypeInstantiationExpression];
 
 /** These apply equally to MemberExpressions as well as MemberListExpressions */
 export const validNodeTypesAsMemberObject = [

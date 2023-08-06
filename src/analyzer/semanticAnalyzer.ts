@@ -304,10 +304,7 @@ export default class SemanticAnalyzer {
 		errorMessageFn: (child: Node | undefined) => string,
 	): Result<Array<Exclude<R, SkipAST>>, AnalysisError | SemanticError | SymbolError> {
 		if (areChildrenRequired && parentNode.children.length === 0) {
-			return error(
-				new AnalysisError(errorCode, errorMessageFn(undefined), parentNode, this.getErrorContext(parentNode)),
-				this.ast,
-			);
+			return error(new AnalysisError(errorCode, errorMessageFn(undefined), parentNode, this.getErrorContext(parentNode)), this.ast);
 		}
 
 		const children: Array<Exclude<R, SkipAST>> = [];
@@ -333,10 +330,7 @@ export default class SemanticAnalyzer {
 						break;
 				}
 			} else {
-				return error(
-					new AnalysisError(errorCode, errorMessageFn(child), child, this.getErrorContext(child)),
-					this.ast,
-				);
+				return error(new AnalysisError(errorCode, errorMessageFn(child), child, this.getErrorContext(child)), this.ast);
 			}
 		}
 
@@ -486,20 +480,14 @@ export default class SemanticAnalyzer {
 		ast: ASTDeclaration,
 		parentFqn: string,
 		nodeType: NT,
-		extensionsListVisitor: (
-			node: Node,
-		) => Result<ASTTypeExceptPrimitive[], AnalysisError | SemanticError | SymbolError>,
+		extensionsListVisitor: (node: Node) => Result<ASTTypeExceptPrimitive[], AnalysisError | SemanticError | SymbolError>,
 		symbolTableStuff: {
 			kind: SymbolKind;
 			symNodeName: string;
 			/** Curry func to set the type params in the symbol table */
-			setTypeParamsCurry: (
-				symNodeName: string,
-			) => (typeParams: ASTTypeParameter[]) => Result<SymbolInfo, SymbolError>;
+			setTypeParamsCurry: (symNodeName: string) => (typeParams: ASTTypeParameter[]) => Result<SymbolInfo, SymbolError>;
 			/** Curry func to set the extends in the symbol table */
-			setExtendsCurry: (
-				symNodeName: string,
-			) => (_extends: ASTTypeExceptPrimitive[]) => Result<SymbolInfo, SymbolError>;
+			setExtendsCurry: (symNodeName: string) => (_extends: ASTTypeExceptPrimitive[]) => Result<SymbolInfo, SymbolError>;
 		},
 	) {
 		let symNodeName = symbolTableStuff.symNodeName;
@@ -528,12 +516,7 @@ export default class SemanticAnalyzer {
 							// rename the symbol, ignoring a false response which
 							// would indicate the old name wasn't deleted, since
 							// the old anon name is random and won't be used
-							SymbolTable.updateSymbolName(
-								symNodeName,
-								`${parentFqn}${ast.name.name}`,
-								symbolTableStuff.kind,
-								true,
-							);
+							SymbolTable.updateSymbolName(symNodeName, `${parentFqn}${ast.name.name}`, symbolTableStuff.kind, true);
 
 							// update node name with parent's FQN prefixed
 							symNodeName = `${parentFqn}${ast.name.name}`;
@@ -617,8 +600,7 @@ export default class SemanticAnalyzer {
 	ensureNoMoreChildren(
 		child: Node | undefined,
 		errorCode: AnalysisErrorCode = AnalysisErrorCode.ExpressionNotExpected,
-		errorMessage: (child: Node) => string = (child) =>
-			`We did not expect to find an expression of type "${child.type}" here`,
+		errorMessage: (child: Node) => string = (child) => `We did not expect to find an expression of type "${child.type}" here`,
 	): Result<undefined, AnalysisError> {
 		if (typeof child === 'undefined') {
 			return ok(undefined);
@@ -668,8 +650,7 @@ export default class SemanticAnalyzer {
 			// when running a callback, provide *the unmodified children array*
 			const required =
 				definitelyRequired ||
-				(typeof childHandler.required === 'function' &&
-					childHandler.required(child, childIndex, node.children));
+				(typeof childHandler.required === 'function' && childHandler.required(child, childIndex, node.children));
 			if (this.debug) {
 				// debug the handler number
 				console.groupCollapsed(
@@ -686,12 +667,7 @@ export default class SemanticAnalyzer {
 			// if the child is required and it is not present, return an error
 			if (required && !child) {
 				return error(
-					new AnalysisError(
-						childHandler.errorCode,
-						childHandler.errorMessage(child),
-						node,
-						this.getErrorContext(node),
-					),
+					new AnalysisError(childHandler.errorCode, childHandler.errorMessage(child), node, this.getErrorContext(node)),
 					this.ast,
 				);
 			}
@@ -719,18 +695,11 @@ export default class SemanticAnalyzer {
 					if (required) {
 						// debug the situation
 						if (this.debug) {
-							console.debug(
-								`Analyzer: We were expecting a ${childHandler.type} child, but found a "${child.type}"`,
-							);
+							console.debug(`Analyzer: We were expecting a ${childHandler.type} child, but found a "${child.type}"`);
 						}
 
 						return error(
-							new AnalysisError(
-								childHandler.errorCode,
-								childHandler.errorMessage(child),
-								child,
-								this.getErrorContext(child),
-							),
+							new AnalysisError(childHandler.errorCode, childHandler.errorMessage(child), child, this.getErrorContext(child)),
 							this.ast,
 						);
 					} else {
@@ -830,12 +799,7 @@ export default class SemanticAnalyzer {
 	 * If the node is undefined, we have no positional information.
 	 */
 	getErrorContextUnsafe(node: Node | undefined): ErrorContext {
-		return new ErrorContext(
-			this.parser.lexer.code,
-			node?.pos.line || 1,
-			node?.pos.col || 1,
-			node?.value?.length || 1,
-		);
+		return new ErrorContext(this.parser.lexer.code, node?.pos.line || 1, node?.pos.col || 1, node?.value?.length || 1);
 	}
 
 	/** Visitees */
@@ -873,9 +837,7 @@ export default class SemanticAnalyzer {
 	}
 
 	/** An ArrayExpression needs a type, which can be evaluated either via the first item or via the context (VariableDeclaration, Argument Type, etc.) */
-	visitArrayExpression(
-		node: Node,
-	): Result<ASTArrayExpression<AssignableASTs>, AnalysisError | SemanticError | SymbolError> {
+	visitArrayExpression(node: Node): Result<ASTArrayExpression<AssignableASTs>, AnalysisError | SemanticError | SymbolError> {
 		const ast = new ASTArrayExpression(node.pos);
 		this.stack.push(ast); // push pointer to this AST Node
 
@@ -996,9 +958,7 @@ export default class SemanticAnalyzer {
 		);
 	}
 
-	visitAssignmentExpression(
-		node: Node,
-	): Result<ASTAssignmentExpression, AnalysisError | SemanticError | SymbolError> {
+	visitAssignmentExpression(node: Node): Result<ASTAssignmentExpression, AnalysisError | SemanticError | SymbolError> {
 		const ast = new ASTAssignmentExpression(node.pos);
 		this.stack.push(ast); // push pointer to this AST Node
 
@@ -1077,12 +1037,7 @@ export default class SemanticAnalyzer {
 		// first grammatical requirement: the operator
 		if (!node.value) {
 			return error(
-				new AnalysisError(
-					AnalysisErrorCode.OperatorExpected,
-					'Operator Expected',
-					node,
-					this.getErrorContext(node),
-				),
+				new AnalysisError(AnalysisErrorCode.OperatorExpected, 'Operator Expected', node, this.getErrorContext(node)),
 				this.ast,
 			);
 		}
@@ -1154,8 +1109,7 @@ export default class SemanticAnalyzer {
 			validChildren,
 			false,
 			AnalysisErrorCode.ExtraNodesFound,
-			(child: Node | undefined) =>
-				`${child ? `A "${child.type}"` : 'This'} is not allowed directly in a ${node.type}`,
+			(child: Node | undefined) => `${child ? `A "${child.type}"` : 'This'} is not allowed directly in a ${node.type}`,
 		);
 		switch (expressionsResult.outcome) {
 			case 'ok':
@@ -1180,10 +1134,7 @@ export default class SemanticAnalyzer {
 			return ok(ast);
 		}
 
-		return error(
-			new AnalysisError(AnalysisErrorCode.BoolLiteralExpected, 'Bool Expected', node, this.getErrorContext(node)),
-			this.ast,
-		);
+		return error(new AnalysisError(AnalysisErrorCode.BoolLiteralExpected, 'Bool Expected', node, this.getErrorContext(node)), this.ast);
 	}
 
 	visitCallExpression(node: Node): Result<ASTCallExpression, AnalysisError | SemanticError | SymbolError> {
@@ -1273,8 +1224,7 @@ export default class SemanticAnalyzer {
 
 		// before pushing to the stack, check if this class is in another class or function
 		const maybeIsIn = this.isIn([ASTClassDeclaration, ASTFunctionDeclaration]);
-		const parentFqn =
-			maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
+		const parentFqn = maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
 
 		// now add to stack
 		this.stack.push(ast); // push pointer to this AST Node
@@ -1438,9 +1388,7 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitClassImplementsList(
-		node: Node,
-	): Result<ASTTypeExceptPrimitive[], AnalysisError | SemanticError | SymbolError> {
+	visitClassImplementsList(node: Node): Result<ASTTypeExceptPrimitive[], AnalysisError | SemanticError | SymbolError> {
 		return this.handleExtensionsOrImplementsList(node, NT.ClassImplement);
 	}
 
@@ -1529,9 +1477,7 @@ export default class SemanticAnalyzer {
 		return ok(ASTDoneStatement._(node.pos));
 	}
 
-	visitElseStatement(
-		child: Node,
-	): Result<ASTBlockStatement | ASTIfStatement, AnalysisError | SemanticError | SymbolError> {
+	visitElseStatement(child: Node): Result<ASTBlockStatement | ASTIfStatement, AnalysisError | SemanticError | SymbolError> {
 		return this.visitAST<ASTBlockStatement | ASTIfStatement>(child);
 	}
 
@@ -1540,8 +1486,7 @@ export default class SemanticAnalyzer {
 
 		// before pushing to the stack, check if this enum is in a class, function, or interface
 		const maybeIsIn = this.isIn([ASTClassDeclaration, ASTFunctionDeclaration, ASTInterfaceDeclaration]);
-		const parentFqn =
-			maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
+		const parentFqn = maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
 
 		// now add to stack
 		this.stack.push(ast); // push pointer to this AST Node
@@ -1569,29 +1514,22 @@ export default class SemanticAnalyzer {
 		}
 		SymbolTable.tree.createNewSymNodeAndEnter(symNodeName, 'enum', node.pos);
 
-		const handlingResult = this.handleASTDeclaration(
-			node,
-			ast,
-			parentFqn,
-			NT.ExtensionsList,
-			this.visitExtensionsList,
-			{
-				kind: 'enum',
-				symNodeName,
-				setTypeParamsCurry: (symNodeName: string) => (typeParams: ASTTypeParameter[]) => {
-					// add the type params to the symbol table
-					return SymbolTable.setEnumTypeParams(symNodeName, typeParams, {
-						debug: this.debug,
-					});
-				},
-				setExtendsCurry: (symNodeName: string) => (_extends: ASTTypeExceptPrimitive[]) => {
-					// add the extends to the symbol table
-					return SymbolTable.setEnumExtends(symNodeName, _extends, {
-						debug: this.debug,
-					});
-				},
+		const handlingResult = this.handleASTDeclaration(node, ast, parentFqn, NT.ExtensionsList, this.visitExtensionsList, {
+			kind: 'enum',
+			symNodeName,
+			setTypeParamsCurry: (symNodeName: string) => (typeParams: ASTTypeParameter[]) => {
+				// add the type params to the symbol table
+				return SymbolTable.setEnumTypeParams(symNodeName, typeParams, {
+					debug: this.debug,
+				});
 			},
-		);
+			setExtendsCurry: (symNodeName: string) => (_extends: ASTTypeExceptPrimitive[]) => {
+				// add the extends to the symbol table
+				return SymbolTable.setEnumExtends(symNodeName, _extends, {
+					debug: this.debug,
+				});
+			},
+		});
 
 		// exit the SymNode and go back to parent, whether there was an error or not
 		if (this.debug) {
@@ -1700,8 +1638,7 @@ export default class SemanticAnalyzer {
 
 		// before pushing to the stack, check if this func is in a class or interface
 		const maybeIsIn = this.isIn([ASTClassDeclaration, ASTInterfaceDeclaration]);
-		const parentFqn =
-			maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
+		const parentFqn = maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
 
 		// now add to stack
 		this.stack.push(ast); // push pointer to this AST Node
@@ -1936,11 +1873,9 @@ export default class SemanticAnalyzer {
 								// check the types, returning an error upon mismatch
 								return CreateResultFrom.arrayOfResults(
 									returnValuesResult.value.map((returnExpr, index) => {
-										const [isReturnValAssignable, inferredTypes] = isAssignable(
-											returnExpr,
-											ast.returnTypes[index],
-											{ debug: this.debug },
-										);
+										const [isReturnValAssignable, inferredTypes] = isAssignable(returnExpr, ast.returnTypes[index], {
+											debug: this.debug,
+										});
 
 										const infUniq = inferredTypes.map(astUniqueness);
 										if (infUniq.length === 0) {
@@ -1960,9 +1895,7 @@ export default class SemanticAnalyzer {
 											isReturnValAssignable,
 											new AnalysisError(
 												AnalysisErrorCode.TypeMismatch,
-												`We cannot return a value of possible types [${infUniq.join(
-													', ',
-												)}] for a ${ret}`,
+												`We cannot return a value of possible types [${infUniq.join(', ')}] for a ${ret}`,
 												child,
 												this.getErrorContext(child),
 											),
@@ -2181,15 +2114,12 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitInterfaceDeclaration(
-		node: Node,
-	): Result<ASTInterfaceDeclaration, AnalysisError | SemanticError | SymbolError> {
+	visitInterfaceDeclaration(node: Node): Result<ASTInterfaceDeclaration, AnalysisError | SemanticError | SymbolError> {
 		const ast = new ASTInterfaceDeclaration(node.pos);
 
 		// before pushing to the stack, check if this interface is in another interface
 		const maybeIsIn = this.isIn([ASTInterfaceDeclaration]);
-		const parentFqn =
-			maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
+		const parentFqn = maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
 
 		// now add to stack
 		this.stack.push(ast); // push pointer to this AST Node
@@ -2217,29 +2147,22 @@ export default class SemanticAnalyzer {
 		}
 		SymbolTable.tree.createNewSymNodeAndEnter(symNodeName, 'interface', node.pos);
 
-		const handlingResult = this.handleASTDeclaration(
-			node,
-			ast,
-			parentFqn,
-			NT.ExtensionsList,
-			this.visitExtensionsList,
-			{
-				kind: 'interface',
-				symNodeName,
-				setTypeParamsCurry: (symNodeName: string) => (typeParams: ASTTypeParameter[]) => {
-					// add the type params to the symbol table
-					return SymbolTable.setInterfaceTypeParams(symNodeName, typeParams, {
-						debug: this.debug,
-					});
-				},
-				setExtendsCurry: (symNodeName: string) => (_extends: ASTTypeExceptPrimitive[]) => {
-					// add the extends to the symbol table
-					return SymbolTable.setInterfaceExtends(symNodeName, _extends, {
-						debug: this.debug,
-					});
-				},
+		const handlingResult = this.handleASTDeclaration(node, ast, parentFqn, NT.ExtensionsList, this.visitExtensionsList, {
+			kind: 'interface',
+			symNodeName,
+			setTypeParamsCurry: (symNodeName: string) => (typeParams: ASTTypeParameter[]) => {
+				// add the type params to the symbol table
+				return SymbolTable.setInterfaceTypeParams(symNodeName, typeParams, {
+					debug: this.debug,
+				});
 			},
-		);
+			setExtendsCurry: (symNodeName: string) => (_extends: ASTTypeExceptPrimitive[]) => {
+				// add the extends to the symbol table
+				return SymbolTable.setInterfaceExtends(symNodeName, _extends, {
+					debug: this.debug,
+				});
+			},
+		});
 
 		// exit the SymNode and go back to parent, whether there was an error or not
 		if (this.debug) {
@@ -2388,9 +2311,7 @@ export default class SemanticAnalyzer {
 		);
 	}
 
-	visitMemberListExpression(
-		node: Node,
-	): Result<ASTMemberListExpression, AnalysisError | SemanticError | SymbolError> {
+	visitMemberListExpression(node: Node): Result<ASTMemberListExpression, AnalysisError | SemanticError | SymbolError> {
 		const ast = new ASTMemberListExpression(node.pos);
 		this.stack.push(ast); // push pointer to this AST Node
 
@@ -2475,13 +2396,7 @@ export default class SemanticAnalyzer {
 	}
 
 	visitModifiersList(node: Node): Result<ASTModifier[], AnalysisError | SemanticError | SymbolError> {
-		return this.visitChildren<ASTModifier>(
-			node,
-			[NT.Modifier],
-			false,
-			AnalysisErrorCode.ModifierExpected,
-			() => 'Modifier Expected',
-		);
+		return this.visitChildren<ASTModifier>(node, [NT.Modifier], false, AnalysisErrorCode.ModifierExpected, () => 'Modifier Expected');
 	}
 
 	visitNextStatement(node: Node): Result<ASTNextStatement, AnalysisError> {
@@ -2561,8 +2476,7 @@ export default class SemanticAnalyzer {
 
 		// before pushing to the stack, get the func that this is in
 		const maybeIsIn = this.isIn([ASTFunctionDeclaration]);
-		const parentFqn =
-			maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
+		const parentFqn = maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
 
 		// now add to stack
 		this.stack.push(ast); // push pointer to this AST Node
@@ -2806,12 +2720,7 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(
-			new AnalysisError(
-				AnalysisErrorCode.ValidPathExpected,
-				'Valid Path Expected',
-				node,
-				this.getErrorContext(node),
-			),
+			new AnalysisError(AnalysisErrorCode.ValidPathExpected, 'Valid Path Expected', node, this.getErrorContext(node)),
 			this.ast,
 		);
 	}
@@ -2926,12 +2835,7 @@ export default class SemanticAnalyzer {
 		// the error passed to this.visitChildren() is different than the one we want for an empty file
 		if (node.children.length === 0) {
 			return error(
-				new SemanticError(
-					SemanticErrorCode.FunctionNotFound,
-					'No main() function found',
-					this.ast,
-					this.getErrorContext(node),
-				),
+				new SemanticError(SemanticErrorCode.FunctionNotFound, 'No main() function found', this.ast, this.getErrorContext(node)),
 			);
 		}
 		const declarationsResult = this.visitChildren<AST>(
@@ -2940,9 +2844,7 @@ export default class SemanticAnalyzer {
 			true, // there must be at least one declaration
 			AnalysisErrorCode.ExtraNodesFound,
 			(child: Node | undefined) =>
-				`${child ? `A "${child.type}"` : 'This'} is not allowed directly in a ${
-					node.type
-				}. Please wrap in main()`,
+				`${child ? `A "${child.type}"` : 'This'} is not allowed directly in a ${node.type}. Please wrap in main()`,
 		);
 		switch (declarationsResult.outcome) {
 			case 'ok':
@@ -3196,12 +3098,7 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(
-			new AnalysisError(
-				AnalysisErrorCode.ExpressionExpected,
-				'Regular Expression expected',
-				node,
-				this.getErrorContext(node),
-			),
+			new AnalysisError(AnalysisErrorCode.ExpressionExpected, 'Regular Expression expected', node, this.getErrorContext(node)),
 			this.ast,
 		);
 	}
@@ -3264,19 +3161,12 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(
-			new AnalysisError(
-				AnalysisErrorCode.StringLiteralExpected,
-				'String Expected',
-				node,
-				this.getErrorContext(node),
-			),
+			new AnalysisError(AnalysisErrorCode.StringLiteralExpected, 'String Expected', node, this.getErrorContext(node)),
 			this.ast,
 		);
 	}
 
-	visitTernaryAlternate(
-		node: Node,
-	): Result<ASTTernaryAlternate<AssignableASTs>, AnalysisError | SemanticError | SymbolError> {
+	visitTernaryAlternate(node: Node): Result<ASTTernaryAlternate<AssignableASTs>, AnalysisError | SemanticError | SymbolError> {
 		if (node?.type === NT.TernaryAlternate) {
 			const visitResult = this.visitAST<AssignableASTs>(node.children[0]);
 			if (visitResult.isError()) {
@@ -3293,12 +3183,7 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(
-			new AnalysisError(
-				AnalysisErrorCode.TernaryAlternateExpected,
-				'Ternary Alternate Expected',
-				node,
-				this.getErrorContext(node),
-			),
+			new AnalysisError(AnalysisErrorCode.TernaryAlternateExpected, 'Ternary Alternate Expected', node, this.getErrorContext(node)),
 			this.ast,
 		);
 	}
@@ -3320,19 +3205,12 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(
-			new AnalysisError(
-				AnalysisErrorCode.TernaryConditionExpected,
-				'Ternary Condition Expected',
-				node,
-				this.getErrorContext(node),
-			),
+			new AnalysisError(AnalysisErrorCode.TernaryConditionExpected, 'Ternary Condition Expected', node, this.getErrorContext(node)),
 			this.ast,
 		);
 	}
 
-	visitTernaryConsequent(
-		node: Node,
-	): Result<ASTTernaryConsequent<AssignableASTs>, AnalysisError | SemanticError | SymbolError> {
+	visitTernaryConsequent(node: Node): Result<ASTTernaryConsequent<AssignableASTs>, AnalysisError | SemanticError | SymbolError> {
 		if (node?.type === NT.TernaryConsequent) {
 			const visitResult = this.visitAST<AssignableASTs>(node.children[0]);
 			if (visitResult.isError()) {
@@ -3349,12 +3227,7 @@ export default class SemanticAnalyzer {
 		}
 
 		return error(
-			new AnalysisError(
-				AnalysisErrorCode.TernaryConsequentExpected,
-				'Ternary Consequent Expected',
-				node,
-				this.getErrorContext(node),
-			),
+			new AnalysisError(AnalysisErrorCode.TernaryConsequentExpected, 'Ternary Consequent Expected', node, this.getErrorContext(node)),
 			this.ast,
 		);
 	}
@@ -3663,9 +3536,7 @@ export default class SemanticAnalyzer {
 		return ok(typeArgs);
 	}
 
-	visitTypeInstantiationExpression(
-		node: Node,
-	): Result<ASTTypeInstantiationExpression, AnalysisError | SemanticError | SymbolError> {
+	visitTypeInstantiationExpression(node: Node): Result<ASTTypeInstantiationExpression, AnalysisError | SemanticError | SymbolError> {
 		const ast = new ASTTypeInstantiationExpression(node.pos);
 		this.stack.push(ast); // push pointer to this AST Node
 
@@ -3700,8 +3571,7 @@ export default class SemanticAnalyzer {
 					}
 				},
 				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) =>
-					messageStencil('TypeInstantiationExpression', 'a base Type', child),
+				errorMessage: (child: Node | undefined) => messageStencil('TypeInstantiationExpression', 'a base Type', child),
 			},
 
 			// the type arguments
@@ -3714,8 +3584,7 @@ export default class SemanticAnalyzer {
 						validChildrenInTypeArgumentList,
 						true, // once you're in a list, arguments are required
 						AnalysisErrorCode.ExtraNodesFound,
-						(child: Node | undefined) =>
-							`${child ? `A "${child.type}"` : 'This'} is not allowed directly in a ${node.type}`,
+						(child: Node | undefined) => `${child ? `A "${child.type}"` : 'This'} is not allowed directly in a ${node.type}`,
 					);
 					switch (conversionResult.outcome) {
 						case 'ok':
@@ -3728,8 +3597,7 @@ export default class SemanticAnalyzer {
 					}
 				},
 				errorCode: AnalysisErrorCode.TypeExpected,
-				errorMessage: (child: Node | undefined) =>
-					messageStencil('TypeInstantiationExpression', 'a Type', child),
+				errorMessage: (child: Node | undefined) => messageStencil('TypeInstantiationExpression', 'a Type', child),
 			},
 		]);
 		if (handleResult.isError()) {
@@ -3881,12 +3749,7 @@ export default class SemanticAnalyzer {
 		// second grammatical requirement: the operator
 		if (!node.value) {
 			return error(
-				new AnalysisError(
-					AnalysisErrorCode.OperatorExpected,
-					'Operator Expected',
-					node,
-					this.getErrorContext(node),
-				),
+				new AnalysisError(AnalysisErrorCode.OperatorExpected, 'Operator Expected', node, this.getErrorContext(node)),
 				this.ast,
 			);
 		}
@@ -3931,12 +3794,7 @@ export default class SemanticAnalyzer {
 		const child = nodesChildren.shift();
 		if (typeof child !== 'undefined') {
 			return error(
-				new AnalysisError(
-					AnalysisErrorCode.SemicolonExpected,
-					'Semicolon Expected',
-					child,
-					this.getErrorContext(child),
-				),
+				new AnalysisError(AnalysisErrorCode.SemicolonExpected, 'Semicolon Expected', child, this.getErrorContext(child)),
 				this.ast,
 			);
 		}
@@ -4066,8 +3924,7 @@ export default class SemanticAnalyzer {
 					}
 				},
 				errorCode: AnalysisErrorCode.IdentifierExpected,
-				errorMessage: (child: Node | undefined) =>
-					messageStencil('VariableDeclaration', 'an Identifier', child),
+				errorMessage: (child: Node | undefined) => messageStencil('VariableDeclaration', 'an Identifier', child),
 			},
 
 			// the colon (optional)
@@ -4170,11 +4027,9 @@ export default class SemanticAnalyzer {
 						}
 
 						if (typeof ast.declaredTypes[index] !== 'undefined') {
-							const [isReturnValAssignable] = isAssignable(
-								ast.initialValues[index],
-								ast.declaredTypes[index],
-								{ debug: this.debug },
-							);
+							const [isReturnValAssignable] = isAssignable(ast.initialValues[index], ast.declaredTypes[index], {
+								debug: this.debug,
+							});
 							if (!isReturnValAssignable) {
 								const possibleTypes = ast.inferredPossibleTypes[index].map(astUniqueness);
 								const message =
@@ -4182,17 +4037,12 @@ export default class SemanticAnalyzer {
 										? `We cannot assign a ${possibleTypes[0]} value to a "${astUniqueness(
 												ast.declaredTypes[index],
 										  )}" variable`
-										: `We cannot assign a value of possible type [${possibleTypes.join(
-												', ',
-										  )}] to a "${astUniqueness(ast.declaredTypes[index])}" variable`;
+										: `We cannot assign a value of possible type [${possibleTypes.join(', ')}] to a "${astUniqueness(
+												ast.declaredTypes[index],
+										  )}" variable`;
 
 								return error(
-									new AnalysisError(
-										AnalysisErrorCode.TypeMismatch,
-										message,
-										child,
-										this.getErrorContext(child),
-									),
+									new AnalysisError(AnalysisErrorCode.TypeMismatch, message, child, this.getErrorContext(child)),
 								);
 							}
 						}
@@ -4203,8 +4053,7 @@ export default class SemanticAnalyzer {
 					return CreateResultFrom.arrayOfResults<undefined, AnalysisError | SemanticError>(areAssignable);
 				},
 				errorCode: AnalysisErrorCode.AssignableExpected,
-				errorMessage: (child: Node | undefined) =>
-					messageStencil('VariableDeclaration', 'an initial value', child),
+				errorMessage: (child: Node | undefined) => messageStencil('VariableDeclaration', 'an initial value', child),
 			},
 		]);
 		if (handlingResult.isError()) {
@@ -4223,10 +4072,7 @@ export default class SemanticAnalyzer {
 		if (!ast.initialValues.some((initialValue) => initialValue instanceof ASTCallExpression)) {
 			ast.identifiersList.forEach((identifier, index) => {
 				if (identifier.name.at(-1) === '?') {
-					if (
-						typeof ast.declaredTypes[index] !== 'undefined' &&
-						!_.isEqual(ast.declaredTypes[index], ASTTypePrimitiveBool)
-					) {
+					if (typeof ast.declaredTypes[index] !== 'undefined' && !_.isEqual(ast.declaredTypes[index], ASTTypePrimitiveBool)) {
 						return error(
 							new AnalysisError(
 								AnalysisErrorCode.BoolTypeExpected,
@@ -4337,9 +4183,7 @@ export default class SemanticAnalyzer {
 		return ok(ast);
 	}
 
-	visitWhenCaseConsequent(
-		node: Node,
-	): Result<ASTBlockStatement | AssignableASTs, AnalysisError | SemanticError | SymbolError> {
+	visitWhenCaseConsequent(node: Node): Result<ASTBlockStatement | AssignableASTs, AnalysisError | SemanticError | SymbolError> {
 		const nodesChildren = [...node.children]; // make a copy to avoid mutating the original node
 
 		const child = nodesChildren.shift();

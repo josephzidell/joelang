@@ -388,10 +388,7 @@ describe('parser.ts', (): void => {
 								[
 									[NT.PrintStatement, [[NT.StringLiteral, 'hello']]],
 									[NT.SemicolonSeparator],
-									[
-										NT.BlockStatement,
-										[[NT.PrintStatement, [[NT.StringLiteral, 'world']]], [NT.SemicolonSeparator]],
-									],
+									[NT.BlockStatement, [[NT.PrintStatement, [[NT.StringLiteral, 'world']]], [NT.SemicolonSeparator]]],
 									[NT.PrintStatement, [[NT.StringLiteral, '!']]],
 									[NT.SemicolonSeparator],
 								],
@@ -487,10 +484,7 @@ describe('parser.ts', (): void => {
 							[
 								NT.BlockStatement,
 								[
-									[
-										NT.ReturnStatement,
-										[[NT.StringLiteral, ''], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
-									],
+									[NT.ReturnStatement, [[NT.StringLiteral, ''], [NT.CommaSeparator], [NT.BoolLiteral, 'true']]],
 									[NT.SemicolonSeparator],
 								],
 							],
@@ -501,10 +495,7 @@ describe('parser.ts', (): void => {
 						NT.VariableDeclaration,
 						'const',
 						[
-							[
-								NT.AssigneesList,
-								[[NT.Identifier, 'goLangStyle'], [NT.CommaSeparator], [NT.Identifier, 'ok']],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'goLangStyle'], [NT.CommaSeparator], [NT.Identifier, 'ok']]],
 							[NT.AssignmentOperator],
 							[
 								NT.AssignablesList,
@@ -651,11 +642,7 @@ describe('parser.ts', (): void => {
 										[NT.Identifier, 'Foo'],
 										[
 											NT.TypeArgumentsList,
-											[
-												[NT.Identifier, 'T'],
-												[NT.CommaSeparator],
-												[NT.ArrayOf, [[NT.Identifier, 'T']]],
-											],
+											[[NT.Identifier, 'T'], [NT.CommaSeparator], [NT.ArrayOf, [[NT.Identifier, 'T']]]],
 										],
 										[NT.ArgumentsList, []],
 									],
@@ -682,11 +669,7 @@ describe('parser.ts', (): void => {
 							[NT.Identifier, 'C'],
 							[
 								NT.ExtensionsList,
-								[
-									[NT.Extension, [[NT.Identifier, 'A']]],
-									[NT.CommaSeparator],
-									[NT.Extension, [[NT.Identifier, 'B']]],
-								],
+								[[NT.Extension, [[NT.Identifier, 'A']]], [NT.CommaSeparator], [NT.Extension, [[NT.Identifier, 'B']]]],
 							],
 							[
 								NT.BlockStatement,
@@ -716,10 +699,7 @@ describe('parser.ts', (): void => {
 																						NT.TypeInstantiationExpression,
 																						[
 																							[NT.Identifier, 'parent'],
-																							[
-																								NT.TypeArgumentsList,
-																								[[NT.Identifier, 'B']],
-																							],
+																							[NT.TypeArgumentsList, [[NT.Identifier, 'B']]],
 																						],
 																					],
 																				],
@@ -824,10 +804,7 @@ describe('parser.ts', (): void => {
 										NT.TypeInstantiationExpression,
 										[
 											[NT.Identifier, 'A'],
-											[
-												NT.TypeArgumentsList,
-												[[NT.Identifier, 'T'], [NT.CommaSeparator], [NT.Identifier, 'U']],
-											],
+											[NT.TypeArgumentsList, [[NT.Identifier, 'T'], [NT.CommaSeparator], [NT.Identifier, 'U']]],
 										],
 									],
 									[NT.Identifier, 'create'],
@@ -1011,11 +988,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.ExtensionsList,
-							[
-								[NT.Extension, [[NT.Identifier, 'Bar']]],
-								[NT.CommaSeparator],
-								[NT.Extension, [[NT.Identifier, 'Baz']]],
-							],
+							[[NT.Extension, [[NT.Identifier, 'Bar']]], [NT.CommaSeparator], [NT.Extension, [[NT.Identifier, 'Baz']]]],
 						],
 						[
 							NT.ClassImplementsList,
@@ -1032,67 +1005,60 @@ describe('parser.ts', (): void => {
 		});
 
 		it('class extends multiple and implements multiple with generics', (): void => {
-			testParse(
-				'class Foo<|T,U|> extends Bar<|T<|RE|>, path|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}',
+			testParse('class Foo<|T,U|> extends Bar<|T<|RE|>, path|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.TypeParametersList,
+							[[NT.TypeParameter, [[NT.Identifier, 'T']]], [NT.CommaSeparator], [NT.TypeParameter, [[NT.Identifier, 'U']]]],
+						],
+						[
+							NT.ExtensionsList,
 							[
-								NT.TypeParametersList,
 								[
-									[NT.TypeParameter, [[NT.Identifier, 'T']]],
-									[NT.CommaSeparator],
-									[NT.TypeParameter, [[NT.Identifier, 'U']]],
-								],
-							],
-							[
-								NT.ExtensionsList,
-								[
+									NT.Extension,
 									[
-										NT.Extension,
+										[NT.Identifier, 'Bar'],
 										[
-											[NT.Identifier, 'Bar'],
+											NT.TypeArgumentsList,
 											[
-												NT.TypeArgumentsList,
 												[
+													NT.TypeInstantiationExpression,
 													[
-														NT.TypeInstantiationExpression,
-														[
-															[NT.Identifier, 'T'],
-															[NT.TypeArgumentsList, [[NT.Identifier, 'RE']]],
-														],
+														[NT.Identifier, 'T'],
+														[NT.TypeArgumentsList, [[NT.Identifier, 'RE']]],
 													],
-													[NT.CommaSeparator],
-													[NT.Type, 'path'],
 												],
+												[NT.CommaSeparator],
+												[NT.Type, 'path'],
 											],
 										],
 									],
-									[NT.CommaSeparator],
-									[NT.Extension, [[NT.Identifier, 'Baz']]],
 								],
+								[NT.CommaSeparator],
+								[NT.Extension, [[NT.Identifier, 'Baz']]],
 							],
+						],
+						[
+							NT.ClassImplementsList,
 							[
-								NT.ClassImplementsList,
+								[NT.ClassImplement, [[NT.Identifier, 'AbstractFooBar']]],
+								[NT.CommaSeparator],
 								[
-									[NT.ClassImplement, [[NT.Identifier, 'AbstractFooBar']]],
-									[NT.CommaSeparator],
+									NT.ClassImplement,
 									[
-										NT.ClassImplement,
-										[
-											[NT.Identifier, 'AnotherAbstractClass'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
-										],
+										[NT.Identifier, 'AnotherAbstractClass'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
 									],
 								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-			);
+			]);
 		});
 
 		it('abstract class', (): void => {
@@ -1170,22 +1136,11 @@ describe('parser.ts', (): void => {
 												[
 													[
 														NT.Parameter,
-														[
-															[NT.Identifier, 'name'],
-															[NT.AssignmentOperator],
-															[NT.StringLiteral, 'World'],
-														],
+														[[NT.Identifier, 'name'], [NT.AssignmentOperator], [NT.StringLiteral, 'World']],
 													],
 												],
 											],
-											[
-												NT.FunctionReturns,
-												[
-													[NT.Identifier, 'Greeting'],
-													[NT.CommaSeparator],
-													[NT.Identifier, 'T'],
-												],
-											],
+											[NT.FunctionReturns, [[NT.Identifier, 'Greeting'], [NT.CommaSeparator], [NT.Identifier, 'T']]],
 										],
 									],
 									[NT.SemicolonSeparator],
@@ -1205,11 +1160,7 @@ describe('parser.ts', (): void => {
 												[
 													[
 														NT.Parameter,
-														[
-															[NT.Identifier, 'name'],
-															[NT.AssignmentOperator],
-															[NT.StringLiteral, 'Earth'],
-														],
+														[[NT.Identifier, 'name'], [NT.AssignmentOperator], [NT.StringLiteral, 'Earth']],
 													],
 												],
 											],
@@ -1273,11 +1224,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.TypeParametersList,
-							[
-								[NT.TypeParameter, [[NT.Identifier, 'T']]],
-								[NT.CommaSeparator],
-								[NT.TypeParameter, [[NT.Identifier, 'U']]],
-							],
+							[[NT.TypeParameter, [[NT.Identifier, 'T']]], [NT.CommaSeparator], [NT.TypeParameter, [[NT.Identifier, 'U']]]],
 						],
 						[NT.BlockStatement, []],
 					],
@@ -1313,11 +1260,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.ExtensionsList,
-							[
-								[NT.Extension, [[NT.Identifier, 'Bar']]],
-								[NT.CommaSeparator],
-								[NT.Extension, [[NT.Identifier, 'Baz']]],
-							],
+							[[NT.Extension, [[NT.Identifier, 'Bar']]], [NT.CommaSeparator], [NT.Extension, [[NT.Identifier, 'Baz']]]],
 						],
 						[NT.BlockStatement, []],
 					],
@@ -1333,11 +1276,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.TypeParametersList,
-							[
-								[NT.TypeParameter, [[NT.Identifier, 'T']]],
-								[NT.CommaSeparator],
-								[NT.TypeParameter, [[NT.Identifier, 'U']]],
-							],
+							[[NT.TypeParameter, [[NT.Identifier, 'T']]], [NT.CommaSeparator], [NT.TypeParameter, [[NT.Identifier, 'U']]]],
 						],
 						[
 							NT.ExtensionsList,
@@ -1663,10 +1602,7 @@ describe('parser.ts', (): void => {
 							[
 								NT.BlockStatement,
 								[
-									[
-										NT.ReturnStatement,
-										[[NT.BoolLiteral, 'true'], [NT.CommaSeparator], [NT.StringLiteral, 'hey']],
-									],
+									[NT.ReturnStatement, [[NT.BoolLiteral, 'true'], [NT.CommaSeparator], [NT.StringLiteral, 'hey']]],
 									[NT.SemicolonSeparator],
 								],
 							],
@@ -1724,21 +1660,9 @@ describe('parser.ts', (): void => {
 											[
 												[
 													NT.ParametersList,
-													[
-														[
-															NT.Parameter,
-															[
-																[NT.Identifier, 'a'],
-																[NT.ColonSeparator],
-																[NT.Type, 'int8'],
-															],
-														],
-													],
+													[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]]],
 												],
-												[
-													NT.FunctionReturns,
-													[[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']],
-												],
+												[NT.FunctionReturns, [[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']]],
 											],
 										],
 									],
@@ -1839,12 +1763,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'foo'],
 						[
 							NT.ParametersList,
-							[
-								[
-									NT.Parameter,
-									[[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.TupleShape, [[NT.Type, 'bool']]]],
-								],
-							],
+							[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.TupleShape, [[NT.Type, 'bool']]]]]],
 						],
 						[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'dec64']]]]],
 						[NT.BlockStatement, []],
@@ -1901,11 +1820,7 @@ describe('parser.ts', (): void => {
 								[NT.CommaSeparator],
 								[
 									NT.Parameter,
-									[
-										[NT.Identifier, 'b'],
-										[NT.ColonSeparator],
-										[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'string']]]]],
-									],
+									[[NT.Identifier, 'b'], [NT.ColonSeparator], [NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'string']]]]]],
 								],
 								[NT.CommaSeparator],
 								[
@@ -1921,11 +1836,7 @@ describe('parser.ts', (): void => {
 						],
 						[
 							NT.FunctionReturns,
-							[
-								[NT.Type, 'regex'],
-								[NT.CommaSeparator],
-								[NT.ArrayOf, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'path']]]]]]],
-							],
+							[[NT.Type, 'regex'], [NT.CommaSeparator], [NT.ArrayOf, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'path']]]]]]]],
 						],
 						[NT.BlockStatement, []],
 					],
@@ -1948,10 +1859,7 @@ describe('parser.ts', (): void => {
 						NT.FunctionDeclaration,
 						[
 							[NT.Identifier, 'school'],
-							[
-								NT.ParametersList,
-								[[NT.Parameter, [[NT.Identifier, 'age'], [NT.ColonSeparator], [NT.Type, 'int8']]]],
-							],
+							[NT.ParametersList, [[NT.Parameter, [[NT.Identifier, 'age'], [NT.ColonSeparator], [NT.Type, 'int8']]]]],
 							[NT.FunctionReturns, [[NT.Type, 'string']]],
 							[
 								NT.BlockStatement,
@@ -1970,10 +1878,7 @@ describe('parser.ts', (): void => {
 																NT.WhenCase,
 																[
 																	[NT.WhenCaseValues, [[NT.NumberLiteral, '11']]],
-																	[
-																		NT.WhenCaseConsequent,
-																		[[NT.StringLiteral, 'Hogwarts First Year']],
-																	],
+																	[NT.WhenCaseConsequent, [[NT.StringLiteral, 'Hogwarts First Year']]],
 																],
 															],
 															[NT.CommaSeparator],
@@ -1994,12 +1899,7 @@ describe('parser.ts', (): void => {
 																	],
 																	[
 																		NT.WhenCaseConsequent,
-																		[
-																			[
-																				NT.StringLiteral,
-																				'Another Year at Hogwarts',
-																			],
-																		],
+																		[[NT.StringLiteral, 'Another Year at Hogwarts']],
 																	],
 																],
 															],
@@ -2015,10 +1915,7 @@ describe('parser.ts', (): void => {
 																			[NT.NumberLiteral, '19'],
 																		],
 																	],
-																	[
-																		NT.WhenCaseConsequent,
-																		[[NT.StringLiteral, 'Auror Training']],
-																	],
+																	[NT.WhenCaseConsequent, [[NT.StringLiteral, 'Auror Training']]],
 																],
 															],
 															[NT.CommaSeparator],
@@ -2026,10 +1923,7 @@ describe('parser.ts', (): void => {
 																NT.WhenCase,
 																[
 																	[NT.WhenCaseValues, [[NT.RestElement, '...']]],
-																	[
-																		NT.WhenCaseConsequent,
-																		[[NT.StringLiteral, 'Auror']],
-																	],
+																	[NT.WhenCaseConsequent, [[NT.StringLiteral, 'Auror']]],
 																],
 															],
 															[NT.CommaSeparator],
@@ -2058,10 +1952,7 @@ describe('parser.ts', (): void => {
 						NT.FunctionDeclaration,
 						[
 							[NT.Identifier, 'foo'],
-							[
-								NT.ParametersList,
-								[[NT.Parameter, [[NT.Identifier, 'age'], [NT.ColonSeparator], [NT.Type, 'uint16']]]],
-							],
+							[NT.ParametersList, [[NT.Parameter, [[NT.Identifier, 'age'], [NT.ColonSeparator], [NT.Type, 'uint16']]]]],
 							[NT.FunctionReturns, [[NT.Type, 'uint16'], [NT.CommaSeparator], [NT.Type, 'string']]],
 							[
 								NT.BlockStatement,
@@ -2082,10 +1973,7 @@ describe('parser.ts', (): void => {
 																NT.WhenCase,
 																[
 																	[NT.WhenCaseValues, [[NT.RestElement, '...']]],
-																	[
-																		NT.WhenCaseConsequent,
-																		[[NT.StringLiteral, 'No more foos']],
-																	],
+																	[NT.WhenCaseConsequent, [[NT.StringLiteral, 'No more foos']]],
 																],
 															],
 															[NT.CommaSeparator],
@@ -2111,10 +1999,7 @@ describe('parser.ts', (): void => {
 					[
 						[NT.Identifier, 'foo'],
 						[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
-						[
-							NT.ParametersList,
-							[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']]]],
-						],
+						[NT.ParametersList, [[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']]]]],
 						[NT.FunctionReturns, [[NT.Identifier, 'T']]],
 						[NT.BlockStatement, []],
 					],
@@ -2156,16 +2041,7 @@ describe('parser.ts', (): void => {
 											[NT.Identifier, 'foo2'],
 											[
 												NT.ParametersList,
-												[
-													[
-														NT.Parameter,
-														[
-															[NT.Identifier, 'arg'],
-															[NT.ColonSeparator],
-															[NT.Type, 'int64'],
-														],
-													],
-												],
+												[[NT.Parameter, [[NT.Identifier, 'arg'], [NT.ColonSeparator], [NT.Type, 'int64']]]],
 											],
 										],
 									],
@@ -2189,16 +2065,7 @@ describe('parser.ts', (): void => {
 											[NT.Identifier, 'foo4'],
 											[
 												NT.ParametersList,
-												[
-													[
-														NT.Parameter,
-														[
-															[NT.Identifier, 'arg'],
-															[NT.ColonSeparator],
-															[NT.Type, 'dec32'],
-														],
-													],
-												],
+												[[NT.Parameter, [[NT.Identifier, 'arg'], [NT.ColonSeparator], [NT.Type, 'dec32']]]],
 											],
 											[NT.FunctionReturns, [[NT.Type, 'bool']]],
 										],
@@ -2244,12 +2111,7 @@ describe('parser.ts', (): void => {
 										[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 										[
 											NT.ParametersList,
-											[
-												[
-													NT.Parameter,
-													[[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']],
-												],
-											],
+											[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']]]],
 										],
 										[NT.FunctionReturns, [[NT.Identifier, 'T']]],
 										[
@@ -2302,10 +2164,7 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'danger?'],
 							[NT.FunctionReturns, [[NT.Type, 'bool']]],
-							[
-								NT.BlockStatement,
-								[[NT.ReturnStatement, [[NT.BoolLiteral, 'true']]], [NT.SemicolonSeparator]],
-							],
+							[NT.BlockStatement, [[NT.ReturnStatement, [[NT.BoolLiteral, 'true']]], [NT.SemicolonSeparator]]],
 						],
 					],
 				],
@@ -2320,9 +2179,7 @@ describe('parser.ts', (): void => {
 
 					// use assert instead of expect, since we need TS to narrow the type
 					assert(result.isError(), `Expected: "error", Received: "ok"`);
-					expect(result.error.message).toBe(
-						'"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!',
-					);
+					expect(result.error.message).toBe('"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!');
 				});
 
 				// in a class
@@ -2614,11 +2471,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.TypeParametersList,
-							[
-								[NT.TypeParameter, [[NT.Identifier, 'T']]],
-								[NT.CommaSeparator],
-								[NT.TypeParameter, [[NT.Identifier, 'U']]],
-							],
+							[[NT.TypeParameter, [[NT.Identifier, 'T']]], [NT.CommaSeparator], [NT.TypeParameter, [[NT.Identifier, 'U']]]],
 						],
 						[NT.BlockStatement, []],
 					],
@@ -2654,11 +2507,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.ExtensionsList,
-							[
-								[NT.Extension, [[NT.Identifier, 'Bar']]],
-								[NT.CommaSeparator],
-								[NT.Extension, [[NT.Identifier, 'Baz']]],
-							],
+							[[NT.Extension, [[NT.Identifier, 'Bar']]], [NT.CommaSeparator], [NT.Extension, [[NT.Identifier, 'Baz']]]],
 						],
 						[NT.BlockStatement, []],
 					],
@@ -2674,11 +2523,7 @@ describe('parser.ts', (): void => {
 						[NT.Identifier, 'Foo'],
 						[
 							NT.TypeParametersList,
-							[
-								[NT.TypeParameter, [[NT.Identifier, 'T']]],
-								[NT.CommaSeparator],
-								[NT.TypeParameter, [[NT.Identifier, 'U']]],
-							],
+							[[NT.TypeParameter, [[NT.Identifier, 'T']]], [NT.CommaSeparator], [NT.TypeParameter, [[NT.Identifier, 'U']]]],
 						],
 						[
 							NT.ExtensionsList,
@@ -2899,15 +2744,11 @@ describe('parser.ts', (): void => {
 		});
 
 		it('with done', () => {
-			testParse('loop {\ndone;\n}', [
-				[NT.LoopStatement, [[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]]],
-			]);
+			testParse('loop {\ndone;\n}', [[NT.LoopStatement, [[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]]]]);
 		});
 
 		it('with next', () => {
-			testParse('loop {\nnext;\n}', [
-				[NT.LoopStatement, [[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]]],
-			]);
+			testParse('loop {\nnext;\n}', [[NT.LoopStatement, [[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]]]]);
 		});
 	});
 
@@ -3148,10 +2989,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.MemberExpression,
 						[
-							[
-								NT.ArrayExpression,
-								[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
-							],
+							[NT.ArrayExpression, [[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']]],
 							[NT.NumberLiteral, '0'],
 						],
 					],
@@ -3175,10 +3013,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.MemberExpression,
 						[
-							[
-								NT.TupleExpression,
-								[[NT.NumberLiteral, '4'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
-							],
+							[NT.TupleExpression, [[NT.NumberLiteral, '4'], [NT.CommaSeparator], [NT.StringLiteral, 'B']]],
 							[NT.NumberLiteral, '0'],
 						],
 					],
@@ -3212,12 +3047,7 @@ describe('parser.ts', (): void => {
 						[
 							[
 								NT.Parenthesized,
-								[
-									[
-										NT.ArrayExpression,
-										[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
-									],
-								],
+								[[NT.ArrayExpression, [[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']]]],
 							],
 							[NT.NumberLiteral, '0'],
 						],
@@ -3356,10 +3186,7 @@ describe('parser.ts', (): void => {
 								NT.TypeInstantiationExpression,
 								[
 									[NT.Identifier, 'foo'],
-									[
-										NT.TypeArgumentsList,
-										[[NT.Identifier, 'bar'], [NT.CommaSeparator], [NT.Identifier, 'baz']],
-									],
+									[NT.TypeArgumentsList, [[NT.Identifier, 'bar'], [NT.CommaSeparator], [NT.Identifier, 'baz']]],
 								],
 							],
 							[NT.MemberList, [[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']]],
@@ -3526,10 +3353,7 @@ describe('parser.ts', (): void => {
 		describe('UnaryExpression', (): void => {
 			describe('negation', () => {
 				it('with Identifier', (): void => {
-					testParse('!foo;', [
-						[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]],
-						[NT.SemicolonSeparator],
-					]);
+					testParse('!foo;', [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]], [NT.SemicolonSeparator]]);
 				});
 
 				it('with Identifier in parens', (): void => {
@@ -3592,9 +3416,7 @@ describe('parser.ts', (): void => {
 				});
 
 				it('with parens', (): void => {
-					testParse('(-1)', [
-						[NT.Parenthesized, [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]],
-					]);
+					testParse('(-1)', [[NT.Parenthesized, [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]]]);
 				});
 			});
 
@@ -3660,21 +3482,13 @@ describe('parser.ts', (): void => {
 				describe('invalid syntax', (): void => {
 					it('pre-decrement invalid syntax', (): void => {
 						expect(parse('foo---')).toMatchParseTree([
-							[
-								NT.BinaryExpression,
-								'-',
-								[[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]],
-							],
+							[NT.BinaryExpression, '-', [[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]]],
 						]);
 					});
 
 					it('pre-increment invalid syntax', (): void => {
 						expect(parse('foo+++')).toMatchParseTree([
-							[
-								NT.BinaryExpression,
-								'+',
-								[[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]],
-							],
+							[NT.BinaryExpression, '+', [[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]]],
 						]);
 					});
 				});
@@ -3950,12 +3764,7 @@ describe('parser.ts', (): void => {
 														NT.BinaryExpression,
 														'/',
 														[
-															[
-																NT.UnaryExpression,
-																'-',
-																{ before: true },
-																[[NT.NumberLiteral, '3']],
-															],
+															[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '3']]],
 															[
 																NT.BinaryExpression,
 																'%',
@@ -4014,10 +3823,7 @@ describe('parser.ts', (): void => {
 						[
 							[NT.AssigneesList, [[NT.Identifier, 'bar']]],
 							[NT.AssignmentOperator],
-							[
-								NT.AssignablesList,
-								[[NT.UnaryExpression, '-', { before: true }, [[NT.Identifier, 'foo']]]],
-							],
+							[NT.AssignablesList, [[NT.UnaryExpression, '-', { before: true }, [[NT.Identifier, 'foo']]]]],
 						],
 					],
 					[NT.SemicolonSeparator],
@@ -4293,10 +4099,7 @@ describe('parser.ts', (): void => {
 						[NT.CommaSeparator],
 						[NT.ArrayExpression, [[NT.BoolLiteral, 'true']]],
 						[NT.CommaSeparator],
-						[
-							NT.TupleExpression,
-							[[NT.StringLiteral, 'high'], [NT.CommaSeparator], [NT.NumberLiteral, '5']],
-						],
+						[NT.TupleExpression, [[NT.StringLiteral, 'high'], [NT.CommaSeparator], [NT.NumberLiteral, '5']]],
 					],
 				],
 				[NT.SemicolonSeparator],
@@ -4518,10 +4321,7 @@ describe('parser.ts', (): void => {
 					NT.VariableDeclaration,
 					'let',
 					[
-						[
-							NT.AssigneesList,
-							[[NT.Identifier, 'count'], [NT.CommaSeparator], [NT.Identifier, 'countDown']],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'count'], [NT.CommaSeparator], [NT.Identifier, 'countDown']]],
 						[NT.AssignmentOperator],
 						[
 							NT.AssignablesList,
@@ -4611,11 +4411,7 @@ describe('parser.ts', (): void => {
 					[
 						NT.VariableDeclaration,
 						'let',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.ColonSeparator],
-							[NT.TypeArgumentsList, [[NT.Type, 'range']]],
-						],
+						[[NT.AssigneesList, [[NT.Identifier, 'x']]], [NT.ColonSeparator], [NT.TypeArgumentsList, [[NT.Type, 'range']]]],
 					],
 					[NT.SemicolonSeparator],
 				]);
@@ -4653,10 +4449,7 @@ describe('parser.ts', (): void => {
 						NT.FunctionDeclaration,
 						[
 							[NT.Identifier, 'foo'],
-							[
-								NT.ParametersList,
-								[[NT.Parameter, [[NT.Identifier, 'x'], [NT.ColonSeparator], [NT.Type, 'range']]]],
-							],
+							[NT.ParametersList, [[NT.Parameter, [[NT.Identifier, 'x'], [NT.ColonSeparator], [NT.Type, 'range']]]]],
 							[NT.FunctionReturns, [[NT.Type, 'range']]],
 							[NT.BlockStatement, []],
 						],
@@ -4687,12 +4480,7 @@ describe('parser.ts', (): void => {
 							[NT.Identifier, 'Foo'],
 							[
 								NT.TypeParametersList,
-								[
-									[
-										NT.TypeParameter,
-										[[NT.Identifier, 'T'], [NT.ColonSeparator], [NT.Identifier, 'Bar']],
-									],
-								],
+								[[NT.TypeParameter, [[NT.Identifier, 'T'], [NT.ColonSeparator], [NT.Identifier, 'Bar']]]],
 							],
 							[NT.BlockStatement, []],
 						],
@@ -4708,12 +4496,7 @@ describe('parser.ts', (): void => {
 							[NT.Identifier, 'Foo'],
 							[
 								NT.TypeParametersList,
-								[
-									[
-										NT.TypeParameter,
-										[[NT.Identifier, 'T'], [NT.AssignmentOperator], [NT.Identifier, 'Bar']],
-									],
-								],
+								[[NT.TypeParameter, [[NT.Identifier, 'T'], [NT.AssignmentOperator], [NT.Identifier, 'Bar']]]],
 							],
 							[NT.BlockStatement, []],
 						],
@@ -4784,10 +4567,7 @@ describe('parser.ts', (): void => {
 					[
 						[NT.AssigneesList, [[NT.Identifier, 'x?'], [NT.CommaSeparator], [NT.Identifier, 'y']]],
 						[NT.AssignmentOperator],
-						[
-							NT.AssignablesList,
-							[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
-						],
+						[NT.AssignablesList, [[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']]],
 					],
 				],
 			]);
@@ -4801,10 +4581,7 @@ describe('parser.ts', (): void => {
 					[
 						[NT.AssigneesList, [[NT.Identifier, 'x'], [NT.CommaSeparator], [NT.Identifier, 'y?']]],
 						[NT.AssignmentOperator],
-						[
-							NT.AssignablesList,
-							[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
-						],
+						[NT.AssignablesList, [[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']]],
 					],
 				],
 			]);
@@ -4815,11 +4592,7 @@ describe('parser.ts', (): void => {
 				[
 					NT.VariableDeclaration,
 					'let',
-					[
-						[NT.AssigneesList, [[NT.Identifier, 'x']]],
-						[NT.AssignmentOperator],
-						[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
-					],
+					[[NT.AssigneesList, [[NT.Identifier, 'x']]], [NT.AssignmentOperator], [NT.AssignablesList, [[NT.NumberLiteral, '1']]]],
 				],
 			]);
 		});
@@ -4840,12 +4613,7 @@ describe('parser.ts', (): void => {
 										NT.BinaryExpression,
 										'^e',
 										[
-											[
-												NT.UnaryExpression,
-												'-',
-												{ before: true },
-												[[NT.NumberLiteral, '2_300.006']],
-											],
+											[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2_300.006']]],
 											[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2_000']]],
 										],
 									],
@@ -4914,11 +4682,7 @@ describe('parser.ts', (): void => {
 				[
 					NT.VariableDeclaration,
 					'let',
-					[
-						[NT.AssigneesList, [[NT.Identifier, 'x']]],
-						[NT.ColonSeparator],
-						[NT.TypeArgumentsList, [[NT.Type, 'string']]],
-					],
+					[[NT.AssigneesList, [[NT.Identifier, 'x']]], [NT.ColonSeparator], [NT.TypeArgumentsList, [[NT.Type, 'string']]]],
 				],
 				[NT.SemicolonSeparator],
 			]);
@@ -4927,11 +4691,7 @@ describe('parser.ts', (): void => {
 				[
 					NT.VariableDeclaration,
 					'let',
-					[
-						[NT.AssigneesList, [[NT.Identifier, 'x?']]],
-						[NT.ColonSeparator],
-						[NT.TypeArgumentsList, [[NT.Type, 'bool']]],
-					],
+					[[NT.AssigneesList, [[NT.Identifier, 'x?']]], [NT.ColonSeparator], [NT.TypeArgumentsList, [[NT.Type, 'bool']]]],
 				],
 				[NT.SemicolonSeparator],
 			]);
@@ -5001,11 +4761,7 @@ describe('parser.ts', (): void => {
 				[
 					NT.VariableDeclaration,
 					'const',
-					[
-						[NT.AssigneesList, [[NT.Identifier, 'dir']]],
-						[NT.AssignmentOperator],
-						[NT.AssignablesList, [[NT.Path, './myDir/']]],
-					],
+					[[NT.AssigneesList, [[NT.Identifier, 'dir']]], [NT.AssignmentOperator], [NT.AssignablesList, [[NT.Path, './myDir/']]]],
 				],
 				[NT.SemicolonSeparator],
 			]);
@@ -5031,11 +4787,7 @@ describe('parser.ts', (): void => {
 				[
 					NT.VariableDeclaration,
 					'const',
-					[
-						[NT.AssigneesList, [[NT.Identifier, 'dir']]],
-						[NT.AssignmentOperator],
-						[NT.AssignablesList, [[NT.Identifier, 'foo']]],
-					],
+					[[NT.AssigneesList, [[NT.Identifier, 'dir']]], [NT.AssignmentOperator], [NT.AssignablesList, [[NT.Identifier, 'foo']]]],
 				],
 				[NT.SemicolonSeparator],
 			]);
@@ -5347,10 +5099,7 @@ describe('parser.ts', (): void => {
 
 			it('paths', (): void => {
 				testParse('[@/file.joe, @/another/file.joe]', [
-					[
-						NT.ArrayExpression,
-						[[NT.Path, '@/file.joe'], [NT.CommaSeparator], [NT.Path, '@/another/file.joe']],
-					],
+					[NT.ArrayExpression, [[NT.Path, '@/file.joe'], [NT.CommaSeparator], [NT.Path, '@/another/file.joe']]],
 				]);
 			});
 
@@ -5526,12 +5275,7 @@ describe('parser.ts', (): void => {
 							[NT.AssignmentOperator],
 							[
 								NT.AssignablesList,
-								[
-									[
-										NT.ArrayExpression,
-										[[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '2']],
-									],
-								],
+								[[NT.ArrayExpression, [[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '2']]]],
 							],
 						],
 					],
@@ -5731,11 +5475,7 @@ describe('parser.ts', (): void => {
 													[NT.Identifier, 'd'],
 													[
 														NT.ArrayExpression,
-														[
-															[NT.NumberLiteral, '10'],
-															[NT.CommaSeparator],
-															[NT.NumberLiteral, '11'],
-														],
+														[[NT.NumberLiteral, '10'], [NT.CommaSeparator], [NT.NumberLiteral, '11']],
 													],
 												],
 											],
@@ -6013,11 +5753,7 @@ describe('parser.ts', (): void => {
 				[
 					NT.VariableDeclaration,
 					'const',
-					[
-						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-						[NT.AssignmentOperator],
-						[NT.AssignablesList, [[NT.ThisKeyword]]],
-					],
+					[[NT.AssigneesList, [[NT.Identifier, 'foo']]], [NT.AssignmentOperator], [NT.AssignablesList, [[NT.ThisKeyword]]]],
 				],
 				[NT.SemicolonSeparator],
 			]);
@@ -6164,10 +5900,7 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'doSomethingElse'],
 							[NT.FunctionReturns, [[NT.Type, 'string']]],
-							[
-								NT.BlockStatement,
-								[[NT.ReturnStatement, [[NT.StringLiteral, '']]], [NT.SemicolonSeparator]],
-							],
+							[NT.BlockStatement, [[NT.ReturnStatement, [[NT.StringLiteral, '']]], [NT.SemicolonSeparator]]],
 						],
 					],
 					[
@@ -6191,11 +5924,7 @@ describe('parser.ts', (): void => {
 														[
 															[
 																NT.WhenCaseValues,
-																[
-																	[NT.NumberLiteral, '1'],
-																	[NT.CommaSeparator],
-																	[NT.NumberLiteral, '2'],
-																],
+																[[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '2']],
 															],
 															[NT.WhenCaseConsequent, [[NT.StringLiteral, 'small']]],
 														],
@@ -6246,10 +5975,7 @@ describe('parser.ts', (): void => {
 																				],
 																			],
 																			[NT.SemicolonSeparator],
-																			[
-																				NT.ReturnStatement,
-																				[[NT.StringLiteral, 'large']],
-																			],
+																			[NT.ReturnStatement, [[NT.StringLiteral, 'large']]],
 																			[NT.SemicolonSeparator],
 																		],
 																	],
@@ -6281,10 +6007,7 @@ describe('parser.ts', (): void => {
 														NT.WhenCase,
 														[
 															[NT.WhenCaseValues, [[NT.RestElement, '...']]],
-															[
-																NT.WhenCaseConsequent,
-																[[NT.StringLiteral, 'off the charts']],
-															],
+															[NT.WhenCaseConsequent, [[NT.StringLiteral, 'off the charts']]],
 														],
 													],
 													[NT.CommaSeparator],
@@ -6368,10 +6091,7 @@ describe('parser.ts', (): void => {
 									],
 								],
 								[NT.CommaSeparator],
-								[
-									NT.Parameter,
-									[[NT.Identifier, 'b'], [NT.AssignmentOperator], [NT.BoolLiteral, 'true']],
-								],
+								[NT.Parameter, [[NT.Identifier, 'b'], [NT.AssignmentOperator], [NT.BoolLiteral, 'true']]],
 							],
 						],
 						[NT.BlockStatement, []],

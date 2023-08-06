@@ -108,12 +108,7 @@ export default class LlvmIrConverter {
 		// console.debug({wasSet})
 	}
 
-	private static newModule(
-		name: string,
-		context: llvm.LLVMContext,
-		t3: string,
-		machine: llvm.TargetMachine,
-	): llvm.Module {
+	private static newModule(name: string, context: llvm.LLVMContext, t3: string, machine: llvm.TargetMachine): llvm.Module {
 		const module = new llvm.Module(name, context);
 
 		// 8.4 Configuring the Module
@@ -124,11 +119,7 @@ export default class LlvmIrConverter {
 		return module;
 	}
 
-	public convert(
-		filename: string,
-		ast: ASTProgram,
-		loc: string[],
-	): Result<llvm.Module, CompilerError | SymbolError, llvm.Module> {
+	public convert(filename: string, ast: ASTProgram, loc: string[]): Result<llvm.Module, CompilerError | SymbolError, llvm.Module> {
 		this.filename = filename;
 		this.loc = loc;
 
@@ -160,10 +151,7 @@ export default class LlvmIrConverter {
 		}
 
 		if (llvm.verifyModule(this.module)) {
-			return error(
-				new CompilerError('LLVM IR: Verifying module failed', this.filename, this.getErrorContext(ast, 1)),
-				this.module,
-			);
+			return error(new CompilerError('LLVM IR: Verifying module failed', this.filename, this.getErrorContext(ast, 1)), this.module);
 		}
 
 		return ok(this.module);
@@ -183,12 +171,7 @@ export default class LlvmIrConverter {
 	}
 
 	getErrorContext(node: AST, length?: number): ErrorContext {
-		return new ErrorContext(
-			this.loc[node.pos.line - 1],
-			node.pos.line,
-			node.pos.col,
-			length ?? node.pos.end - node.pos.start,
-		);
+		return new ErrorContext(this.loc[node.pos.line - 1], node.pos.line, node.pos.col, length ?? node.pos.end - node.pos.start);
 	}
 
 	// convert an AST node to LLVM IR
@@ -307,11 +290,7 @@ export default class LlvmIrConverter {
 				const func = llvmFunction.has() ? llvmFunction.value : undefined;
 				if (typeof func === 'undefined') {
 					return error(
-						new CompilerError(
-							`LLVM IR: No llvm.Function found for ${funcName}`,
-							this.filename,
-							this.getErrorContext(ast),
-						),
+						new CompilerError(`LLVM IR: No llvm.Function found for ${funcName}`, this.filename, this.getErrorContext(ast)),
 					);
 				}
 
@@ -380,13 +359,7 @@ export default class LlvmIrConverter {
 			case '>=':
 				return ok(this.builder.CreateICmpSGE(leftValue, rightValue, 'result of ">="'));
 			default:
-				return error(
-					new CompilerError(
-						`LLVM IR: We don't recognize "${operator}"`,
-						this.filename,
-						this.getErrorContext(ast),
-					),
-				);
+				return error(new CompilerError(`LLVM IR: We don't recognize "${operator}"`, this.filename, this.getErrorContext(ast)));
 		}
 	}
 
@@ -453,18 +426,13 @@ export default class LlvmIrConverter {
 				}
 				break;
 			default: {
-				const nodeConversion = this.convertNode(callExpr.callee) as Result<
-					llvm.Value,
-					SymbolError | CompilerError
-				>;
+				const nodeConversion = this.convertNode(callExpr.callee) as Result<llvm.Value, SymbolError | CompilerError>;
 				return nodeConversion.mapValue((callee) => callee);
 			}
 		}
 	}
 
-	private convertFunctionDeclaration(
-		node: ASTFunctionDeclaration,
-	): Result<llvm.Function, CompilerError | SymbolError> {
+	private convertFunctionDeclaration(node: ASTFunctionDeclaration): Result<llvm.Function, CompilerError | SymbolError> {
 		// special handling for `main()`
 		let isMain = false;
 		if (node.name?.name === 'main' && typeof node.body !== 'undefined') {
@@ -477,9 +445,7 @@ export default class LlvmIrConverter {
 			const lastExpressionInBody = node.body.expressions.at(node.body.expressions.length - 1);
 			// append a `return 0;` for the exit code if there is no return
 			if (typeof lastExpressionInBody === 'undefined' || lastExpressionInBody.kind !== 'ReturnStatement') {
-				node.body.expressions.push(
-					ASTReturnStatement._([ASTNumberLiteral._(0, 'int32', ['int32'], node.pos)], node.pos),
-				);
+				node.body.expressions.push(ASTReturnStatement._([ASTNumberLiteral._(0, 'int32', ['int32'], node.pos)], node.pos));
 			}
 		}
 
@@ -513,12 +479,7 @@ export default class LlvmIrConverter {
 		const funcName = node.name?.name ?? '<anon>';
 
 		// create function
-		const func = llvm.Function.Create(
-			functionType,
-			llvm.Function.LinkageTypes.ExternalLinkage,
-			funcName,
-			this.module,
-		);
+		const func = llvm.Function.Create(functionType, llvm.Function.LinkageTypes.ExternalLinkage, funcName, this.module);
 
 		if (!isMain) {
 			// console.debug({nodeParams: node.params, funcParamArguments})
@@ -578,9 +539,7 @@ export default class LlvmIrConverter {
 			}
 
 			if (this.debug) {
-				console.log(
-					`IR Converter: stopped converting FunctionDeclaration ${funcName} due to error converting body nodes`,
-				);
+				console.log(`IR Converter: stopped converting FunctionDeclaration ${funcName} due to error converting body nodes`);
 			}
 			SymbolTable.tree.exit();
 
@@ -594,15 +553,11 @@ export default class LlvmIrConverter {
 			}
 
 			if (this.debug) {
-				console.log(
-					`IR Converter: stopped converting FunctionDeclaration ${funcName} due to error verifying the function`,
-				);
+				console.log(`IR Converter: stopped converting FunctionDeclaration ${funcName} due to error verifying the function`);
 			}
 			SymbolTable.tree.exit();
 
-			return error(
-				new CompilerError('LLVM IR: Verifying function failed', this.filename, this.getErrorContext(node)),
-			);
+			return error(new CompilerError('LLVM IR: Verifying function failed', this.filename, this.getErrorContext(node)));
 		}
 
 		if (this.inMain && isMain) {
@@ -651,11 +606,7 @@ export default class LlvmIrConverter {
 			debug: this.debug,
 		});
 		const err = error<CompilerError>(
-			new CompilerError(
-				`LLVM IR: We don't recognize the "${node.name}" Identifier`,
-				this.filename,
-				this.getErrorContext(node),
-			),
+			new CompilerError(`LLVM IR: We don't recognize the "${node.name}" Identifier`, this.filename, this.getErrorContext(node)),
 		);
 
 		if (!maybeSymbolInfo.has()) {
@@ -702,11 +653,7 @@ export default class LlvmIrConverter {
 		const astType = ast.type;
 		if (typeof astType === 'undefined') {
 			return error(
-				new CompilerError(
-					`LLVM IR: We don't know the type of ${ast.name.name}`,
-					this.filename,
-					this.getErrorContext(ast),
-				),
+				new CompilerError(`LLVM IR: We don't know the type of ${ast.name.name}`, this.filename, this.getErrorContext(ast)),
 			);
 		}
 
@@ -903,11 +850,7 @@ export default class LlvmIrConverter {
 			const astType = ast.declaredTypes.at(index) || ast.inferredPossibleTypes.at(index)?.at(0);
 			if (typeof astType === 'undefined') {
 				return error(
-					new CompilerError(
-						`LLVM IR: We don't know the type of ${identifier.name}`,
-						this.filename,
-						this.getErrorContext(ast),
-					),
+					new CompilerError(`LLVM IR: We don't know the type of ${identifier.name}`, this.filename, this.getErrorContext(ast)),
 				);
 			}
 

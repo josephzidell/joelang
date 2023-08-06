@@ -102,9 +102,7 @@ export default class Lexer {
 					[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processSingleLineComment()),
 					[patterns.ASTERISK]: (): Result<Token> => {
 						// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
-						const value = this.gobbleUntil(
-							() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH,
-						);
+						const value = this.gobbleUntil(() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH);
 
 						// skip the trailing asterisk and slash
 						this.cursorPosition += 2;
@@ -125,12 +123,7 @@ export default class Lexer {
 				},
 				(): Token => {
 					// these tokens precede a forward slash, so if they're found, this is NOT a regular expression
-					const tokensThatPrecedeForwardSlash: TokenType[] = [
-						'bracket_close',
-						'identifier',
-						'number',
-						'paren_close',
-					];
+					const tokensThatPrecedeForwardSlash: TokenType[] = ['bracket_close', 'identifier', 'number', 'paren_close'];
 					const prevToken = this.prevToken();
 					const nextChar = this.peek();
 					if (
@@ -159,9 +152,7 @@ export default class Lexer {
 						this.getChar() +
 						// everything until the trailing slash
 						// continue as long there are no more chars, and the current char isn't a / and the previous char isn't whitespace
-						this.gobbleUntil(
-							() => this.char === patterns.FORWARD_SLASH && this.prevChar() !== patterns.ESCAPE,
-						) +
+						this.gobbleUntil(() => this.char === patterns.FORWARD_SLASH && this.prevChar() !== patterns.ESCAPE) +
 						// the trailing slash itself
 						(this.getChar() ?? '') + // this is needed in case of a partial regex at the end of the code
 						// check for flags
@@ -380,9 +371,7 @@ export default class Lexer {
 
 			// confirm this is a closing quote
 			if (typeof this.char === 'undefined' || this.char !== quoteChar) {
-				return error(
-					new LexerError('Syntax Error. Expected closing quote', this.tokens, this.getErrorContext(1)),
-				);
+				return error(new LexerError('Syntax Error. Expected closing quote', this.tokens, this.getErrorContext(1)));
 			}
 
 			// skip the closing quote char
@@ -513,11 +502,7 @@ export default class Lexer {
 
 		// something we don't recognize
 		return error(
-			new LexerError(
-				`Syntax Error. Unknown character: "${this.char}"`,
-				this.tokens,
-				this.getErrorContext(this.char.length),
-			),
+			new LexerError(`Syntax Error. Unknown character: "${this.char}"`, this.tokens, this.getErrorContext(this.char.length)),
 		);
 	}
 
@@ -635,10 +620,7 @@ export default class Lexer {
 			// something we don't recognize
 			return error(
 				new LexerError(
-					`Syntax Error. Unknown syntax: "${this.code.substring(
-						this.cursorPosition,
-						this.cursorPosition + level,
-					)}"`,
+					`Syntax Error. Unknown syntax: "${this.code.substring(this.cursorPosition, this.cursorPosition + level)}"`,
 					this.tokens,
 					this.getErrorContext(level),
 				),

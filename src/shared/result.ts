@@ -169,9 +169,7 @@ export const CreateResultFrom = {
 			return ok(results.map((result) => result.value));
 		}
 
-		const errors = results
-			.filter((result) => result.isError())
-			.map((result) => (result as unknown as ResultError<E, ED>).error);
+		const errors = results.filter((result) => result.isError()).map((result) => (result as unknown as ResultError<E, ED>).error);
 
 		// TODO: this is a bit of a hack, but it's the best I can do for now
 		// This combines all the errors into a single error, recycling the first one
@@ -182,11 +180,7 @@ export const CreateResultFrom = {
 		return error(firstError);
 	},
 
-	boolean<T extends boolean, E extends Error = Error, ED = unknown>(
-		value: T,
-		errorIfFalse: E,
-		data?: ED,
-	): Result<T, E, ED> {
+	boolean<T extends boolean, E extends Error = Error, ED = unknown>(value: T, errorIfFalse: E, data?: ED): Result<T, E, ED> {
 		if (value === false) {
 			return error(errorIfFalse, data);
 		}
@@ -214,11 +208,7 @@ export const CreateResultFrom = {
 		return error(err, data);
 	},
 
-	possiblyUndefined<T, E extends Error = Error, ED = unknown>(
-		value: T | undefined,
-		errorIfUndefined: E,
-		data?: ED,
-	): Result<T, E, ED> {
+	possiblyUndefined<T, E extends Error = Error, ED = unknown>(value: T | undefined, errorIfUndefined: E, data?: ED): Result<T, E, ED> {
 		if (typeof value === 'undefined') {
 			return error(errorIfUndefined, data);
 		}

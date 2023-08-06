@@ -7,8 +7,7 @@ type cFunc = (typeof cFuncs)[number];
  * stdlibFuncTypes is a map of stdlib function names to their llvm.FunctionType
  */
 export const stdlibLlvmFuncTypes: { [key in cFunc]: (builder: llvm.IRBuilder) => llvm.FunctionType } = {
-	printf: (builder: llvm.IRBuilder): llvm.FunctionType =>
-		llvm.FunctionType.get(builder.getInt32Ty(), [builder.getInt8PtrTy()], true),
+	printf: (builder: llvm.IRBuilder): llvm.FunctionType => llvm.FunctionType.get(builder.getInt32Ty(), [builder.getInt8PtrTy()], true),
 	readStr: (builder: llvm.IRBuilder): llvm.FunctionType => llvm.FunctionType.get(builder.getInt8PtrTy(), [], false),
 };
 
@@ -23,12 +22,7 @@ export const stdlibLlvmFuncTypes: { [key in cFunc]: (builder: llvm.IRBuilder) =>
 export const stdlibLlvmFunc = (name: cFunc, module: llvm.Module, builder: llvm.IRBuilder) => {
 	return (
 		module.getFunction(name) ||
-		llvm.Function.Create(
-			stdlibLlvmFuncTypes[name](builder),
-			llvm.Function.LinkageTypes.ExternalLinkage,
-			name,
-			module,
-		)
+		llvm.Function.Create(stdlibLlvmFuncTypes[name](builder), llvm.Function.LinkageTypes.ExternalLinkage, name, module)
 	);
 };
 

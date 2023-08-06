@@ -25,10 +25,7 @@ describe('semantics.spec.ts', (): void => {
 		});
 
 		it('should return an error if main() has a return type', (): void => {
-			testAnalyzeExpectingSemanticError(
-				'f main() -> int32 { return 0; }',
-				SemanticErrorCode.ReturnTypeNotExpected,
-			);
+			testAnalyzeExpectingSemanticError('f main() -> int32 { return 0; }', SemanticErrorCode.ReturnTypeNotExpected);
 		});
 	});
 });

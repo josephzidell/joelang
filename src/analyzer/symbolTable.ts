@@ -5,14 +5,7 @@ import ErrorContext from '../shared/errorContext';
 import { Maybe, has, hasNot } from '../shared/maybe';
 import { Pos } from '../shared/pos';
 import { Result, error, ok } from '../shared/result';
-import {
-	ASTParameter,
-	ASTType,
-	ASTTypeExceptPrimitive,
-	ASTTypeParameter,
-	ASTTypePrimitiveString,
-	AssignableASTs,
-} from './asts';
+import { ASTParameter, ASTType, ASTTypeExceptPrimitive, ASTTypeParameter, ASTTypePrimitiveString, AssignableASTs } from './asts';
 import SymbolError, { SymbolErrorCode } from './symbolError';
 
 interface Sym {
@@ -599,11 +592,7 @@ export class SymbolTable {
 		});
 	}
 
-	public static setClassTypeParams(
-		name: string,
-		typeParams: ASTTypeParameter[],
-		options: Options,
-	): Result<ClassSym, SymbolError> {
+	public static setClassTypeParams(name: string, typeParams: ASTTypeParameter[], options: Options): Result<ClassSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting type params for ${name} ...`);
 		}
@@ -622,11 +611,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setClassExtends(
-		name: string,
-		_extends: ASTTypeExceptPrimitive[],
-		options: Options,
-	): Result<ClassSym, SymbolError> {
+	public static setClassExtends(name: string, _extends: ASTTypeExceptPrimitive[], options: Options): Result<ClassSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting extends for ${name} ...`);
 		}
@@ -645,11 +630,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setClassImplements(
-		name: string,
-		_implements: ASTTypeExceptPrimitive[],
-		options: Options,
-	): Result<ClassSym, SymbolError> {
+	public static setClassImplements(name: string, _implements: ASTTypeExceptPrimitive[], options: Options): Result<ClassSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting implements for ${name} ...`);
 		}
@@ -668,11 +649,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setEnumTypeParams(
-		name: string,
-		typeParams: ASTTypeParameter[],
-		options: Options,
-	): Result<EnumSym, SymbolError> {
+	public static setEnumTypeParams(name: string, typeParams: ASTTypeParameter[], options: Options): Result<EnumSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting type params for ${name} ...`);
 		}
@@ -691,11 +668,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setEnumExtends(
-		name: string,
-		_extends: ASTTypeExceptPrimitive[],
-		options: Options,
-	): Result<EnumSym, SymbolError> {
+	public static setEnumExtends(name: string, _extends: ASTTypeExceptPrimitive[], options: Options): Result<EnumSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting extends for ${name} ...`);
 		}
@@ -714,11 +687,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setFunctionLLVMFunction(
-		name: string,
-		llvmFunction: llvm.Function,
-		options: Options,
-	): Result<FuncSym, SymbolError> {
+	public static setFunctionLLVMFunction(name: string, llvmFunction: llvm.Function, options: Options): Result<FuncSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting llvm.Function for ${name}`);
 		}
@@ -730,11 +699,7 @@ export class SymbolTable {
 		});
 	}
 
-	public static setFunctionTypeParams(
-		name: string,
-		typeParams: ASTTypeParameter[],
-		options: Options,
-	): Result<FuncSym, SymbolError> {
+	public static setFunctionTypeParams(name: string, typeParams: ASTTypeParameter[], options: Options): Result<FuncSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting type params for ${name} ...`);
 		}
@@ -753,11 +718,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setFunctionParams(
-		name: string,
-		params: ASTParameter[],
-		options: Options,
-	): Result<FuncSym, SymbolError> {
+	public static setFunctionParams(name: string, params: ASTParameter[], options: Options): Result<FuncSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting params for ${name} ...`);
 		}
@@ -776,11 +737,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setFunctionReturnTypes(
-		name: string,
-		returnTypes: ASTType[],
-		options: Options,
-	): Result<FuncSym, SymbolError> {
+	public static setFunctionReturnTypes(name: string, returnTypes: ASTType[], options: Options): Result<FuncSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting return types for ${name} ...`);
 		}
@@ -845,11 +802,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setParameterLlvmArgument(
-		name: string,
-		llvmArgument: llvm.Argument,
-		options: Options,
-	): Result<ParamSym, SymbolError> {
+	public static setParameterLlvmArgument(name: string, llvmArgument: llvm.Argument, options: Options): Result<ParamSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting llvm.Argument for ${name} ...`);
 		}
@@ -868,11 +821,7 @@ export class SymbolTable {
 		return result;
 	}
 
-	public static setVariableAllocaInst(
-		name: string,
-		allocaInst: llvm.AllocaInst,
-		options: Options,
-	): Result<VarSym, SymbolError> {
+	public static setVariableAllocaInst(name: string, allocaInst: llvm.AllocaInst, options: Options): Result<VarSym, SymbolError> {
 		if (options.debug) {
 			console.debug(`SymbolTable: Setting AllocaInst for ${name} ...`);
 		}
@@ -1093,10 +1042,7 @@ export class SymTab {
 		return this.setData<FuncSym>('function', name, setter);
 	}
 
-	public setInterfaceData(
-		name: string,
-		setter: (interfaceSymbol: InterfaceSym) => void,
-	): Result<InterfaceSym, SymbolError> {
+	public setInterfaceData(name: string, setter: (interfaceSymbol: InterfaceSym) => void): Result<InterfaceSym, SymbolError> {
 		return this.setData<InterfaceSym>('interface', name, setter);
 	}
 
@@ -1109,11 +1055,7 @@ export class SymTab {
 	}
 
 	/** Most generic method for setting some data on some symbol */
-	private setData<S extends SymbolInfo>(
-		kind: SymbolKind,
-		name: string,
-		setter: (funcSymbol: S) => void,
-	): Result<S, SymbolError> {
+	private setData<S extends SymbolInfo>(kind: SymbolKind, name: string, setter: (funcSymbol: S) => void): Result<S, SymbolError> {
 		const symbol = SymbolTable.lookup(name, [kind], {
 			debug: this.debug,
 		}) as Maybe<S>;

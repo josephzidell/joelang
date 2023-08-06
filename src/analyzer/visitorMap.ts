@@ -6,10 +6,7 @@ import SemanticAnalyzer from './semanticAnalyzer';
 import SemanticError from './semanticError';
 import SymbolError from './symbolError';
 
-export type visitor = (
-	node: Node,
-	analyzer: SemanticAnalyzer,
-) => Result<AST | AST[], AnalysisError | SemanticError | SymbolError>;
+export type visitor = (node: Node, analyzer: SemanticAnalyzer) => Result<AST | AST[], AnalysisError | SemanticError | SymbolError>;
 
 const visitorMap: Record<NT, visitor> = {
 	[NT.ArgumentsList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitArgumentList(node),
@@ -79,12 +76,10 @@ const visitorMap: Record<NT, visitor> = {
 	[NT.TupleShape]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTupleShape(node),
 	[NT.Type]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitType(node),
 	[NT.TypeArgumentsList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeArgumentsList(node),
-	[NT.TypeInstantiationExpression]: (node: Node, analyzer: SemanticAnalyzer) =>
-		analyzer.visitTypeInstantiationExpression(node),
+	[NT.TypeInstantiationExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeInstantiationExpression(node),
 	[NT.TypeParameter]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeParameter(node),
 	[NT.TypeParametersList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeParametersList(node),
-	[NT.UnaryExpression]: (node: Node, analyzer: SemanticAnalyzer) =>
-		analyzer.visitUnaryExpression(node as UnaryExpressionNode),
+	[NT.UnaryExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitUnaryExpression(node as UnaryExpressionNode),
 	[NT.UseDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitUseDeclaration(node),
 	[NT.VariableDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitVariableDeclaration(node),
 	[NT.WhenCase]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitWhenCase(node),

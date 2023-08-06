@@ -85,10 +85,7 @@ export function assignInferredPossibleTypes(
  * Attempts to infer possible ASTTypes from an ASTAssignable.
  * This is very forgiving, and only returns an error in extremely unlikely cases.
  */
-export function inferPossibleASTTypesFromASTAssignable(
-	expr: AssignableASTs,
-	options: Options,
-): Result<ASTType[], SemanticError> {
+export function inferPossibleASTTypesFromASTAssignable(expr: AssignableASTs, options: Options): Result<ASTType[], SemanticError> {
 	const errorCouldNotInfer = (ofThis: string): ResultError<SemanticError, ASTType[]> => {
 		return error(
 			new SemanticError(
@@ -115,9 +112,10 @@ export function inferPossibleASTTypesFromASTAssignable(
 
 				// map the child type maybe into a Maybe<ASTArrayOf>
 				// if we can infer the type of the child, we can infer the type of the array
-				return possibleTypesResult.mapValue((types) =>
-					types.map((childType) => ASTArrayOf._(childType, expr.pos)),
-				) as Result<ASTType[], SemanticError>;
+				return possibleTypesResult.mapValue((types) => types.map((childType) => ASTArrayOf._(childType, expr.pos))) as Result<
+					ASTType[],
+					SemanticError
+				>;
 			}
 			break;
 		case ASTBinaryExpression:
@@ -147,37 +145,24 @@ export function inferPossibleASTTypesFromASTAssignable(
 							>;
 
 							// each side could either be an ASTNumberLiteral or an ASTUnaryExpression
-							const leftNumberPossibleTypesResult = inferPossibleASTTypesFromASTAssignable(
-								binaryExpr.left,
-								options,
-							);
+							const leftNumberPossibleTypesResult = inferPossibleASTTypesFromASTAssignable(binaryExpr.left, options);
 							if (!leftNumberPossibleTypesResult.isOk()) {
 								return errorCouldNotInfer("BinaryExpression's left-hand side");
 							}
-							const rightNumberPossibleTypesResult = inferPossibleASTTypesFromASTAssignable(
-								binaryExpr.right,
-								options,
-							);
+							const rightNumberPossibleTypesResult = inferPossibleASTTypesFromASTAssignable(binaryExpr.right, options);
 							if (!rightNumberPossibleTypesResult.isOk()) {
 								return errorCouldNotInfer("BinaryExpression's right-hand side");
 							}
 
 							// ensure all are ASTTypeNumbers and get sizes
 
-							const leftNumberPossibleSizes = getNumberSizesFromTypes(
-								leftNumberPossibleTypesResult.value,
-							);
-							const rightNumberPossibleSizes = getNumberSizesFromTypes(
-								rightNumberPossibleTypesResult.value,
-							);
+							const leftNumberPossibleSizes = getNumberSizesFromTypes(leftNumberPossibleTypesResult.value);
+							const rightNumberPossibleSizes = getNumberSizesFromTypes(rightNumberPossibleTypesResult.value);
 
 							// for exponent
 							if (operator === '^e') {
 								// if the right side is a negative exponent, the number size must be a decimal
-								if (
-									binaryExpr.right.constructor === ASTUnaryExpression &&
-									binaryExpr.right.operator === '-'
-								) {
+								if (binaryExpr.right.constructor === ASTUnaryExpression && binaryExpr.right.operator === '-') {
 									// get the lowest bit count of the left number's possible sizes
 									const [firstNumberSize, ...rest] = leftNumberPossibleSizes;
 									const lowestBitCount = getLowestBitCountOf(firstNumberSize, ...rest);
@@ -263,64 +248,62 @@ export function inferPossibleASTTypesFromASTAssignable(
 				const identifier = expr as ASTIdentifier;
 
 				// look up the identifier in the symbol table
-				const lookupResult = SymbolTable.lookup(identifier.name, symbolKinds, options).map(
-					(value: SymbolInfo) => {
-						const mapType: {
-							[key in keyof kindToSymMap]: (value: kindToSymMap[key]) => Result<ASTType[], SemanticError>;
-						} = {
-							class: (value: ClassSym): Result<ASTType[], SemanticError> => {
-								return ok([ASTIdentifier._(identifier.name, value.pos)]); // create a type from the name
-							},
-							enum: (value: EnumSym): Result<ASTType[], SemanticError> => {
-								return ok([ASTIdentifier._(identifier.name, value.pos)]); // create a type from the name
-							},
-							function: (value: FuncSym): Result<ASTType[], SemanticError> => {
-								// if the function has declared return types, return those
-								if (value.returnTypes) {
-									return ok(value.returnTypes);
-								}
+				const lookupResult = SymbolTable.lookup(identifier.name, symbolKinds, options).map((value: SymbolInfo) => {
+					const mapType: {
+						[key in keyof kindToSymMap]: (value: kindToSymMap[key]) => Result<ASTType[], SemanticError>;
+					} = {
+						class: (value: ClassSym): Result<ASTType[], SemanticError> => {
+							return ok([ASTIdentifier._(identifier.name, value.pos)]); // create a type from the name
+						},
+						enum: (value: EnumSym): Result<ASTType[], SemanticError> => {
+							return ok([ASTIdentifier._(identifier.name, value.pos)]); // create a type from the name
+						},
+						function: (value: FuncSym): Result<ASTType[], SemanticError> => {
+							// if the function has declared return types, return those
+							if (value.returnTypes) {
+								return ok(value.returnTypes);
+							}
 
-								// otherwise, we can't infer anything
-								return errorCouldNotInfer("this function's returns");
-							},
-							interface: (value: InterfaceSym): Result<ASTType[], SemanticError> => {
-								return ok([ASTIdentifier._(identifier.name, value.pos)]); // create a type from the name
-							},
-							parameter: (value: ParamSym): Result<ASTType[], SemanticError> => {
-								// if the parameter has a declared type, return that
-								if (value.type) {
-									return ok([value.type]);
-								}
+							// otherwise, we can't infer anything
+							return errorCouldNotInfer("this function's returns");
+						},
+						interface: (value: InterfaceSym): Result<ASTType[], SemanticError> => {
+							return ok([ASTIdentifier._(identifier.name, value.pos)]); // create a type from the name
+						},
+						parameter: (value: ParamSym): Result<ASTType[], SemanticError> => {
+							// if the parameter has a declared type, return that
+							if (value.type) {
+								return ok([value.type]);
+							}
 
-								// if the parameter has a default value, infer the type of the value
-								if (value.defaultValue) {
-									return inferPossibleASTTypesFromASTAssignable(value.defaultValue, options);
-								}
+							// if the parameter has a default value, infer the type of the value
+							if (value.defaultValue) {
+								return inferPossibleASTTypesFromASTAssignable(value.defaultValue, options);
+							}
 
-								// otherwise, we can't infer anything
-								return errorCouldNotInfer('parameter');
-							},
-							variable: (value: VarSym): Result<ASTType[], SemanticError> => {
-								// if the variable has a declared type, return that
-								if (value.type) {
-									return ok([value.type]);
-								}
+							// otherwise, we can't infer anything
+							return errorCouldNotInfer('parameter');
+						},
+						variable: (value: VarSym): Result<ASTType[], SemanticError> => {
+							// if the variable has a declared type, return that
+							if (value.type) {
+								return ok([value.type]);
+							}
 
-								// if the variable has a value, infer the type of the value
-								if (value.value) {
-									return inferPossibleASTTypesFromASTAssignable(value.value, options);
-								}
+							// if the variable has a value, infer the type of the value
+							if (value.value) {
+								return inferPossibleASTTypesFromASTAssignable(value.value, options);
+							}
 
-								// otherwise, we can't infer anything
-								return errorCouldNotInfer('variable');
-							},
-						};
+							// otherwise, we can't infer anything
+							return errorCouldNotInfer('variable');
+						},
+					};
 
-						// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-						// @ts-ignore
-						return mapType[value.kind](value);
-					},
-				);
+					// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+					// @ts-ignore
+					return mapType[value.kind](value);
+				});
 				if (!lookupResult.has()) {
 					return error(
 						new SemanticError(
@@ -328,12 +311,7 @@ export function inferPossibleASTTypesFromASTAssignable(
 							`We don't recognize the "${identifier.name}" Identifier`,
 							expr,
 							// TODO actually get the code for getErrorContext()
-							getErrorContext(
-								expr.toString(),
-								expr.pos.line,
-								expr.pos.col,
-								expr.pos.end - expr.pos.start,
-							),
+							getErrorContext(expr.toString(), expr.pos.line, expr.pos.col, expr.pos.end - expr.pos.start),
 						),
 					);
 				}
@@ -406,18 +384,12 @@ export function inferPossibleASTTypesFromASTAssignable(
 		case ASTTernaryExpression:
 			{
 				const ternaryExpr = expr as ASTTernaryExpression<AssignableASTs, AssignableASTs>;
-				const typesOfConsequentResult = inferPossibleASTTypesFromASTAssignable(
-					ternaryExpr.consequent.value,
-					options,
-				);
+				const typesOfConsequentResult = inferPossibleASTTypesFromASTAssignable(ternaryExpr.consequent.value, options);
 				if (typesOfConsequentResult.isError()) {
 					return typesOfConsequentResult;
 				}
 
-				const typesOfAlternateResult = inferPossibleASTTypesFromASTAssignable(
-					ternaryExpr.alternate.value,
-					options,
-				);
+				const typesOfAlternateResult = inferPossibleASTTypesFromASTAssignable(ternaryExpr.alternate.value, options);
 				if (typesOfAlternateResult.isError()) {
 					return typesOfAlternateResult;
 				}
@@ -435,12 +407,7 @@ export function inferPossibleASTTypesFromASTAssignable(
 							SemanticErrorCode.ThisUsedOutsideOfClass,
 							`We can't use the "this" keyword outside of a Class`,
 							expr,
-							getErrorContext(
-								expr.toString(),
-								expr.pos.line,
-								expr.pos.col,
-								expr.pos.end - expr.pos.start,
-							),
+							getErrorContext(expr.toString(), expr.pos.line, expr.pos.col, expr.pos.end - expr.pos.start),
 						),
 					);
 				}
@@ -619,10 +586,7 @@ interface MatchingReturns {
 	types: ASTType[];
 	errors: {
 		ifMissing: ResultError<AnalysisError, ASTBlockStatement>;
-		ifHasIncorrectNumberOfExpressions: (
-			expected: number,
-			actual: number,
-		) => ResultError<AnalysisError, ASTBlockStatement>;
+		ifHasIncorrectNumberOfExpressions: (expected: number, actual: number) => ResultError<AnalysisError, ASTBlockStatement>;
 	};
 }
 
@@ -649,10 +613,7 @@ export function getReturnExpressionsFromBlockStatement(
 	ast: ASTBlockStatement,
 	mustMatch: MatchingReturns,
 ): Result<AssignableASTs[], AnalysisError>;
-export function getReturnExpressionsFromBlockStatement(
-	ast: ASTBlockStatement,
-	mustMatch: undefined,
-): ResultOk<AssignableASTs[]>;
+export function getReturnExpressionsFromBlockStatement(ast: ASTBlockStatement, mustMatch: undefined): ResultOk<AssignableASTs[]>;
 export function getReturnExpressionsFromBlockStatement(
 	ast: ASTBlockStatement,
 	mustMatch: MatchingReturns | undefined,

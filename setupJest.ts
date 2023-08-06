@@ -57,10 +57,7 @@ const toMatchTokens = (tokensResult: Result<Token[]>, simplifiedVersion: SToken[
 	} catch {
 		return {
 			pass: false,
-			message: () =>
-				`they do not match. Expected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(
-					simplifiedTokens,
-				)}`,
+			message: () => `they do not match. Expected: ${JSON.stringify(simplifiedVersion)}, Got: ${JSON.stringify(simplifiedTokens)}`,
 		};
 	}
 };
@@ -84,8 +81,7 @@ const toMatchParseTree = (treeResult: Result<Node>, simplifiedVersion: SParseTre
 	// the lengths should be equal
 	if (treeNodes.length !== simplifiedVersion.length) {
 		return {
-			message: () =>
-				`expected ${treeNodes.length} nodes, ${simplifiedVersion.length} found in ${treeResult.value.type}`,
+			message: () => `expected ${treeNodes.length} nodes, ${simplifiedVersion.length} found in ${treeResult.value.type}`,
 			pass: false,
 		};
 	}
@@ -181,8 +177,7 @@ const toMatchAST = (
 
 		return {
 			pass: false,
-			message: () =>
-				`the ASTs do not match. (Plus in green is what was received, minus in red is what was expected). Diff:\n${diff}`,
+			message: () => `the ASTs do not match. (Plus in green is what was received, minus in red is what was expected). Diff:\n${diff}`,
 		};
 	}
 };
@@ -194,9 +189,7 @@ const toHaveKey = (symTab: SymTab, key: string): CustomMatcherResult => {
 	if (!symTab.symbols.has(key)) {
 		return {
 			message: () =>
-				`expected symTab ${symTab.ownerNode.name} to have key ${key}, found keys [${Array.from(
-					symTab.symbols.keys(),
-				).join(', ')}]`,
+				`expected symTab ${symTab.ownerNode.name} to have key ${key}, found keys [${Array.from(symTab.symbols.keys()).join(', ')}]`,
 			pass: false,
 		};
 	}

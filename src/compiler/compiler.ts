@@ -135,9 +135,7 @@ export class Compiler {
 		}
 	}
 
-	private handleErrorFromSemanticAnalyzer(
-		errorResult: ResultError<AnalysisError | SemanticError | SymbolError, unknown>,
-	) {
+	private handleErrorFromSemanticAnalyzer(errorResult: ResultError<AnalysisError | SemanticError | SymbolError, unknown>) {
 		if (errorResult.error instanceof AnalysisError) {
 			const error = errorResult.error;
 
@@ -291,10 +289,7 @@ export class Compiler {
 
 			return true;
 		} catch (err) {
-			console.error(
-				`%cError writing ${nameForErrorMessage} to ${filePath}: ${(err as Error).message}`,
-				'color: red',
-			);
+			console.error(`%cError writing ${nameForErrorMessage} to ${filePath}: ${(err as Error).message}`, 'color: red');
 
 			return false;
 		}
@@ -363,13 +358,7 @@ export class Compiler {
 				],
 
 				// generate executable
-				[
-					`gcc`,
-					`${this.buildDir}/${this.sourceFilenameSansExt}.o`,
-					`${process.env.PWD}/stdlib/c/io.o`,
-					`-o`,
-					executablePath,
-				],
+				[`gcc`, `${this.buildDir}/${this.sourceFilenameSansExt}.o`, `${process.env.PWD}/stdlib/c/io.o`, `-o`, executablePath],
 			];
 
 			for await (const command of commands) {
@@ -437,15 +426,7 @@ export class Compiler {
 			throw new Error('The -ll option is not supported with the -l, -p, or -a options.');
 		}
 
-		return stopAfterLex
-			? 'lex'
-			: stopAfterParse
-			? 'parse'
-			: stopAfterAnalyze
-			? 'analyze'
-			: stopAfterLLVM
-			? 'll'
-			: undefined;
+		return stopAfterLex ? 'lex' : stopAfterParse ? 'parse' : stopAfterAnalyze ? 'analyze' : stopAfterLLVM ? 'll' : undefined;
 	}
 
 	private async processOptions(): Promise<void> {
