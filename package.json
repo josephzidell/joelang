@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w &",
-  	"joec": ".bin/joec",
+    "joec": ".bin/joec",
     "lint": "tsc --noEmit && eslint --ext .ts .",
     "lint-fix": "tsc --noEmit && eslint --ext .ts . --fix",
     "prettier": "prettier --check .",
@@ -52,8 +52,8 @@
     "@babel/core": "^7.22.8",
     "@babel/preset-env": "^7.22.7",
     "@babel/preset-typescript": "^7.22.5",
+    "@jest/globals": "^29.6.1",
     "@types/fs-extra": "^11.0.1",
-    "@types/jest": "^29.5.3",
     "@types/json-diff": "^1.0.0",
     "@types/lodash": "^4.14.195",
     "@types/node": "^20.4.1",

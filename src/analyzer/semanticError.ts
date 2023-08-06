@@ -11,6 +11,21 @@ export enum SemanticErrorCode {
 	ParameterNotExpected = 'S003',
 	TypeParametersNotExpected = 'S004',
 	DuplicateIdentifier = 'S005',
+	CouldNotInferType = 'S006',
+	UnknownIdentifier = 'S007',
+	TypeArgumentsLengthMismatch = 'S008',
+	TypeArgumentNotAssignable = 'S009',
+	ArgumentNotAssignable = 'S010',
+	TypeNotAssignable = 'S011',
+	MemberExpressionObjectNotSupported = 'S012',
+	MemberExpressionNotFound = 'S013',
+	ThisIsImpossible = 'S014',
+	CallExpressionNotAFunction = 'S015',
+	ThisUsedOutsideOfClass = 'S016',
+	MemberExpressionPropertyNotFound = 'S017',
+	MemberExpressionPropertyNotSupported = 'S018',
+	/** TODO remove this */
+	Temp = 'Temp',
 }
 
 /**

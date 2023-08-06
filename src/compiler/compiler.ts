@@ -63,7 +63,7 @@ export class Compiler {
 
 		this.source.fromStdin = this.cliArgs.includes('-i');
 
-		this.isASnippet = false;
+		this.isASnippet = this.cliArgs.includes('-s');
 	}
 
 	/**
@@ -85,7 +85,7 @@ export class Compiler {
 		// continue to the parser
 		const parser = new Parser(this.source.code, this.debug);
 		const parserResult = parser.parse();
-		if (parserResult.outcome === 'error') {
+		if (parserResult.isError()) {
 			this.handleErrorFromParser(parserResult);
 
 			return false;
@@ -96,8 +96,8 @@ export class Compiler {
 		}
 
 		// continue to the semantic analyzer
-		const analyzerResult = await this.runSemanticAnalyzer(parserResult.value, parser);
-		if (analyzerResult.outcome === 'error') {
+		const analyzerResult = await this.runSemanticAnalyzer(parserResult.value, parser, this.isASnippet);
+		if (analyzerResult.isError()) {
 			this.handleErrorFromSemanticAnalyzer(analyzerResult);
 
 			return false;
@@ -106,7 +106,7 @@ export class Compiler {
 		// continue to the compiler
 		const [ast, symTree] = analyzerResult.value;
 		const compilerResult = await this.runCompiler(ast, symTree, this.source.loc);
-		if (compilerResult.outcome === 'error') {
+		if (compilerResult.isError()) {
 			this.handleErrorFromCompiler(compilerResult);
 
 			await this.afterCompiler(false);
@@ -114,7 +114,9 @@ export class Compiler {
 			return false;
 		}
 
-		await this.afterCompiler(compilerResult.outcome === 'ok');
+		if (this.stopAfterStep !== 'll') {
+			await this.afterCompiler(compilerResult.isOk());
+		}
 
 		return true;
 	}
@@ -194,7 +196,12 @@ export class Compiler {
 		}
 	}
 
-	private handleErrorFromCompiler(compilerResult: { outcome: 'error'; error: Error; data?: unknown }) {
+	/**
+	 * Displays relevant information about the error.
+	 *
+	 * @param compilerResult
+	 */
+	private handleErrorFromCompiler(compilerResult: ResultError<Error>) {
 		if (compilerResult.error instanceof CompilerError) {
 			const llvmIrError = compilerResult.error as CompilerError;
 
@@ -305,7 +312,7 @@ export class Compiler {
 			// otherwise, it will be in the data property
 			// Although usually we would return early in the case of an error, however
 			// we want to output the LLVM IR even if there is an error
-			const llvmModule = conversionResult.outcome === 'ok' ? conversionResult.value : conversionResult.data;
+			const llvmModule = conversionResult.isOk() ? conversionResult.value : conversionResult.data;
 			if (typeof llvmModule === 'undefined') {
 				return conversionResult;
 			}
@@ -326,17 +333,18 @@ export class Compiler {
 			}
 
 			// now, we return early if there was a conversion error
-			if (conversionResult.outcome === 'error') {
-				process.exit(-1);
+			if (conversionResult.isError()) {
+				return conversionResult;
 			}
 
+			// if we are only compiling to LLVM IR, then we are done
 			if (this.stopAfterStep === 'll') {
-				process.exit(0);
+				return conversionResult;
 			}
 
 			const bitcodePath = this.targetPaths.llvmBitcode();
 			const generateBitcodeFileResult = await llvmIrConverter.generateBitcode(bitcodePath);
-			if (generateBitcodeFileResult.outcome === 'error') {
+			if (generateBitcodeFileResult.isError()) {
 				return generateBitcodeFileResult;
 			}
 
@@ -552,9 +560,10 @@ export class Compiler {
 	private async runSemanticAnalyzer(
 		cst: Node,
 		parser: Parser,
+		isASnippet: boolean,
 	): Promise<Result<[ASTProgram, SymTree], AnalysisError | SemanticError | SymbolError>> {
 		const analyzer = new SemanticAnalyzer(cst, parser, this.source.loc, {
-			isASnippet: false,
+			isASnippet,
 			debug: this.debug,
 		});
 
@@ -614,8 +623,7 @@ export class Compiler {
 				}
 				break;
 			case 'error':
-				analysisResult.data = analyzer.cst;
-				return analysisResult;
+				return analysisResult.mapErrorData(() => analyzer.cst);
 				break;
 		}
 

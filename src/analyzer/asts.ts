@@ -8,6 +8,7 @@ import { NumberSize } from '../shared/numbers/sizes';
 import { determinePossibleNumberSizes } from '../shared/numbers/utils';
 import { Pos } from '../shared/pos';
 import { ok, Result } from '../shared/result';
+import { ClassSym, EnumSym, FuncSym, InterfaceSym, ParamSym, VarSym } from './symbolTable';
 
 export interface ASTThatHasJoeDoc {
 	joeDoc: ASTJoeDoc | undefined;
@@ -230,7 +231,7 @@ export class ASTCallExpression extends AST {
 			args,
 		}: {
 			callee: CallableASTs;
-			typeArgs?: ASTType[];
+			typeArgs: ASTType[];
 			args: ExpressionASTs[];
 		},
 		pos: Pos,
@@ -247,9 +248,8 @@ export class ASTCallExpression extends AST {
 	}
 
 	toString(): string {
-		const typeArgsString = this.typeArgs
-			? `<| ${this.typeArgs.map((typeArg) => typeArg.toString()).join(', ')} |>`
-			: '';
+		const typeArgsString =
+			this.typeArgs.length > 0 ? `<| ${this.typeArgs.map((typeArg) => typeArg.toString()).join(', ')} |>` : '';
 
 		return `${this.callee.toString()}${typeArgsString}(${this.args.map((arg) => arg.toString()).join(', ')})`;
 	}
@@ -258,6 +258,8 @@ export class ASTCallExpression extends AST {
 export class ASTClassDeclaration extends ASTDeclaration {
 	kind = 'ClassDeclaration';
 	implements: ASTTypeExceptPrimitive[] = [];
+	/** The ClassSym in the SymbolTable */
+	symbol: ClassSym | undefined;
 
 	// factory function
 	static _(
@@ -329,6 +331,8 @@ export class ASTDoneStatement extends AST {
 
 export class ASTEnumDeclaration extends ASTDeclaration {
 	kind = 'EnumDeclaration';
+	/** The EnumSym in the SymbolTable */
+	symbol: EnumSym | undefined;
 
 	// factory function
 	static _(
@@ -413,11 +417,13 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	kind = 'FunctionDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
-	name: ASTIdentifier | undefined = undefined;
+	name!: ASTIdentifier;
 	typeParams: ASTTypeParameter[] = [];
 	params: ASTParameter[] = [];
 	returnTypes: ASTType[] = [];
 	body: ASTBlockStatement | undefined = undefined;
+	/** The FuncSym in the SymbolTable */
+	symbol: FuncSym | undefined;
 
 	// factory function
 	static _(
@@ -432,7 +438,7 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 		}: {
 			joeDoc?: ASTJoeDoc;
 			modifiers: ASTModifier[];
-			name: ASTIdentifier | undefined;
+			name: ASTIdentifier;
 			typeParams: ASTTypeParameter[];
 			params: ASTParameter[];
 			returnTypes: ASTType[];
@@ -459,6 +465,7 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	toString(): string {
 		const modifiersString =
 			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const nameString = this.name.name.includes('.f_anon_') ? '' : this.name.toString();
 		const typeParamsString =
 			this.typeParams.length > 0
 				? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>`
@@ -470,9 +477,7 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 				? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}`
 				: '';
 
-		return `${modifiersString}f ${
-			this.name?.toString() ?? ''
-		}${typeParamsString}${paramsString}${returnTypesString}{...}`;
+		return `${modifiersString}f ${nameString}${typeParamsString}${paramsString}${returnTypesString}{...}`;
 	}
 }
 
@@ -521,12 +526,22 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 export class ASTIdentifier extends AST {
 	kind = 'Identifier';
 	name!: string;
+	/** The fully qualified name */
+	fqn!: string;
 
 	// factory function
 	static _(name: string, pos: Pos): ASTIdentifier {
 		const ast = new ASTIdentifier(pos);
 		ast.name = name;
+		ast.fqn = name; // begin with a simple copy
 		return ast;
+	}
+
+	prependParentToFqn(newParentWithTrailingDot: string) {
+		// ignore if it's empty
+		if (newParentWithTrailingDot.length > 1) {
+			this.fqn = `${newParentWithTrailingDot}${this.fqn}`;
+		}
 	}
 
 	toString(): string {
@@ -574,6 +589,8 @@ export class ASTIfStatement extends AST {
 
 export class ASTInterfaceDeclaration extends ASTDeclaration {
 	kind = 'InterfaceDeclaration';
+	/** The InterfaceSym in the SymbolTable */
+	symbol: InterfaceSym | undefined;
 
 	// factory function
 	static _(
@@ -769,7 +786,7 @@ export class ASTNumberLiteral extends AST {
 		value: string,
 		pos: Pos,
 		errFn: (value: string) => E,
-	): Result<ASTNumberLiteral> {
+	): Result<ASTNumberLiteral, E> {
 		let declaredSize: NumberSize | undefined;
 		let possibleSizes: NumberSize[] = [];
 
@@ -788,8 +805,8 @@ export class ASTNumberLiteral extends AST {
 			declaredSize = undefined;
 
 			// get the possible sizes
-			const determinePossibleNumberSizesResult = determinePossibleNumberSizes(value, errFn);
-			if (determinePossibleNumberSizesResult.outcome === 'error') {
+			const determinePossibleNumberSizesResult = determinePossibleNumberSizes<E>(value, errFn);
+			if (determinePossibleNumberSizesResult.isError()) {
 				return determinePossibleNumberSizesResult;
 			}
 
@@ -885,8 +902,10 @@ export class ASTParameter extends AST {
 	modifiers: ASTModifier[] = [];
 	isRest = false;
 	name!: ASTIdentifier;
-	declaredType!: ASTType;
+	type!: ASTType;
 	defaultValue?: AssignableASTs;
+	/** The ParamSym in the SymbolTable */
+	symbol: ParamSym | undefined;
 
 	// factory function
 	static _(
@@ -894,13 +913,13 @@ export class ASTParameter extends AST {
 			modifiers,
 			isRest,
 			name,
-			declaredType,
+			type,
 			defaultValue,
 		}: {
 			modifiers: ASTModifier[];
 			isRest: boolean;
 			name: ASTIdentifier;
-			declaredType: ASTType;
+			type: ASTType;
 			defaultValue?: AssignableASTs;
 		},
 		pos: Pos,
@@ -909,7 +928,7 @@ export class ASTParameter extends AST {
 		ast.modifiers = modifiers;
 		ast.isRest = isRest;
 		ast.name = name;
-		ast.declaredType = declaredType;
+		ast.type = type;
 
 		// only set if it's not undefined
 		if (typeof defaultValue !== 'undefined') {
@@ -923,9 +942,10 @@ export class ASTParameter extends AST {
 		const modifiersString =
 			this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const restString = this.isRest ? '...' : '';
+		const typeString = `: ${this.type.toString()}`;
 		const defaultValueString = this.defaultValue ? ` = ${this.defaultValue.toString()}` : '';
 
-		return `${modifiersString}${restString}${this.name.toString()}: ${this.declaredType.toString()}${defaultValueString}`;
+		return `${modifiersString}${restString}${this.name.toString()}${typeString}${defaultValueString}`;
 	}
 }
 
@@ -1322,6 +1342,7 @@ export class ASTTypeRange extends AST {
 }
 
 export type ASTTypeExceptPrimitive =
+	| ASTArrayOf
 	| ASTFunctionSignature
 	| ASTIdentifier
 	| ASTMemberExpression
@@ -1411,6 +1432,9 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 	/** The possible types inferred from the initial value, if any */
 	inferredPossibleTypes: ASTType[][] = [];
+
+	/** The VarSyms in the SymbolTable */
+	symbols: Array<VarSym | undefined> = [];
 
 	// factory function
 	static _(
@@ -1552,19 +1576,42 @@ export class SkipAST extends AST {
  * @param type AST type to intersect
  */
 export const astUniqueness = (type: ASTType): string => {
+	if (type.constructor === ASTArrayOf) {
+		const parentKind = (type as ASTArrayOf).kind;
+		const childKind = astUniqueness((type as ASTArrayOf).type);
+
+		return `${parentKind}<${childKind}>`;
+	}
+
+	if (type.constructor === ASTIdentifier) {
+		return (type as ASTIdentifier).name;
+	}
+
+	if (type.constructor === ASTParameter) {
+		const childKind = (type as ASTParameter).type;
+		if (typeof childKind !== 'undefined') {
+			return astUniqueness(childKind);
+		}
+
+		// unsure how to represent a default value
+		// const defaultValue = (type as ASTParameter).defaultValue;
+		// if (typeof defaultValue !== 'undefined') {
+		// 	return astUniqueness(defaultValue);
+		// }
+
+		// this will be ASTParameter, which will never match, functioning as a stop-gap
+		return (type as ASTParameter).kind;
+
+		// TODO deal with a param that has a default value but no declared type, and we're
+		// assigning an arg to it.
+	}
+
 	if (type.constructor === ASTTypeNumber) {
 		return (type as ASTTypeNumber).size;
 	}
 
 	if (type.constructor === ASTTypePrimitive) {
 		return (type as ASTTypePrimitive).type;
-	}
-
-	if (type.constructor === ASTArrayOf) {
-		const parentKind = (type as ASTArrayOf).kind;
-		const childKind = astUniqueness((type as ASTArrayOf).type);
-
-		return `${parentKind}<${childKind}>`;
 	}
 
 	return type.kind;

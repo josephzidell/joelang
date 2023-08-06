@@ -532,7 +532,7 @@ export default class Lexer {
 			currentToken = this.getToken();
 		}
 
-		if (currentToken.outcome === 'error') {
+		if (currentToken.isError()) {
 			return error(currentToken.error);
 		}
 

@@ -19,6 +19,14 @@ export abstract class Maybe<T> {
 		return !this._has;
 	}
 
+	public unwrapOr(other: T): T {
+		if (this.has()) {
+			return this.value;
+		}
+
+		return other;
+	}
+
 	public mustGetValue(): T {
 		const that = this as unknown as MaybeHas<T>;
 

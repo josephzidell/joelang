@@ -51,6 +51,7 @@ export enum AnalysisErrorCode {
 	ReturnStatementExpected = 'A044',
 	ParameterNotExpected = 'A045',
 	InvalidNumberFound = 'A046',
+	UnexpectedEndOfProgram = 'A047',
 }
 
 /**

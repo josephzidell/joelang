@@ -2,10 +2,11 @@ import { inspect } from 'util';
 import Lexer from '../lexer/lexer';
 import { Token, tokenTypesUsingSymbols } from '../lexer/types';
 import ErrorContext from '../shared/errorContext';
-import { error, ok, Result } from '../shared/result';
+import { Result, error, ok } from '../shared/result';
+import { whenResult } from '../shared/when';
 import ParserError, { ParserErrorCode } from './error';
 import { ChangeNodeType, MakeNode, MakeUnaryExpressionNode } from './node';
-import { Node, NT, validNodeTypesAsMemberObject } from './types';
+import { NT, Node, validNodeTypesAsMemberObject } from './types';
 
 type stackableToken = '[' | '(' | '{' | '<|';
 export const stackPairs = {
@@ -109,20 +110,12 @@ export default class Parser {
 	}
 
 	getErrorContext(length: number): ErrorContext {
-		switch (this.currentToken.outcome) {
-			case 'ok':
-				return new ErrorContext(
-					this.lexer.code,
-					this.currentToken.value.line,
-					this.currentToken.value.col,
-					length,
-				);
-				break;
-			case 'error':
-				// we have no information about the line or col
-				// since line and col are 1-based, we use 1
-				return new ErrorContext(this.lexer.code, 1, 1, 0);
-		}
+		return whenResult(this.currentToken, {
+			Ok: (token) => new ErrorContext(this.lexer.code, token.line, token.col, length),
+			// we have no information about the line or col
+			// since line and col are 1-based, we use 1
+			Error: () => new ErrorContext(this.lexer.code, 1, 1, 0),
+		});
 	}
 
 	public lineage(node: Node | undefined, separator = '>'): string {
@@ -152,11 +145,11 @@ export default class Parser {
 	public parse(): Result<Node> {
 		do {
 			// before going on to the next token, update this.prevToken
-			this.prevToken = this.currentToken.outcome === 'ok' ? this.currentToken.value : undefined;
+			this.prevToken = this.currentToken.isOk() ? this.currentToken.value : undefined;
 
 			// get the next token
 			this.currentToken = this.getNextToken();
-			if (this.currentToken.outcome === 'error') {
+			if (this.currentToken.isError()) {
 				return error(this.currentToken.error);
 			}
 
@@ -196,7 +189,7 @@ export default class Parser {
 							const result = this.beginExpressionWithAdoptingPreviousNode(
 								MakeNode(NT.CallExpression, token, this.currentRoot, true),
 							);
-							if (result.outcome === 'error') {
+							if (result.isError()) {
 								return result;
 							}
 
@@ -216,7 +209,7 @@ export default class Parser {
 							const result = this.beginExpressionWithAdoptingPreviousNode(
 								MakeNode(NT.CallExpression, token, this.currentRoot, true),
 							);
-							if (result.outcome === 'error') {
+							if (result.isError()) {
 								return result;
 							}
 
@@ -236,7 +229,7 @@ export default class Parser {
 								// we're in a CallExpression after the GenericTypesList
 								const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
 								let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
-								if (wasAdopted.outcome === 'error') {
+								if (wasAdopted.isError()) {
 									return error(wasAdopted.error);
 								}
 
@@ -272,7 +265,7 @@ export default class Parser {
 				}
 			} else if (token.type === 'paren_close') {
 				const stackStatus = this.popStack('(');
-				if (stackStatus.outcome === 'error') {
+				if (stackStatus.isError()) {
 					return error(stackStatus.error);
 				}
 
@@ -373,7 +366,7 @@ export default class Parser {
 				}
 			} else if (token.type === 'brace_close') {
 				const stackStatus = this.popStack('{');
-				if (stackStatus.outcome === 'error') {
+				if (stackStatus.isError()) {
 					return error(stackStatus.error);
 				}
 
@@ -386,7 +379,6 @@ export default class Parser {
 					NT.MemberListExpression,
 					NT.PostfixIfStatement,
 					NT.PrintStatement,
-					NT.Property,
 					NT.RangeExpression,
 					NT.RegularExpression,
 					NT.ReturnStatement,
@@ -436,7 +428,7 @@ export default class Parser {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.ArrayOf, token, this.currentRoot, true),
 						);
-						if (result.outcome === 'error') {
+						if (result.isError()) {
 							return result;
 						}
 
@@ -453,7 +445,7 @@ export default class Parser {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.MemberListExpression, token, this.currentRoot, true),
 						);
-						if (result.outcome === 'error') {
+						if (result.isError()) {
 							return result;
 						}
 
@@ -464,7 +456,7 @@ export default class Parser {
 				}
 			} else if (token.type === 'bracket_close') {
 				const stackStatus = this.popStack('[');
-				if (stackStatus.outcome === 'error') {
+				if (stackStatus.isError()) {
 					return error(stackStatus.error);
 				}
 
@@ -662,7 +654,7 @@ export default class Parser {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.AssigneesList, token, this.currentRoot, true),
 						);
-						if (result.outcome === 'error') {
+						if (result.isError()) {
 							return result;
 						}
 					}
@@ -672,7 +664,7 @@ export default class Parser {
 						const result = this.beginExpressionWithAdoptingCurrentRoot(
 							MakeNode(NT.AssignmentExpression, token, this.currentRoot, true),
 						);
-						if (result.outcome === 'error') {
+						if (result.isError()) {
 							return result;
 						}
 					}
@@ -712,7 +704,7 @@ export default class Parser {
 			} else if (token.type === 'plus') {
 				this.endExpressionIfIn(NT.UnaryExpression);
 				const result = this.handleBinaryExpression(token);
-				if (result.outcome === 'error') {
+				if (result.isError()) {
 					return result;
 				}
 			} else if (token.type === 'minus') {
@@ -726,7 +718,7 @@ export default class Parser {
 				) {
 					this.endExpressionIfIn(NT.UnaryExpression);
 					const result = this.handleBinaryExpression(token);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				} else {
@@ -742,7 +734,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeUnaryExpressionNode(token, false, this.currentRoot),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				} else {
@@ -751,24 +743,24 @@ export default class Parser {
 				}
 			} else if (token.type === 'asterisk') {
 				const result = this.handleBinaryExpression(token);
-				if (result.outcome === 'error') {
+				if (result.isError()) {
 					return result;
 				}
 			} else if (token.type === 'forward_slash') {
 				const result = this.handleBinaryExpression(token);
-				if (result.outcome === 'error') {
+				if (result.isError()) {
 					return result;
 				}
 			} else if (token.type === 'mod') {
 				const result = this.handleBinaryExpression(token);
-				if (result.outcome === 'error') {
+				if (result.isError()) {
 					return result;
 				}
 			} else if (token.type === 'exponent') {
 				const result = this.beginExpressionWithAdoptingPreviousNode(
 					MakeNode(NT.BinaryExpression, token, this.currentRoot),
 				);
-				if (result.outcome === 'error') {
+				if (result.isError()) {
 					return result;
 				}
 			} else if (token.type === 'semicolon') {
@@ -812,7 +804,7 @@ export default class Parser {
 							true,
 						);
 						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
-						if (wasAdopted.outcome === 'error') {
+						if (wasAdopted.isError()) {
 							return error(wasAdopted.error);
 						}
 
@@ -837,7 +829,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.MemberExpression, token, this.currentRoot, true),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				}
@@ -860,7 +852,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.Property, token, this.currentRoot, true),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				} else if (this.currentRoot.type === NT.ObjectShape && this.prev()[1] === NT.Identifier) {
@@ -868,7 +860,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.PropertyShape, token, this.currentRoot, true),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				} else {
@@ -879,7 +871,7 @@ export default class Parser {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.Property, token, this.currentRoot, true),
 						);
-						if (result.outcome === 'error') {
+						if (result.isError()) {
 							return result;
 						}
 					} else {
@@ -957,7 +949,7 @@ export default class Parser {
 					this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
 				} else {
 					const result = this.handleBinaryExpression(token);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				}
@@ -993,7 +985,7 @@ export default class Parser {
 				const result = this.beginExpressionWithAdoptingPreviousNode(
 					MakeNode(NT.RangeExpression, token, this.currentRoot, true),
 				);
-				if (result.outcome === 'error') {
+				if (result.isError()) {
 					return result;
 				}
 			} else if (token.type === 'triangle_open') {
@@ -1044,7 +1036,7 @@ export default class Parser {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
 							MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true),
 						);
-						if (result.outcome === 'error') {
+						if (result.isError()) {
 							return result;
 						}
 					}
@@ -1053,7 +1045,7 @@ export default class Parser {
 				}
 			} else if (token.type === 'triangle_close') {
 				const stackStatus = this.popStack('<|');
-				if (stackStatus.outcome === 'error') {
+				if (stackStatus.isError()) {
 					return error(stackStatus.error);
 				}
 
@@ -1084,7 +1076,7 @@ export default class Parser {
 							true,
 						);
 						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
-						if (wasAdopted.outcome === 'error') {
+						if (wasAdopted.isError()) {
 							return error(wasAdopted.error);
 						}
 
@@ -1140,7 +1132,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.BinaryExpression, token, this.currentRoot),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
@@ -1148,7 +1140,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingCurrentRoot(
 						MakeNode(NT.BinaryExpression, token, this.currentRoot),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
@@ -1178,7 +1170,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.BinaryExpression, token, this.currentRoot),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				}
@@ -1225,7 +1217,7 @@ export default class Parser {
 								'ClassDeclaration',
 							);
 
-							if (classDeclaration.outcome === 'error') {
+							if (classDeclaration.isError()) {
 								return classDeclaration;
 							}
 
@@ -1299,7 +1291,7 @@ export default class Parser {
 								'EnumDeclaration',
 							);
 
-							if (enumDeclaration.outcome === 'error') {
+							if (enumDeclaration.isError()) {
 								return enumDeclaration;
 							}
 
@@ -1395,7 +1387,7 @@ export default class Parser {
 								const result = this.beginExpressionWithAdoptingPreviousNode(
 									MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true),
 								);
-								if (result.outcome === 'error') {
+								if (result.isError()) {
 									return result;
 								}
 							} else {
@@ -1475,7 +1467,7 @@ export default class Parser {
 							);
 							const result = this.adoptPrecedingJoeDocIfPresent(interfaceNode);
 							// do NOT return for ok bec if you do, it will exit the loop
-							if (result.outcome === 'error') {
+							if (result.isError()) {
 								return result;
 							}
 						}
@@ -1491,7 +1483,7 @@ export default class Parser {
 							const result = this.beginExpressionWithAdoptingPreviousNode(
 								MakeNode(NT.BinaryExpression, token, this.currentRoot),
 							);
-							if (result.outcome === 'error') {
+							if (result.isError()) {
 								return result;
 							}
 						}
@@ -1526,7 +1518,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.TernaryExpression, token, this.currentRoot, true),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				}
@@ -1535,7 +1527,7 @@ export default class Parser {
 					const result = this.beginExpressionWithAdoptingPreviousNode(
 						MakeNode(NT.TernaryCondition, token, this.currentRoot, true),
 					);
-					if (result.outcome === 'error') {
+					if (result.isError()) {
 						return result;
 					}
 				}
@@ -1552,7 +1544,7 @@ export default class Parser {
 					),
 				);
 			}
-		} while (this.currentToken.outcome === 'ok');
+		} while (this.currentToken.isOk());
 
 		if (this.debug) {
 			console.debug(`Parser: ${inspect(this.root, { showHidden: true, depth: null })}`);
@@ -1585,7 +1577,7 @@ export default class Parser {
 		);
 	}
 
-	private parseClassOrEnumDeclaration(token: Token, nodeType: NT, name: string): Result<Node, Error, unknown> {
+	private parseClassOrEnumDeclaration(token: Token, nodeType: NT, name: string): Result<Node> {
 		// the Declaration may have already started with some Modifier(s)
 		let declarationNode: Result<Node>;
 		if (this.currentRoot.type === NT.ModifiersList) {

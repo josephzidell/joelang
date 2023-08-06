@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { standardizeLineEndings } from './util';
 
 describe('utils.ts', (): void => {

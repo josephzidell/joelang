@@ -1,4 +1,5 @@
 // import assert from 'node:assert/strict';
+import { describe, it } from '@jest/globals';
 import '../../setupJest'; // for the types
 import { numberSizesInts } from '../shared/numbers/sizes';
 import { mockPos } from '../shared/pos';
@@ -54,7 +55,7 @@ describe('symbolTable', () => {
 							identifiersList: [ASTIdentifier._('foo', mockPos)],
 							declaredTypes: [ASTTypeNumber._('int16', mockPos)],
 							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-							inferredPossibleTypes: [[]],
+							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
 						},
 						mockPos,
 					),

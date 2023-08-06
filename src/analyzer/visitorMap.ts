@@ -1,165 +1,96 @@
 import { Node, NT, UnaryExpressionNode } from '../parser/types';
 import { Result } from '../shared/result';
+import { AST } from './asts';
 import AnalysisError from './error';
 import SemanticAnalyzer from './semanticAnalyzer';
+import SemanticError from './semanticError';
+import SymbolError from './symbolError';
 
-export type visitor = <T>(node: Node, analyzer: SemanticAnalyzer) => Result<T, AnalysisError>;
+export type visitor = (
+	node: Node,
+	analyzer: SemanticAnalyzer,
+) => Result<AST | AST[], AnalysisError | SemanticError | SymbolError>;
 
 const visitorMap: Record<NT, visitor> = {
-	[NT.ArgumentsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitArgumentList(node) as Result<T, AnalysisError>,
-	[NT.ArrayExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitArrayExpression(node) as Result<T, AnalysisError>,
-	[NT.ArrayOf]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitArrayOf(node) as Result<T, AnalysisError>,
-	[NT.AssignablesList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitAssignablesList(node) as Result<T, AnalysisError>,
-	[NT.AssigneesList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitAssigneesList(node) as Result<T, AnalysisError>,
-	[NT.AssignmentExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitAssignmentExpression(node) as Result<T, AnalysisError>,
-	[NT.AssignmentOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.BinaryExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitBinaryExpression(node) as Result<T, AnalysisError>,
-	[NT.BlockStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitBlockStatement(node) as Result<T, AnalysisError>,
-	[NT.BoolLiteral]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitBoolLiteral(node) as Result<T, AnalysisError>,
-	[NT.CallExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitCallExpression(node) as Result<T, AnalysisError>,
-	[NT.ClassDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitClassDeclaration(node) as Result<T, AnalysisError>,
-	[NT.ClassImplement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T, AnalysisError>,
-	[NT.ClassImplementsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitClassImplementsList(node) as Result<T, AnalysisError>,
-	[NT.ColonSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.CommaSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.Comment]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.DoneStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitDoneStatement(node) as Result<T, AnalysisError>,
-	[NT.ElseStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitElseStatement(node) as Result<T, AnalysisError>,
-	[NT.EnumDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitEnumDeclaration(node) as Result<T, AnalysisError>,
-	[NT.Extension]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitDeclarationExtendsOrImplements(node) as Result<T, AnalysisError>,
-	[NT.ExtensionsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitExtensionsList(node) as Result<T, AnalysisError>,
-	[NT.ForStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitForStatement(node) as Result<T, AnalysisError>,
-	[NT.FromKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.FunctionDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitFunctionDeclaration(node) as Result<T, AnalysisError>,
-	[NT.FunctionReturns]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitFunctionReturns(node) as Result<T, AnalysisError>,
-	[NT.FunctionSignature]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitFunctionSignature(node) as Result<T, AnalysisError>,
-	[NT.Identifier]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitIdentifier(node) as Result<T, AnalysisError>,
-	[NT.IfStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitIfStatement(node) as Result<T, AnalysisError>,
-	[NT.InKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.InterfaceDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitInterfaceDeclaration(node) as Result<T, AnalysisError>,
-	[NT.JoeDoc]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitJoeDoc(node) as Result<T, AnalysisError>,
-	[NT.LoopStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitLoopStatement(node) as Result<T, AnalysisError>,
-	[NT.MemberExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitMemberExpression(node) as Result<T, AnalysisError>,
-	[NT.MemberList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitMemberList(node) as Result<T, AnalysisError>,
-	[NT.MemberListExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitMemberListExpression(node) as Result<T, AnalysisError>,
-	[NT.Modifier]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitModifier(node) as Result<T, AnalysisError>,
-	[NT.ModifiersList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitModifiersList(node) as Result<T, AnalysisError>,
-	[NT.NextStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitNextStatement(node) as Result<T, AnalysisError>,
-	[NT.NumberLiteral]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitNumberLiteral(node) as Result<T, AnalysisError>,
-	[NT.ObjectExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitObjectExpression(node) as Result<T, AnalysisError>,
-	[NT.ObjectShape]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitObjectShape(node) as Result<T, AnalysisError>,
-	[NT.Parameter]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitParameter(node) as Result<T, AnalysisError>,
-	[NT.ParametersList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitParametersList(node) as Result<T, AnalysisError>,
-	[NT.Parenthesized]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitParenthesized(node) as Result<T, AnalysisError>,
-	[NT.Path]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitPath(node) as Result<T, AnalysisError>,
-	[NT.PostfixIfStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitPostfixIfStatement(node) as Result<T, AnalysisError>,
-	[NT.PrintStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitPrintStatement(node) as Result<T, AnalysisError>,
-	[NT.Program]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitProgram(node) as Result<T, AnalysisError>,
-	[NT.Property]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitProperty(node) as Result<T, AnalysisError>,
-	[NT.PropertyShape]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitPropertyShape(node) as Result<T, AnalysisError>,
-	[NT.RangeExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitRangeExpression(node) as Result<T, AnalysisError>,
-	[NT.RegularExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitRegularExpression(node) as Result<T, AnalysisError>,
-	[NT.RestElement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitRestElement(node) as Result<T, AnalysisError>,
-	[NT.ReturnStatement]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitReturnStatement(node) as Result<T, AnalysisError>,
-	[NT.RightArrowOperator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.SemicolonSeparator]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.noop(node) as Result<T, AnalysisError>,
-	[NT.StringLiteral]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitStringLiteral(node) as Result<T, AnalysisError>,
-	[NT.TernaryAlternate]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTernaryAlternate(node) as Result<T, AnalysisError>,
-	[NT.TernaryCondition]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTernaryCondition(node) as Result<T, AnalysisError>,
-	[NT.TernaryConsequent]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTernaryConsequent(node) as Result<T, AnalysisError>,
-	[NT.TernaryExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTernaryExpression(node) as Result<T, AnalysisError>,
-	[NT.ThisKeyword]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitThisKeyword(node) as Result<T, AnalysisError>,
-	[NT.TupleExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTupleExpression(node) as Result<T, AnalysisError>,
-	[NT.TupleShape]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTupleShape(node) as Result<T, AnalysisError>,
-	[NT.Type]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitType(node) as Result<T, AnalysisError>,
-	[NT.TypeArgumentsList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTypeArgumentsList(node) as Result<T, AnalysisError>,
-	[NT.TypeInstantiationExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTypeInstantiationExpression(node) as Result<T, AnalysisError>,
-	[NT.TypeParameter]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTypeParameter(node) as Result<T, AnalysisError>,
-	[NT.TypeParametersList]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitTypeParametersList(node) as Result<T, AnalysisError>,
-	[NT.UnaryExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitUnaryExpression(node as UnaryExpressionNode) as Result<T, AnalysisError>,
-	[NT.UseDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitUseDeclaration(node) as Result<T, AnalysisError>,
-	[NT.VariableDeclaration]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitVariableDeclaration(node) as Result<T, AnalysisError>,
-	[NT.WhenCase]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitWhenCase(node) as Result<T, AnalysisError>,
-	[NT.WhenCaseConsequent]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitWhenCaseConsequent(node) as Result<T, AnalysisError>,
-	[NT.WhenCaseValues]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitWhenCaseValues(node) as Result<T, AnalysisError>,
-	[NT.WhenExpression]: <T>(node: Node, analyzer: SemanticAnalyzer): Result<T, AnalysisError> =>
-		analyzer.visitWhenExpression(node) as Result<T, AnalysisError>,
+	[NT.ArgumentsList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitArgumentList(node),
+	[NT.ArrayExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitArrayExpression(node),
+	[NT.ArrayOf]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitArrayOf(node),
+	[NT.AssignablesList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitAssignablesList(node),
+	[NT.AssigneesList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitAssigneesList(node),
+	[NT.AssignmentExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitAssignmentExpression(node),
+	[NT.AssignmentOperator]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.BinaryExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitBinaryExpression(node),
+	[NT.BlockStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitBlockStatement(node),
+	[NT.BoolLiteral]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitBoolLiteral(node),
+	[NT.CallExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitCallExpression(node),
+	[NT.ClassDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitClassDeclaration(node),
+	[NT.ClassImplement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitDeclarationExtendsOrImplements(node),
+	[NT.ClassImplementsList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitClassImplementsList(node),
+	[NT.ColonSeparator]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.CommaSeparator]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.Comment]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.DoneStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitDoneStatement(node),
+	[NT.ElseStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitElseStatement(node),
+	[NT.EnumDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitEnumDeclaration(node),
+	[NT.Extension]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitDeclarationExtendsOrImplements(node),
+	[NT.ExtensionsList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitExtensionsList(node),
+	[NT.ForStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitForStatement(node),
+	[NT.FromKeyword]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.FunctionDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitFunctionDeclaration(node),
+	[NT.FunctionReturns]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitFunctionReturns(node),
+	[NT.FunctionSignature]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitFunctionSignature(node),
+	[NT.Identifier]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitIdentifier(node),
+	[NT.IfStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitIfStatement(node),
+	[NT.InKeyword]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.InterfaceDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitInterfaceDeclaration(node),
+	[NT.JoeDoc]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitJoeDoc(node),
+	[NT.LoopStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitLoopStatement(node),
+	[NT.MemberExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitMemberExpression(node),
+	[NT.MemberList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitMemberList(node),
+	[NT.MemberListExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitMemberListExpression(node),
+	[NT.Modifier]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitModifier(node),
+	[NT.ModifiersList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitModifiersList(node),
+	[NT.NextStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitNextStatement(node),
+	[NT.NumberLiteral]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitNumberLiteral(node),
+	[NT.ObjectExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitObjectExpression(node),
+	[NT.ObjectShape]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitObjectShape(node),
+	[NT.Parameter]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitParameter(node),
+	[NT.ParametersList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitParametersList(node),
+	[NT.Parenthesized]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitParenthesized(node),
+	[NT.Path]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitPath(node),
+	[NT.PostfixIfStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitPostfixIfStatement(node),
+	[NT.PrintStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitPrintStatement(node),
+	[NT.Program]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitProgram(node),
+	[NT.Property]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitProperty(node),
+	[NT.PropertyShape]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitPropertyShape(node),
+	[NT.RangeExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitRangeExpression(node),
+	[NT.RegularExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitRegularExpression(node),
+	[NT.RestElement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitRestElement(node),
+	[NT.ReturnStatement]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitReturnStatement(node),
+	[NT.RightArrowOperator]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.SemicolonSeparator]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.noop(node),
+	[NT.StringLiteral]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitStringLiteral(node),
+	[NT.TernaryAlternate]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTernaryAlternate(node),
+	[NT.TernaryCondition]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTernaryCondition(node),
+	[NT.TernaryConsequent]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTernaryConsequent(node),
+	[NT.TernaryExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTernaryExpression(node),
+	[NT.ThisKeyword]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitThisKeyword(node),
+	[NT.TupleExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTupleExpression(node),
+	[NT.TupleShape]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTupleShape(node),
+	[NT.Type]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitType(node),
+	[NT.TypeArgumentsList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeArgumentsList(node),
+	[NT.TypeInstantiationExpression]: (node: Node, analyzer: SemanticAnalyzer) =>
+		analyzer.visitTypeInstantiationExpression(node),
+	[NT.TypeParameter]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeParameter(node),
+	[NT.TypeParametersList]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitTypeParametersList(node),
+	[NT.UnaryExpression]: (node: Node, analyzer: SemanticAnalyzer) =>
+		analyzer.visitUnaryExpression(node as UnaryExpressionNode),
+	[NT.UseDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitUseDeclaration(node),
+	[NT.VariableDeclaration]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitVariableDeclaration(node),
+	[NT.WhenCase]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitWhenCase(node),
+	[NT.WhenCaseConsequent]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitWhenCaseConsequent(node),
+	[NT.WhenCaseValues]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitWhenCaseValues(node),
+	[NT.WhenExpression]: (node: Node, analyzer: SemanticAnalyzer) => analyzer.visitWhenExpression(node),
 };
 
 export default visitorMap;

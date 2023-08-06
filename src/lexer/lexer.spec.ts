@@ -1,7 +1,9 @@
+import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
-import { Result } from '../shared/result';
+import '../../setupJest';
+import { ResultOk } from '../shared/result';
 import LexerError from './error';
-import { keywords, Token, TokenType, tokenTypesUsingSymbols, declarableTypes } from './types';
+import { Token, TokenType, declarableTypes, keywords, tokenTypesUsingSymbols } from './types';
 import { lex } from './util';
 
 const unicodeIdentifiers = [
@@ -209,17 +211,16 @@ describe('lexer.ts', (): void => {
 	describe('line and col counts', (): void => {
 		it('works as it should', (): void => {
 			// this uses toStrictEqual() rather than toMatchTokens() in order to check the counts
-			expect(lex(" foo ? \n''\n   23^e5")).toStrictEqual({
-				outcome: 'ok',
-				value: [
+			expect(lex(" foo ? \n''\n   23^e5")).toStrictEqual(
+				new ResultOk<Token[]>([
 					{ type: 'identifier', start: 1, end: 4, value: 'foo', line: 1, col: 2 },
 					{ type: 'question', start: 5, end: 6, value: '?', line: 1, col: 6 },
 					{ type: 'string', start: 8, end: 10, value: '', line: 2, col: 1 },
 					{ type: 'number', start: 14, end: 16, value: '23', line: 3, col: 4 },
 					{ type: 'exponent', start: 16, end: 18, value: '^e', line: 3, col: 6 },
 					{ type: 'number', start: 18, end: 19, value: '5', line: 3, col: 8 },
-				],
-			} satisfies Result<Token[]>);
+				]),
+			);
 		});
 	});
 
@@ -953,7 +954,7 @@ describe('lexer.ts', (): void => {
 			const result = lex('51_foo32');
 
 			// assert
-			assert(result.outcome === 'error');
+			assert(result.isError());
 			const error = result.error as LexerError;
 			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
 1 | 51_foo32
@@ -966,7 +967,7 @@ describe('lexer.ts', (): void => {
 			const result = lex('f main {print "Hello}');
 
 			// assert
-			assert(result.outcome === 'error');
+			assert(result.isError());
 			const error = result.error as LexerError;
 			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
 1 | f main {print "Hello}

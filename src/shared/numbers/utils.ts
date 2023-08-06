@@ -24,7 +24,7 @@ export const getLowestBitCountOf = (
 export const determinePossibleNumberSizes = <E extends Error>(
 	value: string,
 	errFn: (value: string) => E,
-): Result<NumberSize[]> => {
+): Result<NumberSize[], E> => {
 	// remove underscores
 	value = value.replace(/_/g, '');
 
@@ -45,7 +45,7 @@ export const determinePossibleNumberSizes = <E extends Error>(
 			return ok(possibleSizes);
 		}
 
-		return error(new Error(`Invalid decimal: ${value}`));
+		return error(errFn(value));
 	}
 
 	const num = parseInt(value);

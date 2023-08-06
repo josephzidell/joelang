@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { execFile, execSync } from 'child_process';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
@@ -12,7 +13,7 @@ function getSubdirectories(dirPath: string): string[] {
 
 // Iterate over all subdirectories within the `tests/` directory
 
-const testDirectories = getSubdirectories(join(__dirname, '..', '..', 'test'));
+const testDirectories = getSubdirectories(join(__dirname, '.'));
 
 it('Test case: 1', () => {
 	expect(testDirectories.length).toBeGreaterThanOrEqual(1);

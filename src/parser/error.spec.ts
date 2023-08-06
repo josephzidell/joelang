@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
 import ParserError from './error';
 import { parse } from './util';
@@ -8,7 +9,7 @@ describe('parser/error.ts', (): void => {
 		const result = parse('else');
 
 		// assert
-		assert(result.outcome === 'error');
+		assert(result.isError());
 		const error = result.error as ParserError;
 		expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
 1 | else

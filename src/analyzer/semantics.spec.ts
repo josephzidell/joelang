@@ -1,3 +1,4 @@
+import { describe, it } from '@jest/globals';
 import { testAnalyzeExpectingSemanticError } from '../parser/util';
 import { SemanticErrorCode } from './semanticError';
 
@@ -24,7 +25,10 @@ describe('semantics.spec.ts', (): void => {
 		});
 
 		it('should return an error if main() has a return type', (): void => {
-			testAnalyzeExpectingSemanticError('f main() -> int32 {}', SemanticErrorCode.ReturnTypeNotExpected);
+			testAnalyzeExpectingSemanticError(
+				'f main() -> int32 { return 0; }',
+				SemanticErrorCode.ReturnTypeNotExpected,
+			);
 		});
 	});
 });

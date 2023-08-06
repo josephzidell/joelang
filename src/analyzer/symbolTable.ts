@@ -5,19 +5,47 @@ import ErrorContext from '../shared/errorContext';
 import { Maybe, has, hasNot } from '../shared/maybe';
 import { Pos } from '../shared/pos';
 import { Result, error, ok } from '../shared/result';
-import { ASTType, ASTTypePrimitiveString, AssignableASTs } from './asts';
+import {
+	ASTParameter,
+	ASTType,
+	ASTTypeExceptPrimitive,
+	ASTTypeParameter,
+	ASTTypePrimitiveString,
+	AssignableASTs,
+} from './asts';
 import SymbolError, { SymbolErrorCode } from './symbolError';
 
 interface Sym {
 	pos: Pos;
 }
 
+export type ClassSym = {
+	kind: 'class';
+	typeParams: ASTType[];
+	_extends: ASTTypeExceptPrimitive[];
+	_implements: ASTTypeExceptPrimitive[];
+	struct: llvm.StructType | undefined;
+} & Sym;
+
+export type EnumSym = {
+	kind: 'enum';
+	typeParams: ASTType[];
+	_extends: ASTTypeExceptPrimitive[];
+} & Sym;
+
 export type FuncSym = {
 	kind: 'function';
 	typeParams: ASTType[];
-	params: ASTType[];
+	params: ASTParameter[];
 	returnTypes: ASTType[];
 	llvmFunction?: llvm.Function;
+} & Sym;
+
+export type InterfaceSym = {
+	kind: 'interface';
+	typeParams: ASTType[];
+	_extends: ASTTypeExceptPrimitive[];
+	struct: llvm.StructType | undefined;
 } & Sym;
 
 export type ParamSym = {
@@ -31,17 +59,32 @@ export type ParamSym = {
 export type VarSym = {
 	kind: 'variable';
 	mutable: boolean;
-	declaredType?: ASTType;
+	type: ASTType;
 	value?: AssignableASTs;
 	allocaInst?: llvm.AllocaInst;
 } & Sym;
 
-type SymbolInfo = FuncSym | ParamSym | VarSym;
-type SymbolKind = Get<SymbolInfo, 'kind'>;
+export type SymbolInfo = ClassSym | EnumSym | FuncSym | InterfaceSym | ParamSym | VarSym;
+export type SymbolKind = Get<SymbolInfo, 'kind'>;
+export type SymNodeKind = SymbolKind | 'global'; // TODO add packages
+export const symbolKinds: SymbolKind[] = ['class', 'enum', 'function', 'interface', 'parameter', 'variable'];
+
+/** map each type to ClassSym, FuncSym, etc. */
+export type kindToSymMap = {
+	class: ClassSym;
+	enum: EnumSym;
+	function: FuncSym;
+	interface: InterfaceSym;
+	parameter: ParamSym;
+	variable: VarSym;
+};
 
 export class SymNode {
 	// each node needs a name; root is 'global'
 	public name: string;
+
+	public kind: SymNodeKind;
+
 	public readonly table: SymTab;
 
 	/** Child nodes */
@@ -56,20 +99,21 @@ export class SymNode {
 		return this._parent;
 	}
 
-	constructor(name: string, parent: Maybe<SymNode>, pos: Pos, options: Options) {
+	constructor(name: string, kind: SymNodeKind, parent: Maybe<SymNode>, pos: Pos, options: Options) {
 		this.name = name;
-		this.table = new SymTab(this, options);
+		this.kind = kind;
+		this.table = new SymTab(this, name, options);
 		this._parent = parent;
 		this.pos = pos;
 		this.debug = options.debug;
 	}
 
-	public createChild(name: string, pos: Pos) {
+	public createChild(name: string, kind: SymNodeKind, pos: Pos) {
 		if (this.debug) {
-			console.log(`SymNode: Creating child ${name}`);
+			console.log(`SymNode: Creating child ${kind} ${name}`);
 		}
 
-		const newNode = new SymNode(name, has(this), pos, { debug: this.debug });
+		const newNode = new SymNode(name, kind, has(this), pos, { debug: this.debug });
 		this.children[name] = newNode;
 
 		return newNode;
@@ -84,6 +128,27 @@ export class SymNode {
 			},
 			{ depth: null },
 		);
+	}
+
+	/**
+	 * Tries to get a symbol from this specific table, but does not recurse up the tree.
+	 *
+	 * This is called by SymbolTable.lookup(), which does recurse up the tree.
+	 *
+	 * @param name
+	 * @param kinds
+	 * @param options
+	 */
+	// these are like usages, which specify the return type symbol when we know for sure what it is
+	public get(name: string, kinds: ['class']): Maybe<ClassSym>;
+	public get(name: string, kinds: ['enum']): Maybe<EnumSym>;
+	public get(name: string, kinds: ['function']): Maybe<FuncSym>;
+	public get(name: string, kinds: ['interface']): Maybe<InterfaceSym>;
+	public get(name: string, kinds: ['parameter']): Maybe<ParamSym>;
+	public get(name: string, kinds: ['variable']): Maybe<VarSym>;
+	public get(name: string, kinds: SymbolKind[]): Maybe<SymbolInfo>;
+	public get(name: string, kinds: SymbolKind[]): Maybe<SymbolInfo> {
+		return this.table.contains(name, kinds);
 	}
 }
 
@@ -107,7 +172,8 @@ export class SymTree {
 		if (this.debug) {
 			console.log(`SymTree: Beginning with root node ${rootNodeName}`);
 		}
-		this.root = new SymNode(rootNodeName, hasNot(), pos, options);
+		// TODO change global kind to package
+		this.root = new SymNode(rootNodeName, 'global', hasNot(), pos, options);
 
 		this.currentNode = this.root;
 
@@ -116,7 +182,8 @@ export class SymTree {
 	}
 
 	private getStdlibSymNode(pos: Pos, options: Options): SymNode {
-		const symNode = new SymNode('stdlib', hasNot(), pos, options);
+		// TODO change global kind to package
+		const symNode = new SymNode('stdlib', 'global', hasNot(), pos, options);
 
 		const readStrFunctionSymbol: FuncSym = {
 			kind: 'function',
@@ -136,12 +203,12 @@ export class SymTree {
 		return this.currentNode;
 	}
 
-	public createNewSymNodeAndEnter(name: string, pos: Pos): SymNode {
+	public createNewSymNodeAndEnter(name: string, kind: SymNodeKind, pos: Pos): SymNode {
 		if (this.debug) {
-			console.log(`SymTree: Creating new SymNode ${name}`);
+			console.log(`SymTree: Creating new ${kind} SymNode ${name}`);
 		}
 
-		const newNode = this.currentNode.createChild(name, pos);
+		const newNode = this.currentNode.createChild(name, kind, pos);
 
 		this.currentNode = newNode;
 
@@ -153,13 +220,17 @@ export class SymTree {
 		return what(this.currentNode.table, this.currentNode, this, this.stdlib);
 	}
 
-	/** Enters a child's SymNode */
+	/** Enters a child's SymNode using the FQN */
 	public enter(name: string): Result<SymNode, SymbolError> {
+		if (this.debug) {
+			console.log(`SymTree: Entering SymNode ${name}`);
+		}
+
 		if (!(name in this.currentNode.children)) {
 			return error(
 				new SymbolError(
 					SymbolErrorCode.SymNodeNotFound,
-					`Cannot find child SymNode ${name}`,
+					`SymNode: Cannot find ${name} in ${this.currentNode.name}`,
 					this.currentNode,
 					this.getErrorContext(this.currentNode.pos),
 				),
@@ -173,6 +244,14 @@ export class SymTree {
 
 	/** Exits the current SymNode and traverses to its parent. */
 	public exit(): Result<SymNode, SymbolError> {
+		if (this.debug) {
+			console.log(
+				`SymTree: Exiting SymNode ${this.currentNode.name} to ${
+					this.currentNode.parent.has() ? this.currentNode.parent.value.name : '<no parent>'
+				}`,
+			);
+		}
+
 		if (!this.currentNode.parent.has()) {
 			return error(
 				new SymbolError(
@@ -181,14 +260,6 @@ export class SymTree {
 					this.currentNode,
 					this.getErrorContext(this.currentNode.pos),
 				),
-			);
-		}
-
-		if (this.debug) {
-			console.log(
-				`SymTree: Exiting SymNode ${this.currentNode.name} to ${
-					this.currentNode.parent.has() ? this.currentNode.parent.value.name : '<no parent>'
-				}`,
 			);
 		}
 
@@ -224,7 +295,7 @@ export class SymTree {
 		}
 	}
 
-	public getCurrentOrParentNode(useParent: boolean): Result<SymNode> {
+	public getCurrentOrParentNode(useParent: boolean): Result<SymNode, SymbolError> {
 		if (useParent) {
 			if (!this.currentNode.parent.has()) {
 				return error(
@@ -264,6 +335,87 @@ export class SymbolTable {
 	}
 
 	/**
+	 * Defines a class symbol
+	 *
+	 * @param name Class name
+	 * @param typeParams Type parameters
+	 * @param _extends Parent Classes
+	 * @param _implements Interfaces
+	 */
+	public static insertClass(
+		name: string,
+		typeParams: ASTType[],
+		_extends: ASTTypeExceptPrimitive[],
+		_implements: ASTTypeExceptPrimitive[],
+		pos: Pos,
+	): Result<ClassSym, SymbolError> {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			if (symTab.containsOfAnyType(name)) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.DuplicateIdentifier,
+						`Symbol: insertClass: There already is an item named ${name} in the Symbol Table`,
+						symNode,
+						SymbolTable.getErrorContext(pos),
+					),
+				);
+			}
+
+			const classSymbol: ClassSym = {
+				kind: 'class',
+				typeParams,
+				_extends,
+				_implements,
+				struct: undefined,
+				pos,
+			};
+
+			symTab.symbols.set(name, classSymbol);
+
+			return ok(classSymbol);
+		});
+	}
+
+	/**
+	 * Defines an enum symbol
+	 *
+	 * @param name Enum name
+	 * @param typeParams Type parameters
+	 * @param _extends Parent Enums
+	 */
+	public static insertEnum(
+		name: string,
+		typeParams: ASTType[],
+		_extends: ASTTypeExceptPrimitive[],
+		_implements: ASTTypeExceptPrimitive[],
+		pos: Pos,
+	): Result<EnumSym, SymbolError> {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			if (symTab.containsOfAnyType(name)) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.DuplicateIdentifier,
+						`Symbol: insertEnum: There already is an item named ${name} in the Symbol Table`,
+						symNode,
+						SymbolTable.getErrorContext(pos),
+					),
+				);
+			}
+
+			const enumSymbol: EnumSym = {
+				kind: 'enum',
+				typeParams,
+				_extends,
+				pos,
+			};
+
+			symTab.symbols.set(name, enumSymbol);
+
+			return ok(enumSymbol);
+		});
+	}
+
+	/**
 	 * Defines a function symbol
 	 *
 	 * @param name Function name
@@ -274,10 +426,10 @@ export class SymbolTable {
 	public static insertFunction(
 		name: string,
 		typeParams: ASTType[],
-		params: ASTType[],
+		params: ASTParameter[],
 		returnTypes: ASTType[],
 		pos: Pos,
-	): Result<FuncSym> {
+	): Result<FuncSym, SymbolError> {
 		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
 			if (symTab.containsOfAnyType(name)) {
 				return error(
@@ -306,6 +458,46 @@ export class SymbolTable {
 	}
 
 	/**
+	 * Defines an interface symbol
+	 *
+	 * @param name Interface name
+	 * @param typeParams Type parameters
+	 * @param _extends Parent Interfaces
+	 */
+	public static insertInterface(
+		name: string,
+		typeParams: ASTType[],
+		_extends: ASTTypeExceptPrimitive[],
+		_implements: ASTTypeExceptPrimitive[],
+		pos: Pos,
+	): Result<InterfaceSym, SymbolError> {
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
+			if (symTab.containsOfAnyType(name)) {
+				return error(
+					new SymbolError(
+						SymbolErrorCode.DuplicateIdentifier,
+						`Symbol: insertInterface: There already is an item named ${name} in the Symbol Table`,
+						symNode,
+						SymbolTable.getErrorContext(pos),
+					),
+				);
+			}
+
+			const interfaceSymbol: InterfaceSym = {
+				kind: 'interface',
+				typeParams,
+				_extends,
+				struct: undefined,
+				pos,
+			};
+
+			symTab.symbols.set(name, interfaceSymbol);
+
+			return ok(interfaceSymbol);
+		});
+	}
+
+	/**
 	 * Defines a parameter symbol
 	 *
 	 * @param name Parameter name
@@ -320,7 +512,7 @@ export class SymbolTable {
 		rest: boolean,
 		llvmArgument: llvm.Argument | undefined,
 		pos: Pos,
-	): Result<ParamSym> {
+	): Result<ParamSym, SymbolError> {
 		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
 			if (symTab.containsOfAnyType(name)) {
 				return error(
@@ -353,16 +545,16 @@ export class SymbolTable {
 	 *
 	 * @param name Variable name
 	 * @param kind const or let
-	 * @param declaredType Declared type, if any
+	 * @param type Declared type
 	 * @param value The current value, if any
 	 */
 	public static insertVariable(
 		name: string,
 		mutable: boolean,
-		declaredType: ASTType | undefined,
+		type: ASTType,
 		value: AssignableASTs | undefined,
 		pos: Pos,
-	): Result<VarSym> {
+	): Result<VarSym, SymbolError> {
 		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode) => {
 			if (symTab.containsOfAnyType(name)) {
 				return error(
@@ -375,7 +567,7 @@ export class SymbolTable {
 				);
 			}
 
-			const variableSymbol: VarSym = { kind: 'variable', mutable, declaredType, value, pos };
+			const variableSymbol: VarSym = { kind: 'variable', mutable, type, value, pos };
 
 			symTab.symbols.set(name, variableSymbol);
 
@@ -399,12 +591,127 @@ export class SymbolTable {
 	public static updateSymbolName(oldName: string, newName: string, kind: SymbolKind, inParent = false): boolean {
 		return SymbolTable.tree.proxy((_symTab: SymTab, _symNode: SymNode, symTree: SymTree) => {
 			const nodeToWorkIn = symTree.getCurrentOrParentNode(inParent);
-			if (nodeToWorkIn.outcome === 'error') {
+			if (nodeToWorkIn.isError()) {
 				return false;
 			}
 
 			return nodeToWorkIn.value.table.updateSymbolName(oldName, newName, kind);
 		});
+	}
+
+	public static setClassTypeParams(
+		name: string,
+		typeParams: ASTTypeParameter[],
+		options: Options,
+	): Result<ClassSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting type params for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setClassData(name, (classSymbol) => {
+				classSymbol.typeParams = typeParams;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting type params for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setClassExtends(
+		name: string,
+		_extends: ASTTypeExceptPrimitive[],
+		options: Options,
+	): Result<ClassSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting extends for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setClassData(name, (classSymbol) => {
+				classSymbol._extends = _extends;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting extends for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setClassImplements(
+		name: string,
+		_implements: ASTTypeExceptPrimitive[],
+		options: Options,
+	): Result<ClassSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting implements for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setClassData(name, (classSymbol) => {
+				classSymbol._implements = _implements;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting implements for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setEnumTypeParams(
+		name: string,
+		typeParams: ASTTypeParameter[],
+		options: Options,
+	): Result<EnumSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting type params for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setEnumData(name, (enumSymbol) => {
+				enumSymbol.typeParams = typeParams;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting type params for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setEnumExtends(
+		name: string,
+		_extends: ASTTypeExceptPrimitive[],
+		options: Options,
+	): Result<EnumSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting extends for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setEnumData(name, (enumSymbol) => {
+				enumSymbol._extends = _extends;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting extends for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
 	}
 
 	public static setFunctionLLVMFunction(
@@ -423,6 +730,52 @@ export class SymbolTable {
 		});
 	}
 
+	public static setFunctionTypeParams(
+		name: string,
+		typeParams: ASTTypeParameter[],
+		options: Options,
+	): Result<FuncSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting type params for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setFunctionData(name, (funcSymbol) => {
+				funcSymbol.typeParams = typeParams;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting type params for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setFunctionParams(
+		name: string,
+		params: ASTParameter[],
+		options: Options,
+	): Result<FuncSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting params for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setFunctionData(name, (funcSymbol) => {
+				funcSymbol.params = params;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting params for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
 	public static setFunctionReturnTypes(
 		name: string,
 		returnTypes: ASTType[],
@@ -437,9 +790,55 @@ export class SymbolTable {
 				funcSymbol.returnTypes = returnTypes;
 			});
 		});
-		if (result.outcome === 'error') {
+		if (result.isError()) {
 			if (options.debug) {
 				console.error(`SymbolTable: Setting return types for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setInterfaceTypeParams(
+		name: string,
+		typeParams: ASTTypeParameter[],
+		options: Options,
+	): Result<InterfaceSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting type params for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setInterfaceData(name, (interfaceSymbol) => {
+				interfaceSymbol.typeParams = typeParams;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting type params for ${name} ... FAILED`);
+			}
+		}
+
+		return result;
+	}
+
+	public static setInterfaceExtends(
+		name: string,
+		_extends: ASTTypeExceptPrimitive[],
+		options: Options,
+	): Result<InterfaceSym, SymbolError> {
+		if (options.debug) {
+			console.debug(`SymbolTable: Setting extends for ${name} ...`);
+		}
+
+		const result = SymbolTable.tree.proxy((symTab: SymTab) => {
+			return symTab.setInterfaceData(name, (interfaceSymbol) => {
+				interfaceSymbol._extends = _extends;
+			});
+		});
+		if (result.isError()) {
+			if (options.debug) {
+				console.error(`SymbolTable: Setting extends for ${name} ... FAILED`);
 			}
 		}
 
@@ -460,7 +859,7 @@ export class SymbolTable {
 				paramSymbol.llvmArgument = llvmArgument;
 			});
 		});
-		if (result.outcome === 'error') {
+		if (result.isError()) {
 			if (options.debug) {
 				console.error(`SymbolTable: Setting llvm.Argument for ${name} ... FAILED`);
 			}
@@ -483,7 +882,7 @@ export class SymbolTable {
 				variableSymbol.allocaInst = allocaInst;
 			});
 		});
-		if (result.outcome === 'error') {
+		if (result.isError()) {
 			if (options.debug) {
 				console.error(`SymbolTable: Setting AllocaInst for ${name} ... FAILED`);
 			}
@@ -496,14 +895,67 @@ export class SymbolTable {
 	// Methods for reading records
 	//////////////////////////////
 
+	/**
+	 * Looks up a symbol in the symbol table, recursively searching parent scopes.
+	 *
+	 * @param name
+	 * @param kinds
+	 * @param options
+	 */
 	// these are like usages, which specify the return type symbol when we know for sure what it is
+	public static lookup(name: string, kinds: ['class'], options: Options): Maybe<ClassSym>;
+	public static lookup(name: string, kinds: ['enum'], options: Options): Maybe<EnumSym>;
 	public static lookup(name: string, kinds: ['function'], options: Options): Maybe<FuncSym>;
+	public static lookup(name: string, kinds: ['interface'], options: Options): Maybe<InterfaceSym>;
 	public static lookup(name: string, kinds: ['parameter'], options: Options): Maybe<ParamSym>;
 	public static lookup(name: string, kinds: ['variable'], options: Options): Maybe<VarSym>;
 	public static lookup(name: string, kinds: SymbolKind[], options: Options): Maybe<SymbolInfo>;
 	public static lookup(name: string, kinds: SymbolKind[], options: Options): Maybe<SymbolInfo> {
 		if (options.debug) {
 			console.log(`SymbolTable.lookup('${name}')`);
+		}
+
+		return SymbolTable.tree.proxy((_symTab: SymTab, symNode: SymNode, _symTree: SymTree, stdlib: SymNode) => {
+			let found = false;
+			let nodeToCheck = symNode;
+
+			while (!found) {
+				if (options.debug) {
+					console.log(`SymbolTable.lookup('${name}'): looking in ${nodeToCheck.name}'s SymTab`);
+					console.debug({ kinds, table: nodeToCheck.table });
+				}
+
+				// call the get() method on the SymTab
+				const foundHere = nodeToCheck.get(name, kinds);
+				if (foundHere.has()) {
+					found = true;
+
+					return foundHere;
+				} else if (nodeToCheck.parent.has()) {
+					nodeToCheck = nodeToCheck.parent.value;
+				} else {
+					// check stdlib
+					return stdlib.table.contains(name, kinds);
+				}
+			}
+
+			return hasNot();
+		});
+	}
+
+	/**
+	 * Looks up a SymNode in the symbol table.
+	 *
+	 * This is very similar to lookup(), but it returns the SymNode instead of the SymbolInfo.
+	 *
+	 * @param name
+	 * @param kinds
+	 * @param options
+	 */
+	// these are like usages, which specify the return type symbol when we know for sure what it is
+	public static lookupSymNode(name: string, kinds: SymbolKind[], options: Options): Maybe<SymNode> {
+		if (options.debug) {
+			console.log(`SymbolTable.lookupSymNode('${name}')`);
 		}
 
 		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode, _symTree: SymTree, stdlib: SymNode) => {
@@ -513,21 +965,52 @@ export class SymbolTable {
 
 			while (!found) {
 				if (options.debug) {
-					console.log(`SymbolTable.lookup('${name}'): looking in ${nodeToCheck.name}'s SymTab`);
+					console.log(`SymbolTable.lookupSymNode('${name}'): looking in ${nodeToCheck.name}'s SymTab`);
 					console.debug({ table, kinds });
 				}
 
-				const foundHere = table.contains(name, kinds);
-				if (foundHere.has()) {
+				if (table.contains(name, kinds).has()) {
 					found = true;
 
-					return foundHere;
+					return has(nodeToCheck.children[name]); // <-- this line differs from lookup()
 				} else if (nodeToCheck.parent.has()) {
 					nodeToCheck = nodeToCheck.parent.value;
 					table = nodeToCheck.table;
-				} else {
+				} else if (stdlib.table.contains(name, kinds).has()) {
 					// check stdlib
-					return stdlib.table.contains(name, kinds);
+					return has(stdlib);
+				}
+			}
+
+			return hasNot();
+		});
+	}
+
+	/**
+	 * Looks up the nearest class in the symbol table.
+	 * @param options
+	 * @returns
+	 */
+	public static findNearestClass(options: Options): Maybe<SymNode> {
+		if (options.debug) {
+			console.log(`SymbolTable.findNearestClass ...`);
+		}
+
+		return SymbolTable.tree.proxy((symTab: SymTab, symNode: SymNode, _symTree: SymTree) => {
+			let found = false;
+			let nodeToCheck = symNode;
+
+			while (!found) {
+				if (options.debug) {
+					console.log(`SymbolTable.findNearestClass(): looking in ${nodeToCheck.name}'s SymTab`);
+				}
+
+				if (nodeToCheck.kind === 'class') {
+					found = true;
+
+					return has(nodeToCheck);
+				} else if (nodeToCheck.parent.has()) {
+					nodeToCheck = nodeToCheck.parent.value;
 				}
 			}
 
@@ -561,14 +1044,19 @@ export class SymbolTable {
 
 export class SymTab {
 	/** Reference to the SymNode to which this SymTab belongs */
-	private readonly ownerNode: SymNode;
+	public readonly ownerNode: SymNode;
+
+	/** Copy of the parent SymNode's name */
+	public readonly name: string;
 
 	public symbols: Map<string, SymbolInfo>;
 
 	private debug: boolean;
 
-	constructor(ownerNode: SymNode, options: Options) {
+	constructor(ownerNode: SymNode, name: string, options: Options) {
 		this.ownerNode = ownerNode;
+
+		this.name = name;
 
 		this.symbols = new Map<string, SymbolInfo>();
 
@@ -577,16 +1065,39 @@ export class SymTab {
 
 	public updateSymbolName(oldName: string, newName: string, kind: SymbolKind): boolean {
 		const maybe = this.contains(oldName, [kind]).map((symbol) => {
+			if (this.debug) {
+				console.log(`SymTab: Renaming Symbol from ${oldName} to ${newName}`);
+			}
+
 			this.symbols.set(newName, symbol);
 
 			return this.symbols.delete(oldName);
 		});
 
+		if (this.debug) {
+			console.debug({ symbolsAfterRename: this.symbols });
+		}
+
 		return maybe.has() && maybe.value;
+	}
+
+	public setClassData(name: string, setter: (classSymbol: ClassSym) => void): Result<ClassSym, SymbolError> {
+		return this.setData<ClassSym>('class', name, setter);
+	}
+
+	public setEnumData(name: string, setter: (enumSymbol: EnumSym) => void): Result<EnumSym, SymbolError> {
+		return this.setData<EnumSym>('enum', name, setter);
 	}
 
 	public setFunctionData(name: string, setter: (funcSymbol: FuncSym) => void): Result<FuncSym, SymbolError> {
 		return this.setData<FuncSym>('function', name, setter);
+	}
+
+	public setInterfaceData(
+		name: string,
+		setter: (interfaceSymbol: InterfaceSym) => void,
+	): Result<InterfaceSym, SymbolError> {
+		return this.setData<InterfaceSym>('interface', name, setter);
 	}
 
 	public setParameterData(name: string, setter: (varSymbol: ParamSym) => void): Result<ParamSym, SymbolError> {
@@ -634,7 +1145,7 @@ export class SymTab {
 	}
 
 	public containsOfAnyType(name: string): boolean {
-		return this.contains(name, ['function', 'parameter', 'variable']).has();
+		return this.contains(name, symbolKinds).has();
 	}
 
 	public getErrorContext(pos: Pos, length?: number): ErrorContext {

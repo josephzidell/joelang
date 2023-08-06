@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
 import ErrorContext from '../shared/errorContext';
 import LexerError from './error';
@@ -9,7 +10,7 @@ describe('lexer/error.ts', (): void => {
 		const result = lex('|%');
 
 		// assert
-		assert(result.outcome === 'error');
+		assert(!result.isOk());
 		const error = result.error as LexerError;
 		expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
 1 | |%
@@ -22,7 +23,7 @@ describe('lexer/error.ts', (): void => {
 		const result = lex('$');
 
 		// assert
-		assert(result.outcome === 'error');
+		assert(result.isError());
 		const error = result.error as LexerError;
 		expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
 1 | $
@@ -34,7 +35,7 @@ describe('lexer/error.ts', (): void => {
 		it('should return all tokens', () => {
 			// arrange / act
 			const result = lex('1 2 3');
-			assert(result.outcome === 'ok');
+			assert(result.isOk());
 			const tokens = result.value;
 			const error = new LexerError('test', tokens, new ErrorContext('1 2 3', 1, 1, 5));
 

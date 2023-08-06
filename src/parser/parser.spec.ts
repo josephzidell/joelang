@@ -1,71 +1,12 @@
 /* eslint-disable no-useless-escape */
+import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
 import '../../setupJest'; // for the types
-import {
-	ASTArrayExpression,
-	ASTArrayOf,
-	ASTAssignmentExpression,
-	ASTBinaryExpression,
-	ASTBlockStatement,
-	ASTBoolLiteral,
-	ASTCallExpression,
-	ASTClassDeclaration,
-	ASTDoneStatement,
-	ASTEnumDeclaration,
-	ASTForStatement,
-	ASTFunctionDeclaration,
-	ASTFunctionSignature,
-	ASTIdentifier,
-	ASTIfStatement,
-	ASTInterfaceDeclaration,
-	ASTJoeDoc,
-	ASTLoopStatement,
-	ASTMemberExpression,
-	ASTMemberListExpression,
-	ASTModifier,
-	ASTNextStatement,
-	ASTNumberLiteral,
-	ASTObjectExpression,
-	ASTObjectShape,
-	ASTParameter,
-	ASTPath,
-	ASTPostfixIfStatement,
-	ASTPrintStatement,
-	ASTProperty,
-	ASTPropertyShape,
-	ASTRangeExpression,
-	ASTRegularExpression,
-	ASTRestElement,
-	ASTReturnStatement,
-	ASTStringLiteral,
-	ASTTernaryAlternate,
-	ASTTernaryCondition,
-	ASTTernaryConsequent,
-	ASTTernaryExpression,
-	ASTThisKeyword,
-	ASTTupleExpression,
-	ASTTupleShape,
-	ASTType,
-	ASTTypeInstantiationExpression,
-	ASTTypeNumber,
-	ASTTypeParameter,
-	ASTTypePrimitive,
-	ASTTypeRange,
-	ASTUnaryExpression,
-	ASTUseDeclaration,
-	ASTVariableDeclaration,
-	ASTWhenCase,
-	ASTWhenExpression,
-	NumberSizesDecimalASTs,
-	NumberSizesIntASTs,
-} from '../analyzer/asts';
-import { analyze } from '../analyzer/util';
 import { primitiveTypes } from '../lexer/types';
-import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
-import { mockPos } from '../shared/pos';
+import { numberSizesAll } from '../shared/numbers/sizes';
 import { stackPairs } from './parser';
 import { NT } from './types';
-import { parse, testParseAndAnalyze } from './util';
+import { parse, testParse } from './util';
 
 const binaryMathOperatorsThatArePartOfAMemberExpression = ['+', '+=', '-', '-=', '*', '*='];
 const binaryMathOperatorsThatArePartOfAMemberListExpression = ['/', '/=', '%', '%='];
@@ -80,732 +21,354 @@ const unaryMathOperatorScenarios = [
 const binaryExpressionScenariosCheckingOperator = (operator: string) => {
 	// 2 numbers
 	it(`${operator} with 2 number literals`, (): void => {
-		testParseAndAnalyze(
-			`1 ${operator} 2_000;`,
+		testParse(`1 ${operator} 2_000;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
-					[
-						[NT.NumberLiteral, '1'],
-						[NT.NumberLiteral, '2_000'],
-					],
+					[NT.NumberLiteral, '1'],
+					[NT.NumberLiteral, '2_000'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						right: ASTNumberLiteral._(
-							2000,
-							undefined,
-							['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 
-		testParseAndAnalyze(
-			`-1_000 ${operator} 2;`,
+		testParse(`-1_000 ${operator} 2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
-					[
-						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1_000']]],
-						[NT.NumberLiteral, '2'],
-					],
+					[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1_000']]],
+					[NT.NumberLiteral, '2'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTUnaryExpression._(
-							{
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._(1000, undefined, ['int16', 'int32', 'int64'], mockPos),
-							},
-							mockPos,
-						),
-						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 
-		testParseAndAnalyze(
-			`1 ${operator} -2;`,
+		testParse(`1 ${operator} -2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
-					[
-						[NT.NumberLiteral, '1'],
-						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-					],
+					[NT.NumberLiteral, '1'],
+					[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						right: ASTUnaryExpression._(
-							{
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 
-		testParseAndAnalyze(
-			`-1 ${operator} -2;`,
+		testParse(`-1 ${operator} -2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
-					[
-						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]],
-						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-					],
+					[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]],
+					[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTUnaryExpression._(
-							{
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
-							},
-							mockPos,
-						),
-						right: ASTUnaryExpression._(
-							{
-								before: true,
-								operator: '-',
-								operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	// identifier and number
 	it(`${operator} with identifier and number literal`, (): void => {
-		testParseAndAnalyze(
-			`foo ${operator} 2;`,
+		testParse(`foo ${operator} 2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
-					[
-						[NT.Identifier, 'foo'],
-						[NT.NumberLiteral, '2'],
-					],
+					[NT.Identifier, 'foo'],
+					[NT.NumberLiteral, '2'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTIdentifier._('foo', mockPos),
-						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	it(`${operator} with number literal and identifier`, (): void => {
-		testParseAndAnalyze(
-			`1 ${operator} foo;`,
+		testParse(`1 ${operator} foo;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
-					[
-						[NT.NumberLiteral, '1'],
-						[NT.Identifier, 'foo'],
-					],
+					[NT.NumberLiteral, '1'],
+					[NT.Identifier, 'foo'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						right: ASTIdentifier._('foo', mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	// element access and number
 	it(`${operator} with element access and number literal`, (): void => {
-		testParseAndAnalyze(
-			`foo['a'] ${operator} 2;`,
+		testParse(`foo['a'] ${operator} 2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.StringLiteral, 'a'],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.StringLiteral, 'a'],
 						],
-						[NT.NumberLiteral, '2'],
 					],
+					[NT.NumberLiteral, '2'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTStringLiteral._('a', mockPos),
-							},
-							mockPos,
-						),
-						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 
-		testParseAndAnalyze(
-			`foo.a ${operator} 2;`,
+		testParse(`foo.a ${operator} 2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.Identifier, 'a'],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.Identifier, 'a'],
 						],
-						[NT.NumberLiteral, '2'],
 					],
+					[NT.NumberLiteral, '2'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTIdentifier._('a', mockPos),
-							},
-							mockPos,
-						),
-						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 
-		testParseAndAnalyze(
-			`foo['a'].b ${operator} 2;`,
+		testParse(`foo['a'].b ${operator} 2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.MemberExpression,
 								[
-									NT.MemberExpression,
-									[
-										[NT.Identifier, 'foo'],
-										[NT.StringLiteral, 'a'],
-									],
+									[NT.Identifier, 'foo'],
+									[NT.StringLiteral, 'a'],
 								],
-								[NT.Identifier, 'b'],
 							],
+							[NT.Identifier, 'b'],
 						],
-						[NT.NumberLiteral, '2'],
 					],
+					[NT.NumberLiteral, '2'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTMemberExpression._(
-							{
-								object: ASTMemberExpression._(
-									{
-										object: ASTIdentifier._('foo', mockPos),
-										property: ASTStringLiteral._('a', mockPos),
-									},
-									mockPos,
-								),
-								property: ASTIdentifier._('b', mockPos),
-							},
-							mockPos,
-						),
-						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 
-		testParseAndAnalyze(
-			`2 ${operator} this.foo['a']['c'].d;`,
+		testParse(`2 ${operator} this.foo['a']['c'].d;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
+					[NT.NumberLiteral, '2'],
 					[
-						[NT.NumberLiteral, '2'],
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.MemberExpression,
 								[
-									NT.MemberExpression,
 									[
+										NT.MemberExpression,
 										[
-											NT.MemberExpression,
-											[
-												[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
-												[NT.StringLiteral, 'a'],
-											],
+											[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
+											[NT.StringLiteral, 'a'],
 										],
-										[NT.StringLiteral, 'c'],
 									],
+									[NT.StringLiteral, 'c'],
 								],
-								[NT.Identifier, 'd'],
 							],
+							[NT.Identifier, 'd'],
 						],
 					],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-						right: ASTMemberExpression._(
-							{
-								object: ASTMemberExpression._(
-									{
-										object: ASTMemberExpression._(
-											{
-												object: ASTMemberExpression._(
-													{
-														object: ASTThisKeyword._(mockPos),
-														property: ASTIdentifier._('foo', mockPos),
-													},
-													mockPos,
-												),
-												property: ASTStringLiteral._('a', mockPos),
-											},
-											mockPos,
-										),
-										property: ASTStringLiteral._('c', mockPos),
-									},
-									mockPos,
-								),
-								property: ASTIdentifier._('d', mockPos),
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	it(`${operator} with number literal and element access`, (): void => {
-		testParseAndAnalyze(
-			`1 ${operator} foo['a'];'a'`,
+		testParse(`1 ${operator} foo['a'];'a'`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
+					[NT.NumberLiteral, '1'],
 					[
-						[NT.NumberLiteral, '1'],
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.StringLiteral, 'a'],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.StringLiteral, 'a'],
 						],
 					],
 				],
-				[NT.SemicolonSeparator],
-				[NT.StringLiteral, 'a'],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						right: ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTStringLiteral._('a', mockPos),
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-				ASTStringLiteral._('a', mockPos),
-			],
-		);
+			[NT.SemicolonSeparator],
+			[NT.StringLiteral, 'a'],
+		]);
 	});
 
 	// method call and number
 	it(`${operator} with method call and number literal`, (): void => {
-		testParseAndAnalyze(
-			`foo('a') ${operator} 2;`,
+		testParse(`foo('a') ${operator} 2;`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
 					[
+						NT.CallExpression,
 						[
-							NT.CallExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
 						],
-						[NT.NumberLiteral, '2'],
 					],
+					[NT.NumberLiteral, '2'],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTCallExpression._(
-							{
-								callee: ASTIdentifier._('foo', mockPos),
-								args: [ASTStringLiteral._('a', mockPos)],
-							},
-							mockPos,
-						),
-						right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	it(`${operator} with number literal and method call`, (): void => {
-		testParseAndAnalyze(
-			`1 ${operator} foo('a');`,
+		testParse(`1 ${operator} foo('a');`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
+					[NT.NumberLiteral, '1'],
 					[
-						[NT.NumberLiteral, '1'],
+						NT.CallExpression,
 						[
-							NT.CallExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
 						],
 					],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						right: ASTCallExpression._(
-							{
-								callee: ASTIdentifier._('foo', mockPos),
-								args: [ASTStringLiteral._('a', mockPos)],
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	// element access and method call
 	it(`${operator} with element access and method call`, (): void => {
-		testParseAndAnalyze(
-			`foo['a'] ${operator} bar('b');`,
+		testParse(`foo['a'] ${operator} bar('b');`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.StringLiteral, 'a'],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.StringLiteral, 'a'],
 						],
+					],
+					[
+						NT.CallExpression,
 						[
-							NT.CallExpression,
-							[
-								[NT.Identifier, 'bar'],
-								[NT.ArgumentsList, [[NT.StringLiteral, 'b']]],
-							],
+							[NT.Identifier, 'bar'],
+							[NT.ArgumentsList, [[NT.StringLiteral, 'b']]],
 						],
 					],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTStringLiteral._('a', mockPos),
-							},
-							mockPos,
-						),
-						right: ASTCallExpression._(
-							{
-								callee: ASTIdentifier._('bar', mockPos),
-								args: [ASTStringLiteral._('b', mockPos)],
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 
 	it(`${operator} with method call and element access`, (): void => {
-		testParseAndAnalyze(
-			`foo('a') ${operator} bar['b'];`,
+		testParse(`foo('a') ${operator} bar['b'];`, [
 			[
+				NT.BinaryExpression,
+				operator,
 				[
-					NT.BinaryExpression,
-					operator,
 					[
+						NT.CallExpression,
 						[
-							NT.CallExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
 						],
+					],
+					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'bar'],
-								[NT.StringLiteral, 'b'],
-							],
+							[NT.Identifier, 'bar'],
+							[NT.StringLiteral, 'b'],
 						],
 					],
 				],
-				[NT.SemicolonSeparator],
 			],
-			[
-				ASTBinaryExpression._(
-					{
-						operator,
-						left: ASTCallExpression._(
-							{
-								callee: ASTIdentifier._('foo', mockPos),
-								args: [ASTStringLiteral._('a', mockPos)],
-							},
-							mockPos,
-						),
-						right: ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('bar', mockPos),
-								property: ASTStringLiteral._('b', mockPos),
-							},
-							mockPos,
-						),
-					},
-					mockPos,
-				),
-			],
-		);
+			[NT.SemicolonSeparator],
+		]);
 	});
 };
 
 describe('parser.ts', (): void => {
 	describe('AssignmentExpressions', () => {
 		it('should assign to a single identifier', () => {
-			testParseAndAnalyze(
-				'foo = 1;',
+			testParse('foo = 1;', [
 				[
+					NT.AssignmentExpression,
 					[
-						NT.AssignmentExpression,
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTAssignmentExpression._(
-						{
-							left: [ASTIdentifier._('foo', mockPos)],
-							right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should assign to a property on this instance', () => {
-			testParseAndAnalyze(
-				'this.foo = 1;',
+			testParse('this.foo = 1;', [
 				[
+					NT.AssignmentExpression,
 					[
-						NT.AssignmentExpression,
-						[
-							[NT.AssigneesList, [[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
-						],
+						[NT.AssigneesList, [[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTAssignmentExpression._(
-						{
-							left: [
-								ASTMemberExpression._(
-									{
-										object: ASTThisKeyword._(mockPos),
-										property: ASTIdentifier._('foo', mockPos),
-									},
-									mockPos,
-								),
-							],
-							right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should assign to multiple identifiers and member expressions', () => {
-			testParseAndAnalyze(
-				'x, foo.bar = 0, 1;',
+			testParse('x, foo.bar = 0, 1;', [
 				[
+					NT.AssignmentExpression,
 					[
-						NT.AssignmentExpression,
 						[
+							NT.AssigneesList,
 							[
-								NT.AssigneesList,
+								[NT.Identifier, 'x'],
+								[NT.CommaSeparator],
 								[
-									[NT.Identifier, 'x'],
-									[NT.CommaSeparator],
+									NT.MemberExpression,
 									[
-										NT.MemberExpression,
-										[
-											[NT.Identifier, 'foo'],
-											[NT.Identifier, 'bar'],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.Identifier, 'bar'],
 									],
 								],
 							],
-							[NT.AssignmentOperator],
-							[
-								NT.AssignablesList,
-								[[NT.NumberLiteral, '0'], [NT.CommaSeparator], [NT.NumberLiteral, '1']],
-							],
 						],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.NumberLiteral, '0'], [NT.CommaSeparator], [NT.NumberLiteral, '1']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTAssignmentExpression._(
-						{
-							left: [
-								ASTIdentifier._('x', mockPos),
-								ASTMemberExpression._(
-									{
-										object: ASTIdentifier._('foo', mockPos),
-										property: ASTIdentifier._('bar', mockPos),
-									},
-									mockPos,
-								),
-							],
-							right: [
-								ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 	});
 
 	describe('Braces', () => {
 		it('allows a code block in middle of a function', () => {
-			testParseAndAnalyze(
+			testParse(
 				`f foo {
 					print 'hello';
 
@@ -836,34 +399,11 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [],
-							body: ASTBlockStatement._(
-								[
-									ASTPrintStatement._([ASTStringLiteral._('hello', mockPos)], mockPos),
-									ASTBlockStatement._(
-										[ASTPrintStatement._([ASTStringLiteral._('world', mockPos)], mockPos)],
-										mockPos,
-									),
-									ASTPrintStatement._([ASTStringLiteral._('!', mockPos)], mockPos),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('allows nested code blocks in middle of a function', () => {
-			testParseAndAnalyze(
+			testParse(
 				`f foo {
 					print 'hello';
 
@@ -928,68 +468,14 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [],
-							body: ASTBlockStatement._(
-								[
-									ASTPrintStatement._([ASTStringLiteral._('hello', mockPos)], mockPos),
-									ASTBlockStatement._(
-										[
-											ASTPrintStatement._([ASTStringLiteral._('world', mockPos)], mockPos),
-											ASTBlockStatement._(
-												[
-													ASTVariableDeclaration._(
-														{
-															modifiers: [],
-															mutable: false,
-															identifiersList: [ASTIdentifier._('x', mockPos)],
-															declaredTypes: [],
-															initialValues: [
-																ASTNumberLiteral._(
-																	4,
-																	undefined,
-																	[...numberSizesInts],
-																	mockPos,
-																),
-															],
-															inferredPossibleTypes: [
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															],
-														},
-														mockPos,
-													),
-												],
-												mockPos,
-											),
-											ASTBlockStatement._(
-												[ASTPrintStatement._([ASTIdentifier._('x', mockPos)], mockPos)],
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-									ASTPrintStatement._([ASTStringLiteral._('!', mockPos)], mockPos),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 	});
 
 	describe('CallExpression', () => {
 		it('should work with multiple return types and a VariableDeclaration', () => {
-			testParseAndAnalyze(
-				`f doSomething -> string, bool {};
+			testParse(
+				`f doSomething -> string, bool { return '', true; };
 				const goLangStyle, ok = doSomething();
 				`,
 				[
@@ -998,7 +484,16 @@ describe('parser.ts', (): void => {
 						[
 							[NT.Identifier, 'doSomething'],
 							[NT.FunctionReturns, [[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']]],
-							[NT.BlockStatement, []],
+							[
+								NT.BlockStatement,
+								[
+									[
+										NT.ReturnStatement,
+										[[NT.StringLiteral, ''], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
+									],
+									[NT.SemicolonSeparator],
+								],
+							],
 						],
 					],
 					[NT.SemicolonSeparator],
@@ -1027,319 +522,154 @@ describe('parser.ts', (): void => {
 					],
 					[NT.SemicolonSeparator],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('doSomething', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [ASTTypePrimitive._('string', mockPos), ASTTypePrimitive._('bool', mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('goLangStyle', mockPos), ASTIdentifier._('ok', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTCallExpression._(
-									{
-										callee: ASTIdentifier._('doSomething', mockPos),
-										args: [],
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('works with several nested layers', () => {
-			testParseAndAnalyze(
-				'a.b.c.d(4);',
+			testParse('a.b.c.d(4);', [
 				[
+					NT.CallExpression,
 					[
-						NT.CallExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
 								[
+									NT.MemberExpression,
 									[
-										NT.MemberExpression,
 										[
+											NT.MemberExpression,
 											[
-												NT.MemberExpression,
-												[
-													[NT.Identifier, 'a'],
-													[NT.Identifier, 'b'],
-												],
+												[NT.Identifier, 'a'],
+												[NT.Identifier, 'b'],
 											],
-											[NT.Identifier, 'c'],
 										],
+										[NT.Identifier, 'c'],
 									],
-									[NT.Identifier, 'd'],
 								],
+								[NT.Identifier, 'd'],
 							],
-							[NT.ArgumentsList, [[NT.NumberLiteral, '4']]],
 						],
+						[NT.ArgumentsList, [[NT.NumberLiteral, '4']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTCallExpression._(
-						{
-							callee: ASTMemberExpression._(
-								{
-									object: ASTMemberExpression._(
-										{
-											object: ASTMemberExpression._(
-												{
-													object: ASTIdentifier._('a', mockPos),
-													property: ASTIdentifier._('b', mockPos),
-												},
-												mockPos,
-											),
-											property: ASTIdentifier._('c', mockPos),
-										},
-										mockPos,
-									),
-									property: ASTIdentifier._('d', mockPos),
-								},
-								mockPos,
-							),
-							args: [ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('call followed by property', () => {
-			testParseAndAnalyze(
-				'a(1).b',
+			testParse('a(1).b', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
 						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'a'],
-									[NT.ArgumentsList, [[NT.NumberLiteral, '1']]],
-								],
+								[NT.Identifier, 'a'],
+								[NT.ArgumentsList, [[NT.NumberLiteral, '1']]],
 							],
-							[NT.Identifier, 'b'],
 						],
+						[NT.Identifier, 'b'],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('a', mockPos),
-									args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								},
-								mockPos,
-							),
-							property: ASTIdentifier._('b', mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('call followed by a call', () => {
-			testParseAndAnalyze(
-				'a(1).b(2)',
+			testParse('a(1).b(2)', [
 				[
+					NT.CallExpression,
 					[
-						NT.CallExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
 								[
+									NT.CallExpression,
 									[
-										NT.CallExpression,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ArgumentsList, [[NT.NumberLiteral, '1']]],
-										],
+										[NT.Identifier, 'a'],
+										[NT.ArgumentsList, [[NT.NumberLiteral, '1']]],
 									],
-									[NT.Identifier, 'b'],
 								],
+								[NT.Identifier, 'b'],
 							],
-							[NT.ArgumentsList, [[NT.NumberLiteral, '2']]],
 						],
+						[NT.ArgumentsList, [[NT.NumberLiteral, '2']]],
 					],
 				],
-				[
-					ASTCallExpression._(
-						{
-							callee: ASTMemberExpression._(
-								{
-									object: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('a', mockPos),
-											args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-										},
-										mockPos,
-									),
-									property: ASTIdentifier._('b', mockPos),
-								},
-								mockPos,
-							),
-							args: [ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('generics', () => {
-			testParseAndAnalyze(
-				'a(b<|T|>);',
+			testParse('a(b<|T|>);', [
 				[
+					NT.CallExpression,
 					[
-						NT.CallExpression,
+						[NT.Identifier, 'a'],
 						[
-							[NT.Identifier, 'a'],
+							NT.ArgumentsList,
 							[
-								NT.ArgumentsList,
 								[
+									NT.TypeInstantiationExpression,
 									[
-										NT.TypeInstantiationExpression,
-										[
-											[NT.Identifier, 'b'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-										],
+										[NT.Identifier, 'b'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 									],
 								],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTCallExpression._(
-						{
-							callee: ASTIdentifier._('a', mockPos),
-							args: [
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('b', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-							],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'a<|T|>(b);',
+			testParse('a<|T|>(b);', [
 				[
+					NT.CallExpression,
 					[
-						NT.CallExpression,
-						[
-							[NT.Identifier, 'a'],
-							[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-							[NT.ArgumentsList, [[NT.Identifier, 'b']]],
-						],
+						[NT.Identifier, 'a'],
+						[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
+						[NT.ArgumentsList, [[NT.Identifier, 'b']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTCallExpression._(
-						{
-							callee: ASTIdentifier._('a', mockPos),
-							typeArgs: [ASTIdentifier._('T', mockPos)],
-							args: [ASTIdentifier._('b', mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('more advanced generics', () => {
-			testParseAndAnalyze(
-				'const foo = Foo<|T, T[]|>();',
+			testParse('const foo = Foo<|T, T[]|>();', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
+							NT.AssignablesList,
 							[
-								NT.AssignablesList,
 								[
+									NT.CallExpression,
 									[
-										NT.CallExpression,
+										[NT.Identifier, 'Foo'],
 										[
-											[NT.Identifier, 'Foo'],
+											NT.TypeArgumentsList,
 											[
-												NT.TypeArgumentsList,
-												[
-													[NT.Identifier, 'T'],
-													[NT.CommaSeparator],
-													[NT.ArrayOf, [[NT.Identifier, 'T']]],
-												],
+												[NT.Identifier, 'T'],
+												[NT.CommaSeparator],
+												[NT.ArrayOf, [[NT.Identifier, 'T']]],
 											],
-											[NT.ArgumentsList, []],
 										],
+										[NT.ArgumentsList, []],
 									],
 								],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTCallExpression._(
-									{
-										callee: ASTIdentifier._('Foo', mockPos),
-										typeArgs: [
-											ASTIdentifier._('T', mockPos),
-											ASTArrayOf._(ASTIdentifier._('T', mockPos), mockPos),
-										],
-										args: [],
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('multiple inheritance manual resolution', () => {
-			testParseAndAnalyze(
+			testParse(
 				`class C extends A, B {
 					f foo () {
 						return this.parent<|B|>.foo(); // <-- Specify to use B.foo
@@ -1413,648 +743,296 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('C', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('A', mockPos), ASTIdentifier._('B', mockPos)],
-							implements: [],
-							body: ASTBlockStatement._(
-								[
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [],
-											name: ASTIdentifier._('foo', mockPos),
-											typeParams: [],
-											params: [],
-											returnTypes: [],
-											body: ASTBlockStatement._(
-												[
-													ASTReturnStatement._(
-														[
-															ASTCallExpression._(
-																{
-																	callee: ASTMemberExpression._(
-																		{
-																			object: ASTMemberExpression._(
-																				{
-																					object: ASTThisKeyword._(mockPos),
-																					property:
-																						ASTTypeInstantiationExpression._(
-																							{
-																								base: ASTIdentifier._(
-																									'parent',
-																									mockPos,
-																								),
-																								typeArgs: [
-																									ASTIdentifier._(
-																										'B',
-																										mockPos,
-																									),
-																								],
-																							},
-																							mockPos,
-																						),
-																				},
-																				mockPos,
-																			),
-																			property: ASTIdentifier._('foo', mockPos),
-																		},
-																		mockPos,
-																	),
-																	args: [],
-																},
-																mockPos,
-															),
-														],
-														mockPos,
-													),
-												],
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('works with a TypeInstantiationExpression', () => {
-			testParseAndAnalyze(
-				'foo.bar<|T|>()',
+			testParse('foo.bar<|T|>()', [
 				[
+					NT.CallExpression,
 					[
-						NT.CallExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
+								[NT.Identifier, 'foo'],
 								[
-									[NT.Identifier, 'foo'],
+									NT.TypeInstantiationExpression,
 									[
-										NT.TypeInstantiationExpression,
-										[
-											[NT.Identifier, 'bar'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-										],
+										[NT.Identifier, 'bar'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 									],
 								],
 							],
-							[NT.ArgumentsList, []],
 						],
+						[NT.ArgumentsList, []],
 					],
 				],
-				[
-					ASTCallExpression._(
-						{
-							callee: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTTypeInstantiationExpression._(
-										{
-											base: ASTIdentifier._('bar', mockPos),
-											typeArgs: [ASTIdentifier._('T', mockPos)],
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-							args: [],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
-				'this.bar<|T|>()',
+			testParse('this.bar<|T|>()', [
 				[
+					NT.CallExpression,
 					[
-						NT.CallExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
+								[NT.ThisKeyword],
 								[
-									[NT.ThisKeyword],
+									NT.TypeInstantiationExpression,
 									[
-										NT.TypeInstantiationExpression,
-										[
-											[NT.Identifier, 'bar'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-										],
+										[NT.Identifier, 'bar'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 									],
 								],
 							],
-							[NT.ArgumentsList, []],
 						],
+						[NT.ArgumentsList, []],
 					],
 				],
-				[
-					ASTCallExpression._(
-						{
-							callee: ASTMemberExpression._(
-								{
-									object: ASTThisKeyword._(mockPos),
-									property: ASTTypeInstantiationExpression._(
-										{
-											base: ASTIdentifier._('bar', mockPos),
-											typeArgs: [ASTIdentifier._('T', mockPos)],
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-							args: [],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		describe('works with create', () => {
 			it('simple', () => {
-				testParseAndAnalyze(
-					'A.create();',
+				testParse('A.create();', [
 					[
+						NT.CallExpression,
 						[
-							NT.CallExpression,
 							[
+								NT.MemberExpression,
 								[
-									NT.MemberExpression,
-									[
-										[NT.Identifier, 'A'],
-										[NT.Identifier, 'create'],
-									],
+									[NT.Identifier, 'A'],
+									[NT.Identifier, 'create'],
 								],
-								[NT.ArgumentsList, []],
 							],
+							[NT.ArgumentsList, []],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTCallExpression._(
-							{
-								callee: ASTMemberExpression._(
-									{
-										object: ASTIdentifier._('A', mockPos),
-										property: ASTIdentifier._('create', mockPos),
-									},
-									mockPos,
-								),
-								args: [],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('with GenericTypes and Arguments', () => {
-				testParseAndAnalyze(
-					'A<|T, U|>.create(T.create(), U.create(), "foo");',
+				testParse('A<|T, U|>.create(T.create(), U.create(), "foo");', [
 					[
+						NT.CallExpression,
 						[
-							NT.CallExpression,
 							[
+								NT.MemberExpression,
 								[
-									NT.MemberExpression,
 									[
+										NT.TypeInstantiationExpression,
 										[
-											NT.TypeInstantiationExpression,
+											[NT.Identifier, 'A'],
 											[
-												[NT.Identifier, 'A'],
-												[
-													NT.TypeArgumentsList,
-													[[NT.Identifier, 'T'], [NT.CommaSeparator], [NT.Identifier, 'U']],
-												],
+												NT.TypeArgumentsList,
+												[[NT.Identifier, 'T'], [NT.CommaSeparator], [NT.Identifier, 'U']],
 											],
 										],
-										[NT.Identifier, 'create'],
 									],
+									[NT.Identifier, 'create'],
 								],
+							],
+							[
+								NT.ArgumentsList,
 								[
-									NT.ArgumentsList,
 									[
+										NT.CallExpression,
 										[
-											NT.CallExpression,
 											[
+												NT.MemberExpression,
 												[
-													NT.MemberExpression,
-													[
-														[NT.Identifier, 'T'],
-														[NT.Identifier, 'create'],
-													],
+													[NT.Identifier, 'T'],
+													[NT.Identifier, 'create'],
 												],
-												[NT.ArgumentsList, []],
 											],
+											[NT.ArgumentsList, []],
 										],
-										[NT.CommaSeparator],
-										[
-											NT.CallExpression,
-											[
-												[
-													NT.MemberExpression,
-													[
-														[NT.Identifier, 'U'],
-														[NT.Identifier, 'create'],
-													],
-												],
-												[NT.ArgumentsList, []],
-											],
-										],
-										[NT.CommaSeparator],
-										[NT.StringLiteral, 'foo'],
 									],
+									[NT.CommaSeparator],
+									[
+										NT.CallExpression,
+										[
+											[
+												NT.MemberExpression,
+												[
+													[NT.Identifier, 'U'],
+													[NT.Identifier, 'create'],
+												],
+											],
+											[NT.ArgumentsList, []],
+										],
+									],
+									[NT.CommaSeparator],
+									[NT.StringLiteral, 'foo'],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTCallExpression._(
-							{
-								callee: ASTMemberExpression._(
-									{
-										object: ASTTypeInstantiationExpression._(
-											{
-												base: ASTIdentifier._('A', mockPos),
-												typeArgs: [
-													ASTIdentifier._('T', mockPos),
-													ASTIdentifier._('U', mockPos),
-												],
-											},
-											mockPos,
-										),
-										property: ASTIdentifier._('create', mockPos),
-									},
-									mockPos,
-								),
-								args: [
-									ASTCallExpression._(
-										{
-											callee: ASTMemberExpression._(
-												{
-													object: ASTIdentifier._('T', mockPos),
-													property: ASTIdentifier._('create', mockPos),
-												},
-												mockPos,
-											),
-											args: [],
-										},
-										mockPos,
-									),
-									ASTCallExpression._(
-										{
-											callee: ASTMemberExpression._(
-												{
-													object: ASTIdentifier._('U', mockPos),
-													property: ASTIdentifier._('create', mockPos),
-												},
-												mockPos,
-											),
-											args: [],
-										},
-										mockPos,
-									),
-									ASTStringLiteral._('foo', mockPos),
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('with several nested layers', () => {
-				testParseAndAnalyze(
-					'A.B.C.D.create();',
+				testParse('A.B.C.D.create();', [
 					[
+						NT.CallExpression,
 						[
-							NT.CallExpression,
 							[
+								NT.MemberExpression,
 								[
-									NT.MemberExpression,
 									[
+										NT.MemberExpression,
 										[
-											NT.MemberExpression,
 											[
+												NT.MemberExpression,
 												[
-													NT.MemberExpression,
 													[
+														NT.MemberExpression,
 														[
-															NT.MemberExpression,
-															[
-																[NT.Identifier, 'A'],
-																[NT.Identifier, 'B'],
-															],
+															[NT.Identifier, 'A'],
+															[NT.Identifier, 'B'],
 														],
-														[NT.Identifier, 'C'],
 													],
+													[NT.Identifier, 'C'],
 												],
-												[NT.Identifier, 'D'],
 											],
+											[NT.Identifier, 'D'],
 										],
-										[NT.Identifier, 'create'],
 									],
+									[NT.Identifier, 'create'],
 								],
-								[NT.ArgumentsList, []],
 							],
+							[NT.ArgumentsList, []],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTCallExpression._(
-							{
-								callee: ASTMemberExpression._(
-									{
-										object: ASTMemberExpression._(
-											{
-												object: ASTMemberExpression._(
-													{
-														object: ASTMemberExpression._(
-															{
-																object: ASTIdentifier._('A', mockPos),
-																property: ASTIdentifier._('B', mockPos),
-															},
-															mockPos,
-														),
-														property: ASTIdentifier._('C', mockPos),
-													},
-													mockPos,
-												),
-												property: ASTIdentifier._('D', mockPos),
-											},
-											mockPos,
-										),
-										property: ASTIdentifier._('create', mockPos),
-									},
-									mockPos,
-								),
-								args: [],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 	});
 
 	describe('ClassDeclaration', (): void => {
 		it('empty class', (): void => {
-			testParseAndAnalyze(
-				'class Foo {}',
+			testParse('class Foo {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
-						[
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
-				'class Foo <| T, U.V, bool |> {}',
+			testParse('class Foo <| T, U.V, bool |> {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.TypeParametersList,
 							[
-								NT.TypeParametersList,
+								[NT.TypeParameter, [[NT.Identifier, 'T']]],
+								[NT.CommaSeparator],
 								[
-									[NT.TypeParameter, [[NT.Identifier, 'T']]],
-									[NT.CommaSeparator],
+									NT.TypeParameter,
 									[
-										NT.TypeParameter,
 										[
+											NT.MemberExpression,
 											[
-												NT.MemberExpression,
-												[
-													[NT.Identifier, 'U'],
-													[NT.Identifier, 'V'],
-												],
+												[NT.Identifier, 'U'],
+												[NT.Identifier, 'V'],
 											],
 										],
 									],
-									[NT.CommaSeparator],
-									[NT.TypeParameter, [[NT.Type, 'bool']]],
 								],
+								[NT.CommaSeparator],
+								[NT.TypeParameter, [[NT.Type, 'bool']]],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(
-									ASTMemberExpression._(
-										{
-											object: ASTIdentifier._('U', mockPos),
-											property: ASTIdentifier._('V', mockPos),
-										},
-										mockPos,
-									),
-									undefined,
-									undefined,
-									mockPos,
-								),
-								ASTTypeParameter._(ASTTypePrimitive._('bool', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('class with comment', (): void => {
-			testParseAndAnalyze(
-				'class Foo {\n# foo\n}\n# bar\n',
+			testParse('class Foo {\n# foo\n}\n# bar\n', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
-						[
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, [[NT.Comment, '# foo']]],
-						],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, [[NT.Comment, '# foo']]],
 					],
-					[NT.Comment, '# bar'],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.Comment, '# bar'],
+			]);
 		});
 
 		it('class with properties and methods', (): void => {
-			testParseAndAnalyze(
-				'class Foo {\nconst foo = "bar";\nf bar {}}\n# bar\n',
+			testParse('class Foo {\nconst foo = "bar";\nf bar {}}\n# bar\n', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.BlockStatement,
 							[
-								NT.BlockStatement,
 								[
+									NT.VariableDeclaration,
+									'const',
 									[
-										NT.VariableDeclaration,
-										'const',
-										[
-											[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-											[NT.AssignmentOperator],
-											[NT.AssignablesList, [[NT.StringLiteral, 'bar']]],
-										],
+										[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+										[NT.AssignmentOperator],
+										[NT.AssignablesList, [[NT.StringLiteral, 'bar']]],
 									],
-									[NT.SemicolonSeparator],
+								],
+								[NT.SemicolonSeparator],
+								[
+									NT.FunctionDeclaration,
 									[
-										NT.FunctionDeclaration,
-										[
-											[NT.Identifier, 'bar'],
-											[NT.BlockStatement, []],
-										],
+										[NT.Identifier, 'bar'],
+										[NT.BlockStatement, []],
 									],
 								],
 							],
 						],
 					],
-					[NT.Comment, '# bar'],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._(
-								[
-									ASTVariableDeclaration._(
-										{
-											modifiers: [],
-											mutable: false,
-											identifiersList: [ASTIdentifier._('foo', mockPos)],
-											declaredTypes: [],
-											initialValues: [ASTStringLiteral._('bar', mockPos)],
-											inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
-										},
-										mockPos,
-									),
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [],
-											name: ASTIdentifier._('bar', mockPos),
-											typeParams: [],
-											params: [],
-											returnTypes: [],
-											body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-										},
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.Comment, '# bar'],
+			]);
 		});
 
 		it('class extends multiple and implements multiple', (): void => {
-			testParseAndAnalyze(
-				'class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}',
+			testParse('class Foo extends Bar, Baz implements AbstractFooBar, AnotherAbstractClass {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.ExtensionsList,
 							[
-								NT.ExtensionsList,
-								[
-									[NT.Extension, [[NT.Identifier, 'Bar']]],
-									[NT.CommaSeparator],
-									[NT.Extension, [[NT.Identifier, 'Baz']]],
-								],
+								[NT.Extension, [[NT.Identifier, 'Bar']]],
+								[NT.CommaSeparator],
+								[NT.Extension, [[NT.Identifier, 'Baz']]],
 							],
-							[
-								NT.ClassImplementsList,
-								[
-									[NT.ClassImplement, [[NT.Identifier, 'AbstractFooBar']]],
-									[NT.CommaSeparator],
-									[NT.ClassImplement, [[NT.Identifier, 'AnotherAbstractClass']]],
-								],
-							],
-							[NT.BlockStatement, []],
 						],
+						[
+							NT.ClassImplementsList,
+							[
+								[NT.ClassImplement, [[NT.Identifier, 'AbstractFooBar']]],
+								[NT.CommaSeparator],
+								[NT.ClassImplement, [[NT.Identifier, 'AnotherAbstractClass']]],
+							],
+						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
-							implements: [
-								ASTIdentifier._('AbstractFooBar', mockPos),
-								ASTIdentifier._('AnotherAbstractClass', mockPos),
-							],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('class extends multiple and implements multiple with generics', (): void => {
-			testParseAndAnalyze(
+			testParse(
 				'class Foo<|T,U|> extends Bar<|T<|RE|>, path|>, Baz implements AbstractFooBar, AnotherAbstractClass<|U|> {}',
 				[
 					[
@@ -2114,111 +1092,34 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('Bar', mockPos),
-										typeArgs: [
-											ASTTypeInstantiationExpression._(
-												{
-													base: ASTIdentifier._('T', mockPos),
-													typeArgs: [ASTIdentifier._('RE', mockPos)],
-												},
-												mockPos,
-											),
-											ASTTypePrimitive._('path', mockPos),
-										],
-									},
-									mockPos,
-								),
-								ASTIdentifier._('Baz', mockPos),
-							],
-							implements: [
-								ASTIdentifier._('AbstractFooBar', mockPos),
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('AnotherAbstractClass', mockPos),
-										typeArgs: [ASTIdentifier._('U', mockPos)],
-									},
-									mockPos,
-								),
-							],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('abstract class', (): void => {
-			testParseAndAnalyze(
-				'abstract class Foo {}',
+			testParse('abstract class Foo {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
-						[
-							[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
-				'abstract class Foo<|T|> {}',
+			testParse('abstract class Foo<|T|> {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
-						[
-							[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
-							[NT.Identifier, 'Foo'],
-							[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
-							[NT.BlockStatement, []],
-						],
+						[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
+						[NT.Identifier, 'Foo'],
+						[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
+			testParse(
 				`abstract class Foo {
 					abstract readonly const baz: int8;
 
@@ -2320,1039 +1221,436 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._(
-								[
-									ASTVariableDeclaration._(
-										{
-											modifiers: [
-												ASTModifier._('abstract', mockPos),
-												ASTModifier._('readonly', mockPos),
-											],
-											mutable: false,
-											identifiersList: [ASTIdentifier._('baz', mockPos)],
-											declaredTypes: [ASTTypeNumber._('int8', mockPos)],
-											initialValues: [],
-											inferredPossibleTypes: [],
-										},
-										mockPos,
-									),
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [
-												ASTModifier._('abstract', mockPos),
-												ASTModifier._('static', mockPos),
-											],
-											name: ASTIdentifier._('hello', mockPos),
-											typeParams: [
-												ASTTypeParameter._(
-													ASTIdentifier._('T', mockPos),
-													undefined,
-													undefined,
-													mockPos,
-												),
-											],
-											params: [
-												ASTParameter._(
-													{
-														modifiers: [],
-														isRest: false,
-														name: ASTIdentifier._('name', mockPos),
-														declaredType: ASTTypePrimitive._('string', mockPos),
-														defaultValue: ASTStringLiteral._('World', mockPos),
-													},
-													mockPos,
-												),
-											],
-											returnTypes: [
-												ASTIdentifier._('Greeting', mockPos),
-												ASTIdentifier._('T', mockPos),
-											],
-											body: undefined,
-										},
-										mockPos,
-									),
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [
-												ASTModifier._('pub', mockPos),
-												ASTModifier._('static', mockPos),
-											],
-											name: ASTIdentifier._('world', mockPos),
-											typeParams: [],
-											params: [
-												ASTParameter._(
-													{
-														modifiers: [],
-														isRest: false,
-														name: ASTIdentifier._('name', mockPos),
-														declaredType: ASTTypePrimitive._('string', mockPos),
-														defaultValue: ASTStringLiteral._('Earth', mockPos),
-													},
-													mockPos,
-												),
-											],
-											returnTypes: [],
-											body: undefined,
-										},
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 
-			testParseAndAnalyze(
-				'abstract class Foo {}\nclass Bar extends Foo {}',
+			testParse('abstract class Foo {}\nclass Bar extends Foo {}', [
 				[
+					NT.ClassDeclaration,
 					[
-						NT.ClassDeclaration,
-						[
-							[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
-					],
-					[
-						NT.ClassDeclaration,
-						[
-							[NT.Identifier, 'Bar'],
-							[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
-							[NT.BlockStatement, []],
-						],
+						[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
 				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Bar', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('Foo', mockPos)],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
+					NT.ClassDeclaration,
+					[
+						[NT.Identifier, 'Bar'],
+						[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
+						[NT.BlockStatement, []],
+					],
 				],
-			);
+			]);
 		});
 	});
 
 	describe('Comment', (): void => {
 		it('a single-line comment', (): void => {
-			testParseAndAnalyze(
-				'# let x = "foo"',
-				[[NT.Comment, '# let x = "foo"']],
-				[], // empty program
-			);
+			testParse('# let x = "foo"', [[NT.Comment, '# let x = "foo"']]);
 		});
 
 		it('a multi-line comment', (): void => {
-			testParseAndAnalyze(
-				'/* let x = "foo" */',
-				[[NT.Comment, '/* let x = "foo" */']],
-				[], // empty program
-			);
+			testParse('/* let x = "foo" */', [[NT.Comment, '/* let x = "foo" */']]);
 		});
 	});
 
 	describe('EnumDeclaration', (): void => {
 		it('empty enum', (): void => {
-			testParseAndAnalyze(
-				'enum Foo {}',
+			testParse('enum Foo {}', [
 				[
+					NT.EnumDeclaration,
 					[
-						NT.EnumDeclaration,
-						[
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTEnumDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
-				'enum Foo <| T, U |> {}',
+			testParse('enum Foo <| T, U |> {}', [
 				[
+					NT.EnumDeclaration,
 					[
-						NT.EnumDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.TypeParametersList,
 							[
-								NT.TypeParametersList,
-								[
-									[NT.TypeParameter, [[NT.Identifier, 'T']]],
-									[NT.CommaSeparator],
-									[NT.TypeParameter, [[NT.Identifier, 'U']]],
-								],
+								[NT.TypeParameter, [[NT.Identifier, 'T']]],
+								[NT.CommaSeparator],
+								[NT.TypeParameter, [[NT.Identifier, 'U']]],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTEnumDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('enum extends other', (): void => {
-			testParseAndAnalyze(
-				'enum Foo {} enum Bar extends Foo {}',
+			testParse('enum Foo {} enum Bar extends Foo {}', [
 				[
+					NT.EnumDeclaration,
 					[
-						NT.EnumDeclaration,
-						[
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
-					],
-					[
-						NT.EnumDeclaration,
-						[
-							[NT.Identifier, 'Bar'],
-							[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
 				[
-					ASTEnumDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-					ASTEnumDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Bar', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('Foo', mockPos)],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
+					NT.EnumDeclaration,
+					[
+						[NT.Identifier, 'Bar'],
+						[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
+						[NT.BlockStatement, []],
+					],
 				],
-			);
+			]);
 		});
 
 		it('enum extends multiple', (): void => {
-			testParseAndAnalyze(
-				'enum Foo extends Bar, Baz {}',
+			testParse('enum Foo extends Bar, Baz {}', [
 				[
+					NT.EnumDeclaration,
 					[
-						NT.EnumDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.ExtensionsList,
 							[
-								NT.ExtensionsList,
-								[
-									[NT.Extension, [[NT.Identifier, 'Bar']]],
-									[NT.CommaSeparator],
-									[NT.Extension, [[NT.Identifier, 'Baz']]],
-								],
+								[NT.Extension, [[NT.Identifier, 'Bar']]],
+								[NT.CommaSeparator],
+								[NT.Extension, [[NT.Identifier, 'Baz']]],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTEnumDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('enum extends multiple with generics', (): void => {
-			testParseAndAnalyze(
-				'enum Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}',
+			testParse('enum Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}', [
 				[
+					NT.EnumDeclaration,
 					[
-						NT.EnumDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.TypeParametersList,
 							[
-								NT.TypeParametersList,
-								[
-									[NT.TypeParameter, [[NT.Identifier, 'T']]],
-									[NT.CommaSeparator],
-									[NT.TypeParameter, [[NT.Identifier, 'U']]],
-								],
+								[NT.TypeParameter, [[NT.Identifier, 'T']]],
+								[NT.CommaSeparator],
+								[NT.TypeParameter, [[NT.Identifier, 'U']]],
 							],
-							[
-								NT.ExtensionsList,
-								[
-									[
-										NT.Extension,
-										[
-											[NT.Identifier, 'Bar'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-										],
-									],
-									[NT.CommaSeparator],
-									[
-										NT.Extension,
-										[
-											[NT.Identifier, 'Baz'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
-										],
-									],
-								],
-							],
-							[NT.BlockStatement, []],
 						],
+						[
+							NT.ExtensionsList,
+							[
+								[
+									NT.Extension,
+									[
+										[NT.Identifier, 'Bar'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
+									],
+								],
+								[NT.CommaSeparator],
+								[
+									NT.Extension,
+									[
+										[NT.Identifier, 'Baz'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
+									],
+								],
+							],
+						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTEnumDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('Bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('Baz', mockPos),
-										typeArgs: [ASTIdentifier._('U', mockPos)],
-									},
-									mockPos,
-								),
-							],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 	});
 
 	describe('ForStatement', (): void => {
 		it('simple for statement with range', () => {
-			testParseAndAnalyze(
-				'for let i in 0 .. 9 {}',
+			testParse('for let i in 0 .. 9 {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
 						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
+							NT.RangeExpression,
 							[
-								NT.RangeExpression,
-								[
-									[NT.NumberLiteral, '0'],
-									[NT.NumberLiteral, '9'],
-								],
+								[NT.NumberLiteral, '0'],
+								[NT.NumberLiteral, '9'],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTRangeExpression._(
-								{
-									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-									upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with range in parens', () => {
-			testParseAndAnalyze(
-				'for (let i in 0 .. 9) {}',
+			testParse('for (let i in 0 .. 9) {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
 						[
+							NT.Parenthesized,
 							[
-								NT.Parenthesized,
+								[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+								[NT.InKeyword],
 								[
-									[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-									[NT.InKeyword],
+									NT.RangeExpression,
 									[
-										NT.RangeExpression,
-										[
-											[NT.NumberLiteral, '0'],
-											[NT.NumberLiteral, '9'],
-										],
+										[NT.NumberLiteral, '0'],
+										[NT.NumberLiteral, '9'],
 									],
 								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTRangeExpression._(
-								{
-									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-									upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with identifier', () => {
-			testParseAndAnalyze(
-				'const foo = [1, 2, 3]; for let i in foo {}',
+			testParse('const foo = [1, 2, 3]; for let i in foo {}', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
+							NT.AssignablesList,
 							[
-								NT.AssignablesList,
 								[
+									NT.ArrayExpression,
 									[
-										NT.ArrayExpression,
-										[
-											[NT.NumberLiteral, '1'],
-											[NT.CommaSeparator],
-											[NT.NumberLiteral, '2'],
-											[NT.CommaSeparator],
-											[NT.NumberLiteral, '3'],
-										],
+										[NT.NumberLiteral, '1'],
+										[NT.CommaSeparator],
+										[NT.NumberLiteral, '2'],
+										[NT.CommaSeparator],
+										[NT.NumberLiteral, '3'],
 									],
 								],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
+				],
+				[NT.SemicolonSeparator],
+				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
-						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
-							[NT.Identifier, 'foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTArrayExpression._(
-									{
-										items: [
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-											ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-										],
-										possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ASTArrayOf._(ns(mockPos), mockPos))],
-						},
-						mockPos,
-					),
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTIdentifier._('foo', mockPos),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with array (and multiple variables)', () => {
-			testParseAndAnalyze(
-				'for let n, i in [1, 2, 3] {}',
+			testParse('for let n, i in [1, 2, 3] {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
 						[
-							[
-								NT.VariableDeclaration,
-								'let',
-								[[NT.AssigneesList, [[NT.Identifier, 'n'], [NT.CommaSeparator], [NT.Identifier, 'i']]]],
-							],
-							[NT.InKeyword],
-							[
-								NT.ArrayExpression,
-								[
-									[NT.NumberLiteral, '1'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '2'],
-									[NT.CommaSeparator],
-									[NT.NumberLiteral, '3'],
-								],
-							],
-							[NT.BlockStatement, []],
+							NT.VariableDeclaration,
+							'let',
+							[[NT.AssigneesList, [[NT.Identifier, 'n'], [NT.CommaSeparator], [NT.Identifier, 'i']]]],
 						],
+						[NT.InKeyword],
+						[
+							NT.ArrayExpression,
+							[
+								[NT.NumberLiteral, '1'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '2'],
+								[NT.CommaSeparator],
+								[NT.NumberLiteral, '3'],
+							],
+						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('n', mockPos), ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTArrayExpression._(
-								{
-									items: [
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-									],
-									possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with call expression', () => {
-			testParseAndAnalyze(
-				'for let i in foo() {}',
+			testParse('for let i in foo() {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
 						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.ArgumentsList, []],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.ArgumentsList, []],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('foo', mockPos),
-									args: [],
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with member expression', () => {
-			testParseAndAnalyze(
-				'for let i in foo.bar {}',
+			testParse('for let i in foo.bar {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
 						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.Identifier, 'bar'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.Identifier, 'bar'],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTIdentifier._('bar', mockPos),
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with member list expression', () => {
-			testParseAndAnalyze(
-				'for let i in foo[0, 2, 4] {}',
+			testParse('for let i in foo[0, 2, 4] {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
 						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
+							NT.MemberListExpression,
 							[
-								NT.MemberListExpression,
+								[NT.Identifier, 'foo'],
 								[
-									[NT.Identifier, 'foo'],
+									NT.MemberList,
 									[
-										NT.MemberList,
-										[
-											[NT.NumberLiteral, '0'],
-											[NT.CommaSeparator],
-											[NT.NumberLiteral, '2'],
-											[NT.CommaSeparator],
-											[NT.NumberLiteral, '4'],
-										],
+										[NT.NumberLiteral, '0'],
+										[NT.CommaSeparator],
+										[NT.NumberLiteral, '2'],
+										[NT.CommaSeparator],
+										[NT.NumberLiteral, '4'],
 									],
 								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTMemberListExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									properties: [
-										ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-									],
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with member list expression using a range', () => {
-			testParseAndAnalyze(
-				'for let i in foo[0 .. 4] {}',
+			testParse('for let i in foo[0 .. 4] {}', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
 						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
+							NT.MemberListExpression,
 							[
-								NT.MemberListExpression,
+								[NT.Identifier, 'foo'],
 								[
-									[NT.Identifier, 'foo'],
+									NT.MemberList,
 									[
-										NT.MemberList,
 										[
+											NT.RangeExpression,
 											[
-												NT.RangeExpression,
-												[
-													[NT.NumberLiteral, '0'],
-													[NT.NumberLiteral, '4'],
-												],
+												[NT.NumberLiteral, '0'],
+												[NT.NumberLiteral, '4'],
 											],
 										],
 									],
 								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTMemberListExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									properties: [
-										ASTRangeExpression._(
-											{
-												lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-												upper: ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-											},
-											mockPos,
-										),
-									],
-								},
-								mockPos,
-							),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should end with the closing brace and next expression comes after', () => {
-			testParseAndAnalyze(
-				'for let i in foo {}print "something after";',
+			testParse('for let i in foo {}print "something after";', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
-						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
-							[NT.Identifier, 'foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
 					],
-					[NT.PrintStatement, [[NT.StringLiteral, 'something after']]],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTIdentifier._('foo', mockPos),
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-					ASTPrintStatement._([ASTStringLiteral._('something after', mockPos)], mockPos),
-				],
-			);
+				[NT.PrintStatement, [[NT.StringLiteral, 'something after']]],
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should behave correctly with nested ForStatements', () => {
-			testParseAndAnalyze(
-				'for let i in foo { for let j in bar {} }',
+			testParse('for let i in foo { for let j in bar {} }', [
 				[
+					NT.ForStatement,
 					[
-						NT.ForStatement,
+						[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
+						[NT.InKeyword],
+						[NT.Identifier, 'foo'],
 						[
-							[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'i']]]]],
-							[NT.InKeyword],
-							[NT.Identifier, 'foo'],
+							NT.BlockStatement,
 							[
-								NT.BlockStatement,
 								[
+									NT.ForStatement,
 									[
-										NT.ForStatement,
-										[
-											[
-												NT.VariableDeclaration,
-												'let',
-												[[NT.AssigneesList, [[NT.Identifier, 'j']]]],
-											],
-											[NT.InKeyword],
-											[NT.Identifier, 'bar'],
-											[NT.BlockStatement, []],
-										],
+										[NT.VariableDeclaration, 'let', [[NT.AssigneesList, [[NT.Identifier, 'j']]]]],
+										[NT.InKeyword],
+										[NT.Identifier, 'bar'],
+										[NT.BlockStatement, []],
 									],
 								],
 							],
 						],
 					],
 				],
-				[
-					ASTForStatement._(
-						{
-							initializer: ASTVariableDeclaration._(
-								{
-									modifiers: [],
-									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
-									declaredTypes: [],
-									initialValues: [],
-									inferredPossibleTypes: [],
-								},
-								mockPos,
-							),
-							iterable: ASTIdentifier._('foo', mockPos),
-							body: ASTBlockStatement._(
-								[
-									ASTForStatement._(
-										{
-											initializer: ASTVariableDeclaration._(
-												{
-													modifiers: [],
-													mutable: true,
-													identifiersList: [ASTIdentifier._('j', mockPos)],
-													declaredTypes: [],
-													initialValues: [],
-													inferredPossibleTypes: [],
-												},
-												mockPos,
-											),
-											iterable: ASTIdentifier._('bar', mockPos),
-											body: ASTBlockStatement._([], mockPos),
-										},
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 	});
 
 	describe('FunctionDeclaration', (): void => {
 		it('no params or return types', (): void => {
-			testParseAndAnalyze(
-				'f foo {}',
+			testParse('f foo {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('no params with single return type', (): void => {
-			testParseAndAnalyze(
-				'f foo -> bool {} 5;',
+			testParse('f foo -> bool {} 5;', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.FunctionReturns, [[NT.Type, 'bool']]],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.FunctionReturns, [[NT.Type, 'bool']]],
+						[NT.BlockStatement, []],
 					],
-					[NT.NumberLiteral, '5'],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-					ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-				],
-			);
+				[NT.NumberLiteral, '5'],
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('no params with multiple return types', (): void => {
-			testParseAndAnalyze(
+			testParse(
 				`f foo -> bool, string {
 					return true, 'hey';
 				}`,
@@ -3375,295 +1673,146 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [ASTTypePrimitive._('bool', mockPos), ASTTypePrimitive._('string', mockPos)],
-							body: ASTBlockStatement._(
-								[
-									ASTReturnStatement._(
-										[ASTBoolLiteral._(true, mockPos), ASTStringLiteral._('hey', mockPos)],
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('param parens but no return types', (): void => {
-			testParseAndAnalyze(
-				'f foo () {}',
+			testParse('f foo () {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.ParametersList, []],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.ParametersList, []],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('param parens with return types', (): void => {
-			testParseAndAnalyze(
-				'f foo () -> bool {}',
+			testParse('f foo () -> bool {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.ParametersList, []],
-							[NT.FunctionReturns, [[NT.Type, 'bool']]],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.ParametersList, []],
+						[NT.FunctionReturns, [[NT.Type, 'bool']]],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('params but no return types', (): void => {
-			testParseAndAnalyze(
-				'f foo (a: int8, callback: f (a: int8) -> string, bool) {}',
+			testParse('f foo (a: int8, callback: f (a: int8) -> string, bool) {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
+								[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]],
+								[NT.CommaSeparator],
 								[
-									[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]],
-									[NT.CommaSeparator],
+									NT.Parameter,
 									[
-										NT.Parameter,
+										[NT.Identifier, 'callback'],
+										[NT.ColonSeparator],
 										[
-											[NT.Identifier, 'callback'],
-											[NT.ColonSeparator],
+											NT.FunctionSignature,
 											[
-												NT.FunctionSignature,
 												[
+													NT.ParametersList,
 													[
-														NT.ParametersList,
 														[
+															NT.Parameter,
 															[
-																NT.Parameter,
-																[
-																	[NT.Identifier, 'a'],
-																	[NT.ColonSeparator],
-																	[NT.Type, 'int8'],
-																],
+																[NT.Identifier, 'a'],
+																[NT.ColonSeparator],
+																[NT.Type, 'int8'],
 															],
 														],
 													],
-													[
-														NT.FunctionReturns,
-														[[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']],
-													],
+												],
+												[
+													NT.FunctionReturns,
+													[[NT.Type, 'string'], [NT.CommaSeparator], [NT.Type, 'bool']],
 												],
 											],
 										],
 									],
 								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTTypeNumber._('int8', mockPos),
-									},
-									mockPos,
-								),
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('callback', mockPos),
-										declaredType: ASTFunctionSignature._(
-											{
-												typeParams: [],
-												params: [
-													ASTParameter._(
-														{
-															modifiers: [],
-															isRest: false,
-															name: ASTIdentifier._('a', mockPos),
-															declaredType: ASTTypeNumber._('int8', mockPos),
-														},
-														mockPos,
-													),
-												],
-												returnTypes: [
-													ASTTypePrimitive._('string', mockPos),
-													ASTTypePrimitive._('bool', mockPos),
-												],
-											},
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('params and return types', (): void => {
-			testParseAndAnalyze(
-				'f foo (a: int8, r: regex) -> regex, bool {}',
+			testParse('f foo (a: int8, r: regex) -> regex, bool {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
-								[
-									[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]],
-									[NT.CommaSeparator],
-									[NT.Parameter, [[NT.Identifier, 'r'], [NT.ColonSeparator], [NT.Type, 'regex']]],
-								],
+								[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Type, 'int8']]],
+								[NT.CommaSeparator],
+								[NT.Parameter, [[NT.Identifier, 'r'], [NT.ColonSeparator], [NT.Type, 'regex']]],
 							],
-							[NT.FunctionReturns, [[NT.Type, 'regex'], [NT.CommaSeparator], [NT.Type, 'bool']]],
-							[NT.BlockStatement, []],
 						],
+						[NT.FunctionReturns, [[NT.Type, 'regex'], [NT.CommaSeparator], [NT.Type, 'bool']]],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTTypeNumber._('int8', mockPos),
-									},
-									mockPos,
-								),
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('r', mockPos),
-										declaredType: ASTTypePrimitive._('regex', mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [ASTTypePrimitive._('regex', mockPos), ASTTypePrimitive._('bool', mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('params and return types using functions', (): void => {
-			testParseAndAnalyze(
-				'f foo <|T|>(a: f -> T) -> f -> Result<|Maybe<|T|>|> {}',
+			testParse('f foo <|T|>(a: f -> T) -> f -> Result<|Maybe<|T|>|> {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
+						[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 						[
-							[NT.Identifier, 'foo'],
-							[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
 								[
+									NT.Parameter,
 									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.FunctionSignature, [[NT.FunctionReturns, [[NT.Identifier, 'T']]]]],
-										],
+										[NT.Identifier, 'a'],
+										[NT.ColonSeparator],
+										[NT.FunctionSignature, [[NT.FunctionReturns, [[NT.Identifier, 'T']]]]],
 									],
 								],
 							],
+						],
+						[
+							NT.FunctionReturns,
 							[
-								NT.FunctionReturns,
 								[
+									NT.FunctionSignature,
 									[
-										NT.FunctionSignature,
 										[
+											NT.FunctionReturns,
 											[
-												NT.FunctionReturns,
 												[
+													NT.TypeInstantiationExpression,
 													[
-														NT.TypeInstantiationExpression,
+														[NT.Identifier, 'Result'],
 														[
-															[NT.Identifier, 'Result'],
+															NT.TypeArgumentsList,
 															[
-																NT.TypeArgumentsList,
 																[
+																	NT.TypeInstantiationExpression,
 																	[
-																		NT.TypeInstantiationExpression,
-																		[
-																			[NT.Identifier, 'Maybe'],
-																			[
-																				NT.TypeArgumentsList,
-																				[[NT.Identifier, 'T']],
-																			],
-																		],
+																		[NT.Identifier, 'Maybe'],
+																		[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 																	],
 																],
 															],
@@ -3675,298 +1824,117 @@ describe('parser.ts', (): void => {
 									],
 								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-							],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTFunctionSignature._(
-											{
-												typeParams: [],
-												params: [],
-												returnTypes: [ASTIdentifier._('T', mockPos)],
-											},
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [
-								ASTFunctionSignature._(
-									{
-										typeParams: [],
-										params: [],
-										returnTypes: [
-											ASTTypeInstantiationExpression._(
-												{
-													base: ASTIdentifier._('Result', mockPos),
-													typeArgs: [
-														ASTTypeInstantiationExpression._(
-															{
-																base: ASTIdentifier._('Maybe', mockPos),
-																typeArgs: [ASTIdentifier._('T', mockPos)],
-															},
-															mockPos,
-														),
-													],
-												},
-												mockPos,
-											),
-										],
-									},
-									mockPos,
-								),
-							],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('params and return types using tuples', (): void => {
-			testParseAndAnalyze(
-				'f foo (a: <bool>) -> <dec64> {}',
+			testParse('f foo (a: <bool>) -> <dec64> {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
 								[
-									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.TupleShape, [[NT.Type, 'bool']]],
-										],
-									],
+									NT.Parameter,
+									[[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.TupleShape, [[NT.Type, 'bool']]]],
 								],
 							],
-							[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'dec64']]]]],
-							[NT.BlockStatement, []],
 						],
+						[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'dec64']]]]],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTTupleShape._([[ASTTypePrimitive._('bool', mockPos)]], mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [ASTTupleShape._([[ASTTypeNumber._('dec64', mockPos)]], mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('params and return types using tuples and arrays', (): void => {
-			testParseAndAnalyze(
-				'f foo (a: <bool[]>[]) -> <int32> {}',
+			testParse('f foo (a: <bool[]>[]) -> <int32> {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
 								[
+									NT.Parameter,
 									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.ArrayOf, [[NT.TupleShape, [[NT.ArrayOf, [[NT.Type, 'bool']]]]]]],
-										],
+										[NT.Identifier, 'a'],
+										[NT.ColonSeparator],
+										[NT.ArrayOf, [[NT.TupleShape, [[NT.ArrayOf, [[NT.Type, 'bool']]]]]]],
 									],
 								],
 							],
-							[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'int32']]]]],
-							[NT.BlockStatement, []],
 						],
+						[NT.FunctionReturns, [[NT.TupleShape, [[NT.Type, 'int32']]]]],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTArrayOf._(
-											ASTTupleShape._(
-												[[ASTArrayOf._(ASTTypePrimitive._('bool', mockPos), mockPos)]],
-												mockPos,
-											),
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [ASTTupleShape._([[ASTTypeNumber._('int32', mockPos)]], mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with arrays', (): void => {
-			testParseAndAnalyze(
-				'f foo(a: int8[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}',
+			testParse('f foo(a: int8[] = [5], b: string[][], ...c: Foo[]) -> regex, path[][][] {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
 								[
+									NT.Parameter,
 									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.ArrayOf, [[NT.Type, 'int8']]],
-											[NT.AssignmentOperator],
-											[NT.ArrayExpression, [[NT.NumberLiteral, '5']]],
-										],
+										[NT.Identifier, 'a'],
+										[NT.ColonSeparator],
+										[NT.ArrayOf, [[NT.Type, 'int8']]],
+										[NT.AssignmentOperator],
+										[NT.ArrayExpression, [[NT.NumberLiteral, '5']]],
 									],
-									[NT.CommaSeparator],
+								],
+								[NT.CommaSeparator],
+								[
+									NT.Parameter,
 									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'b'],
-											[NT.ColonSeparator],
-											[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'string']]]]],
-										],
+										[NT.Identifier, 'b'],
+										[NT.ColonSeparator],
+										[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'string']]]]],
 									],
-									[NT.CommaSeparator],
+								],
+								[NT.CommaSeparator],
+								[
+									NT.Parameter,
 									[
-										NT.Parameter,
-										[
-											[NT.RestElement, '...'],
-											[NT.Identifier, 'c'],
-											[NT.ColonSeparator],
-											[NT.ArrayOf, [[NT.Identifier, 'Foo']]],
-										],
+										[NT.RestElement, '...'],
+										[NT.Identifier, 'c'],
+										[NT.ColonSeparator],
+										[NT.ArrayOf, [[NT.Identifier, 'Foo']]],
 									],
 								],
 							],
-							[
-								NT.FunctionReturns,
-								[
-									[NT.Type, 'regex'],
-									[NT.CommaSeparator],
-									[NT.ArrayOf, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'path']]]]]]],
-								],
-							],
-							[NT.BlockStatement, []],
 						],
+						[
+							NT.FunctionReturns,
+							[
+								[NT.Type, 'regex'],
+								[NT.CommaSeparator],
+								[NT.ArrayOf, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, 'path']]]]]]],
+							],
+						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTArrayOf._(ASTTypeNumber._('int8', mockPos), mockPos),
-										defaultValue: ASTArrayExpression._(
-											{
-												items: [
-													ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-												],
-												possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-											},
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('b', mockPos),
-										declaredType: ASTArrayOf._(
-											ASTArrayOf._(ASTTypePrimitive._('string', mockPos), mockPos),
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: true,
-										name: ASTIdentifier._('c', mockPos),
-										declaredType: ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [
-								ASTTypePrimitive._('regex', mockPos),
-								ASTArrayOf._(
-									ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('path', mockPos), mockPos), mockPos),
-									mockPos,
-								),
-							],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('return when', () => {
-			testParseAndAnalyze(
+			testParse(
 				`f school (age: int8) -> string {
 					return when age {
 						11 -> 'Hogwarts First Year',
@@ -4077,126 +2045,11 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('school', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('age', mockPos),
-										declaredType: ASTTypeNumber._('int8', mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [ASTTypePrimitive._('string', mockPos)],
-							body: ASTBlockStatement._(
-								[
-									ASTReturnStatement._(
-										[
-											ASTWhenExpression._(
-												{
-													expression: ASTIdentifier._('age', mockPos),
-													cases: [
-														ASTWhenCase._(
-															{
-																values: [
-																	ASTNumberLiteral._(
-																		11,
-																		undefined,
-																		[...numberSizesInts],
-																		mockPos,
-																	),
-																],
-																consequent: ASTStringLiteral._(
-																	'Hogwarts First Year',
-																	mockPos,
-																),
-															},
-															mockPos,
-														),
-														ASTWhenCase._(
-															{
-																values: [
-																	ASTRangeExpression._(
-																		{
-																			lower: ASTNumberLiteral._(
-																				12,
-																				undefined,
-																				[...numberSizesInts],
-																				mockPos,
-																			),
-																			upper: ASTNumberLiteral._(
-																				17,
-																				undefined,
-																				[...numberSizesInts],
-																				mockPos,
-																			),
-																		},
-																		mockPos,
-																	),
-																],
-																consequent: ASTStringLiteral._(
-																	'Another Year at Hogwarts',
-																	mockPos,
-																),
-															},
-															mockPos,
-														),
-														ASTWhenCase._(
-															{
-																values: [
-																	ASTNumberLiteral._(
-																		18,
-																		undefined,
-																		[...numberSizesInts],
-																		mockPos,
-																	),
-																	ASTNumberLiteral._(
-																		19,
-																		undefined,
-																		[...numberSizesInts],
-																		mockPos,
-																	),
-																],
-																consequent: ASTStringLiteral._(
-																	'Auror Training',
-																	mockPos,
-																),
-															},
-															mockPos,
-														),
-														ASTWhenCase._(
-															{
-																values: [ASTRestElement._(mockPos)],
-																consequent: ASTStringLiteral._('Auror', mockPos),
-															},
-															mockPos,
-														),
-													],
-												},
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('multiple returns with when', () => {
-			testParseAndAnalyze(
+			testParse(
 				`f foo (age: uint16) -> uint16, string {
 					return 5, when age {... -> 'No more foos',};
 				}`,
@@ -4248,105 +2101,29 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('age', mockPos),
-										declaredType: ASTTypeNumber._('uint16', mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [ASTTypeNumber._('uint16', mockPos), ASTTypePrimitive._('string', mockPos)],
-							body: ASTBlockStatement._(
-								[
-									ASTReturnStatement._(
-										[
-											ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-											ASTWhenExpression._(
-												{
-													expression: ASTIdentifier._('age', mockPos),
-													cases: [
-														ASTWhenCase._(
-															{
-																values: [ASTRestElement._(mockPos)],
-																consequent: ASTStringLiteral._('No more foos', mockPos),
-															},
-															mockPos,
-														),
-													],
-												},
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('generics', (): void => {
-			testParseAndAnalyze(
-				'f foo <|T|> (a: T) -> T {}',
+			testParse('f foo <|T|> (a: T) -> T {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
+						[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 						[
-							[NT.Identifier, 'foo'],
-							[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
-							[
-								NT.ParametersList,
-								[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']]]],
-							],
-							[NT.FunctionReturns, [[NT.Identifier, 'T']]],
-							[NT.BlockStatement, []],
+							NT.ParametersList,
+							[[NT.Parameter, [[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']]]],
 						],
+						[NT.FunctionReturns, [[NT.Identifier, 'T']]],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-							],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTIdentifier._('T', mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [ASTIdentifier._('T', mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('abstract functions', () => {
-			testParseAndAnalyze(
+			testParse(
 				`abstract class A {
 					abstract f foo1;
 					abstract f foo2 (arg: int64);
@@ -4432,183 +2209,60 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('A', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._(
-								[
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo1', mockPos),
-											typeParams: [],
-											params: [],
-											returnTypes: [],
-											body: undefined,
-										},
-										mockPos,
-									),
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo2', mockPos),
-											typeParams: [],
-											params: [
-												ASTParameter._(
-													{
-														modifiers: [],
-														name: ASTIdentifier._('arg', mockPos),
-														isRest: false,
-														declaredType: ASTTypeNumber._('int64', mockPos),
-													},
-													mockPos,
-												),
-											],
-											returnTypes: [],
-											body: undefined,
-										},
-										mockPos,
-									),
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo3', mockPos),
-											typeParams: [
-												ASTTypeParameter._(
-													ASTIdentifier._('T', mockPos),
-													undefined,
-													undefined,
-													mockPos,
-												),
-											],
-											params: [],
-											returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-											body: undefined,
-										},
-										mockPos,
-									),
-									ASTFunctionDeclaration._(
-										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo4', mockPos),
-											typeParams: [],
-											params: [
-												ASTParameter._(
-													{
-														modifiers: [],
-														isRest: false,
-														name: ASTIdentifier._('arg', mockPos),
-														declaredType: ASTTypeNumber._('dec32', mockPos),
-													},
-													mockPos,
-												),
-											],
-											returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-											body: undefined,
-										},
-										mockPos,
-									),
-								],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('anonymous simple', () => {
-			testParseAndAnalyze(
-				'const foo = f {};',
+			testParse('const foo = f {};', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.FunctionDeclaration, [[NT.BlockStatement, []]]]]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.FunctionDeclaration, [[NT.BlockStatement, []]]]]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTFunctionDeclaration._(
-									{
-										modifiers: [],
-										name: undefined,
-										typeParams: [],
-										params: [],
-										returnTypes: [],
-										body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('anonymous complex', () => {
-			testParseAndAnalyze(
-				'const foo = f <|T|>(a: T) -> T {\ndo();\n};',
+			testParse('const foo = f <|T|>(a: T) -> T {\ndo();\n};', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
+							NT.AssignablesList,
 							[
-								NT.AssignablesList,
 								[
+									NT.FunctionDeclaration,
 									[
-										NT.FunctionDeclaration,
+										[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
 										[
-											[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
+											NT.ParametersList,
 											[
-												NT.ParametersList,
 												[
-													[
-														NT.Parameter,
-														[
-															[NT.Identifier, 'a'],
-															[NT.ColonSeparator],
-															[NT.Identifier, 'T'],
-														],
-													],
+													NT.Parameter,
+													[[NT.Identifier, 'a'], [NT.ColonSeparator], [NT.Identifier, 'T']],
 												],
 											],
-											[NT.FunctionReturns, [[NT.Identifier, 'T']]],
+										],
+										[NT.FunctionReturns, [[NT.Identifier, 'T']]],
+										[
+											NT.BlockStatement,
 											[
-												NT.BlockStatement,
 												[
+													NT.CallExpression,
 													[
-														NT.CallExpression,
-														[
-															[NT.Identifier, 'do'],
-															[NT.ArgumentsList, []],
-														],
+														[NT.Identifier, 'do'],
+														[NT.ArgumentsList, []],
 													],
-													[NT.SemicolonSeparator],
 												],
+												[NT.SemicolonSeparator],
 											],
 										],
 									],
@@ -4616,110 +2270,29 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTFunctionDeclaration._(
-									{
-										modifiers: [],
-										name: undefined,
-										typeParams: [
-											ASTTypeParameter._(
-												ASTIdentifier._('T', mockPos),
-												undefined,
-												undefined,
-												mockPos,
-											),
-										],
-										params: [
-											ASTParameter._(
-												{
-													modifiers: [],
-													isRest: false,
-													name: ASTIdentifier._('a', mockPos),
-													declaredType: ASTIdentifier._('T', mockPos),
-												},
-												mockPos,
-											),
-										],
-										returnTypes: [ASTIdentifier._('T', mockPos)],
-										body: ASTBlockStatement._(
-											[
-												ASTCallExpression._(
-													{
-														callee: ASTIdentifier._('do', mockPos),
-														args: [],
-													},
-													mockPos,
-												),
-											],
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('anonymous abstract', () => {
-			testParseAndAnalyze(
-				'abstract const foo = f;',
+			testParse('abstract const foo = f;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.FunctionDeclaration]]],
-						],
+						[NT.ModifiersList, [[NT.Modifier, 'abstract']]],
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.FunctionDeclaration]]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTFunctionDeclaration._(
-									{
-										modifiers: [],
-										name: undefined,
-										typeParams: [],
-										params: [],
-										returnTypes: [],
-										body: undefined,
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('ending with a question mark', () => {
-			testParseAndAnalyze(
+			testParse(
 				`f danger? -> bool {
 					return true;
 				}`,
@@ -4736,22 +2309,6 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('danger?', mockPos),
-							typeParams: [],
-							params: [],
-							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-							body: ASTBlockStatement._(
-								[ASTReturnStatement._([ASTBoolLiteral._(true, mockPos)], mockPos)],
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
@@ -4762,7 +2319,7 @@ describe('parser.ts', (): void => {
 					const result = parse('f <=> {}');
 
 					// use assert instead of expect, since we need TS to narrow the type
-					assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+					assert(result.isError(), `Expected: "error", Received: "ok"`);
 					expect(result.error.message).toBe(
 						'"<=>" is a BinaryExpression and we hoped to find a value before it, but alas!',
 					);
@@ -4770,60 +2327,26 @@ describe('parser.ts', (): void => {
 
 				// in a class
 				it('<=> as function name inside of a class should be an innocent Identifier', (): void => {
-					testParseAndAnalyze(
-						'class A{f <=> {}}',
+					testParse('class A{f <=> {}}', [
 						[
+							NT.ClassDeclaration,
 							[
-								NT.ClassDeclaration,
+								[NT.Identifier, 'A'],
 								[
-									[NT.Identifier, 'A'],
+									NT.BlockStatement,
 									[
-										NT.BlockStatement,
 										[
+											NT.FunctionDeclaration,
 											[
-												NT.FunctionDeclaration,
-												[
-													[NT.Identifier, '<=>'],
-													[NT.BlockStatement, []],
-												],
+												[NT.Identifier, '<=>'],
+												[NT.BlockStatement, []],
 											],
 										],
 									],
 								],
 							],
 						],
-						[
-							ASTClassDeclaration._(
-								{
-									modifiers: [],
-									name: ASTIdentifier._('A', mockPos),
-									typeParams: [],
-									extends: [],
-									implements: [],
-									body: ASTBlockStatement._(
-										[
-											ASTFunctionDeclaration._(
-												{
-													modifiers: [],
-													name: ASTIdentifier._('<=>', mockPos),
-													typeParams: [],
-													params: [],
-													returnTypes: [],
-													body: ASTBlockStatement._(
-														[ASTReturnStatement._([], mockPos)],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 			});
 		});
@@ -4831,165 +2354,127 @@ describe('parser.ts', (): void => {
 
 	describe('IfStatement', (): void => {
 		it('with bool conditional', () => {
-			testParseAndAnalyze(
-				'if true {}',
+			testParse('if true {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
-						[
-							[NT.BoolLiteral, 'true'],
-							[NT.BlockStatement, []],
-						],
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBoolLiteral._(true, mockPos),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with BinaryExpression conditional using two NumberLiterals', () => {
-			testParseAndAnalyze(
-				'if 1 < 2 {}',
+			testParse('if 1 < 2 {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
 						[
+							NT.BinaryExpression,
+							'<',
 							[
-								NT.BinaryExpression,
-								'<',
-								[
-									[NT.NumberLiteral, '1'],
-									[NT.NumberLiteral, '2'],
-								],
+								[NT.NumberLiteral, '1'],
+								[NT.NumberLiteral, '2'],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBinaryExpression._(
-								{
-									operator: '<',
-									left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
-			testParseAndAnalyze(
-				'if foo == 2 {}',
+			testParse('if foo == 2 {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
 						[
+							NT.BinaryExpression,
+							'==',
 							[
-								NT.BinaryExpression,
-								'==',
-								[
-									[NT.Identifier, 'foo'],
-									[NT.NumberLiteral, '2'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '2'],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBinaryExpression._(
-								{
-									operator: '==',
-									left: ASTIdentifier._('foo', mockPos),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with BinaryExpression conditional using a CallExpression and a NumberLiteral', () => {
-			testParseAndAnalyze(
-				'if foo() == 2 {}',
+			testParse('if foo() == 2 {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
 						[
+							NT.BinaryExpression,
+							'==',
 							[
-								NT.BinaryExpression,
-								'==',
 								[
+									NT.CallExpression,
 									[
-										NT.CallExpression,
-										[
-											[NT.Identifier, 'foo'],
-											[NT.ArgumentsList, []],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.ArgumentsList, []],
 									],
-									[NT.NumberLiteral, '2'],
 								],
+								[NT.NumberLiteral, '2'],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBinaryExpression._(
-								{
-									operator: '==',
-									left: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('foo', mockPos),
-											args: [],
-										},
-										mockPos,
-									),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with two conditions', () => {
-			testParseAndAnalyze(
-				'if foo() == 2 && a < 3 {}',
+			testParse('if foo() == 2 && a < 3 {}', [
 				[
+					NT.IfStatement,
+					[
+						[
+							NT.BinaryExpression,
+							'&&',
+							[
+								[
+									NT.BinaryExpression,
+									'==',
+									[
+										[
+											NT.CallExpression,
+											[
+												[NT.Identifier, 'foo'],
+												[NT.ArgumentsList, []],
+											],
+										],
+										[NT.NumberLiteral, '2'],
+									],
+								],
+								[
+									NT.BinaryExpression,
+									'<',
+									[
+										[NT.Identifier, 'a'],
+										[NT.NumberLiteral, '3'],
+									],
+								],
+							],
+						],
+						[NT.BlockStatement, []],
+					],
+				],
+			]);
+		});
+
+		describe('with parens', () => {
+			it('and one condition', () => {
+				testParse('if (foo() == 2) {}', [
 					[
 						NT.IfStatement,
 						[
 							[
-								NT.BinaryExpression,
-								'&&',
+								NT.Parenthesized,
 								[
 									[
 										NT.BinaryExpression,
@@ -5005,12 +2490,48 @@ describe('parser.ts', (): void => {
 											[NT.NumberLiteral, '2'],
 										],
 									],
+								],
+							],
+							[NT.BlockStatement, []],
+						],
+					],
+				]);
+			});
+
+			it('and two conditions', () => {
+				testParse('if (foo() == 2 && a < 3) {}', [
+					[
+						NT.IfStatement,
+						[
+							[
+								NT.Parenthesized,
+								[
 									[
 										NT.BinaryExpression,
-										'<',
+										'&&',
 										[
-											[NT.Identifier, 'a'],
-											[NT.NumberLiteral, '3'],
+											[
+												NT.BinaryExpression,
+												'==',
+												[
+													[
+														NT.CallExpression,
+														[
+															[NT.Identifier, 'foo'],
+															[NT.ArgumentsList, []],
+														],
+													],
+													[NT.NumberLiteral, '2'],
+												],
+											],
+											[
+												NT.BinaryExpression,
+												'<',
+												[
+													[NT.Identifier, 'a'],
+													[NT.NumberLiteral, '3'],
+												],
+											],
 										],
 									],
 								],
@@ -5018,504 +2539,171 @@ describe('parser.ts', (): void => {
 							[NT.BlockStatement, []],
 						],
 					],
-				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTBinaryExpression._(
-										{
-											operator: '==',
-											left: ASTCallExpression._(
-												{
-													callee: ASTIdentifier._('foo', mockPos),
-													args: [],
-												},
-												mockPos,
-											),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-									right: ASTBinaryExpression._(
-										{
-											operator: '<',
-											left: ASTIdentifier._('a', mockPos),
-											right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
-		});
-
-		describe('with parens', () => {
-			it('and one condition', () => {
-				testParseAndAnalyze(
-					'if (foo() == 2) {}',
-					[
-						[
-							NT.IfStatement,
-							[
-								[
-									NT.Parenthesized,
-									[
-										[
-											NT.BinaryExpression,
-											'==',
-											[
-												[
-													NT.CallExpression,
-													[
-														[NT.Identifier, 'foo'],
-														[NT.ArgumentsList, []],
-													],
-												],
-												[NT.NumberLiteral, '2'],
-											],
-										],
-									],
-								],
-								[NT.BlockStatement, []],
-							],
-						],
-					],
-					[
-						ASTIfStatement._(
-							{
-								test: ASTBinaryExpression._(
-									{
-										operator: '==',
-										left: ASTCallExpression._(
-											{
-												callee: ASTIdentifier._('foo', mockPos),
-												args: [],
-											},
-											mockPos,
-										),
-										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-								consequent: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
-			});
-
-			it('and two conditions', () => {
-				testParseAndAnalyze(
-					'if (foo() == 2 && a < 3) {}',
-					[
-						[
-							NT.IfStatement,
-							[
-								[
-									NT.Parenthesized,
-									[
-										[
-											NT.BinaryExpression,
-											'&&',
-											[
-												[
-													NT.BinaryExpression,
-													'==',
-													[
-														[
-															NT.CallExpression,
-															[
-																[NT.Identifier, 'foo'],
-																[NT.ArgumentsList, []],
-															],
-														],
-														[NT.NumberLiteral, '2'],
-													],
-												],
-												[
-													NT.BinaryExpression,
-													'<',
-													[
-														[NT.Identifier, 'a'],
-														[NT.NumberLiteral, '3'],
-													],
-												],
-											],
-										],
-									],
-								],
-								[NT.BlockStatement, []],
-							],
-						],
-					],
-					[
-						ASTIfStatement._(
-							{
-								test: ASTBinaryExpression._(
-									{
-										operator: '&&',
-										left: ASTBinaryExpression._(
-											{
-												operator: '==',
-												left: ASTCallExpression._(
-													{
-														callee: ASTIdentifier._('foo', mockPos),
-														args: [],
-													},
-													mockPos,
-												),
-												right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-											},
-											mockPos,
-										),
-										right: ASTBinaryExpression._(
-											{
-												operator: '<',
-												left: ASTIdentifier._('a', mockPos),
-												right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-											},
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-								consequent: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 		});
 
 		it('with just else', () => {
-			testParseAndAnalyze(
-				'if true {} else {}',
+			testParse('if true {} else {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
-						[
-							[NT.BoolLiteral, 'true'],
-							[NT.BlockStatement, []],
-							[NT.BlockStatement, []],
-						],
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBoolLiteral._(true, mockPos),
-							consequent: ASTBlockStatement._([], mockPos),
-							alternate: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with else if', () => {
-			testParseAndAnalyze(
-				'if true {} else if false {}',
+			testParse('if true {} else if false {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
 						[
-							[NT.BoolLiteral, 'true'],
-							[NT.BlockStatement, []],
+							NT.IfStatement,
 							[
-								NT.IfStatement,
-								[
-									[NT.BoolLiteral, 'false'],
-									[NT.BlockStatement, []],
-								],
+								[NT.BoolLiteral, 'false'],
+								[NT.BlockStatement, []],
 							],
 						],
 					],
 				],
-				[
-					ASTIfStatement._(
-						{
-							test: ASTBoolLiteral._(true, mockPos),
-							consequent: ASTBlockStatement._([], mockPos),
-							alternate: ASTIfStatement._(
-								{
-									test: ASTBoolLiteral._(false, mockPos),
-									consequent: ASTBlockStatement._([], mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('with a subsequent if and should be two separate IfStatements', () => {
-			testParseAndAnalyze(
-				'if true {} if false {}',
+			testParse('if true {} if false {}', [
 				[
+					NT.IfStatement,
 					[
-						NT.IfStatement,
-						[
-							[NT.BoolLiteral, 'true'],
-							[NT.BlockStatement, []],
-						],
-					],
-					[
-						NT.IfStatement,
-						[
-							[NT.BoolLiteral, 'false'],
-							[NT.BlockStatement, []],
-						],
+						[NT.BoolLiteral, 'true'],
+						[NT.BlockStatement, []],
 					],
 				],
 				[
-					ASTIfStatement._(
-						{
-							test: ASTBoolLiteral._(true, mockPos),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-					ASTIfStatement._(
-						{
-							test: ASTBoolLiteral._(false, mockPos),
-							consequent: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
+					NT.IfStatement,
+					[
+						[NT.BoolLiteral, 'false'],
+						[NT.BlockStatement, []],
+					],
 				],
-			);
+			]);
 		});
 	});
 
 	describe('InterfaceDeclaration', (): void => {
 		it('empty interface', (): void => {
-			testParseAndAnalyze(
-				'interface Foo {}',
+			testParse('interface Foo {}', [
 				[
+					NT.InterfaceDeclaration,
 					[
-						NT.InterfaceDeclaration,
-						[
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTInterfaceDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
-				'interface Foo <| T, U |> {}',
+			testParse('interface Foo <| T, U |> {}', [
 				[
+					NT.InterfaceDeclaration,
 					[
-						NT.InterfaceDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.TypeParametersList,
 							[
-								NT.TypeParametersList,
-								[
-									[NT.TypeParameter, [[NT.Identifier, 'T']]],
-									[NT.CommaSeparator],
-									[NT.TypeParameter, [[NT.Identifier, 'U']]],
-								],
+								[NT.TypeParameter, [[NT.Identifier, 'T']]],
+								[NT.CommaSeparator],
+								[NT.TypeParameter, [[NT.Identifier, 'U']]],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTInterfaceDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('interface extends other', (): void => {
-			testParseAndAnalyze(
-				'interface Foo {} interface Bar extends Foo {}',
+			testParse('interface Foo {} interface Bar extends Foo {}', [
 				[
+					NT.InterfaceDeclaration,
 					[
-						NT.InterfaceDeclaration,
-						[
-							[NT.Identifier, 'Foo'],
-							[NT.BlockStatement, []],
-						],
-					],
-					[
-						NT.InterfaceDeclaration,
-						[
-							[NT.Identifier, 'Bar'],
-							[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
-							[NT.BlockStatement, []],
-						],
+						[NT.Identifier, 'Foo'],
+						[NT.BlockStatement, []],
 					],
 				],
 				[
-					ASTInterfaceDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-					ASTInterfaceDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Bar', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('Foo', mockPos)],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
+					NT.InterfaceDeclaration,
+					[
+						[NT.Identifier, 'Bar'],
+						[NT.ExtensionsList, [[NT.Extension, [[NT.Identifier, 'Foo']]]]],
+						[NT.BlockStatement, []],
+					],
 				],
-			);
+			]);
 		});
 
 		it('interface extends multiple', (): void => {
-			testParseAndAnalyze(
-				'interface Foo extends Bar, Baz {}',
+			testParse('interface Foo extends Bar, Baz {}', [
 				[
+					NT.InterfaceDeclaration,
 					[
-						NT.InterfaceDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.ExtensionsList,
 							[
-								NT.ExtensionsList,
-								[
-									[NT.Extension, [[NT.Identifier, 'Bar']]],
-									[NT.CommaSeparator],
-									[NT.Extension, [[NT.Identifier, 'Baz']]],
-								],
+								[NT.Extension, [[NT.Identifier, 'Bar']]],
+								[NT.CommaSeparator],
+								[NT.Extension, [[NT.Identifier, 'Baz']]],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTInterfaceDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('interface extends multiple with generics', (): void => {
-			testParseAndAnalyze(
-				'interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}',
+			testParse('interface Foo<|T,U|> extends Bar<|T|>, Baz<|U|> {}', [
 				[
+					NT.InterfaceDeclaration,
 					[
-						NT.InterfaceDeclaration,
+						[NT.Identifier, 'Foo'],
 						[
-							[NT.Identifier, 'Foo'],
+							NT.TypeParametersList,
 							[
-								NT.TypeParametersList,
-								[
-									[NT.TypeParameter, [[NT.Identifier, 'T']]],
-									[NT.CommaSeparator],
-									[NT.TypeParameter, [[NT.Identifier, 'U']]],
-								],
+								[NT.TypeParameter, [[NT.Identifier, 'T']]],
+								[NT.CommaSeparator],
+								[NT.TypeParameter, [[NT.Identifier, 'U']]],
 							],
-							[
-								NT.ExtensionsList,
-								[
-									[
-										NT.Extension,
-										[
-											[NT.Identifier, 'Bar'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-										],
-									],
-									[NT.CommaSeparator],
-									[
-										NT.Extension,
-										[
-											[NT.Identifier, 'Baz'],
-											[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
-										],
-									],
-								],
-							],
-							[NT.BlockStatement, []],
 						],
+						[
+							NT.ExtensionsList,
+							[
+								[
+									NT.Extension,
+									[
+										[NT.Identifier, 'Bar'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
+									],
+								],
+								[NT.CommaSeparator],
+								[
+									NT.Extension,
+									[
+										[NT.Identifier, 'Baz'],
+										[NT.TypeArgumentsList, [[NT.Identifier, 'U']]],
+									],
+								],
+							],
+						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTInterfaceDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
-							],
-							extends: [
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('Bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-								ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('Baz', mockPos),
-										typeArgs: [ASTIdentifier._('U', mockPos)],
-									},
-									mockPos,
-								),
-							],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 	});
 
@@ -5524,7 +2712,7 @@ describe('parser.ts', (): void => {
 
 		describe('for a class', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/**
 					 * foo
 					 */
@@ -5544,30 +2732,11 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								joeDoc: ASTJoeDoc._(
-									`/**
-					 * foo
-					 */`,
-									mockPos,
-								),
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('even when there are modifiers', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/**
 					 * foo
 					 */
@@ -5588,30 +2757,11 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								joeDoc: ASTJoeDoc._(
-									`/**
-					 * foo
-					 */`,
-									mockPos,
-								),
-								modifiers: [ASTModifier._('abstract', mockPos)],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/* foo */
 					class Foo {}`,
 					[
@@ -5624,26 +2774,13 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 		});
 
 		describe('for a function', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/** foo */
 					f foo {}`,
 					[
@@ -5656,25 +2793,11 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTFunctionDeclaration._(
-							{
-								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
-								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/* foo */
 					f foo {}`,
 					[
@@ -5686,19 +2809,6 @@ describe('parser.ts', (): void => {
 								[NT.BlockStatement, []],
 							],
 						],
-					],
-					[
-						ASTFunctionDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
-								typeParams: [],
-								params: [],
-								returnTypes: [],
-								body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-							},
-							mockPos,
-						),
 					],
 				);
 			});
@@ -5706,7 +2816,7 @@ describe('parser.ts', (): void => {
 
 		describe('for an interface', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/** foo */
 					interface Foo {}`,
 					[
@@ -5719,24 +2829,11 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTInterfaceDeclaration._(
-							{
-								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [],
-								extends: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/* foo */
 					interface Foo {}`,
 					[
@@ -5748,18 +2845,6 @@ describe('parser.ts', (): void => {
 								[NT.BlockStatement, []],
 							],
 						],
-					],
-					[
-						ASTInterfaceDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [],
-								extends: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
 					],
 				);
 			});
@@ -5767,7 +2852,7 @@ describe('parser.ts', (): void => {
 
 		describe('for a variable', () => {
 			it('a properly formatted JoeDoc should be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/** foo */
 					const foo = 1;`,
 					[
@@ -5783,25 +2868,11 @@ describe('parser.ts', (): void => {
 						],
 						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('but a regular comment should not be adopted', () => {
-				testParseAndAnalyze(
+				testParse(
 					`/* foo */
 					const foo = 1;`,
 					[
@@ -5816,19 +2887,6 @@ describe('parser.ts', (): void => {
 							],
 						],
 						[NT.SemicolonSeparator],
-					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
-							},
-							mockPos,
-						),
 					],
 				);
 			});
@@ -5837,745 +2895,374 @@ describe('parser.ts', (): void => {
 
 	describe('LoopStatement', (): void => {
 		it('simple loop', () => {
-			testParseAndAnalyze(
-				'loop {}',
-				[[NT.LoopStatement, [[NT.BlockStatement, []]]]],
-				[
-					ASTLoopStatement._(
-						{
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			testParse('loop {}', [[NT.LoopStatement, [[NT.BlockStatement, []]]]]);
 		});
 
 		it('with done', () => {
-			testParseAndAnalyze(
-				'loop {\ndone;\n}',
-				[[NT.LoopStatement, [[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]]]],
-				[
-					ASTLoopStatement._(
-						{
-							body: ASTBlockStatement._([ASTDoneStatement._(mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			testParse('loop {\ndone;\n}', [
+				[NT.LoopStatement, [[NT.BlockStatement, [[NT.DoneStatement], [NT.SemicolonSeparator]]]]],
+			]);
 		});
 
 		it('with next', () => {
-			testParseAndAnalyze(
-				'loop {\nnext;\n}',
-				[[NT.LoopStatement, [[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]]]],
-				[
-					ASTLoopStatement._(
-						{
-							body: ASTBlockStatement._([ASTNextStatement._(mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			testParse('loop {\nnext;\n}', [
+				[NT.LoopStatement, [[NT.BlockStatement, [[NT.NextStatement], [NT.SemicolonSeparator]]]]],
+			]);
 		});
 	});
 
 	describe('MemberExpression', () => {
 		it('works with several nested layers', () => {
-			testParseAndAnalyze(
-				'a.b.c.d',
+			testParse('a.b.c.d', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
 								[
+									NT.MemberExpression,
 									[
-										NT.MemberExpression,
-										[
-											[NT.Identifier, 'a'],
-											[NT.Identifier, 'b'],
-										],
+										[NT.Identifier, 'a'],
+										[NT.Identifier, 'b'],
 									],
-									[NT.Identifier, 'c'],
 								],
+								[NT.Identifier, 'c'],
 							],
-							[NT.Identifier, 'd'],
 						],
+						[NT.Identifier, 'd'],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTMemberExpression._(
-								{
-									object: ASTMemberExpression._(
-										{
-											object: ASTIdentifier._('a', mockPos),
-											property: ASTIdentifier._('b', mockPos),
-										},
-										mockPos,
-									),
-									property: ASTIdentifier._('c', mockPos),
-								},
-								mockPos,
-							),
-							property: ASTIdentifier._('d', mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('works with this', () => {
-			testParseAndAnalyze(
-				'this.foo',
-				[[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTThisKeyword._(mockPos),
-							property: ASTIdentifier._('foo', mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			testParse('this.foo', [[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]]]);
 		});
 
 		describe('works with a TypeInstantiationExpression', () => {
 			it('on the property', () => {
-				testParseAndAnalyze(
-					'foo.bar<|T|>',
+				testParse('foo.bar<|T|>', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
+							[NT.Identifier, 'foo'],
 							[
-								[NT.Identifier, 'foo'],
+								NT.TypeInstantiationExpression,
 								[
-									NT.TypeInstantiationExpression,
-									[
-										[NT.Identifier, 'bar'],
-										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-									],
+									[NT.Identifier, 'bar'],
+									[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 								],
 							],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('on the object and uses dot notation', () => {
-				testParseAndAnalyze(
-					'foo<|T|>.bar',
+				testParse('foo<|T|>.bar', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.TypeInstantiationExpression,
 								[
-									NT.TypeInstantiationExpression,
-									[
-										[NT.Identifier, 'foo'],
-										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-									],
+									[NT.Identifier, 'foo'],
+									[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 								],
-								[NT.Identifier, 'bar'],
 							],
+							[NT.Identifier, 'bar'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('foo', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-								property: ASTIdentifier._('bar', mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('on the object and uses bracket notation', () => {
-				testParseAndAnalyze(
-					'foo<|T|>["bar"]',
+				testParse('foo<|T|>["bar"]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.TypeInstantiationExpression,
 								[
-									NT.TypeInstantiationExpression,
-									[
-										[NT.Identifier, 'foo'],
-										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-									],
+									[NT.Identifier, 'foo'],
+									[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 								],
-								[NT.StringLiteral, 'bar'],
 							],
+							[NT.StringLiteral, 'bar'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('foo', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-								property: ASTStringLiteral._('bar', mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('with this', () => {
-				testParseAndAnalyze(
-					'this.bar<|T|>',
+				testParse('this.bar<|T|>', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
+							[NT.ThisKeyword],
 							[
-								[NT.ThisKeyword],
+								NT.TypeInstantiationExpression,
 								[
-									NT.TypeInstantiationExpression,
-									[
-										[NT.Identifier, 'bar'],
-										[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
-									],
+									[NT.Identifier, 'bar'],
+									[NT.TypeArgumentsList, [[NT.Identifier, 'T']]],
 								],
 							],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTThisKeyword._(mockPos),
-								property: ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 		});
 
 		it('should parse a string in brackets as a MemberExpression property', () => {
-			testParseAndAnalyze(
-				'foo["bar"]',
+			testParse('foo["bar"]', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.StringLiteral, 'bar'],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.StringLiteral, 'bar'],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							property: ASTStringLiteral._('bar', mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should parse a number in brackets as a MemberExpression property', () => {
-			testParseAndAnalyze(
-				'foo[0]',
+			testParse('foo[0]', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.NumberLiteral, '0'],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.NumberLiteral, '0'],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should parse an identifier in brackets as a MemberExpression property', () => {
-			testParseAndAnalyze(
-				'foo[bar]',
+			testParse('foo[bar]', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.Identifier, 'bar'],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.Identifier, 'bar'],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							property: ASTIdentifier._('bar', mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should parse a MemberExpression in brackets as a MemberExpression property', () => {
-			testParseAndAnalyze(
-				'foo[bar.baz]',
+			testParse('foo[bar.baz]', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'bar'],
-									[NT.Identifier, 'baz'],
-								],
+								[NT.Identifier, 'bar'],
+								[NT.Identifier, 'baz'],
 							],
 						],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							property: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('bar', mockPos),
-									property: ASTIdentifier._('baz', mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should parse a CallExpression in brackets as a MemberExpression property', () => {
-			testParseAndAnalyze(
-				'foo[bar()]',
+			testParse('foo[bar()]', [
 				[
+					NT.MemberExpression,
 					[
-						NT.MemberExpression,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'bar'],
-									[NT.ArgumentsList, []],
-								],
+								[NT.Identifier, 'bar'],
+								[NT.ArgumentsList, []],
 							],
 						],
 					],
 				],
-				[
-					ASTMemberExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							property: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('bar', mockPos),
-									args: [],
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it.each(unaryMathOperatorScenarios)(
 			'should parse a UnaryExpression with a ${operator} operator in brackets as a MemberExpression property',
 			({ operator, before, expression }) => {
-				testParseAndAnalyze(
-					`foo[${expression}]`,
+				testParse(`foo[${expression}]`, [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
-							],
+							[NT.Identifier, 'foo'],
+							[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTUnaryExpression._(
-									{
-										before,
-										operator,
-										operand: ASTIdentifier._('bar', mockPos),
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			},
 		);
 
 		it.each(binaryMathOperatorsThatArePartOfAMemberExpression)(
 			'should parse a BinaryExpression with a ${operator} operator in brackets as a MemberExpression property',
 			(operator) => {
-				testParseAndAnalyze(
-					`foo[index ${operator} 1]`,
-					[
-						[
-							NT.MemberExpression,
-							[
-								[NT.Identifier, 'foo'],
-								[
-									NT.BinaryExpression,
-									operator,
-									[
-										[NT.Identifier, 'index'],
-										[NT.NumberLiteral, '1'],
-									],
-								],
-							],
-						],
-					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTBinaryExpression._(
-									{
-										operator,
-										left: ASTIdentifier._('index', mockPos),
-										right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
-				);
-			},
-		);
-
-		it('should parse a TernaryExpression in brackets as a MemberExpression property', () => {
-			testParseAndAnalyze(
-				'foo[bar ? 0 : 1]',
-				[
+				testParse(`foo[index ${operator} 1]`, [
 					[
 						NT.MemberExpression,
 						[
 							[NT.Identifier, 'foo'],
 							[
-								NT.TernaryExpression,
+								NT.BinaryExpression,
+								operator,
 								[
-									[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
-									[NT.TernaryConsequent, [[NT.NumberLiteral, '0']]],
-									[NT.TernaryAlternate, [[NT.NumberLiteral, '1']]],
+									[NT.Identifier, 'index'],
+									[NT.NumberLiteral, '1'],
 								],
 							],
 						],
 					],
-				],
+				]);
+			},
+		);
+
+		it('should parse a TernaryExpression in brackets as a MemberExpression property', () => {
+			testParse('foo[bar ? 0 : 1]', [
 				[
-					ASTMemberExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							property: ASTTernaryExpression._(
-								{
-									test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
-									consequent: ASTTernaryConsequent._(
-										ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-										mockPos,
-									),
-									alternate: ASTTernaryAlternate._(
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
+					NT.MemberExpression,
+					[
+						[NT.Identifier, 'foo'],
+						[
+							NT.TernaryExpression,
+							[
+								[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
+								[NT.TernaryConsequent, [[NT.NumberLiteral, '0']]],
+								[NT.TernaryAlternate, [[NT.NumberLiteral, '1']]],
+							],
+						],
+					],
 				],
-			);
+			]);
 		});
 
 		describe('on literals', () => {
 			it('should work on an ArrayExpression', () => {
-				testParseAndAnalyze(
-					'["A", "B"][0]',
+				testParse('["A", "B"][0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
-								[
-									NT.ArrayExpression,
-									[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
-								],
-								[NT.NumberLiteral, '0'],
+								NT.ArrayExpression,
+								[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
 							],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTArrayExpression._(
-									{
-										items: [ASTStringLiteral._('A', mockPos), ASTStringLiteral._('B', mockPos)],
-										possibleTypes: [ASTTypePrimitive._('string', mockPos)],
-									},
-									mockPos,
-								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work on a StringLiteral', () => {
-				testParseAndAnalyze(
-					'"A"[0]',
+				testParse('"A"[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.StringLiteral, 'A'],
-								[NT.NumberLiteral, '0'],
-							],
+							[NT.StringLiteral, 'A'],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTStringLiteral._('A', mockPos),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work on an TupleExpression', () => {
-				testParseAndAnalyze(
-					'<4, "B">[0]',
+				testParse('<4, "B">[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
-								[
-									NT.TupleExpression,
-									[[NT.NumberLiteral, '4'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
-								],
-								[NT.NumberLiteral, '0'],
+								NT.TupleExpression,
+								[[NT.NumberLiteral, '4'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
 							],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTTupleExpression._(
-									[
-										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-										ASTStringLiteral._('B', mockPos),
-									],
-									mockPos,
-								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work directly on a CallExpression', () => {
-				testParseAndAnalyze(
-					'foo()[0]',
+				testParse('foo()[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.CallExpression,
 								[
-									NT.CallExpression,
-									[
-										[NT.Identifier, 'foo'],
-										[NT.ArgumentsList, []],
-									],
+									[NT.Identifier, 'foo'],
+									[NT.ArgumentsList, []],
 								],
-								[NT.NumberLiteral, '0'],
 							],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTCallExpression._(
-									{
-										callee: ASTIdentifier._('foo', mockPos),
-										args: [],
-									},
-									mockPos,
-								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 		});
 
 		describe('should work on parenthesized objects', () => {
 			it('should work on an ArrayExpression', () => {
-				testParseAndAnalyze(
-					'(["A", "B"])[0]',
+				testParse('(["A", "B"])[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.Parenthesized,
 								[
-									NT.Parenthesized,
 									[
-										[
-											NT.ArrayExpression,
-											[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
-										],
+										NT.ArrayExpression,
+										[[NT.StringLiteral, 'A'], [NT.CommaSeparator], [NT.StringLiteral, 'B']],
 									],
 								],
-								[NT.NumberLiteral, '0'],
 							],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTArrayExpression._(
-									{
-										items: [ASTStringLiteral._('A', mockPos), ASTStringLiteral._('B', mockPos)],
-										possibleTypes: [ASTTypePrimitive._('string', mockPos)],
-									},
-									mockPos,
-								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work on a StringLiteral', () => {
-				testParseAndAnalyze(
-					'(("A"))[0]',
+				testParse('(("A"))[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
-							[
-								[NT.Parenthesized, [[NT.Parenthesized, [[NT.StringLiteral, 'A']]]]],
-								[NT.NumberLiteral, '0'],
-							],
+							[NT.Parenthesized, [[NT.Parenthesized, [[NT.StringLiteral, 'A']]]]],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTStringLiteral._('A', mockPos),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work on an TupleExpression', () => {
-				testParseAndAnalyze(
-					'(((((<4, "B">)))))[0]',
+				testParse('(((((<4, "B">)))))[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.Parenthesized,
 								[
-									NT.Parenthesized,
 									[
+										NT.Parenthesized,
 										[
-											NT.Parenthesized,
 											[
+												NT.Parenthesized,
 												[
-													NT.Parenthesized,
 													[
+														NT.Parenthesized,
 														[
-															NT.Parenthesized,
 															[
+																NT.Parenthesized,
 																[
-																	NT.Parenthesized,
 																	[
+																		NT.TupleExpression,
 																		[
-																			NT.TupleExpression,
-																			[
-																				[NT.NumberLiteral, '4'],
-																				[NT.CommaSeparator],
-																				[NT.StringLiteral, 'B'],
-																			],
+																			[NT.NumberLiteral, '4'],
+																			[NT.CommaSeparator],
+																			[NT.StringLiteral, 'B'],
 																		],
 																	],
 																],
@@ -6587,502 +3274,250 @@ describe('parser.ts', (): void => {
 										],
 									],
 								],
-								[NT.NumberLiteral, '0'],
 							],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTTupleExpression._(
-									[
-										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-										ASTStringLiteral._('B', mockPos),
-									],
-									mockPos,
-								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work directly on a CallExpression', () => {
-				testParseAndAnalyze(
-					'(foo())[0]',
+				testParse('(foo())[0]', [
 					[
+						NT.MemberExpression,
 						[
-							NT.MemberExpression,
 							[
+								NT.Parenthesized,
 								[
-									NT.Parenthesized,
 									[
+										NT.CallExpression,
 										[
-											NT.CallExpression,
-											[
-												[NT.Identifier, 'foo'],
-												[NT.ArgumentsList, []],
-											],
+											[NT.Identifier, 'foo'],
+											[NT.ArgumentsList, []],
 										],
 									],
 								],
-								[NT.NumberLiteral, '0'],
 							],
+							[NT.NumberLiteral, '0'],
 						],
 					],
-					[
-						ASTMemberExpression._(
-							{
-								object: ASTCallExpression._(
-									{
-										callee: ASTIdentifier._('foo', mockPos),
-										args: [],
-									},
-									mockPos,
-								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 		});
 	});
 
 	describe('MemberListExpression', () => {
 		it('should parse string properties correctly', () => {
-			testParseAndAnalyze(
-				`this.foo['a', 'b'];`,
+			testParse(`this.foo['a', 'b'];`, [
 				[
+					NT.MemberListExpression,
 					[
-						NT.MemberListExpression,
-						[
-							[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
-							[NT.MemberList, [[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']]],
-						],
+						[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
+						[NT.MemberList, [[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTMemberListExpression._(
-						{
-							object: ASTMemberExpression._(
-								{
-									object: ASTThisKeyword._(mockPos),
-									property: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-							properties: [ASTStringLiteral._('a', mockPos), ASTStringLiteral._('b', mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should parse number indexes correctly', () => {
-			testParseAndAnalyze(
-				'this.foo[1, 3];',
+			testParse('this.foo[1, 3];', [
 				[
+					NT.MemberListExpression,
 					[
-						NT.MemberListExpression,
-						[
-							[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
-							[NT.MemberList, [[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '3']]],
-						],
+						[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'foo']]],
+						[NT.MemberList, [[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '3']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTMemberListExpression._(
-						{
-							object: ASTMemberExpression._(
-								{
-									object: ASTThisKeyword._(mockPos),
-									property: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-							properties: [
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-								ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-							],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should parse identifier indexes correctly', () => {
-			testParseAndAnalyze(
-				'foo[a, b];',
+			testParse('foo[a, b];', [
 				[
+					NT.MemberListExpression,
 					[
-						NT.MemberListExpression,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.MemberList, [[NT.Identifier, 'a'], [NT.CommaSeparator], [NT.Identifier, 'b']]],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.MemberList, [[NT.Identifier, 'a'], [NT.CommaSeparator], [NT.Identifier, 'b']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTMemberListExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							properties: [ASTIdentifier._('a', mockPos), ASTIdentifier._('b', mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		describe('works with a TypeInstantiationExpression', () => {
 			it('on the object', () => {
-				testParseAndAnalyze(
-					'foo<|bar, baz|>["a", "b"];',
+				testParse('foo<|bar, baz|>["a", "b"];', [
 					[
+						NT.MemberListExpression,
 						[
-							NT.MemberListExpression,
 							[
+								NT.TypeInstantiationExpression,
 								[
-									NT.TypeInstantiationExpression,
+									[NT.Identifier, 'foo'],
 									[
-										[NT.Identifier, 'foo'],
-										[
-											NT.TypeArgumentsList,
-											[[NT.Identifier, 'bar'], [NT.CommaSeparator], [NT.Identifier, 'baz']],
-										],
+										NT.TypeArgumentsList,
+										[[NT.Identifier, 'bar'], [NT.CommaSeparator], [NT.Identifier, 'baz']],
 									],
 								],
-								[
-									NT.MemberList,
-									[[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']],
-								],
 							],
+							[NT.MemberList, [[NT.StringLiteral, 'a'], [NT.CommaSeparator], [NT.StringLiteral, 'b']]],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTMemberListExpression._(
-							{
-								object: ASTTypeInstantiationExpression._(
-									{
-										base: ASTIdentifier._('foo', mockPos),
-										typeArgs: [ASTIdentifier._('bar', mockPos), ASTIdentifier._('baz', mockPos)],
-									},
-									mockPos,
-								),
-								properties: [ASTStringLiteral._('a', mockPos), ASTStringLiteral._('b', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 
 		it('should parse a RangeExpression in brackets as part of a MemberListExpression', () => {
-			testParseAndAnalyze(
-				'foo[1 .. 3]',
+			testParse('foo[1 .. 3]', [
 				[
+					NT.MemberListExpression,
 					[
-						NT.MemberListExpression,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.MemberList,
 							[
-								NT.MemberList,
 								[
+									NT.RangeExpression,
 									[
-										NT.RangeExpression,
-										[
-											[NT.NumberLiteral, '1'],
-											[NT.NumberLiteral, '3'],
-										],
+										[NT.NumberLiteral, '1'],
+										[NT.NumberLiteral, '3'],
 									],
 								],
 							],
 						],
 					],
 				],
-				[
-					ASTMemberListExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							properties: [
-								ASTRangeExpression._(
-									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-							],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should parse multiple RangeExpressions in brackets as part of a MemberListExpression', () => {
-			testParseAndAnalyze(
-				'foo[1 .. 3, 5 .. 7]',
+			testParse('foo[1 .. 3, 5 .. 7]', [
 				[
+					NT.MemberListExpression,
 					[
-						NT.MemberListExpression,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.MemberList,
 							[
-								NT.MemberList,
 								[
+									NT.RangeExpression,
 									[
-										NT.RangeExpression,
-										[
-											[NT.NumberLiteral, '1'],
-											[NT.NumberLiteral, '3'],
-										],
+										[NT.NumberLiteral, '1'],
+										[NT.NumberLiteral, '3'],
 									],
-									[NT.CommaSeparator],
+								],
+								[NT.CommaSeparator],
+								[
+									NT.RangeExpression,
 									[
-										NT.RangeExpression,
-										[
-											[NT.NumberLiteral, '5'],
-											[NT.NumberLiteral, '7'],
-										],
+										[NT.NumberLiteral, '5'],
+										[NT.NumberLiteral, '7'],
 									],
 								],
 							],
 						],
 					],
 				],
-				[
-					ASTMemberListExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							properties: [
-								ASTRangeExpression._(
-									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-								ASTRangeExpression._(
-									{
-										lower: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(7, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-							],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('should parse a UnaryExpression with a logical operator in brackets as part of a MemberListExpression', () => {
-			testParseAndAnalyze(
-				'foo[!bar]',
+			testParse('foo[!bar]', [
 				[
+					NT.MemberListExpression,
 					[
-						NT.MemberListExpression,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.MemberList, [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'bar']]]]],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.MemberList, [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'bar']]]]],
 					],
 				],
-				[
-					ASTMemberListExpression._(
-						{
-							object: ASTIdentifier._('foo', mockPos),
-							properties: [
-								ASTUnaryExpression._(
-									{
-										before: true,
-										operator: '!',
-										operand: ASTIdentifier._('bar', mockPos),
-									},
-									mockPos,
-								),
-							],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it.each([unaryMathOperatorScenarios])(
 			'should parse multiple UnaryExpressions with any operators in brackets as part of a MemberListExpression',
 			({ operator, before, expression }) => {
-				testParseAndAnalyze(
-					`foo[${expression}, ${expression}]`,
+				testParse(`foo[${expression}, ${expression}]`, [
 					[
+						NT.MemberListExpression,
 						[
-							NT.MemberListExpression,
+							[NT.Identifier, 'foo'],
 							[
-								[NT.Identifier, 'foo'],
+								NT.MemberList,
 								[
-									NT.MemberList,
-									[
-										[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
-										[NT.CommaSeparator],
-										[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
-									],
+									[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
+									[NT.CommaSeparator],
+									[NT.UnaryExpression, operator, { before }, [[NT.Identifier, 'bar']]],
 								],
 							],
 						],
 					],
-					[
-						ASTMemberListExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								properties: [
-									ASTUnaryExpression._(
-										{
-											before,
-											operator,
-											operand: ASTIdentifier._('bar', mockPos),
-										},
-										mockPos,
-									),
-									ASTUnaryExpression._(
-										{
-											before,
-											operator,
-											operand: ASTIdentifier._('bar', mockPos),
-										},
-										mockPos,
-									),
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			},
 		);
 
 		it.each(binaryMathOperatorsThatArePartOfAMemberListExpression)(
 			'should parse a BinaryExpression with a ${operator} operator in brackets as part of a MemberListExpression',
 			(operator) => {
-				testParseAndAnalyze(
-					`foo[index ${operator} 1]`,
+				testParse(`foo[index ${operator} 1]`, [
 					[
+						NT.MemberListExpression,
 						[
-							NT.MemberListExpression,
+							[NT.Identifier, 'foo'],
 							[
-								[NT.Identifier, 'foo'],
+								NT.MemberList,
 								[
-									NT.MemberList,
 									[
+										NT.BinaryExpression,
+										operator,
 										[
-											NT.BinaryExpression,
-											operator,
-											[
-												[NT.Identifier, 'index'],
-												[NT.NumberLiteral, '1'],
-											],
+											[NT.Identifier, 'index'],
+											[NT.NumberLiteral, '1'],
 										],
 									],
 								],
 							],
 						],
 					],
-					[
-						ASTMemberListExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								properties: [
-									ASTBinaryExpression._(
-										{
-											operator,
-											left: ASTIdentifier._('index', mockPos),
-											right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			},
 		);
 
 		it.each(binaryMathOperatorsThatArePartOfAMemberListExpression)(
 			'should parse multiple BinaryExpressions with ${operator} operators in brackets as part of a MemberListExpression',
 			(operator) => {
-				testParseAndAnalyze(
-					`foo[index ${operator} 1, index ${operator} 2]`,
+				testParse(`foo[index ${operator} 1, index ${operator} 2]`, [
 					[
+						NT.MemberListExpression,
 						[
-							NT.MemberListExpression,
+							[NT.Identifier, 'foo'],
 							[
-								[NT.Identifier, 'foo'],
+								NT.MemberList,
 								[
-									NT.MemberList,
 									[
+										NT.BinaryExpression,
+										operator,
 										[
-											NT.BinaryExpression,
-											operator,
-											[
-												[NT.Identifier, 'index'],
-												[NT.NumberLiteral, '1'],
-											],
+											[NT.Identifier, 'index'],
+											[NT.NumberLiteral, '1'],
 										],
-										[NT.CommaSeparator],
+									],
+									[NT.CommaSeparator],
+									[
+										NT.BinaryExpression,
+										operator,
 										[
-											NT.BinaryExpression,
-											operator,
-											[
-												[NT.Identifier, 'index'],
-												[NT.NumberLiteral, '2'],
-											],
+											[NT.Identifier, 'index'],
+											[NT.NumberLiteral, '2'],
 										],
 									],
 								],
 							],
 						],
 					],
-					[
-						ASTMemberListExpression._(
-							{
-								object: ASTIdentifier._('foo', mockPos),
-								properties: [
-									ASTBinaryExpression._(
-										{
-											operator,
-											left: ASTIdentifier._('index', mockPos),
-											right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-									ASTBinaryExpression._(
-										{
-											operator,
-											left: ASTIdentifier._('index', mockPos),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			},
 		);
 	});
@@ -7091,357 +3526,135 @@ describe('parser.ts', (): void => {
 		describe('UnaryExpression', (): void => {
 			describe('negation', () => {
 				it('with Identifier', (): void => {
-					testParseAndAnalyze(
-						'!foo;',
-						[
-							[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]],
-							[NT.SemicolonSeparator],
-						],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '!',
-									operand: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('!foo;', [
+						[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]],
+						[NT.SemicolonSeparator],
+					]);
 				});
 
 				it('with Identifier in parens', (): void => {
-					testParseAndAnalyze(
-						'(!foo);',
-						[
-							[NT.Parenthesized, [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]]]],
-							[NT.SemicolonSeparator],
-						],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '!',
-									operand: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('(!foo);', [
+						[NT.Parenthesized, [[NT.UnaryExpression, '!', { before: true }, [[NT.Identifier, 'foo']]]]],
+						[NT.SemicolonSeparator],
+					]);
 				});
 
 				it('with CallExpression', (): void => {
-					testParseAndAnalyze(
-						'!bar();',
+					testParse('!bar();', [
 						[
+							NT.UnaryExpression,
+							'!',
+							{ before: true },
 							[
-								NT.UnaryExpression,
-								'!',
-								{ before: true },
 								[
+									NT.CallExpression,
 									[
-										NT.CallExpression,
-										[
-											[NT.Identifier, 'bar'],
-											[NT.ArgumentsList, []],
-										],
+										[NT.Identifier, 'bar'],
+										[NT.ArgumentsList, []],
 									],
 								],
 							],
-							[NT.SemicolonSeparator],
 						],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '!',
-									operand: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('bar', mockPos),
-											args: [],
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+						[NT.SemicolonSeparator],
+					]);
 				});
 
 				it('with nested CallExpression', (): void => {
-					testParseAndAnalyze(
-						'!foo.bar();',
+					testParse('!foo.bar();', [
 						[
+							NT.UnaryExpression,
+							'!',
+							{ before: true },
 							[
-								NT.UnaryExpression,
-								'!',
-								{ before: true },
 								[
+									NT.CallExpression,
 									[
-										NT.CallExpression,
 										[
+											NT.MemberExpression,
 											[
-												NT.MemberExpression,
-												[
-													[NT.Identifier, 'foo'],
-													[NT.Identifier, 'bar'],
-												],
+												[NT.Identifier, 'foo'],
+												[NT.Identifier, 'bar'],
 											],
-											[NT.ArgumentsList, []],
 										],
+										[NT.ArgumentsList, []],
 									],
 								],
 							],
-							[NT.SemicolonSeparator],
 						],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '!',
-									operand: ASTCallExpression._(
-										{
-											callee: ASTMemberExpression._(
-												{
-													object: ASTIdentifier._('foo', mockPos),
-													property: ASTIdentifier._('bar', mockPos),
-												},
-												mockPos,
-											),
-											args: [],
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+						[NT.SemicolonSeparator],
+					]);
 				});
 			});
 
 			describe('negative number', () => {
 				it('without parens', (): void => {
-					testParseAndAnalyze(
-						'-1',
-						[[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('-1', [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]);
 				});
 
 				it('with parens', (): void => {
-					testParseAndAnalyze(
-						'(-1)',
-						[[NT.Parenthesized, [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]]],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('(-1)', [
+						[NT.Parenthesized, [[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]]]],
+					]);
 				});
 			});
 
 			describe('increment and decrement', () => {
 				it('pre-decrement', (): void => {
-					testParseAndAnalyze(
-						'--foo',
-						[[NT.UnaryExpression, '--', { before: true }, [[NT.Identifier, 'foo']]]],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '--',
-									operand: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('--foo', [[NT.UnaryExpression, '--', { before: true }, [[NT.Identifier, 'foo']]]]);
 
-					testParseAndAnalyze(
-						'foo[--i]',
+					testParse('foo[--i]', [
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.UnaryExpression, '--', { before: true }, [[NT.Identifier, 'i']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.UnaryExpression, '--', { before: true }, [[NT.Identifier, 'i']]],
 							],
 						],
-						[
-							ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTUnaryExpression._(
-										{
-											before: true,
-											operator: '--',
-											operand: ASTIdentifier._('i', mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('post-decrement', (): void => {
-					testParseAndAnalyze(
-						'foo--',
-						[[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]],
-						[
-							ASTUnaryExpression._(
-								{
-									before: false,
-									operator: '--',
-									operand: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('foo--', [[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]]);
 				});
 
 				it('post-decrement in array index', (): void => {
-					testParseAndAnalyze(
-						'foo[i--]',
+					testParse('foo[i--]', [
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'i']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'i']]],
 							],
 						],
-						[
-							ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTUnaryExpression._(
-										{
-											before: false,
-											operator: '--',
-											operand: ASTIdentifier._('i', mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('pre-increment', (): void => {
-					testParseAndAnalyze(
-						'++foo',
-						[[NT.UnaryExpression, '++', { before: true }, [[NT.Identifier, 'foo']]]],
-						[
-							ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '++',
-									operand: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('++foo', [[NT.UnaryExpression, '++', { before: true }, [[NT.Identifier, 'foo']]]]);
 
-					testParseAndAnalyze(
-						'foo[++i]',
+					testParse('foo[++i]', [
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.UnaryExpression, '++', { before: true }, [[NT.Identifier, 'i']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.UnaryExpression, '++', { before: true }, [[NT.Identifier, 'i']]],
 							],
 						],
-						[
-							ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTUnaryExpression._(
-										{
-											before: true,
-											operator: '++',
-											operand: ASTIdentifier._('i', mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('post-increment', (): void => {
-					testParseAndAnalyze(
-						'foo++',
-						[[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]],
-						[
-							ASTUnaryExpression._(
-								{
-									before: false,
-									operator: '++',
-									operand: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					testParse('foo++', [[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]]);
 
-					testParseAndAnalyze(
-						'foo[i++]',
+					testParse('foo[i++]', [
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'i']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'i']]],
 							],
 						],
-						[
-							ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTUnaryExpression._(
-										{
-											before: false,
-											operator: '++',
-											operand: ASTIdentifier._('i', mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				describe('invalid syntax', (): void => {
@@ -7453,12 +3666,6 @@ describe('parser.ts', (): void => {
 								[[NT.UnaryExpression, '--', { before: false }, [[NT.Identifier, 'foo']]]],
 							],
 						]);
-
-						const result = analyze('foo---', true);
-
-						// use assert instead of expect, since we need TS to narrow the type
-						assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
-						expect(result.error.message).toBe('We were expecting an Expression, but found "undefined"');
 					});
 
 					it('pre-increment invalid syntax', (): void => {
@@ -7469,12 +3676,6 @@ describe('parser.ts', (): void => {
 								[[NT.UnaryExpression, '++', { before: false }, [[NT.Identifier, 'foo']]]],
 							],
 						]);
-
-						const result = analyze('foo+++', true);
-
-						// use assert instead of expect, since we need TS to narrow the type
-						assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
-						expect(result.error.message).toBe('We were expecting an Expression, but found "undefined"');
 					});
 				});
 			});
@@ -7483,55 +3684,29 @@ describe('parser.ts', (): void => {
 		describe(NT.BinaryExpression, (): void => {
 			describe('with bools', (): void => {
 				it('double pipe', (): void => {
-					testParseAndAnalyze(
-						'a || true',
+					testParse('a || true', [
 						[
+							NT.BinaryExpression,
+							'||',
 							[
-								NT.BinaryExpression,
-								'||',
-								[
-									[NT.Identifier, 'a'],
-									[NT.BoolLiteral, 'true'],
-								],
+								[NT.Identifier, 'a'],
+								[NT.BoolLiteral, 'true'],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '||',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTBoolLiteral._(true, mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('double ampersand', (): void => {
-					testParseAndAnalyze(
-						'a && true',
+					testParse('a && true', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
-								[
-									[NT.Identifier, 'a'],
-									[NT.BoolLiteral, 'true'],
-								],
+								[NT.Identifier, 'a'],
+								[NT.BoolLiteral, 'true'],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTBoolLiteral._(true, mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 			});
 
@@ -7587,321 +3762,165 @@ describe('parser.ts', (): void => {
 
 			describe('compound with operator precedence', (): void => {
 				it('makes && higher precedence than equality checks', () => {
-					testParseAndAnalyze(
-						'foo >= 2 && foo <= 5',
+					testParse('foo >= 2 && foo <= 5', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
 								[
+									NT.BinaryExpression,
+									'>=',
 									[
-										NT.BinaryExpression,
-										'>=',
-										[
-											[NT.Identifier, 'foo'],
-											[NT.NumberLiteral, '2'],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.NumberLiteral, '2'],
 									],
+								],
+								[
+									NT.BinaryExpression,
+									'<=',
 									[
-										NT.BinaryExpression,
-										'<=',
-										[
-											[NT.Identifier, 'foo'],
-											[NT.NumberLiteral, '5'],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.NumberLiteral, '5'],
 									],
 								],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTBinaryExpression._(
-										{
-											operator: '>=',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-									right: ASTBinaryExpression._(
-										{
-											operator: '<=',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('makes || higher precedence than equality checks', () => {
-					testParseAndAnalyze(
-						'foo > 2 || foo < 5',
+					testParse('foo > 2 || foo < 5', [
 						[
+							NT.BinaryExpression,
+							'||',
 							[
-								NT.BinaryExpression,
-								'||',
 								[
+									NT.BinaryExpression,
+									'>',
 									[
-										NT.BinaryExpression,
-										'>',
-										[
-											[NT.Identifier, 'foo'],
-											[NT.NumberLiteral, '2'],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.NumberLiteral, '2'],
 									],
+								],
+								[
+									NT.BinaryExpression,
+									'<',
 									[
-										NT.BinaryExpression,
-										'<',
-										[
-											[NT.Identifier, 'foo'],
-											[NT.NumberLiteral, '5'],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.NumberLiteral, '5'],
 									],
 								],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '||',
-									left: ASTBinaryExpression._(
-										{
-											operator: '>',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-									right: ASTBinaryExpression._(
-										{
-											operator: '<',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 			});
 
 			describe('with parens involved', () => {
 				it('around one side', () => {
-					testParseAndAnalyze(
-						'a && (true)',
+					testParse('a && (true)', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
-								[
-									[NT.Identifier, 'a'],
-									[NT.Parenthesized, [[NT.BoolLiteral, 'true']]],
-								],
+								[NT.Identifier, 'a'],
+								[NT.Parenthesized, [[NT.BoolLiteral, 'true']]],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTBoolLiteral._(true, mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 
-					testParseAndAnalyze(
-						'(a) && true',
+					testParse('(a) && true', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
-								[
-									[NT.Parenthesized, [[NT.Identifier, 'a']]],
-									[NT.BoolLiteral, 'true'],
-								],
+								[NT.Parenthesized, [[NT.Identifier, 'a']]],
+								[NT.BoolLiteral, 'true'],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTBoolLiteral._(true, mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('with a function call', () => {
-					testParseAndAnalyze(
-						'a && foo(true)',
+					testParse('a && foo(true)', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
+								[NT.Identifier, 'a'],
 								[
-									[NT.Identifier, 'a'],
+									NT.CallExpression,
 									[
-										NT.CallExpression,
-										[
-											[NT.Identifier, 'foo'],
-											[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
-										],
+										[NT.Identifier, 'foo'],
+										[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
 									],
 								],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('foo', mockPos),
-											args: [ASTBoolLiteral._(true, mockPos)],
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 
-					testParseAndAnalyze(
-						'a(true) && foo',
+					testParse('a(true) && foo', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
 								[
+									NT.CallExpression,
 									[
-										NT.CallExpression,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
-										],
+										[NT.Identifier, 'a'],
+										[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
 									],
-									[NT.Identifier, 'foo'],
 								],
+								[NT.Identifier, 'foo'],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('a', mockPos),
-											args: [ASTBoolLiteral._(true, mockPos)],
-										},
-										mockPos,
-									),
-									right: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 
 				it('with a function call in parens', () => {
-					testParseAndAnalyze(
-						'a && (foo(true))',
+					testParse('a && (foo(true))', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
+								[NT.Identifier, 'a'],
 								[
-									[NT.Identifier, 'a'],
+									NT.Parenthesized,
 									[
-										NT.Parenthesized,
 										[
+											NT.CallExpression,
 											[
-												NT.CallExpression,
-												[
-													[NT.Identifier, 'foo'],
-													[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
-												],
+												[NT.Identifier, 'foo'],
+												[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
 											],
 										],
 									],
 								],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('foo', mockPos),
-											args: [ASTBoolLiteral._(true, mockPos)],
-										},
-										mockPos,
-									),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 
-					testParseAndAnalyze(
-						'(a(true)) && foo',
+					testParse('(a(true)) && foo', [
 						[
+							NT.BinaryExpression,
+							'&&',
 							[
-								NT.BinaryExpression,
-								'&&',
 								[
+									NT.Parenthesized,
 									[
-										NT.Parenthesized,
 										[
+											NT.CallExpression,
 											[
-												NT.CallExpression,
-												[
-													[NT.Identifier, 'a'],
-													[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
-												],
+												[NT.Identifier, 'a'],
+												[NT.ArgumentsList, [[NT.BoolLiteral, 'true']]],
 											],
 										],
 									],
-									[NT.Identifier, 'foo'],
 								],
+								[NT.Identifier, 'foo'],
 							],
 						],
-						[
-							ASTBinaryExpression._(
-								{
-									operator: '&&',
-									left: ASTCallExpression._(
-										{
-											callee: ASTIdentifier._('a', mockPos),
-											args: [ASTBoolLiteral._(true, mockPos)],
-										},
-										mockPos,
-									),
-									right: ASTIdentifier._('foo', mockPos),
-								},
-								mockPos,
-							),
-						],
-					);
+					]);
 				});
 			});
 		});
@@ -7910,7 +3929,7 @@ describe('parser.ts', (): void => {
 	describe('Parens', (): void => {
 		describe('mathematical expressions', (): void => {
 			it('a simple mathematical formula', (): void => {
-				expect(parse('1 + (2 * (-3/-(2.3-4)%9))')).toMatchParseTree([
+				testParse('1 + (2 * (-3/-(2.3-4)%9))', [
 					[
 						NT.BinaryExpression,
 						'+',
@@ -7978,216 +3997,107 @@ describe('parser.ts', (): void => {
 			});
 
 			it('supports mathematical expressions with variables', (): void => {
-				testParseAndAnalyze(
-					'const foo = 1; let bar = -foo;',
+				testParse('const foo = 1; let bar = -foo;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
+							[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
+						],
+					],
+					[NT.SemicolonSeparator],
+					[
+						NT.VariableDeclaration,
+						'let',
+						[
+							[NT.AssigneesList, [[NT.Identifier, 'bar']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
-								[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
+								NT.AssignablesList,
+								[[NT.UnaryExpression, '-', { before: true }, [[NT.Identifier, 'foo']]]],
 							],
 						],
-						[NT.SemicolonSeparator],
-						[
-							NT.VariableDeclaration,
-							'let',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'bar']]],
-								[NT.AssignmentOperator],
-								[
-									NT.AssignablesList,
-									[[NT.UnaryExpression, '-', { before: true }, [[NT.Identifier, 'foo']]]],
-								],
-							],
-						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
-							},
-							mockPos,
-						),
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: true,
-								identifiersList: [ASTIdentifier._('bar', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTUnaryExpression._(
-										{
-											before: true,
-											operator: '-',
-											operand: ASTIdentifier._('foo', mockPos),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 	});
 
 	describe('PostfixIfStatement', (): void => {
 		it('after a CallExpression', () => {
-			testParseAndAnalyze(
-				'do(1) if foo == 2;',
+			testParse('do(1) if foo == 2;', [
 				[
+					NT.PostfixIfStatement,
 					[
-						NT.PostfixIfStatement,
 						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'do'],
-									[NT.ArgumentsList, [[NT.NumberLiteral, '1']]],
-								],
+								[NT.Identifier, 'do'],
+								[NT.ArgumentsList, [[NT.NumberLiteral, '1']]],
 							],
+						],
+						[
+							NT.BinaryExpression,
+							'==',
 							[
-								NT.BinaryExpression,
-								'==',
-								[
-									[NT.Identifier, 'foo'],
-									[NT.NumberLiteral, '2'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '2'],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTPostfixIfStatement._(
-						{
-							expression: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('do', mockPos),
-									args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								},
-								mockPos,
-							),
-							test: ASTBinaryExpression._(
-								{
-									operator: '==',
-									left: ASTIdentifier._('foo', mockPos),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		describe('in an array', () => {
 			it('with bool conditional', () => {
-				testParseAndAnalyze(
-					'[foo if true, bar];',
+				testParse('[foo if true, bar];', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
 							[
+								NT.PostfixIfStatement,
 								[
-									NT.PostfixIfStatement,
-									[
-										[NT.Identifier, 'foo'],
-										[NT.BoolLiteral, 'true'],
-									],
+									[NT.Identifier, 'foo'],
+									[NT.BoolLiteral, 'true'],
 								],
-								[NT.CommaSeparator],
-								[NT.Identifier, 'bar'],
 							],
+							[NT.CommaSeparator],
+							[NT.Identifier, 'bar'],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTPostfixIfStatement._(
-										{
-											expression: ASTIdentifier._('foo', mockPos),
-											test: ASTBoolLiteral._(true, mockPos),
-										},
-										mockPos,
-									),
-									ASTIdentifier._('bar', mockPos),
-								],
-								possibleTypes: [],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('with identifier conditional', () => {
-				testParseAndAnalyze(
-					'[9, 10 if isDone?, 11];',
+				testParse('[9, 10 if isDone?, 11];', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
+							[NT.NumberLiteral, '9'],
+							[NT.CommaSeparator],
 							[
-								[NT.NumberLiteral, '9'],
-								[NT.CommaSeparator],
+								NT.PostfixIfStatement,
 								[
-									NT.PostfixIfStatement,
-									[
-										[NT.NumberLiteral, '10'],
-										[NT.Identifier, 'isDone?'],
-									],
+									[NT.NumberLiteral, '10'],
+									[NT.Identifier, 'isDone?'],
 								],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '11'],
 							],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '11'],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
-									ASTPostfixIfStatement._(
-										{
-											expression: ASTNumberLiteral._(
-												10,
-												undefined,
-												[...numberSizesInts],
-												mockPos,
-											),
-											test: ASTIdentifier._('isDone?', mockPos),
-										},
-										mockPos,
-									),
-									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
-								],
-								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('with MemberExpression conditional and comment', () => {
-				testParseAndAnalyze(
+				testParse(
 					`[
 						9 if this.isDone?, // comment
 						10,
@@ -8214,63 +4124,35 @@ describe('parser.ts', (): void => {
 						],
 						[NT.SemicolonSeparator],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTPostfixIfStatement._(
-										{
-											expression: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
-											test: ASTMemberExpression._(
-												{
-													object: ASTThisKeyword._(mockPos),
-													property: ASTIdentifier._('isDone?', mockPos),
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-									ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
-									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
-								],
-								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('with CallExpression conditional', () => {
-				testParseAndAnalyze(
-					'[9, 10 if this.isDone?([true if true]), 11];',
+				testParse('[9, 10 if this.isDone?([true if true]), 11];', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
+							[NT.NumberLiteral, '9'],
+							[NT.CommaSeparator],
 							[
-								[NT.NumberLiteral, '9'],
-								[NT.CommaSeparator],
+								NT.PostfixIfStatement,
 								[
-									NT.PostfixIfStatement,
+									[NT.NumberLiteral, '10'],
 									[
-										[NT.NumberLiteral, '10'],
+										NT.CallExpression,
 										[
-											NT.CallExpression,
+											[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'isDone?']]],
 											[
-												[NT.MemberExpression, [[NT.ThisKeyword], [NT.Identifier, 'isDone?']]],
+												NT.ArgumentsList,
 												[
-													NT.ArgumentsList,
 													[
+														NT.ArrayExpression,
 														[
-															NT.ArrayExpression,
 															[
+																NT.PostfixIfStatement,
 																[
-																	NT.PostfixIfStatement,
-																	[
-																		[NT.BoolLiteral, 'true'],
-																		[NT.BoolLiteral, 'true'],
-																	],
+																	[NT.BoolLiteral, 'true'],
+																	[NT.BoolLiteral, 'true'],
 																],
 															],
 														],
@@ -8280,347 +4162,152 @@ describe('parser.ts', (): void => {
 										],
 									],
 								],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '11'],
 							],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '11'],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
-									ASTPostfixIfStatement._(
-										{
-											expression: ASTNumberLiteral._(
-												10,
-												undefined,
-												[...numberSizesInts],
-												mockPos,
-											),
-											test: ASTCallExpression._(
-												{
-													callee: ASTMemberExpression._(
-														{
-															object: ASTThisKeyword._(mockPos),
-															property: ASTIdentifier._('isDone?', mockPos),
-														},
-														mockPos,
-													),
-													args: [
-														ASTArrayExpression._(
-															{
-																items: [
-																	ASTPostfixIfStatement._(
-																		{
-																			expression: ASTBoolLiteral._(true, mockPos),
-																			test: ASTBoolLiteral._(true, mockPos),
-																		},
-																		mockPos,
-																	),
-																],
-																possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
-															},
-															mockPos,
-														),
-													],
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
-								],
-								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('with BinaryExpression conditional using two NumberLiterals', () => {
-				testParseAndAnalyze(
-					'[\'foo\', "bar" if 1 < 2];',
+				testParse('[\'foo\', "bar" if 1 < 2];', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
+							[NT.StringLiteral, 'foo'],
+							[NT.CommaSeparator],
 							[
-								[NT.StringLiteral, 'foo'],
-								[NT.CommaSeparator],
+								NT.PostfixIfStatement,
 								[
-									NT.PostfixIfStatement,
+									[NT.StringLiteral, 'bar'],
 									[
-										[NT.StringLiteral, 'bar'],
+										NT.BinaryExpression,
+										'<',
 										[
-											NT.BinaryExpression,
-											'<',
-											[
-												[NT.NumberLiteral, '1'],
-												[NT.NumberLiteral, '2'],
-											],
+											[NT.NumberLiteral, '1'],
+											[NT.NumberLiteral, '2'],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTStringLiteral._('foo', mockPos),
-									ASTPostfixIfStatement._(
-										{
-											expression: ASTStringLiteral._('bar', mockPos),
-											test: ASTBinaryExpression._(
-												{
-													operator: '<',
-													left: ASTNumberLiteral._(
-														1,
-														undefined,
-														[...numberSizesInts],
-														mockPos,
-													),
-													right: ASTNumberLiteral._(
-														2,
-														undefined,
-														[...numberSizesInts],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-								],
-								possibleTypes: [ASTTypePrimitive._('string', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('with BinaryExpression conditional using an Identifier and a NumberLiteral', () => {
-				testParseAndAnalyze(
-					'[true, true, false, false if foo == 2, true, false, true];',
+				testParse('[true, true, false, false if foo == 2, true, false, true];', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
 							[
-								[NT.BoolLiteral, 'true'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'true'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'false'],
-								[NT.CommaSeparator],
+								NT.PostfixIfStatement,
 								[
-									NT.PostfixIfStatement,
+									[NT.BoolLiteral, 'false'],
 									[
-										[NT.BoolLiteral, 'false'],
+										NT.BinaryExpression,
+										'==',
 										[
-											NT.BinaryExpression,
-											'==',
-											[
-												[NT.Identifier, 'foo'],
-												[NT.NumberLiteral, '2'],
-											],
+											[NT.Identifier, 'foo'],
+											[NT.NumberLiteral, '2'],
 										],
 									],
 								],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'true'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'false'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'true'],
 							],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTBoolLiteral._(true, mockPos),
-									ASTBoolLiteral._(true, mockPos),
-									ASTBoolLiteral._(false, mockPos),
-									ASTPostfixIfStatement._(
-										{
-											expression: ASTBoolLiteral._(false, mockPos),
-											test: ASTBinaryExpression._(
-												{
-													operator: '==',
-													left: ASTIdentifier._('foo', mockPos),
-													right: ASTNumberLiteral._(
-														2,
-														undefined,
-														[...numberSizesInts],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-									ASTBoolLiteral._(true, mockPos),
-									ASTBoolLiteral._(false, mockPos),
-									ASTBoolLiteral._(true, mockPos),
-								],
-								possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 	});
 
 	describe('Print', () => {
 		it('is closed with a semicolon', () => {
-			testParseAndAnalyze(
-				'print foo[5];print 5;',
+			testParse('print foo[5];print 5;', [
 				[
+					NT.PrintStatement,
 					[
-						NT.PrintStatement,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.NumberLiteral, '5'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.NumberLiteral, '5'],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
-					[NT.PrintStatement, [[NT.NumberLiteral, '5']]],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTPrintStatement._(
-						[
-							ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-								},
-								mockPos,
-							),
-						],
-						mockPos,
-					),
-					ASTPrintStatement._([ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)], mockPos),
-				],
-			);
+				[NT.SemicolonSeparator],
+				[NT.PrintStatement, [[NT.NumberLiteral, '5']]],
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should work with a CallExpression', () => {
-			testParseAndAnalyze(
-				'print myFoo.foo();',
+			testParse('print myFoo.foo();', [
 				[
+					NT.PrintStatement,
 					[
-						NT.PrintStatement,
 						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
 								[
+									NT.MemberExpression,
 									[
-										NT.MemberExpression,
-										[
-											[NT.Identifier, 'myFoo'],
-											[NT.Identifier, 'foo'],
-										],
+										[NT.Identifier, 'myFoo'],
+										[NT.Identifier, 'foo'],
 									],
-									[NT.ArgumentsList, []],
 								],
+								[NT.ArgumentsList, []],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTPrintStatement._(
-						[
-							ASTCallExpression._(
-								{
-									callee: ASTMemberExpression._(
-										{
-											object: ASTIdentifier._('myFoo', mockPos),
-											property: ASTIdentifier._('foo', mockPos),
-										},
-										mockPos,
-									),
-									args: [],
-								},
-								mockPos,
-							),
-						],
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should work with a comma-delimited list', () => {
-			testParseAndAnalyze(
-				'print 1, "a", [true], <"high", 5>;',
+			testParse('print 1, "a", [true], <"high", 5>;', [
 				[
+					NT.PrintStatement,
 					[
-						NT.PrintStatement,
+						[NT.NumberLiteral, '1'],
+						[NT.CommaSeparator],
+						[NT.StringLiteral, 'a'],
+						[NT.CommaSeparator],
+						[NT.ArrayExpression, [[NT.BoolLiteral, 'true']]],
+						[NT.CommaSeparator],
 						[
-							[NT.NumberLiteral, '1'],
-							[NT.CommaSeparator],
-							[NT.StringLiteral, 'a'],
-							[NT.CommaSeparator],
-							[NT.ArrayExpression, [[NT.BoolLiteral, 'true']]],
-							[NT.CommaSeparator],
-							[
-								NT.TupleExpression,
-								[[NT.StringLiteral, 'high'], [NT.CommaSeparator], [NT.NumberLiteral, '5']],
-							],
+							NT.TupleExpression,
+							[[NT.StringLiteral, 'high'], [NT.CommaSeparator], [NT.NumberLiteral, '5']],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTPrintStatement._(
-						[
-							ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							ASTStringLiteral._('a', mockPos),
-							ASTArrayExpression._(
-								{
-									items: [ASTBoolLiteral._(true, mockPos)],
-									possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
-								},
-								mockPos,
-							),
-							ASTTupleExpression._(
-								[
-									ASTStringLiteral._('high', mockPos),
-									ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-								],
-								mockPos,
-							),
-						],
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 	});
 
 	describe('RangeExpression', (): void => {
 		// 2 numbers
 		it('.. with 2 number literals', (): void => {
-			testParseAndAnalyze(
+			testParse(
 				'1..2;', // this one should not have spaces since even though we recommend spaces, they are optional
 				[
 					[
@@ -8632,429 +4319,315 @@ describe('parser.ts', (): void => {
 					],
 					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
 			);
 
-			testParseAndAnalyze(
-				'-1 .. 2;',
+			testParse('-1 .. 2;', [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
-						[
-							[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]],
-							[NT.NumberLiteral, '2'],
-						],
+						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]],
+						[NT.NumberLiteral, '2'],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
-								},
-								mockPos,
-							),
-							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'1 .. -2;',
+			testParse('1 .. -2;', [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
-						[
-							[NT.NumberLiteral, '1'],
-							[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-						],
+						[NT.NumberLiteral, '1'],
+						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							upper: ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'-1 .. -2;',
+			testParse('-1 .. -2;', [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
-						[
-							[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]],
-							[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-						],
+						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '1']]],
+						[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
-								},
-								mockPos,
-							),
-							upper: ASTUnaryExpression._(
-								{
-									before: true,
-									operator: '-',
-									operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		// identifier and number
 		it('.. with identifier and number literal', (): void => {
-			testParseAndAnalyze(
-				'foo .. 2;',
+			testParse('foo .. 2;', [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
-						[
-							[NT.Identifier, 'foo'],
-							[NT.NumberLiteral, '2'],
-						],
+						[NT.Identifier, 'foo'],
+						[NT.NumberLiteral, '2'],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTIdentifier._('foo', mockPos),
-							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('.. with number literal and identifier', (): void => {
-			testParseAndAnalyze(
-				'1 .. foo;',
+			testParse('1 .. foo;', [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
-						[
-							[NT.NumberLiteral, '1'],
-							[NT.Identifier, 'foo'],
-						],
+						[NT.NumberLiteral, '1'],
+						[NT.Identifier, 'foo'],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							upper: ASTIdentifier._('foo', mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		// element access and number
 		it('.. with element access and number literal', (): void => {
-			testParseAndAnalyze(
-				"foo['a'] .. 2;",
+			testParse("foo['a'] .. 2;", [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.StringLiteral, 'a'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.StringLiteral, 'a'],
 							],
-							[NT.NumberLiteral, '2'],
 						],
+						[NT.NumberLiteral, '2'],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTStringLiteral._('a', mockPos),
-								},
-								mockPos,
-							),
-							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('.. with number literal and element access', (): void => {
-			testParseAndAnalyze(
-				"1 .. foo['a'];'a'",
+			testParse("1 .. foo['a'];'a'", [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
+						[NT.NumberLiteral, '1'],
 						[
-							[NT.NumberLiteral, '1'],
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.StringLiteral, 'a'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.StringLiteral, 'a'],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
-					[NT.StringLiteral, 'a'],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							upper: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTStringLiteral._('a', mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-					ASTStringLiteral._('a', mockPos),
-				],
-			);
+				[NT.SemicolonSeparator],
+				[NT.StringLiteral, 'a'],
+			]);
 		});
 
 		// method call and number
 		it('.. with method call and number literal', (): void => {
-			testParseAndAnalyze(
-				"foo('a') .. 2;",
+			testParse("foo('a') .. 2;", [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
 						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
 							],
-							[NT.NumberLiteral, '2'],
 						],
+						[NT.NumberLiteral, '2'],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('foo', mockPos),
-									args: [ASTStringLiteral._('a', mockPos)],
-								},
-								mockPos,
-							),
-							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('.. with number literal and method call', (): void => {
-			testParseAndAnalyze(
-				"1 .. foo('a');",
+			testParse("1 .. foo('a');", [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
+						[NT.NumberLiteral, '1'],
 						[
-							[NT.NumberLiteral, '1'],
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							upper: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('foo', mockPos),
-									args: [ASTStringLiteral._('a', mockPos)],
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		// element access and method call
 		it('.. with element access and method call', (): void => {
-			testParseAndAnalyze(
-				"foo['a'] .. bar('b');",
+			testParse("foo['a'] .. bar('b');", [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
 						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.StringLiteral, 'a'],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.StringLiteral, 'a'],
 							],
+						],
+						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'bar'],
-									[NT.ArgumentsList, [[NT.StringLiteral, 'b']]],
-								],
+								[NT.Identifier, 'bar'],
+								[NT.ArgumentsList, [[NT.StringLiteral, 'b']]],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTStringLiteral._('a', mockPos),
-								},
-								mockPos,
-							),
-							upper: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('bar', mockPos),
-									args: [ASTStringLiteral._('b', mockPos)],
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('.. with method call and element access', (): void => {
-			testParseAndAnalyze(
-				"foo('a') .. bar['b'];",
+			testParse("foo('a') .. bar['b'];", [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
 						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.ArgumentsList, [[NT.StringLiteral, 'a']]],
 							],
+						],
+						[
+							NT.MemberExpression,
 							[
-								NT.MemberExpression,
+								[NT.Identifier, 'bar'],
+								[NT.StringLiteral, 'b'],
+							],
+						],
+					],
+				],
+				[NT.SemicolonSeparator],
+			]);
+		});
+
+		it('.. with two in a row', () => {
+			testParse('let count, countDown = 1 .. myArray[2], myArray[1] .. 0;', [
+				[
+					NT.VariableDeclaration,
+					'let',
+					[
+						[
+							NT.AssigneesList,
+							[[NT.Identifier, 'count'], [NT.CommaSeparator], [NT.Identifier, 'countDown']],
+						],
+						[NT.AssignmentOperator],
+						[
+							NT.AssignablesList,
+							[
 								[
-									[NT.Identifier, 'bar'],
-									[NT.StringLiteral, 'b'],
+									NT.RangeExpression,
+									[
+										[NT.NumberLiteral, '1'],
+										[
+											NT.MemberExpression,
+											[
+												[NT.Identifier, 'myArray'],
+												[NT.NumberLiteral, '2'],
+											],
+										],
+									],
+								],
+								[NT.CommaSeparator],
+								[
+									NT.RangeExpression,
+									[
+										[
+											NT.MemberExpression,
+											[
+												[NT.Identifier, 'myArray'],
+												[NT.NumberLiteral, '1'],
+											],
+										],
+										[NT.NumberLiteral, '0'],
+									],
 								],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('foo', mockPos),
-									args: [ASTStringLiteral._('a', mockPos)],
-								},
-								mockPos,
-							),
-							upper: ASTMemberExpression._(
-								{
-									object: ASTIdentifier._('bar', mockPos),
-									property: ASTStringLiteral._('b', mockPos),
-								},
-								mockPos,
-							),
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
+		});
+	});
+
+	describe('Types', (): void => {
+		describe('should understand primitive types', () => {
+			it.each(primitiveTypes)('%s is recognized as its own primitive type', (type) => {
+				testParse(type, [[NT.Type, type]]);
+			});
+
+			it.each(numberSizesAll)('%s is recognized as a number type', (size) => {
+				testParse(size, [[NT.Type, size]]);
+			});
+
+			it('range is recognized as a type', () => {
+				testParse('range', [[NT.Type, 'range']]);
+			});
+
+			it.each(primitiveTypes)('%s[] is recognized as a one-dimensional array of type', (type) => {
+				testParse(`${type}[]`, [[NT.ArrayOf, [[NT.Type, type]]]]);
+			});
+
+			it.each(numberSizesAll)('%s[] is recognized as a one-dimensional array of type', (size) => {
+				testParse(`${size}[]`, [[NT.ArrayOf, [[NT.Type, size]]]]);
+			});
+
+			it('range[] is recognized as a one-dimensional array of type', () => {
+				testParse('range[]', [[NT.ArrayOf, [[NT.Type, 'range']]]]);
+			});
+
+			it.each(primitiveTypes)('%s[][] is recognized as a two-dimensional array of primitive type', (type) => {
+				testParse(`${type}[][]`, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, type]]]]]]);
+			});
+
+			it.each(numberSizesAll)('%s[][] is recognized as a two-dimensional array of number type', (size) => {
+				testParse(`${size}[][]`, [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, size]]]]]]);
+			});
 		});
 
-		it('.. with two in a row', () => {
-			testParseAndAnalyze(
-				'let count, countDown = 1 .. myArray[2], myArray[1] .. 0;',
-				[
+		describe('arrays', () => {
+			it('should understand a custom array', () => {
+				testParse('Foo[]', [[NT.ArrayOf, [[NT.Identifier, 'Foo']]]]);
+
+				testParse('Foo[][]', [[NT.ArrayOf, [[NT.ArrayOf, [[NT.Identifier, 'Foo']]]]]]);
+			});
+		});
+
+		describe('ranges', () => {
+			it('should recognize a range type in a variable declaration', () => {
+				testParse('let x: range;', [
 					[
 						NT.VariableDeclaration,
 						'let',
 						[
-							[
-								NT.AssigneesList,
-								[[NT.Identifier, 'count'], [NT.CommaSeparator], [NT.Identifier, 'countDown']],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'x']]],
+							[NT.ColonSeparator],
+							[NT.TypeArgumentsList, [[NT.Type, 'range']]],
+						],
+					],
+					[NT.SemicolonSeparator],
+				]);
+			});
+
+			it('should infer a range type for a variable declaration with an initial value and also ignore parentheses', () => {
+				testParse('let x = 1 .. (2);', [
+					[
+						NT.VariableDeclaration,
+						'let',
+						[
+							[NT.AssigneesList, [[NT.Identifier, 'x']]],
 							[NT.AssignmentOperator],
 							[
 								NT.AssignablesList,
@@ -9063,27 +4636,7 @@ describe('parser.ts', (): void => {
 										NT.RangeExpression,
 										[
 											[NT.NumberLiteral, '1'],
-											[
-												NT.MemberExpression,
-												[
-													[NT.Identifier, 'myArray'],
-													[NT.NumberLiteral, '2'],
-												],
-											],
-										],
-									],
-									[NT.CommaSeparator],
-									[
-										NT.RangeExpression,
-										[
-											[
-												NT.MemberExpression,
-												[
-													[NT.Identifier, 'myArray'],
-													[NT.NumberLiteral, '1'],
-												],
-											],
-											[NT.NumberLiteral, '0'],
+											[NT.Parenthesized, [[NT.NumberLiteral, '2']]],
 										],
 									],
 								],
@@ -9091,426 +4644,108 @@ describe('parser.ts', (): void => {
 						],
 					],
 					[NT.SemicolonSeparator],
-				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('count', mockPos), ASTIdentifier._('countDown', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTRangeExpression._(
-									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTMemberExpression._(
-											{
-												object: ASTIdentifier._('myArray', mockPos),
-												property: ASTNumberLiteral._(
-													2,
-													undefined,
-													[...numberSizesInts],
-													mockPos,
-												),
-											},
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-								ASTRangeExpression._(
-									{
-										lower: ASTMemberExpression._(
-											{
-												object: ASTIdentifier._('myArray', mockPos),
-												property: ASTNumberLiteral._(
-													1,
-													undefined,
-													[...numberSizesInts],
-													mockPos,
-												),
-											},
-											mockPos,
-										),
-										upper: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[ASTTypeRange._(mockPos)], [ASTTypeRange._(mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
-		});
-	});
-
-	describe('Types', (): void => {
-		describe('should understand primitive types', () => {
-			it.each(primitiveTypes)('%s is recognized as its own primitive type', (type) => {
-				testParseAndAnalyze(type, [[NT.Type, type]], [ASTTypePrimitive._(type, mockPos)]);
-			});
-
-			it.each(numberSizesAll)('%s is recognized as a number type', (size) => {
-				testParseAndAnalyze(size, [[NT.Type, size]], [ASTTypeNumber._(size, mockPos)]);
-			});
-
-			it('range is recognized as a type', () => {
-				testParseAndAnalyze('range', [[NT.Type, 'range']], [ASTTypeRange._(mockPos)]);
-			});
-
-			it.each(primitiveTypes)('%s[] is recognized as a one-dimensional array of type', (type) => {
-				testParseAndAnalyze(
-					`${type}[]`,
-					[[NT.ArrayOf, [[NT.Type, type]]]],
-					[ASTArrayOf._(ASTTypePrimitive._(type, mockPos), mockPos)],
-				);
-			});
-
-			it.each(numberSizesAll)('%s[] is recognized as a one-dimensional array of type', (size) => {
-				testParseAndAnalyze(
-					`${size}[]`,
-					[[NT.ArrayOf, [[NT.Type, size]]]],
-					[ASTArrayOf._(ASTTypeNumber._(size, mockPos), mockPos)],
-				);
-			});
-
-			it('range[] is recognized as a one-dimensional array of type', () => {
-				testParseAndAnalyze(
-					'range[]',
-					[[NT.ArrayOf, [[NT.Type, 'range']]]],
-					[ASTArrayOf._(ASTTypeRange._(mockPos), mockPos)],
-				);
-			});
-
-			it.each(primitiveTypes)('%s[][] is recognized as a two-dimensional array of primitive type', (type) => {
-				testParseAndAnalyze(
-					`${type}[][]`,
-					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, type]]]]]],
-					[ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type, mockPos), mockPos), mockPos)],
-				);
-			});
-
-			it.each(numberSizesAll)('%s[][] is recognized as a two-dimensional array of number type', (size) => {
-				testParseAndAnalyze(
-					`${size}[][]`,
-					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Type, size]]]]]],
-					[ASTArrayOf._(ASTArrayOf._(ASTTypeNumber._(size, mockPos), mockPos), mockPos)],
-				);
-			});
-		});
-
-		describe('arrays', () => {
-			it('should understand a custom array', () => {
-				testParseAndAnalyze(
-					'Foo[]',
-					[[NT.ArrayOf, [[NT.Identifier, 'Foo']]]],
-					[ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos)],
-				);
-
-				testParseAndAnalyze(
-					'Foo[][]',
-					[[NT.ArrayOf, [[NT.ArrayOf, [[NT.Identifier, 'Foo']]]]]],
-					[ASTArrayOf._(ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos), mockPos)],
-				);
-			});
-		});
-
-		describe('ranges', () => {
-			it('should recognize a range type in a variable declaration', () => {
-				testParseAndAnalyze(
-					'let x: range;',
-					[
-						[
-							NT.VariableDeclaration,
-							'let',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'x']]],
-								[NT.ColonSeparator],
-								[NT.TypeArgumentsList, [[NT.Type, 'range']]],
-							],
-						],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: true,
-								identifiersList: [ASTIdentifier._('x', mockPos)],
-								declaredTypes: [ASTTypeRange._(mockPos)],
-								initialValues: [],
-								inferredPossibleTypes: [],
-							},
-							mockPos,
-						),
-					],
-				);
-			});
-
-			it('should infer a range type for a variable declaration with an initial value and also ignore parentheses', () => {
-				testParseAndAnalyze(
-					'let x = 1 .. (2);',
-					[
-						[
-							NT.VariableDeclaration,
-							'let',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'x']]],
-								[NT.AssignmentOperator],
-								[
-									NT.AssignablesList,
-									[
-										[
-											NT.RangeExpression,
-											[
-												[NT.NumberLiteral, '1'],
-												[NT.Parenthesized, [[NT.NumberLiteral, '2']]],
-											],
-										],
-									],
-								],
-							],
-						],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: true,
-								identifiersList: [ASTIdentifier._('x', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTRangeExpression._(
-										{
-											lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[ASTTypeRange._(mockPos)]],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should recognize a range type in a function parameter and return type', () => {
-				testParseAndAnalyze(
-					'f foo (x: range) -> range {}',
+				testParse('f foo (x: range) -> range {}', [
 					[
+						NT.FunctionDeclaration,
 						[
-							NT.FunctionDeclaration,
+							[NT.Identifier, 'foo'],
 							[
-								[NT.Identifier, 'foo'],
-								[
-									NT.ParametersList,
-									[[NT.Parameter, [[NT.Identifier, 'x'], [NT.ColonSeparator], [NT.Type, 'range']]]],
-								],
-								[NT.FunctionReturns, [[NT.Type, 'range']]],
-								[NT.BlockStatement, []],
+								NT.ParametersList,
+								[[NT.Parameter, [[NT.Identifier, 'x'], [NT.ColonSeparator], [NT.Type, 'range']]]],
 							],
+							[NT.FunctionReturns, [[NT.Type, 'range']]],
+							[NT.BlockStatement, []],
 						],
 					],
-					[
-						ASTFunctionDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
-								typeParams: [],
-								params: [
-									ASTParameter._(
-										{
-											modifiers: [],
-											isRest: false,
-											name: ASTIdentifier._('x', mockPos),
-											declaredType: ASTTypeRange._(mockPos),
-										},
-										mockPos,
-									),
-								],
-								returnTypes: [ASTTypeRange._(mockPos)],
-								body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 		});
 
 		describe('TypeParameter', () => {
 			it('should accept just a type', () => {
-				testParseAndAnalyze(
-					'class Foo<|T|> {}',
+				testParse('class Foo<|T|> {}', [
 					[
+						NT.ClassDeclaration,
 						[
-							NT.ClassDeclaration,
-							[
-								[NT.Identifier, 'Foo'],
-								[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
-								[NT.BlockStatement, []],
-							],
+							[NT.Identifier, 'Foo'],
+							[NT.TypeParametersList, [[NT.TypeParameter, [[NT.Identifier, 'T']]]]],
+							[NT.BlockStatement, []],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [
-									ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should accept a type and a constraint', () => {
-				testParseAndAnalyze(
-					'class Foo<|T: Bar|> {}',
+				testParse('class Foo<|T: Bar|> {}', [
 					[
+						NT.ClassDeclaration,
 						[
-							NT.ClassDeclaration,
+							[NT.Identifier, 'Foo'],
 							[
-								[NT.Identifier, 'Foo'],
+								NT.TypeParametersList,
 								[
-									NT.TypeParametersList,
 									[
-										[
-											NT.TypeParameter,
-											[[NT.Identifier, 'T'], [NT.ColonSeparator], [NT.Identifier, 'Bar']],
-										],
+										NT.TypeParameter,
+										[[NT.Identifier, 'T'], [NT.ColonSeparator], [NT.Identifier, 'Bar']],
 									],
 								],
-								[NT.BlockStatement, []],
 							],
+							[NT.BlockStatement, []],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [
-									ASTTypeParameter._(
-										ASTIdentifier._('T', mockPos),
-										ASTIdentifier._('Bar', mockPos),
-										undefined,
-										mockPos,
-									),
-								],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should accept a type and a default type', () => {
-				testParseAndAnalyze(
-					'class Foo<|T = Bar|> {}',
+				testParse('class Foo<|T = Bar|> {}', [
 					[
+						NT.ClassDeclaration,
 						[
-							NT.ClassDeclaration,
+							[NT.Identifier, 'Foo'],
 							[
-								[NT.Identifier, 'Foo'],
+								NT.TypeParametersList,
 								[
-									NT.TypeParametersList,
 									[
-										[
-											NT.TypeParameter,
-											[[NT.Identifier, 'T'], [NT.AssignmentOperator], [NT.Identifier, 'Bar']],
-										],
+										NT.TypeParameter,
+										[[NT.Identifier, 'T'], [NT.AssignmentOperator], [NT.Identifier, 'Bar']],
 									],
 								],
-								[NT.BlockStatement, []],
 							],
+							[NT.BlockStatement, []],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [
-									ASTTypeParameter._(
-										ASTIdentifier._('T', mockPos),
-										undefined,
-										ASTIdentifier._('Bar', mockPos),
-										mockPos,
-									),
-								],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should accept a type, a constraint, and a default type', () => {
-				testParseAndAnalyze(
-					'class Foo<|T: Bar = Baz|> {}',
+				testParse('class Foo<|T: Bar = Baz|> {}', [
 					[
+						NT.ClassDeclaration,
 						[
-							NT.ClassDeclaration,
+							[NT.Identifier, 'Foo'],
 							[
-								[NT.Identifier, 'Foo'],
+								NT.TypeParametersList,
 								[
-									NT.TypeParametersList,
 									[
+										NT.TypeParameter,
 										[
-											NT.TypeParameter,
-											[
-												[NT.Identifier, 'T'],
-												[NT.ColonSeparator],
-												[NT.Identifier, 'Bar'],
-												[NT.AssignmentOperator],
-												[NT.Identifier, 'Baz'],
-											],
+											[NT.Identifier, 'T'],
+											[NT.ColonSeparator],
+											[NT.Identifier, 'Bar'],
+											[NT.AssignmentOperator],
+											[NT.Identifier, 'Baz'],
 										],
 									],
 								],
-								[NT.BlockStatement, []],
 							],
+							[NT.BlockStatement, []],
 						],
 					],
-					[
-						ASTClassDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
-								typeParams: [
-									ASTTypeParameter._(
-										ASTIdentifier._('T', mockPos),
-										ASTIdentifier._('Bar', mockPos),
-										ASTIdentifier._('Baz', mockPos),
-										mockPos,
-									),
-								],
-								extends: [],
-								implements: [],
-								body: ASTBlockStatement._([], mockPos),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 		});
 	});
@@ -9518,930 +4753,422 @@ describe('parser.ts', (): void => {
 	describe('UseDeclaration', (): void => {
 		describe('uses', (): void => {
 			it('single, default use', (): void => {
-				testParseAndAnalyze(
-					'use mainJoeFile from ./some/dir/;use another from @/lexer.joe;',
-					[
-						[
-							NT.UseDeclaration,
-							[[NT.Identifier, 'mainJoeFile'], [NT.FromKeyword], [NT.Path, './some/dir/']],
-						],
-						[NT.SemicolonSeparator],
-						[NT.UseDeclaration, [[NT.Identifier, 'another'], [NT.FromKeyword], [NT.Path, '@/lexer.joe']]],
-						[NT.SemicolonSeparator],
-					],
-					[
-						ASTUseDeclaration._(
-							{
-								identifier: ASTIdentifier._('mainJoeFile', mockPos),
-								source: ASTPath._(
-									{
-										absolute: false,
-										path: './some/dir/',
-										isDir: true,
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-						ASTUseDeclaration._(
-							{
-								identifier: ASTIdentifier._('another', mockPos),
-								source: ASTPath._(
-									{
-										absolute: true,
-										path: '@/lexer.joe',
-										isDir: false,
-									},
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
-				);
+				testParse('use mainJoeFile from ./some/dir/;use another from @/lexer.joe;', [
+					[NT.UseDeclaration, [[NT.Identifier, 'mainJoeFile'], [NT.FromKeyword], [NT.Path, './some/dir/']]],
+					[NT.SemicolonSeparator],
+					[NT.UseDeclaration, [[NT.Identifier, 'another'], [NT.FromKeyword], [NT.Path, '@/lexer.joe']]],
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 	});
 
 	describe('VariableDeclaration', (): void => {
 		it('a let assignment with a bool literal', (): void => {
-			testParseAndAnalyze(
-				'let x = false',
+			testParse('let x = false', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.BoolLiteral, 'false']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.BoolLiteral, 'false']]],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTBoolLiteral._(false, mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('bool', mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 
-			testParseAndAnalyze(
-				'let x?, y = false, true',
+			testParse('let x?, y = false, true', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
+						[NT.AssigneesList, [[NT.Identifier, 'x?'], [NT.CommaSeparator], [NT.Identifier, 'y']]],
+						[NT.AssignmentOperator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'x?'], [NT.CommaSeparator], [NT.Identifier, 'y']]],
-							[NT.AssignmentOperator],
-							[
-								NT.AssignablesList,
-								[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
-							],
+							NT.AssignablesList,
+							[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
 						],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x?', mockPos), ASTIdentifier._('y', mockPos)],
-							declaredTypes: [ASTTypePrimitive._('bool', mockPos)],
-							initialValues: [ASTBoolLiteral._(false, mockPos), ASTBoolLiteral._(true, mockPos)],
-							inferredPossibleTypes: [[], [ASTTypePrimitive._('bool', mockPos)]], // the question mark declares the type as bool, so no need to infer
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('a double bool assignment and the second one has a question mark', (): void => {
-			const declaredTypes = <ASTType[]>[];
-			declaredTypes[1] = ASTTypePrimitive._('bool', mockPos);
-
-			testParseAndAnalyze(
-				'let x, y? = false, true',
+			testParse('let x, y? = false, true', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
+						[NT.AssigneesList, [[NT.Identifier, 'x'], [NT.CommaSeparator], [NT.Identifier, 'y?']]],
+						[NT.AssignmentOperator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'x'], [NT.CommaSeparator], [NT.Identifier, 'y?']]],
-							[NT.AssignmentOperator],
-							[
-								NT.AssignablesList,
-								[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
-							],
+							NT.AssignablesList,
+							[[NT.BoolLiteral, 'false'], [NT.CommaSeparator], [NT.BoolLiteral, 'true']],
 						],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos), ASTIdentifier._('y?', mockPos)],
-							declaredTypes: declaredTypes,
-							initialValues: [ASTBoolLiteral._(false, mockPos), ASTBoolLiteral._(true, mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('bool', mockPos)], []], // the question mark declares the type as bool, so no need to infer
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('a let assignment with a number literal', (): void => {
-			testParseAndAnalyze(
-				'let x = 1',
+			testParse('let x = 1', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.NumberLiteral, '1']]],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		describe('a let assignment with exponents', () => {
 			it('works with negative exponents', (): void => {
-				testParseAndAnalyze(
-					'const x = -2_300.006^e-2_000; const y = 5;',
+				testParse('const x = -2_300.006^e-2_000; const y = 5;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'x']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'x']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.BinaryExpression,
+										'^e',
 										[
-											NT.BinaryExpression,
-											'^e',
 											[
-												[
-													NT.UnaryExpression,
-													'-',
-													{ before: true },
-													[[NT.NumberLiteral, '2_300.006']],
-												],
-												[
-													NT.UnaryExpression,
-													'-',
-													{ before: true },
-													[[NT.NumberLiteral, '2_000']],
-												],
+												NT.UnaryExpression,
+												'-',
+												{ before: true },
+												[[NT.NumberLiteral, '2_300.006']],
 											],
+											[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2_000']]],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
-						[
-							NT.VariableDeclaration,
-							'const',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'y']]],
-								[NT.AssignmentOperator],
-								[NT.AssignablesList, [[NT.NumberLiteral, '5']]],
-							],
-						],
-						[NT.SemicolonSeparator],
 					],
+					[NT.SemicolonSeparator],
 					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('x', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTBinaryExpression._(
-										{
-											operator: '^e',
-											left: ASTUnaryExpression._(
-												{
-													before: true,
-													operator: '-',
-													operand: ASTNumberLiteral._(
-														2300.006,
-														undefined,
-														[...numberSizesDecimals],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-											right: ASTUnaryExpression._(
-												{
-													before: true,
-													operator: '-',
-													operand: ASTNumberLiteral._(
-														2000,
-														undefined,
-														['int16', 'int32', 'int64'],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [NumberSizesDecimalASTs.map((ns) => ns(mockPos))], // all possible decimal number sizes
-							},
-							mockPos,
-						),
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('y', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
-							},
-							mockPos,
-						),
+						NT.VariableDeclaration,
+						'const',
+						[
+							[NT.AssigneesList, [[NT.Identifier, 'y']]],
+							[NT.AssignmentOperator],
+							[NT.AssignablesList, [[NT.NumberLiteral, '5']]],
+						],
 					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('a 64-bit main number and a negative exponent should infer the possible types as dec64 and higher only', (): void => {
-				testParseAndAnalyze(
-					'const x = 214748364723^e-2;',
+				testParse('const x = 214748364723^e-2;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'x']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'x']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.BinaryExpression,
+										'^e',
 										[
-											NT.BinaryExpression,
-											'^e',
-											[
-												[NT.NumberLiteral, '214748364723'],
-												[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-											],
+											[NT.NumberLiteral, '214748364723'],
+											[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('x', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTBinaryExpression._(
-										{
-											operator: '^e',
-											left: ASTNumberLiteral._(
-												214748364723,
-												undefined,
-												['int64', 'uint64'],
-												mockPos,
-											),
-											right: ASTUnaryExpression._(
-												{
-													before: true,
-													operator: '-',
-													operand: ASTNumberLiteral._(
-														2,
-														undefined,
-														[...numberSizesSignedInts],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[ASTTypeNumber._('dec64', mockPos)]], // only 64 bit decimal number sizes or higher
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 
 		it('a let assignment with a string literal', (): void => {
-			testParseAndAnalyze(
-				'let x = "foo"',
+			testParse('let x = "foo"', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.StringLiteral, 'foo']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.StringLiteral, 'foo']]],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTStringLiteral._('foo', mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('a let with a specified type', (): void => {
-			testParseAndAnalyze(
-				'let x: string;',
+			testParse('let x: string;', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.ColonSeparator],
-							[NT.TypeArgumentsList, [[NT.Type, 'string']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.ColonSeparator],
+						[NT.TypeArgumentsList, [[NT.Type, 'string']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [ASTTypePrimitive._('string', mockPos)],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'let x?: bool;',
+			testParse('let x?: bool;', [
 				[
+					NT.VariableDeclaration,
+					'let',
 					[
-						NT.VariableDeclaration,
-						'let',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x?']]],
-							[NT.ColonSeparator],
-							[NT.TypeArgumentsList, [[NT.Type, 'bool']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x?']]],
+						[NT.ColonSeparator],
+						[NT.TypeArgumentsList, [[NT.Type, 'bool']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: true,
-							identifiersList: [ASTIdentifier._('x?', mockPos)],
-							declaredTypes: [ASTTypePrimitive._('bool', mockPos)],
-							initialValues: [],
-							inferredPossibleTypes: [],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('a const assignment with a specified type', (): void => {
-			testParseAndAnalyze(
-				'const x: string = "foo"',
+			testParse('const x: string = "foo"', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.ColonSeparator],
-							[NT.TypeArgumentsList, [[NT.Type, 'string']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.StringLiteral, 'foo']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.ColonSeparator],
+						[NT.TypeArgumentsList, [[NT.Type, 'string']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.StringLiteral, 'foo']]],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [ASTTypePrimitive._('string', mockPos)],
-							initialValues: [ASTStringLiteral._('foo', mockPos)],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('regex', (): void => {
-			testParseAndAnalyze(
-				'const x = /[a-z]/;',
+			testParse('const x = /[a-z]/;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.RegularExpression, '/[a-z]/']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.RegularExpression, '/[a-z]/']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTRegularExpression._({ pattern: '/[a-z]/', flags: [] }, mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('regex', mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'const x: regex = /[0-9]*/g;',
+			testParse('const x: regex = /[0-9]*/g;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'x']]],
-							[NT.ColonSeparator],
-							[NT.TypeArgumentsList, [[NT.Type, 'regex']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.RegularExpression, '/[0-9]*/g']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'x']]],
+						[NT.ColonSeparator],
+						[NT.TypeArgumentsList, [[NT.Type, 'regex']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.RegularExpression, '/[0-9]*/g']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [ASTTypePrimitive._('regex', mockPos)],
-							initialValues: [ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] }, mockPos)],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('path', (): void => {
-			testParseAndAnalyze(
-				'const dir = @/path/to/dir/;',
+			testParse('const dir = @/path/to/dir/;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'dir']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.Path, '@/path/to/dir/']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'dir']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.Path, '@/path/to/dir/']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('dir', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTPath._(
-									{
-										absolute: true,
-										path: '@/path/to/dir/',
-										isDir: true,
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[ASTTypePrimitive._('path', mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'const dir = ./myDir/;',
+			testParse('const dir = ./myDir/;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'dir']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.Path, './myDir/']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'dir']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.Path, './myDir/']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('dir', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTPath._({ absolute: false, path: './myDir/', isDir: true }, mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('path', mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 
-			testParseAndAnalyze(
-				'const file: path = @/path/to/file.joe;',
+			testParse('const file: path = @/path/to/file.joe;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'file']]],
-							[NT.ColonSeparator],
-							[NT.TypeArgumentsList, [[NT.Type, 'path']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.Path, '@/path/to/file.joe']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'file']]],
+						[NT.ColonSeparator],
+						[NT.TypeArgumentsList, [[NT.Type, 'path']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.Path, '@/path/to/file.joe']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('file', mockPos)],
-							declaredTypes: [ASTTypePrimitive._('path', mockPos)],
-							initialValues: [
-								ASTPath._(
-									{
-										absolute: true,
-										path: '@/path/to/file.joe',
-										isDir: false,
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('assign to another variable', () => {
-			testParseAndAnalyze(
-				'const dir = foo;',
+			testParse('const dir = foo;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'dir']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.Identifier, 'foo']]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'dir']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.Identifier, 'foo']]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('dir', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('foo', mockPos)],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		describe('custom type', (): void => {
 			it('one word', (): void => {
-				testParseAndAnalyze(
-					'const myClass: MyClass = MyClass.create();',
+				testParse('const myClass: MyClass = MyClass.create();', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'myClass']]],
+							[NT.ColonSeparator],
+							[NT.TypeArgumentsList, [[NT.Identifier, 'MyClass']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'myClass']]],
-								[NT.ColonSeparator],
-								[NT.TypeArgumentsList, [[NT.Identifier, 'MyClass']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.CallExpression,
 										[
-											NT.CallExpression,
 											[
+												NT.MemberExpression,
 												[
-													NT.MemberExpression,
-													[
-														[NT.Identifier, 'MyClass'],
-														[NT.Identifier, 'create'],
-													],
+													[NT.Identifier, 'MyClass'],
+													[NT.Identifier, 'create'],
 												],
-												[NT.ArgumentsList, []],
 											],
+											[NT.ArgumentsList, []],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('myClass', mockPos)],
-								declaredTypes: [ASTIdentifier._('MyClass', mockPos)],
-								initialValues: [
-									ASTCallExpression._(
-										{
-											callee: ASTMemberExpression._(
-												{
-													object: ASTIdentifier._('MyClass', mockPos),
-													property: ASTIdentifier._('create', mockPos),
-												},
-												mockPos,
-											),
-											args: [],
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('member expression', (): void => {
-				testParseAndAnalyze(
-					'const myClass: MyPackage.MyClass = MyClass.create();',
+				testParse('const myClass: MyPackage.MyClass = MyClass.create();', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'myClass']]],
+							[NT.ColonSeparator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'myClass']]],
-								[NT.ColonSeparator],
+								NT.TypeArgumentsList,
 								[
-									NT.TypeArgumentsList,
 									[
+										NT.MemberExpression,
 										[
-											NT.MemberExpression,
-											[
-												[NT.Identifier, 'MyPackage'],
-												[NT.Identifier, 'MyClass'],
-											],
+											[NT.Identifier, 'MyPackage'],
+											[NT.Identifier, 'MyClass'],
 										],
 									],
 								],
-								[NT.AssignmentOperator],
+							],
+							[NT.AssignmentOperator],
+							[
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.CallExpression,
 										[
-											NT.CallExpression,
 											[
+												NT.MemberExpression,
 												[
-													NT.MemberExpression,
-													[
-														[NT.Identifier, 'MyClass'],
-														[NT.Identifier, 'create'],
-													],
+													[NT.Identifier, 'MyClass'],
+													[NT.Identifier, 'create'],
 												],
-												[NT.ArgumentsList, []],
 											],
+											[NT.ArgumentsList, []],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('myClass', mockPos)],
-								declaredTypes: [
-									ASTMemberExpression._(
-										{
-											object: ASTIdentifier._('MyPackage', mockPos),
-											property: ASTIdentifier._('MyClass', mockPos),
-										},
-										mockPos,
-									),
-								],
-								initialValues: [
-									ASTCallExpression._(
-										{
-											callee: ASTMemberExpression._(
-												{
-													object: ASTIdentifier._('MyClass', mockPos),
-													property: ASTIdentifier._('create', mockPos),
-												},
-												mockPos,
-											),
-											args: [],
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 
 		describe('tuples', () => {
 			it('tuple', () => {
-				testParseAndAnalyze(
-					'const foo = <1, "pizza", 3.14>;',
+				testParse('const foo = <1, "pizza", 3.14>;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.TupleExpression,
 										[
-											NT.TupleExpression,
-											[
-												[NT.NumberLiteral, '1'],
-												[NT.CommaSeparator],
-												[NT.StringLiteral, 'pizza'],
-												[NT.CommaSeparator],
-												[NT.NumberLiteral, '3.14'],
-											],
+											[NT.NumberLiteral, '1'],
+											[NT.CommaSeparator],
+											[NT.StringLiteral, 'pizza'],
+											[NT.CommaSeparator],
+											[NT.NumberLiteral, '3.14'],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTTupleExpression._(
-										[
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											ASTStringLiteral._('pizza', mockPos),
-											ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
-										],
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTTupleShape._(
-											[
-												NumberSizesIntASTs.map((ns) => ns(mockPos)),
-												[ASTTypePrimitive._('string', mockPos)],
-												NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-											],
-											mockPos,
-										),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('empty tuple', () => {
-				testParseAndAnalyze(
-					'const foo = <>;',
+				testParse('const foo = <>;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
-								[NT.AssignablesList, [[NT.TupleExpression, []]]],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
+							[NT.AssignablesList, [[NT.TupleExpression, []]]],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTTupleExpression._([], mockPos)],
-								inferredPossibleTypes: [[ASTTupleShape._([], mockPos)]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('nested tuples', () => {
-				testParseAndAnalyze(
+				testParse(
 					`const foo = <
 						<1, 'pizza', 3.14>,
 						true,
@@ -10507,112 +5234,11 @@ describe('parser.ts', (): void => {
 						],
 						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTTupleExpression._(
-										[
-											ASTTupleExpression._(
-												[
-													ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-													ASTStringLiteral._('pizza', mockPos),
-													ASTNumberLiteral._(
-														3.14,
-														undefined,
-														[...numberSizesDecimals],
-														mockPos,
-													),
-												],
-												mockPos,
-											),
-											ASTBoolLiteral._(true, mockPos),
-											ASTPath._(
-												{
-													absolute: true,
-													path: '@/some/file.joe',
-													isDir: false,
-												},
-												mockPos,
-											),
-											ASTRangeExpression._(
-												{
-													lower: ASTNumberLiteral._(
-														1,
-														undefined,
-														[...numberSizesInts],
-														mockPos,
-													),
-													upper: ASTNumberLiteral._(
-														3,
-														undefined,
-														[...numberSizesInts],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-											ASTTupleExpression._(
-												[
-													ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-													ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-													ASTStringLiteral._('fizz', mockPos),
-													ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-													ASTStringLiteral._('buzz', mockPos),
-												],
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTTupleShape._(
-											[
-												[
-													ASTTupleShape._(
-														[
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															[ASTTypePrimitive._('string', mockPos)],
-															NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-														],
-														mockPos,
-													),
-												],
-												[ASTTypePrimitive._('bool', mockPos)],
-												[ASTTypePrimitive._('path', mockPos)],
-												[ASTTypeRange._(mockPos)],
-												[
-													ASTTupleShape._(
-														[
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															[ASTTypePrimitive._('string', mockPos)],
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															[ASTTypePrimitive._('string', mockPos)],
-														],
-														mockPos,
-													),
-												],
-											],
-											mockPos,
-										),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('with ternary in item', () => {
-				testParseAndAnalyze(
+				testParse(
 					`<
 						1,
 						someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
@@ -10638,51 +5264,28 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTTupleExpression._(
-							[
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-								ASTTernaryExpression._(
-									{
-										test: ASTTernaryCondition._(ASTIdentifier._('someCondition', mockPos), mockPos),
-										consequent: ASTTernaryConsequent._(
-											ASTStringLiteral._('burnt-orange', mockPos),
-											mockPos,
-										),
-										alternate: ASTTernaryAlternate._(ASTStringLiteral._('', mockPos), mockPos),
-									},
-									mockPos,
-								),
-								ASTBoolLiteral._(true, mockPos),
-							],
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('tuple in object', () => {
-				testParseAndAnalyze(
-					'const foo = {tpl: <1>};',
+				testParse('const foo = {tpl: <1>};', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.ObjectExpression,
 										[
-											NT.ObjectExpression,
 											[
+												NT.Property,
 												[
-													NT.Property,
-													[
-														[NT.Identifier, 'tpl'],
-														[NT.TupleExpression, [[NT.NumberLiteral, '1']]],
-													],
+													[NT.Identifier, 'tpl'],
+													[NT.TupleExpression, [[NT.NumberLiteral, '1']]],
 												],
 											],
 										],
@@ -10690,335 +5293,142 @@ describe('parser.ts', (): void => {
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTObjectExpression._(
-										[
-											ASTProperty._(
-												ASTIdentifier._('tpl', mockPos),
-												ASTTupleExpression._(
-													[ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-													mockPos,
-												),
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTObjectShape._(
-											[
-												ASTPropertyShape._(
-													ASTIdentifier._('tpl', mockPos),
-													[
-														ASTTupleShape._(
-															[NumberSizesIntASTs.map((ns) => ns(mockPos))],
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-											],
-											mockPos,
-										),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 
 		describe('arrays of', (): void => {
 			it('bools', (): void => {
-				testParseAndAnalyze(
-					'[false, true, true, false]',
+				testParse('[false, true, true, false]', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
-							[
-								[NT.BoolLiteral, 'false'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'true'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'true'],
-								[NT.CommaSeparator],
-								[NT.BoolLiteral, 'false'],
-							],
+							[NT.BoolLiteral, 'false'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'true'],
+							[NT.CommaSeparator],
+							[NT.BoolLiteral, 'false'],
 						],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTBoolLiteral._(false, mockPos),
-									ASTBoolLiteral._(true, mockPos),
-									ASTBoolLiteral._(true, mockPos),
-									ASTBoolLiteral._(false, mockPos),
-								],
-								possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('numbers', () => {
-				testParseAndAnalyze(
-					'[1, -2, 3_456, 3^e-2, 3.14, 1_2_3]',
+				testParse('[1, -2, 3_456, 3^e-2, 3.14, 1_2_3]', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
+							[NT.NumberLiteral, '1'],
+							[NT.CommaSeparator],
+							[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3_456'],
+							[NT.CommaSeparator],
 							[
-								[NT.NumberLiteral, '1'],
-								[NT.CommaSeparator],
-								[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3_456'],
-								[NT.CommaSeparator],
+								NT.BinaryExpression,
+								'^e',
 								[
-									NT.BinaryExpression,
-									'^e',
-									[
-										[NT.NumberLiteral, '3'],
-										[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
-									],
+									[NT.NumberLiteral, '3'],
+									[NT.UnaryExpression, '-', { before: true }, [[NT.NumberLiteral, '2']]],
 								],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3.14'],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '1_2_3'], // weird but legal
 							],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3.14'],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '1_2_3'], // weird but legal
 						],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									ASTUnaryExpression._(
-										{
-											before: true,
-											operator: '-',
-											operand: ASTNumberLiteral._(
-												2,
-												undefined,
-												[...numberSizesSignedInts],
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-									ASTNumberLiteral._(
-										3456,
-										undefined,
-										['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-										mockPos,
-									),
-									ASTBinaryExpression._(
-										{
-											operator: '^e',
-											left: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-											right: ASTUnaryExpression._(
-												{
-													before: true,
-													operator: '-',
-													operand: ASTNumberLiteral._(
-														2,
-														undefined,
-														[...numberSizesSignedInts],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-									ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
-									ASTNumberLiteral._(123, undefined, [...numberSizesInts], mockPos),
-								],
-								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('paths', (): void => {
-				testParseAndAnalyze(
-					'[@/file.joe, @/another/file.joe]',
+				testParse('[@/file.joe, @/another/file.joe]', [
 					[
-						[
-							NT.ArrayExpression,
-							[[NT.Path, '@/file.joe'], [NT.CommaSeparator], [NT.Path, '@/another/file.joe']],
-						],
+						NT.ArrayExpression,
+						[[NT.Path, '@/file.joe'], [NT.CommaSeparator], [NT.Path, '@/another/file.joe']],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTPath._(
-										{
-											absolute: true,
-											path: '@/file.joe',
-											isDir: false,
-										},
-										mockPos,
-									),
-									ASTPath._(
-										{
-											absolute: true,
-											path: '@/another/file.joe',
-											isDir: false,
-										},
-										mockPos,
-									),
-								],
-								possibleTypes: [ASTTypePrimitive._('path', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('regexes', (): void => {
-				testParseAndAnalyze(
-					'[/[a-z]/i, /[0-9]/g, /d/]',
+				testParse('[/[a-z]/i, /[0-9]/g, /d/]', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
-							[
-								[NT.RegularExpression, '/[a-z]/i'],
-								[NT.CommaSeparator],
-								[NT.RegularExpression, '/[0-9]/g'],
-								[NT.CommaSeparator],
-								[NT.RegularExpression, '/d/'],
-							],
+							[NT.RegularExpression, '/[a-z]/i'],
+							[NT.CommaSeparator],
+							[NT.RegularExpression, '/[0-9]/g'],
+							[NT.CommaSeparator],
+							[NT.RegularExpression, '/d/'],
 						],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTRegularExpression._(
-										{
-											pattern: '/[a-z]/',
-											flags: ['i'],
-										},
-										mockPos,
-									),
-									ASTRegularExpression._(
-										{
-											pattern: '/[0-9]/',
-											flags: ['g'],
-										},
-										mockPos,
-									),
-									ASTRegularExpression._(
-										{
-											pattern: '/d/',
-											flags: [],
-										},
-										mockPos,
-									),
-								],
-								possibleTypes: [ASTTypePrimitive._('regex', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('strings', (): void => {
-				testParseAndAnalyze(
-					'[\'foo\', "bar"]',
-					[[NT.ArrayExpression, [[NT.StringLiteral, 'foo'], [NT.CommaSeparator], [NT.StringLiteral, 'bar']]]],
-					[
-						ASTArrayExpression._(
-							{
-								items: [ASTStringLiteral._('foo', mockPos), ASTStringLiteral._('bar', mockPos)],
-								possibleTypes: [ASTTypePrimitive._('string', mockPos)],
-							},
-							mockPos,
-						),
-					],
-				);
+				testParse('[\'foo\', "bar"]', [
+					[NT.ArrayExpression, [[NT.StringLiteral, 'foo'], [NT.CommaSeparator], [NT.StringLiteral, 'bar']]],
+				]);
 			});
 
 			it('tuples', () => {
-				testParseAndAnalyze(
-					"const foo: <string, uint64, bool>[] = [<'foo', 314, false>, <'bar', 900, true>];",
+				testParse("const foo: <string, uint64, bool>[] = [<'foo', 314, false>, <'bar', 900, true>];", [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.ColonSeparator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.ColonSeparator],
+								NT.TypeArgumentsList,
 								[
-									NT.TypeArgumentsList,
 									[
+										NT.ArrayOf,
 										[
-											NT.ArrayOf,
 											[
+												NT.TupleShape,
 												[
-													NT.TupleShape,
-													[
-														[NT.Type, 'string'],
-														[NT.CommaSeparator],
-														[NT.Type, 'uint64'],
-														[NT.CommaSeparator],
-														[NT.Type, 'bool'],
-													],
+													[NT.Type, 'string'],
+													[NT.CommaSeparator],
+													[NT.Type, 'uint64'],
+													[NT.CommaSeparator],
+													[NT.Type, 'bool'],
 												],
 											],
 										],
 									],
 								],
-								[NT.AssignmentOperator],
+							],
+							[NT.AssignmentOperator],
+							[
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.ArrayExpression,
 										[
-											NT.ArrayExpression,
 											[
+												NT.TupleExpression,
 												[
-													NT.TupleExpression,
-													[
-														[NT.StringLiteral, 'foo'],
-														[NT.CommaSeparator],
-														[NT.NumberLiteral, '314'],
-														[NT.CommaSeparator],
-														[NT.BoolLiteral, 'false'],
-													],
+													[NT.StringLiteral, 'foo'],
+													[NT.CommaSeparator],
+													[NT.NumberLiteral, '314'],
+													[NT.CommaSeparator],
+													[NT.BoolLiteral, 'false'],
 												],
-												[NT.CommaSeparator],
+											],
+											[NT.CommaSeparator],
+											[
+												NT.TupleExpression,
 												[
-													NT.TupleExpression,
-													[
-														[NT.StringLiteral, 'bar'],
-														[NT.CommaSeparator],
-														[NT.NumberLiteral, '900'],
-														[NT.CommaSeparator],
-														[NT.BoolLiteral, 'true'],
-													],
+													[NT.StringLiteral, 'bar'],
+													[NT.CommaSeparator],
+													[NT.NumberLiteral, '900'],
+													[NT.CommaSeparator],
+													[NT.BoolLiteral, 'true'],
 												],
 											],
 										],
@@ -11026,120 +5436,41 @@ describe('parser.ts', (): void => {
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [
-									ASTArrayOf._(
-										ASTTupleShape._(
-											[
-												[ASTTypePrimitive._('string', mockPos)],
-												[ASTTypeNumber._('uint64', mockPos)],
-												[ASTTypePrimitive._('bool', mockPos)],
-											],
-											mockPos,
-										),
-										mockPos,
-									),
-								],
-								initialValues: [
-									ASTArrayExpression._(
-										{
-											items: [
-												ASTTupleExpression._(
-													[
-														ASTStringLiteral._('foo', mockPos),
-														ASTNumberLiteral._(
-															314,
-															undefined,
-															['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-															mockPos,
-														),
-														ASTBoolLiteral._(false, mockPos),
-													],
-													mockPos,
-												),
-												ASTTupleExpression._(
-													[
-														ASTStringLiteral._('bar', mockPos),
-														ASTNumberLiteral._(
-															900,
-															undefined,
-															['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-															mockPos,
-														),
-														ASTBoolLiteral._(true, mockPos),
-													],
-													mockPos,
-												),
-											],
-											possibleTypes: [
-												ASTTupleShape._(
-													[
-														[ASTTypePrimitive._('string', mockPos)],
-														[
-															ASTTypeNumber._('int16', mockPos),
-															ASTTypeNumber._('int32', mockPos),
-															ASTTypeNumber._('int64', mockPos),
-															ASTTypeNumber._('uint16', mockPos),
-															ASTTypeNumber._('uint32', mockPos),
-															ASTTypeNumber._('uint64', mockPos),
-														],
-														[ASTTypePrimitive._('bool', mockPos)],
-													],
-													mockPos,
-												),
-											],
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('pojos', () => {
-				testParseAndAnalyze(
-					"const foo: {a: uint32, b: string}[] = [{a: 4, b: 'c'}];",
+				testParse("const foo: {a: uint32, b: string}[] = [{a: 4, b: 'c'}];", [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.ColonSeparator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.ColonSeparator],
+								NT.TypeArgumentsList,
 								[
-									NT.TypeArgumentsList,
 									[
+										NT.ArrayOf,
 										[
-											NT.ArrayOf,
 											[
+												NT.ObjectShape,
 												[
-													NT.ObjectShape,
 													[
+														NT.PropertyShape,
 														[
-															NT.PropertyShape,
-															[
-																[NT.Identifier, 'a'],
-																[NT.Type, 'uint32'],
-															],
+															[NT.Identifier, 'a'],
+															[NT.Type, 'uint32'],
 														],
-														[NT.CommaSeparator],
+													],
+													[NT.CommaSeparator],
+													[
+														NT.PropertyShape,
 														[
-															NT.PropertyShape,
-															[
-																[NT.Identifier, 'b'],
-																[NT.Type, 'string'],
-															],
+															[NT.Identifier, 'b'],
+															[NT.Type, 'string'],
 														],
 													],
 												],
@@ -11147,30 +5478,30 @@ describe('parser.ts', (): void => {
 										],
 									],
 								],
-								[NT.AssignmentOperator],
+							],
+							[NT.AssignmentOperator],
+							[
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.ArrayExpression,
 										[
-											NT.ArrayExpression,
 											[
+												NT.ObjectExpression,
 												[
-													NT.ObjectExpression,
 													[
+														NT.Property,
 														[
-															NT.Property,
-															[
-																[NT.Identifier, 'a'],
-																[NT.NumberLiteral, '4'],
-															],
+															[NT.Identifier, 'a'],
+															[NT.NumberLiteral, '4'],
 														],
-														[NT.CommaSeparator],
+													],
+													[NT.CommaSeparator],
+													[
+														NT.Property,
 														[
-															NT.Property,
-															[
-																[NT.Identifier, 'b'],
-																[NT.StringLiteral, 'c'],
-															],
+															[NT.Identifier, 'b'],
+															[NT.StringLiteral, 'c'],
 														],
 													],
 												],
@@ -11180,416 +5511,144 @@ describe('parser.ts', (): void => {
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [
-									ASTArrayOf._(
-										ASTObjectShape._(
-											[
-												ASTPropertyShape._(
-													ASTIdentifier._('a', mockPos),
-													[ASTTypeNumber._('uint32', mockPos)],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('b', mockPos),
-													[ASTTypePrimitive._('string', mockPos)],
-													mockPos,
-												),
-											],
-											mockPos,
-										),
-										mockPos,
-									),
-								],
-								initialValues: [
-									ASTArrayExpression._(
-										{
-											items: [
-												ASTObjectExpression._(
-													[
-														ASTProperty._(
-															ASTIdentifier._('a', mockPos),
-															ASTNumberLiteral._(
-																4,
-																undefined,
-																[...numberSizesInts],
-																mockPos,
-															),
-															mockPos,
-														),
-														ASTProperty._(
-															ASTIdentifier._('b', mockPos),
-															ASTStringLiteral._('c', mockPos),
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-											],
-											possibleTypes: [
-												ASTObjectShape._(
-													[
-														ASTPropertyShape._(
-															ASTIdentifier._('a', mockPos),
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															mockPos,
-														),
-														ASTPropertyShape._(
-															ASTIdentifier._('b', mockPos),
-															[ASTTypePrimitive._('string', mockPos)],
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-											],
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('assignments', () => {
-				testParseAndAnalyze(
-					'const int32s = [1, 2];',
+				testParse('const int32s = [1, 2];', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'int32s']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'int32s']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
-										[
-											NT.ArrayExpression,
-											[[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '2']],
-										],
+										NT.ArrayExpression,
+										[[NT.NumberLiteral, '1'], [NT.CommaSeparator], [NT.NumberLiteral, '2']],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('int32s', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTArrayExpression._(
-										{
-											items: [
-												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-											],
-											possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTArrayOf._(ASTTypeNumber._('int8', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('int16', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('int32', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('int64', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('uint8', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('uint16', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('uint32', mockPos), mockPos),
-										ASTArrayOf._(ASTTypeNumber._('uint64', mockPos), mockPos),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 
-				testParseAndAnalyze(
-					'let myArray: bool[] = [];',
+				testParse('let myArray: bool[] = [];', [
 					[
+						NT.VariableDeclaration,
+						'let',
 						[
-							NT.VariableDeclaration,
-							'let',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'myArray']]],
-								[NT.ColonSeparator],
-								[NT.TypeArgumentsList, [[NT.ArrayOf, [[NT.Type, 'bool']]]]],
-								[NT.AssignmentOperator],
-								[NT.AssignablesList, [[NT.ArrayExpression, []]]],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'myArray']]],
+							[NT.ColonSeparator],
+							[NT.TypeArgumentsList, [[NT.ArrayOf, [[NT.Type, 'bool']]]]],
+							[NT.AssignmentOperator],
+							[NT.AssignablesList, [[NT.ArrayExpression, []]]],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: true,
-								identifiersList: [ASTIdentifier._('myArray', mockPos)],
-								declaredTypes: [ASTArrayOf._(ASTTypePrimitive._('bool', mockPos), mockPos)],
-								initialValues: [
-									ASTArrayExpression._(
-										{
-											items: [],
-											possibleTypes: [],
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [[]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 		});
 
 		describe('ternary', () => {
 			it('should work in a variable declaration', () => {
-				testParseAndAnalyze(
-					'const foo = bar ? 1 : 2;',
+				testParse('const foo = bar ? 1 : 2;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.TernaryExpression,
 										[
-											NT.TernaryExpression,
-											[
-												[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
-												[NT.TernaryConsequent, [[NT.NumberLiteral, '1']]],
-												[NT.TernaryAlternate, [[NT.NumberLiteral, '2']]],
-											],
+											[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
+											[NT.TernaryConsequent, [[NT.NumberLiteral, '1']]],
+											[NT.TernaryAlternate, [[NT.NumberLiteral, '2']]],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTTernaryExpression._(
-										{
-											test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
-											consequent: ASTTernaryConsequent._(
-												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-												mockPos,
-											),
-											alternate: ASTTernaryAlternate._(
-												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTTypeNumber._('int8', mockPos),
-										ASTTypeNumber._('int16', mockPos),
-										ASTTypeNumber._('int32', mockPos),
-										ASTTypeNumber._('int64', mockPos),
-										ASTTypeNumber._('uint8', mockPos),
-										ASTTypeNumber._('uint16', mockPos),
-										ASTTypeNumber._('uint32', mockPos),
-										ASTTypeNumber._('uint64', mockPos),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('should work when nested', () => {
-				testParseAndAnalyze(
-					'const foo = bar ? (baz ? 3 : 4) : 2;',
+				testParse('const foo = bar ? (baz ? 3 : 4) : 2;', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.TernaryExpression,
 										[
-											NT.TernaryExpression,
+											[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
 											[
-												[NT.TernaryCondition, [[NT.Identifier, 'bar']]],
+												NT.TernaryConsequent,
 												[
-													NT.TernaryConsequent,
 													[
+														NT.Parenthesized,
 														[
-															NT.Parenthesized,
 															[
+																NT.TernaryExpression,
 																[
-																	NT.TernaryExpression,
-																	[
-																		[NT.TernaryCondition, [[NT.Identifier, 'baz']]],
-																		[
-																			NT.TernaryConsequent,
-																			[[NT.NumberLiteral, '3']],
-																		],
-																		[
-																			NT.TernaryAlternate,
-																			[[NT.NumberLiteral, '4']],
-																		],
-																	],
+																	[NT.TernaryCondition, [[NT.Identifier, 'baz']]],
+																	[NT.TernaryConsequent, [[NT.NumberLiteral, '3']]],
+																	[NT.TernaryAlternate, [[NT.NumberLiteral, '4']]],
 																],
 															],
 														],
 													],
 												],
-												[NT.TernaryAlternate, [[NT.NumberLiteral, '2']]],
 											],
+											[NT.TernaryAlternate, [[NT.NumberLiteral, '2']]],
 										],
 									],
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTTernaryExpression._(
-										{
-											test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
-											consequent: ASTTernaryConsequent._(
-												ASTTernaryExpression._(
-													{
-														test: ASTTernaryCondition._(
-															ASTIdentifier._('baz', mockPos),
-															mockPos,
-														),
-														consequent: ASTTernaryConsequent._(
-															ASTNumberLiteral._(
-																3,
-																undefined,
-																[...numberSizesInts],
-																mockPos,
-															),
-															mockPos,
-														),
-														alternate: ASTTernaryAlternate._(
-															ASTNumberLiteral._(
-																4,
-																undefined,
-																[...numberSizesInts],
-																mockPos,
-															),
-															mockPos,
-														),
-													},
-													mockPos,
-												),
-												mockPos,
-											),
-											alternate: ASTTernaryAlternate._(
-												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('should work in an array', () => {
-				testParseAndAnalyze(
-					'[foo ? 1 : 2, 3]',
+				testParse('[foo ? 1 : 2, 3]', [
 					[
+						NT.ArrayExpression,
 						[
-							NT.ArrayExpression,
 							[
+								NT.TernaryExpression,
 								[
-									NT.TernaryExpression,
-									[
-										[NT.TernaryCondition, [[NT.Identifier, 'foo']]],
-										[NT.TernaryConsequent, [[NT.NumberLiteral, '1']]],
-										[NT.TernaryAlternate, [[NT.NumberLiteral, '2']]],
-									],
+									[NT.TernaryCondition, [[NT.Identifier, 'foo']]],
+									[NT.TernaryConsequent, [[NT.NumberLiteral, '1']]],
+									[NT.TernaryAlternate, [[NT.NumberLiteral, '2']]],
 								],
-								[NT.CommaSeparator],
-								[NT.NumberLiteral, '3'],
 							],
+							[NT.CommaSeparator],
+							[NT.NumberLiteral, '3'],
 						],
 					],
-					[
-						ASTArrayExpression._(
-							{
-								items: [
-									ASTTernaryExpression._(
-										{
-											test: ASTTernaryCondition._(ASTIdentifier._('foo', mockPos), mockPos),
-											consequent: ASTTernaryConsequent._(
-												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-												mockPos,
-											),
-											alternate: ASTTernaryAlternate._(
-												ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-												mockPos,
-											),
-										},
-										mockPos,
-									),
-									ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-								],
-								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-							},
-							mockPos,
-						),
-					],
-				);
+				]);
 			});
 
 			it('should work in a return', () => {
-				testParseAndAnalyze(
+				testParse(
 					`f foo -> bool, uint64 {
 						return bar ? true : false, 3;
 					}`,
@@ -11623,102 +5682,59 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTFunctionDeclaration._(
-							{
-								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
-								typeParams: [],
-								params: [],
-								returnTypes: [ASTTypePrimitive._('bool', mockPos), ASTTypeNumber._('uint64', mockPos)],
-								body: ASTBlockStatement._(
-									[
-										ASTReturnStatement._(
-											[
-												ASTTernaryExpression._(
-													{
-														test: ASTTernaryCondition._(
-															ASTIdentifier._('bar', mockPos),
-															mockPos,
-														),
-														consequent: ASTTernaryConsequent._(
-															ASTBoolLiteral._(true, mockPos),
-															mockPos,
-														),
-														alternate: ASTTernaryAlternate._(
-															ASTBoolLiteral._(false, mockPos),
-															mockPos,
-														),
-													},
-													mockPos,
-												),
-												ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-											],
-											mockPos,
-										),
-									],
-									mockPos,
-								),
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 		});
 
 		describe('pojos', () => {
 			it('pojo', () => {
-				testParseAndAnalyze(
-					'const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};',
+				testParse('const foo = {a: 1, b: "pizza", c: 3.14, d: [10, 11]};', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
 							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
+								NT.AssignablesList,
 								[
-									NT.AssignablesList,
 									[
+										NT.ObjectExpression,
 										[
-											NT.ObjectExpression,
 											[
+												NT.Property,
 												[
-													NT.Property,
-													[
-														[NT.Identifier, 'a'],
-														[NT.NumberLiteral, '1'],
-													],
+													[NT.Identifier, 'a'],
+													[NT.NumberLiteral, '1'],
 												],
-												[NT.CommaSeparator],
+											],
+											[NT.CommaSeparator],
+											[
+												NT.Property,
 												[
-													NT.Property,
-													[
-														[NT.Identifier, 'b'],
-														[NT.StringLiteral, 'pizza'],
-													],
+													[NT.Identifier, 'b'],
+													[NT.StringLiteral, 'pizza'],
 												],
-												[NT.CommaSeparator],
+											],
+											[NT.CommaSeparator],
+											[
+												NT.Property,
 												[
-													NT.Property,
-													[
-														[NT.Identifier, 'c'],
-														[NT.NumberLiteral, '3.14'],
-													],
+													[NT.Identifier, 'c'],
+													[NT.NumberLiteral, '3.14'],
 												],
-												[NT.CommaSeparator],
+											],
+											[NT.CommaSeparator],
+											[
+												NT.Property,
 												[
-													NT.Property,
+													[NT.Identifier, 'd'],
 													[
-														[NT.Identifier, 'd'],
+														NT.ArrayExpression,
 														[
-															NT.ArrayExpression,
-															[
-																[NT.NumberLiteral, '10'],
-																[NT.CommaSeparator],
-																[NT.NumberLiteral, '11'],
-															],
+															[NT.NumberLiteral, '10'],
+															[NT.CommaSeparator],
+															[NT.NumberLiteral, '11'],
 														],
 													],
 												],
@@ -11728,130 +5744,28 @@ describe('parser.ts', (): void => {
 								],
 							],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTObjectExpression._(
-										[
-											ASTProperty._(
-												ASTIdentifier._('a', mockPos),
-												ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('b', mockPos),
-												ASTStringLiteral._('pizza', mockPos),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('c', mockPos),
-												ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('d', mockPos),
-												ASTArrayExpression._(
-													{
-														items: [
-															ASTNumberLiteral._(
-																10,
-																undefined,
-																[...numberSizesInts],
-																mockPos,
-															),
-															ASTNumberLiteral._(
-																11,
-																undefined,
-																[...numberSizesInts],
-																mockPos,
-															),
-														],
-														possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-													},
-													mockPos,
-												),
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTObjectShape._(
-											[
-												ASTPropertyShape._(
-													ASTIdentifier._('a', mockPos),
-													NumberSizesIntASTs.map((ns) => ns(mockPos)),
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('b', mockPos),
-													[ASTTypePrimitive._('string', mockPos)],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('c', mockPos),
-													NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('d', mockPos),
-													NumberSizesIntASTs.map((ns) => ASTArrayOf._(ns(mockPos), mockPos)),
-													mockPos,
-												),
-											],
-											mockPos,
-										),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('empty pojo', () => {
-				testParseAndAnalyze(
-					'const foo = {};',
+				testParse('const foo = {};', [
 					[
+						NT.VariableDeclaration,
+						'const',
 						[
-							NT.VariableDeclaration,
-							'const',
-							[
-								[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-								[NT.AssignmentOperator],
-								[NT.AssignablesList, [[NT.ObjectExpression, []]]],
-							],
+							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+							[NT.AssignmentOperator],
+							[NT.AssignablesList, [[NT.ObjectExpression, []]]],
 						],
-						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTObjectExpression._([], mockPos)],
-								inferredPossibleTypes: [[ASTObjectShape._([], mockPos)]],
-							},
-							mockPos,
-						),
-					],
-				);
+					[NT.SemicolonSeparator],
+				]);
 			});
 
 			it('nested pojos', () => {
-				testParseAndAnalyze(
+				testParse(
 					`const foo = {
 						obj: {a: 1, b: 'pizza', pi: {two_digits: 3.14}},
 						bol: true,
@@ -11987,226 +5901,11 @@ describe('parser.ts', (): void => {
 						],
 						[NT.SemicolonSeparator],
 					],
-					[
-						ASTVariableDeclaration._(
-							{
-								modifiers: [],
-								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [
-									ASTObjectExpression._(
-										[
-											ASTProperty._(
-												ASTIdentifier._('obj', mockPos),
-												ASTObjectExpression._(
-													[
-														ASTProperty._(
-															ASTIdentifier._('a', mockPos),
-															ASTNumberLiteral._(
-																1,
-																undefined,
-																[...numberSizesInts],
-																mockPos,
-															),
-															mockPos,
-														),
-														ASTProperty._(
-															ASTIdentifier._('b', mockPos),
-															ASTStringLiteral._('pizza', mockPos),
-															mockPos,
-														),
-														ASTProperty._(
-															ASTIdentifier._('pi', mockPos),
-															ASTObjectExpression._(
-																[
-																	ASTProperty._(
-																		ASTIdentifier._('two_digits', mockPos),
-																		ASTNumberLiteral._(
-																			3.14,
-																			undefined,
-																			[...numberSizesDecimals],
-																			mockPos,
-																		),
-																		mockPos,
-																	),
-																],
-																mockPos,
-															),
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('bol', mockPos),
-												ASTBoolLiteral._(true, mockPos),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('pth', mockPos),
-												ASTPath._(
-													{
-														absolute: true,
-														path: '@/some/file.joe',
-														isDir: false,
-													},
-													mockPos,
-												),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('rng', mockPos),
-												ASTObjectExpression._(
-													[
-														ASTProperty._(
-															ASTIdentifier._('rng', mockPos),
-															ASTRangeExpression._(
-																{
-																	lower: ASTNumberLiteral._(
-																		1,
-																		undefined,
-																		[...numberSizesInts],
-																		mockPos,
-																	),
-																	upper: ASTNumberLiteral._(
-																		3,
-																		undefined,
-																		[...numberSizesInts],
-																		mockPos,
-																	),
-																},
-																mockPos,
-															),
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-												mockPos,
-											),
-											ASTProperty._(
-												ASTIdentifier._('tpl', mockPos),
-												ASTTupleExpression._(
-													[
-														ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-														ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-														ASTStringLiteral._('fizz', mockPos),
-														ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-														ASTStringLiteral._('buzz', mockPos),
-													],
-													mockPos,
-												),
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
-								inferredPossibleTypes: [
-									[
-										ASTObjectShape._(
-											[
-												ASTPropertyShape._(
-													ASTIdentifier._('obj', mockPos),
-													[
-														ASTObjectShape._(
-															[
-																ASTPropertyShape._(
-																	ASTIdentifier._('a', mockPos),
-																	NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																	mockPos,
-																),
-																ASTPropertyShape._(
-																	ASTIdentifier._('b', mockPos),
-																	[ASTTypePrimitive._('string', mockPos)],
-																	mockPos,
-																),
-																ASTPropertyShape._(
-																	ASTIdentifier._('pi', mockPos),
-																	[
-																		ASTObjectShape._(
-																			[
-																				ASTPropertyShape._(
-																					ASTIdentifier._(
-																						'two_digits',
-																						mockPos,
-																					),
-																					NumberSizesDecimalASTs.map((ns) =>
-																						ns(mockPos),
-																					),
-																					mockPos,
-																				),
-																			],
-																			mockPos,
-																		),
-																	],
-																	mockPos,
-																),
-															],
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('bol', mockPos),
-													[ASTTypePrimitive._('bool', mockPos)],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('pth', mockPos),
-													[ASTTypePrimitive._('path', mockPos)],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('rng', mockPos),
-													[
-														ASTObjectShape._(
-															[
-																ASTPropertyShape._(
-																	ASTIdentifier._('rng', mockPos),
-																	[ASTTypeRange._(mockPos)],
-																	mockPos,
-																),
-															],
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('tpl', mockPos),
-													[
-														ASTTupleShape._(
-															[
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																[ASTTypePrimitive._('string', mockPos)],
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																[ASTTypePrimitive._('string', mockPos)],
-															],
-															mockPos,
-														),
-													],
-													mockPos,
-												),
-											],
-											mockPos,
-										),
-									],
-								],
-							},
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('with ternary in item', () => {
-				testParseAndAnalyze(
+				testParse(
 					`{
 						a: 1,
 						b: someCondition ? 'burnt-orange' : '', // will always be defined, so the shape is correct
@@ -12250,42 +5949,11 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTObjectExpression._(
-							[
-								ASTProperty._(
-									ASTIdentifier._('a', mockPos),
-									ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									mockPos,
-								),
-								ASTProperty._(
-									ASTIdentifier._('b', mockPos),
-									ASTTernaryExpression._(
-										{
-											test: ASTTernaryCondition._(
-												ASTIdentifier._('someCondition', mockPos),
-												mockPos,
-											),
-											consequent: ASTTernaryConsequent._(
-												ASTStringLiteral._('burnt-orange', mockPos),
-												mockPos,
-											),
-											alternate: ASTTernaryAlternate._(ASTStringLiteral._('', mockPos), mockPos),
-										},
-										mockPos,
-									),
-									mockPos,
-								),
-								ASTProperty._(ASTIdentifier._('c', mockPos), ASTBoolLiteral._(true, mockPos), mockPos),
-							],
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('with array in item', () => {
-				testParseAndAnalyze(
+				testParse(
 					`{
 						a: [1]
 					}`,
@@ -12303,29 +5971,11 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTObjectExpression._(
-							[
-								ASTProperty._(
-									ASTIdentifier._('a', mockPos),
-									ASTArrayExpression._(
-										{
-											items: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-											possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
-										},
-										mockPos,
-									),
-									mockPos,
-								),
-							],
-							mockPos,
-						),
-					],
 				);
 			});
 
 			it('with MemberExpression in item', () => {
-				testParseAndAnalyze(
+				testParse(
 					`{
 						a: [foo[1]]
 					}`,
@@ -12354,126 +6004,55 @@ describe('parser.ts', (): void => {
 							],
 						],
 					],
-					[
-						ASTObjectExpression._(
-							[
-								ASTProperty._(
-									ASTIdentifier._('a', mockPos),
-									ASTArrayExpression._(
-										{
-											items: [
-												ASTMemberExpression._(
-													{
-														object: ASTIdentifier._('foo', mockPos),
-														property: ASTNumberLiteral._(
-															1,
-															undefined,
-															[...numberSizesInts],
-															mockPos,
-														),
-													},
-													mockPos,
-												),
-											],
-											possibleTypes: [],
-										},
-										mockPos,
-									),
-									mockPos,
-								),
-							],
-							mockPos,
-						),
-					],
 				);
 			});
 		});
 
 		it('should assign this', () => {
-			testParseAndAnalyze(
-				'const foo = this;',
+			testParse('const foo = this;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
-						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
-							[NT.AssignablesList, [[NT.ThisKeyword]]],
-						],
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
+						[NT.AssignablesList, [[NT.ThisKeyword]]],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTThisKeyword._(mockPos)],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('should assign a range', () => {
-			testParseAndAnalyze(
-				'const foo = 1 .. 3;',
+			testParse('const foo = 1 .. 3;', [
 				[
+					NT.VariableDeclaration,
+					'const',
 					[
-						NT.VariableDeclaration,
-						'const',
+						[NT.AssigneesList, [[NT.Identifier, 'foo']]],
+						[NT.AssignmentOperator],
 						[
-							[NT.AssigneesList, [[NT.Identifier, 'foo']]],
-							[NT.AssignmentOperator],
+							NT.AssignablesList,
 							[
-								NT.AssignablesList,
 								[
+									NT.RangeExpression,
 									[
-										NT.RangeExpression,
-										[
-											[NT.NumberLiteral, '1'],
-											[NT.NumberLiteral, '3'],
-										],
+										[NT.NumberLiteral, '1'],
+										[NT.NumberLiteral, '3'],
 									],
 								],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTRangeExpression._(
-									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[ASTTypeRange._(mockPos)]],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 	});
 
 	describe('WhenExpression', (): void => {
 		it('works with a small example', () => {
-			testParseAndAnalyze(
+			testParse(
 				`when (someNumber) {
 					1 -> 'small',
 				}`,
@@ -12498,28 +6077,11 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTWhenExpression._(
-						{
-							expression: ASTIdentifier._('someNumber', mockPos),
-							cases: [
-								ASTWhenCase._(
-									{
-										values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-										consequent: ASTStringLiteral._('small', mockPos),
-									},
-									mockPos,
-								),
-							],
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('case with brace', () => {
-			testParseAndAnalyze(
+			testParse(
 				`when someNumber {
 					1 -> {
 						doThing1();
@@ -12576,48 +6138,15 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTWhenExpression._(
-						{
-							expression: ASTIdentifier._('someNumber', mockPos),
-							cases: [
-								ASTWhenCase._(
-									{
-										values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-										consequent: ASTBlockStatement._(
-											[
-												ASTCallExpression._(
-													{
-														callee: ASTIdentifier._('doThing1', mockPos),
-														args: [],
-													},
-													mockPos,
-												),
-												ASTCallExpression._(
-													{
-														callee: ASTIdentifier._('doThing2', mockPos),
-														args: [],
-													},
-													mockPos,
-												),
-												ASTReturnStatement._([ASTStringLiteral._('large', mockPos)], mockPos),
-											],
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-							],
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 
 		it('works with single values, multiple values, ranges, and ...', (): void => {
-			testParseAndAnalyze(
-				`const size = when someNumber {
+			testParse(
+				`f doSomethingElse -> string {
+					return "";
+				}
+				const size = when someNumber {
 					1, 2 -> 'small',
 					3 .. 10 -> 'medium',
 					11 -> {
@@ -12630,6 +6159,17 @@ describe('parser.ts', (): void => {
 					... -> 'off the charts',
 				}`,
 				[
+					[
+						NT.FunctionDeclaration,
+						[
+							[NT.Identifier, 'doSomethingElse'],
+							[NT.FunctionReturns, [[NT.Type, 'string']]],
+							[
+								NT.BlockStatement,
+								[[NT.ReturnStatement, [[NT.StringLiteral, '']]], [NT.SemicolonSeparator]],
+							],
+						],
+					],
 					[
 						NT.VariableDeclaration,
 						'const',
@@ -12757,296 +6297,87 @@ describe('parser.ts', (): void => {
 						],
 					],
 				],
-				[
-					ASTVariableDeclaration._(
-						{
-							modifiers: [],
-							mutable: false,
-							identifiersList: [ASTIdentifier._('size', mockPos)],
-							declaredTypes: [],
-							initialValues: [
-								ASTWhenExpression._(
-									{
-										expression: ASTIdentifier._('someNumber', mockPos),
-										cases: [
-											ASTWhenCase._(
-												{
-													values: [
-														ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-														ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-													],
-													consequent: ASTStringLiteral._('small', mockPos),
-												},
-												mockPos,
-											),
-											ASTWhenCase._(
-												{
-													values: [
-														ASTRangeExpression._(
-															{
-																lower: ASTNumberLiteral._(
-																	3,
-																	undefined,
-																	[...numberSizesInts],
-																	mockPos,
-																),
-																upper: ASTNumberLiteral._(
-																	10,
-																	undefined,
-																	[...numberSizesInts],
-																	mockPos,
-																),
-															},
-															mockPos,
-														),
-													],
-													consequent: ASTStringLiteral._('medium', mockPos),
-												},
-												mockPos,
-											),
-											ASTWhenCase._(
-												{
-													values: [
-														ASTNumberLiteral._(
-															11,
-															undefined,
-															[...numberSizesInts],
-															mockPos,
-														),
-													],
-													consequent: ASTBlockStatement._(
-														[
-															ASTCallExpression._(
-																{
-																	callee: ASTIdentifier._('doThing1', mockPos),
-																	args: [],
-																},
-																mockPos,
-															),
-															ASTCallExpression._(
-																{
-																	callee: ASTIdentifier._('doThing2', mockPos),
-																	args: [],
-																},
-																mockPos,
-															),
-															ASTReturnStatement._(
-																[ASTStringLiteral._('large', mockPos)],
-																mockPos,
-															),
-														],
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-											ASTWhenCase._(
-												{
-													values: [
-														ASTNumberLiteral._(
-															12,
-															undefined,
-															[...numberSizesInts],
-															mockPos,
-														),
-													],
-													consequent: ASTCallExpression._(
-														{
-															callee: ASTIdentifier._('doSomethingElse', mockPos),
-															args: [],
-														},
-														mockPos,
-													),
-												},
-												mockPos,
-											),
-											ASTWhenCase._(
-												{
-													values: [ASTRestElement._(mockPos)],
-													consequent: ASTStringLiteral._('off the charts', mockPos),
-												},
-												mockPos,
-											),
-										],
-									},
-									mockPos,
-								),
-							],
-							inferredPossibleTypes: [[]],
-						},
-						mockPos,
-					),
-				],
 			);
 		});
 	});
 
 	describe('bugs fixed', (): void => {
 		it('"foo() .. 3" should place the RangeExpression outside of the CallExpression', (): void => {
-			testParseAndAnalyze(
-				'foo() .. 3',
+			testParse('foo() .. 3', [
 				[
+					NT.RangeExpression,
 					[
-						NT.RangeExpression,
 						[
+							NT.CallExpression,
 							[
-								NT.CallExpression,
-								[
-									[NT.Identifier, 'foo'],
-									[NT.ArgumentsList, []],
-								],
+								[NT.Identifier, 'foo'],
+								[NT.ArgumentsList, []],
 							],
-							[NT.NumberLiteral, '3'],
 						],
+						[NT.NumberLiteral, '3'],
 					],
 				],
-				[
-					ASTRangeExpression._(
-						{
-							lower: ASTCallExpression._(
-								{
-									callee: ASTIdentifier._('foo', mockPos),
-									args: [],
-								},
-								mockPos,
-							),
-							upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 
 		it('"[1<2, 3>2];" should be a bool array, not a tuple', (): void => {
-			testParseAndAnalyze(
-				'[1<2, 4>3];',
+			testParse('[1<2, 4>3];', [
 				[
+					NT.ArrayExpression,
 					[
-						NT.ArrayExpression,
 						[
+							NT.BinaryExpression,
+							'<',
 							[
-								NT.BinaryExpression,
-								'<',
-								[
-									[NT.NumberLiteral, '1'],
-									[NT.NumberLiteral, '2'],
-								],
+								[NT.NumberLiteral, '1'],
+								[NT.NumberLiteral, '2'],
 							],
-							[NT.CommaSeparator],
+						],
+						[NT.CommaSeparator],
+						[
+							NT.BinaryExpression,
+							'>',
 							[
-								NT.BinaryExpression,
-								'>',
-								[
-									[NT.NumberLiteral, '4'],
-									[NT.NumberLiteral, '3'],
-								],
+								[NT.NumberLiteral, '4'],
+								[NT.NumberLiteral, '3'],
 							],
 						],
 					],
-					[NT.SemicolonSeparator],
 				],
-				[
-					ASTArrayExpression._(
-						{
-							items: [
-								ASTBinaryExpression._(
-									{
-										operator: '<',
-										left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-								ASTBinaryExpression._(
-									{
-										operator: '>',
-										left: ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-										right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-									},
-									mockPos,
-								),
-							],
-							possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
-						},
-						mockPos,
-					),
-				],
-			);
+				[NT.SemicolonSeparator],
+			]);
 		});
 
 		it('"f foo(a: int16 = 1_234, b = true) {}" should correctly see the underscore as a separator', () => {
-			testParseAndAnalyze(
-				'f foo(a: int16 = 1_234, b = true) {}',
+			testParse('f foo(a: int16 = 1_234, b = true) {}', [
 				[
+					NT.FunctionDeclaration,
 					[
-						NT.FunctionDeclaration,
+						[NT.Identifier, 'foo'],
 						[
-							[NT.Identifier, 'foo'],
+							NT.ParametersList,
 							[
-								NT.ParametersList,
 								[
+									NT.Parameter,
 									[
-										NT.Parameter,
-										[
-											[NT.Identifier, 'a'],
-											[NT.ColonSeparator],
-											[NT.Type, 'int16'],
-											[NT.AssignmentOperator],
-											[NT.NumberLiteral, '1_234'],
-										],
-									],
-									[NT.CommaSeparator],
-									[
-										NT.Parameter,
-										[[NT.Identifier, 'b'], [NT.AssignmentOperator], [NT.BoolLiteral, 'true']],
+										[NT.Identifier, 'a'],
+										[NT.ColonSeparator],
+										[NT.Type, 'int16'],
+										[NT.AssignmentOperator],
+										[NT.NumberLiteral, '1_234'],
 									],
 								],
+								[NT.CommaSeparator],
+								[
+									NT.Parameter,
+									[[NT.Identifier, 'b'], [NT.AssignmentOperator], [NT.BoolLiteral, 'true']],
+								],
 							],
-							[NT.BlockStatement, []],
 						],
+						[NT.BlockStatement, []],
 					],
 				],
-				[
-					ASTFunctionDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
-							typeParams: [],
-							params: [
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('a', mockPos),
-										declaredType: ASTTypeNumber._('int16', mockPos),
-										defaultValue: ASTNumberLiteral._(
-											1234,
-											undefined,
-											['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-								ASTParameter._(
-									{
-										modifiers: [],
-										isRest: false,
-										name: ASTIdentifier._('b', mockPos),
-										declaredType: ASTTypePrimitive._('bool', mockPos),
-										defaultValue: ASTBoolLiteral._(true, mockPos),
-									},
-									mockPos,
-								),
-							],
-							returnTypes: [],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			]);
 		});
 	});
 
@@ -13056,7 +6387,7 @@ describe('parser.ts', (): void => {
 				const result = parse(openToken);
 
 				// use assert instead of expect, since we need TS to narrow the type
-				assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+				assert(result.isError(), `Expected: "error", Received: "ok"`);
 				expect(result.error.message).toBe(`Unexpected end of program; expecting "${closeToken}"`);
 			});
 
@@ -13064,7 +6395,7 @@ describe('parser.ts', (): void => {
 				const result = parse(closeToken);
 
 				// use assert instead of expect, since we need TS to narrow the type
-				assert(result.outcome === 'error', `Expected: "error", Received: "${result.outcome}"`);
+				assert(result.isError(), `Expected: "error", Received: "ok"`);
 				expect(result.error.message).toBe(message);
 			});
 		}
