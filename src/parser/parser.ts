@@ -1,12 +1,15 @@
-import { inspect } from 'util';
+import LexerError from '../lexer/error';
 import Lexer from '../lexer/lexer';
 import { Token, tokenTypesUsingSymbols } from '../lexer/types';
-import ErrorContext from '../shared/errorContext';
+import Context from '../shared/context';
+import loggers, { DedentFunc } from '../shared/log';
 import { Result, error, ok } from '../shared/result';
 import { whenResult } from '../shared/when';
-import ParserError, { ParserErrorCode } from './error';
+import ParserError from './error';
 import { ChangeNodeType, MakeNode, MakeUnaryExpressionNode } from './node';
 import { NT, Node, validNodeTypesAsMemberObject } from './types';
+
+const log = loggers.parser;
 
 type stackableToken = '[' | '(' | '{' | '<|';
 export const stackPairs = {
@@ -19,16 +22,13 @@ export const stackPairs = {
 export default class Parser {
 	prevToken: Token | undefined;
 
-	currentToken: Result<Token>;
+	currentToken: Result<Token, LexerError | ParserError>;
 
 	/** Root node of the Concrete Syntax Tree (CST) */
 	root: Node;
 
 	/** Current root node of the Concrete Syntax Tree (CST) */
 	currentRoot: Node;
-
-	/** if on, will output the CST at the end */
-	debug = false;
 
 	/**
 	 * The stack holds the opening symbols in the order they were opened,
@@ -76,7 +76,9 @@ export default class Parser {
 
 	lexer: Lexer;
 
-	constructor(code: string, debug = false) {
+	parserLogDedentFunc: DedentFunc;
+
+	constructor(code: string) {
 		this.lexer = new Lexer(code);
 
 		this.root = {
@@ -94,27 +96,18 @@ export default class Parser {
 
 		// initialize
 		this.currentToken = error(
-			new ParserError(
-				ParserErrorCode.UnexpectedEndOfProgram,
-				'No tokens found',
-				this.currentRoot,
-				new ErrorContext(this.lexer.code, 1, 1, 0),
-			),
+			ParserError.UnexpectedEndOfProgram('No tokens found', this.currentRoot, new Context(this.lexer.code, 1, 1, 0)),
 		);
 
-		this.debug = debug;
-
-		if (this.debug) {
-			console.debug('Parser: Getting started parsing');
-		}
+		this.parserLogDedentFunc = log.indentWithInfo('Getting started parsing');
 	}
 
-	getErrorContext(length: number): ErrorContext {
+	ctx(length: number): Context {
 		return whenResult(this.currentToken, {
-			Ok: (token) => new ErrorContext(this.lexer.code, token.line, token.col, length),
+			Ok: (token) => new Context(this.lexer.code, token.line, token.col, length),
 			// we have no information about the line or col
 			// since line and col are 1-based, we use 1
-			Error: () => new ErrorContext(this.lexer.code, 1, 1, 0),
+			Error: () => new Context(this.lexer.code, 1, 1, 0),
 		});
 	}
 
@@ -126,15 +119,14 @@ export default class Parser {
 		return `${node.type}${separator}${this.lineage(node.parent, separator)}`;
 	}
 
-	private checkAtEof(): Result<Node> {
+	private checkAtEof(): Result<Node, ParserError> {
 		// ensure that the stack is empty, ensuring opening symbols are closed
 		if (this.stack.length > 0) {
 			return error(
-				new ParserError(
-					ParserErrorCode.UnexpectedEndOfProgram,
+				ParserError.UnexpectedEndOfProgram(
 					`Unexpected end of program; expecting "${stackPairs[this.stack[this.stack.length - 1]].pair}"`,
 					this.currentRoot,
-					this.getErrorContext(0),
+					this.ctx(0),
 				),
 			);
 		}
@@ -142,7 +134,7 @@ export default class Parser {
 		return ok(this.root);
 	}
 
-	public parse(): Result<Node> {
+	public parse(): Result<Node, LexerError | ParserError> {
 		do {
 			// before going on to the next token, update this.prevToken
 			this.prevToken = this.currentToken.isOk() ? this.currentToken.value : undefined;
@@ -150,1290 +142,1457 @@ export default class Parser {
 			// get the next token
 			this.currentToken = this.getNextToken();
 			if (this.currentToken.isError()) {
+				log.warnAndDedent(this.parserLogDedentFunc, 'Error getting next token');
+
 				return error(this.currentToken.error);
 			}
 
 			const token = this.currentToken.value;
 			if (token.type === 'eof') {
-				return this.checkAtEof();
+				this.updateEnds(token.end);
+
+				const eofCheck = this.checkAtEof();
+				if (eofCheck.isError()) {
+					log.warnAndDedent(this.parserLogDedentFunc, 'Error checking at EOF');
+				} else {
+					log.successAndDedent(this.parserLogDedentFunc, 'Successfully parsed program');
+				}
+
+				return eofCheck;
 			}
 
-			if (this.debug) {
-				console.debug(`Parser: Found token type "${token.type}" with value "${token.value}"`);
-			}
+			log.info(`Found token type "${token.type}" with value "${token.value}"`);
 
-			if (token.type === 'paren_open') {
-				this.stack.push('(');
+			switch (token.type) {
+				case 'paren_open': {
+					this.stack.push('(');
 
-				const [prev, prevType] = this.prev();
-				switch (prevType) {
-					// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
-					case NT.Identifier:
-						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
-							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
+					const [prev, prevType] = this.prev();
+					switch (prevType) {
+						// if previous was an Identifier, then this is either a CallExpression or FunctionDeclaration
+						case NT.Identifier:
+							if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
+								this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 
-							// next case:
+								// next case:
+								// the only way this could be a CallExpression is if the previous token was an identifier or close of generic type list
+								// even though we're already checking the previous Node, we still need to check the previous token, since we could be
+								// in the right-hand side of a BinaryExpression where the operator adopts the left-hand side and the "previous Node"
+								// is that left-hand side rather than the operator. And we cannot check whether we're _in_ a BinaryExpression since
+								// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a && (c)` and `a && c()` both
+								// have the same previous Node and the same currentRoot.
+							} else if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
+								const result = this.beginExpressionWithAdoptingPreviousNode(
+									MakeNode(NT.CallExpression, token, this.currentRoot, true),
+								);
+								if (result.isError()) {
+									log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+									return result;
+								}
+
+								this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
+							} else {
+								this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+							}
+							break;
+						case NT.MemberExpression:
 							// the only way this could be a CallExpression is if the previous token was an identifier or close of generic type list
 							// even though we're already checking the previous Node, we still need to check the previous token, since we could be
 							// in the right-hand side of a BinaryExpression where the operator adopts the left-hand side and the "previous Node"
 							// is that left-hand side rather than the operator. And we cannot check whether we're _in_ a BinaryExpression since
-							// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a && (c)` and `a && c()` both
+							// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a.b && (c)` and `a.b && c()` both
 							// have the same previous Node and the same currentRoot.
-						} else if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
-							const result = this.beginExpressionWithAdoptingPreviousNode(
-								MakeNode(NT.CallExpression, token, this.currentRoot, true),
-							);
-							if (result.isError()) {
-								return result;
-							}
+							if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
+								const result = this.beginExpressionWithAdoptingPreviousNode(
+									MakeNode(NT.CallExpression, token, this.currentRoot, true),
+								);
+								if (result.isError()) {
+									log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
 
-							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
-						} else {
-							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
-						}
-						break;
-					case NT.MemberExpression:
-						// the only way this could be a CallExpression is if the previous token was an identifier or close of generic type list
-						// even though we're already checking the previous Node, we still need to check the previous token, since we could be
-						// in the right-hand side of a BinaryExpression where the operator adopts the left-hand side and the "previous Node"
-						// is that left-hand side rather than the operator. And we cannot check whether we're _in_ a BinaryExpression since
-						// we could legitimately could be in a CallExpression on the right-hand side, i.e. `a.b && (c)` and `a.b && c()` both
-						// have the same previous Node and the same currentRoot.
-						if (this.prevToken?.type && ['identifier', 'triangle_close'].includes(this.prevToken.type)) {
-							const result = this.beginExpressionWithAdoptingPreviousNode(
-								MakeNode(NT.CallExpression, token, this.currentRoot, true),
-							);
-							if (result.isError()) {
-								return result;
-							}
-
-							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
-						} else {
-							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
-						}
-						break;
-					case NT.TypeArgumentsList:
-						{
-							const [twoBack, twoBackType] = this.prev(2);
-
-							if (twoBackType && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)) {
-								// we're in a CallExpression after the GenericTypesList
-								const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
-								let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
-								if (wasAdopted.isError()) {
-									return error(wasAdopted.error);
+									return result;
 								}
 
-								wasAdopted = this.adoptNode(this.currentRoot, prev, callExpressionNode);
-								this.beginExpressionWith(callExpressionNode);
+								this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
+							} else {
+								this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+							}
+							break;
+						case NT.TypeArgumentsList:
+							{
+								const [twoBack, twoBackType] = this.prev(2);
+
+								if (twoBackType && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)) {
+									// we're in a CallExpression after the GenericTypesList
+									const callExpressionNode = MakeNode(NT.CallExpression, token, this.currentRoot, true);
+									let wasAdopted = this.adoptNode(this.currentRoot, twoBack, callExpressionNode);
+									if (wasAdopted.isError()) {
+										log.warnAndDedent(this.parserLogDedentFunc, 'Error', wasAdopted.error.message);
+
+										return wasAdopted;
+									}
+
+									wasAdopted = this.adoptNode(this.currentRoot, prev, callExpressionNode);
+									this.beginExpressionWith(callExpressionNode);
+								}
+
+								// begin the ArgumentsList
+								this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
+							}
+							break;
+						case NT.TypeParametersList:
+							if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
+								// we're in a FunctionDeclaration after the GenericTypesList
+								this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
+							}
+							break;
+						default:
+							if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
+								// we're in an anonymous FunctionDeclaration after the `f` keyword
+								// and there is no previous node
+								this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
+							} else {
+								this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+							}
+							break;
+					}
+					break;
+				}
+				case 'paren_close': {
+					const stackStatus = this.popStack('(');
+					if (stackStatus.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error', stackStatus.error);
+
+						return stackStatus;
+					}
+
+					// check if we're in a TernaryAlternate and then in a TernaryExpression, if so, it's finished
+					// eg `(foo ? true : false)`
+					this.endExpressionIfIn(NT.TernaryAlternate);
+					this.endExpressionIfIn(NT.TernaryExpression);
+
+					// check if we're in a BinaryExpression, if so, it's finished
+					// eg `while (foo != true) {}`
+					this.endExpressionWhileIn([NT.BinaryExpression]);
+
+					// check if currentRoot is a UnaryExpression, if so, it's also finished
+					// eg `!foo()`
+					this.endExpressionIfIn(NT.UnaryExpression);
+
+					// end the ArgumentsList or Parenthesized
+					this.endExpression();
+
+					// check if we're in a CallExpression, if so, it's also finished
+					this.endExpressionIfIn(NT.CallExpression);
+
+					// check if we're in a FunctionReturns, if so, it's finished
+					// eg `f foo (bar: int64, callback: f -> bool)`
+					this.endExpressionIfIn(NT.FunctionReturns);
+
+					// check if we're in a FunctionSignature, if so, it's finished
+					// eg `let foo: f (bar: string) = f (bar) {}`
+					this.endExpressionIfIn(NT.FunctionSignature);
+
+					// check if we're in a Parameter, if so, it's also finished
+					this.endExpressionIfIn(NT.Parameter);
+
+					// check if we're in a ParametersList, if so, it's also finished
+					this.endExpressionIfIn(NT.ParametersList);
+
+					// ... and then, check if currentRoot is a UnaryExpression, if so, it's also finished
+					// eg `(x * -2)`
+					this.endExpressionIfIn(NT.UnaryExpression);
+
+					break;
+				}
+				case 'brace_open': {
+					this.stack.push('{');
+
+					this.endExpressionWhileIn([NT.BinaryExpression]);
+					this.endExpressionWhileIn([NT.FunctionSignature, NT.FunctionReturns]);
+					this.endExpressionIfIn(NT.Extension);
+					this.endExpressionIfIn(NT.ExtensionsList);
+					this.endExpressionIfIn(NT.ClassImplement);
+					this.endExpressionIfIn(NT.ClassImplementsList);
+					this.endExpressionIfIn(NT.UnaryExpression);
+
+					// if in `for let i = 0; i < 10; i++ {}`, we need to end the UnaryExpression of i++
+					if (this.currentRoot.parent?.type === NT.ForStatement) {
+						this.endExpression(); // end the UnaryExpression
+					}
+
+					// this could be a BlockStatement or an ObjectExpression
+					const [, prevType] = this.prev();
+					const nodeTypesThatPrecedeAnObjectExpression: NT[] = [NT.AssignablesList, NT.ArgumentsList, NT.TypeArgumentsList];
+					const nodeTypesThatParentAnObjectExpression: NT[] = [NT.AssignablesList];
+					const nodeTypesThatParentAnObjectShape: NT[] = [NT.ArgumentsList, NT.TypeArgumentsList];
+					if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
+						log.info('Beginning an ObjectShape');
+
+						this.beginExpressionWith(MakeNode(NT.ObjectShape, token, this.currentRoot, true));
+					} else if (nodeTypesThatParentAnObjectExpression.includes(this.currentRoot.type)) {
+						log.info('Beginning an ObjectExpression');
+
+						this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
+					} else if (typeof prevType === 'undefined') {
+						log.info('Beginning a BlockStatement');
+
+						this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
+					} else if (
+						nodeTypesThatPrecedeAnObjectExpression.includes(prevType) ||
+						(this.currentRoot.type === NT.Property && prevType === NT.Identifier)
+					) {
+						log.info('Beginning an ObjectExpression');
+
+						this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
+					} else {
+						log.info('Beginning a BlockStatement');
+
+						this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
+					}
+					break;
+				}
+				case 'brace_close': {
+					const stackStatus = this.popStack('{');
+					if (stackStatus.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error', stackStatus.error.message);
+
+						return stackStatus;
+					}
+
+					// check that a semicolon wasn't expected
+					const nodeTypesThatRequireASemicolonAndNotABraceClose: NT[] = [
+						NT.AssignablesList,
+						NT.AssignmentExpression,
+						NT.BinaryExpression,
+						NT.MemberExpression,
+						NT.MemberListExpression,
+						NT.PostfixIfStatement,
+						NT.PrintStatement,
+						NT.RangeExpression,
+						NT.RegularExpression,
+						NT.ReturnStatement,
+						NT.TernaryAlternate,
+						NT.TernaryExpression,
+						NT.TypeArgumentsList,
+						NT.UnaryExpression,
+						NT.VariableDeclaration,
+					];
+
+					if (nodeTypesThatRequireASemicolonAndNotABraceClose.includes(this.currentRoot.type)) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error', 'Unexpected close brace, expecting a semicolon');
+
+						return error(
+							ParserError.UnexpectedToken(
+								'Unexpected close brace, expecting a semicolon',
+								this.currentRoot,
+								this.ctx(token.value.length),
+							),
+						);
+					}
+
+					// update the current root's end to be the node's end BEFORE ending the expressions below
+					this.updateEnds(token.end);
+
+					this.endExpression();
+
+					this.endExpressionIfIn(NT.LoopStatement);
+					this.endExpressionIfIn(NT.ForStatement);
+					this.endExpressionIfIn(NT.FunctionDeclaration);
+					this.endExpressionIfIn(NT.FunctionSignature);
+					this.endExpressionIfIn(NT.ClassDeclaration);
+					this.endExpressionIfIn(NT.EnumDeclaration);
+					this.endExpressionIfIn(NT.InterfaceDeclaration);
+					this.endExpressionIfIn(NT.ObjectExpression);
+					this.endExpressionIfIn(NT.ObjectShape);
+
+					break;
+				}
+				case 'bracket_open': {
+					this.stack.push('[');
+
+					const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
+					const [, prevType] = this.prev();
+
+					if (typeof prevType === 'undefined') {
+						this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
+					} else {
+						if (
+							isNextABracketClose &&
+							([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType)
+						) {
+							// we have an array type
+							const result = this.beginExpressionWithAdoptingPreviousNode(
+								MakeNode(NT.ArrayOf, token, this.currentRoot, true),
+							);
+							if (result.isError()) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+								return result;
 							}
 
-							// begin the ArgumentsList
-							this.beginExpressionWith(MakeNode(NT.ArgumentsList, token, this.currentRoot, true));
-						}
-						break;
-					case NT.TypeParametersList:
-						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
-							// we're in a FunctionDeclaration after the GenericTypesList
-							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
-						}
-						break;
-					default:
-						if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
-							// we're in an anonymous FunctionDeclaration after the `f` keyword
-							// and there is no previous node
-							this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
+							// the second condition is to preclude this `{a: [1]}`
+						} else if (
+							validNodeTypesAsMemberObject.includes(prevType) &&
+							!(this.currentRoot.type === NT.Property && prevType === NT.Identifier)
+						) {
+							// since we're an opening bracket, we're definitely either a MemberExpression or a MemberListExpression
+							// the difference being based on what is between the brackets. At this point, we don't know, so we'll
+							// assume it's a MemberListExpression, and then at the bracket_close, we can retroactively determine
+							// if it's a MemberListExpression or a MemberExpression (and then change the type of the node)
+
+							const result = this.beginExpressionWithAdoptingPreviousNode(
+								MakeNode(NT.MemberListExpression, token, this.currentRoot, true),
+							);
+							if (result.isError()) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+								return result;
+							}
+
+							this.beginExpressionWith(MakeNode(NT.MemberList, token, this.currentRoot, true));
 						} else {
-							this.beginExpressionWith(MakeNode(NT.Parenthesized, token, this.currentRoot, true));
+							this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
 						}
-						break;
+					}
+					break;
 				}
-			} else if (token.type === 'paren_close') {
-				const stackStatus = this.popStack('(');
-				if (stackStatus.isError()) {
-					return error(stackStatus.error);
-				}
+				case 'bracket_close': {
+					const stackStatus = this.popStack('[');
+					if (stackStatus.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error', stackStatus.error.message);
 
-				// check if we're in a TernaryAlternate and then in a TernaryExpression, if so, it's finished
-				// eg `(foo ? true : false)`
-				this.endExpressionIfIn(NT.TernaryAlternate);
-				this.endExpressionIfIn(NT.TernaryExpression);
-
-				// check if we're in a BinaryExpression, if so, it's finished
-				// eg `while (foo != true) {}`
-				this.endExpressionWhileIn([NT.BinaryExpression]);
-
-				// check if currentRoot is a UnaryExpression, if so, it's also finished
-				// eg `!foo()`
-				this.endExpressionIfIn(NT.UnaryExpression);
-
-				// end the ArgumentsList or Parenthesized
-				this.endExpression();
-
-				// check if we're in a CallExpression, if so, it's also finished
-				this.endExpressionIfIn(NT.CallExpression);
-
-				// check if we're in a FunctionReturns, if so, it's finished
-				// eg `f foo (bar: int64, callback: f -> bool)`
-				this.endExpressionIfIn(NT.FunctionReturns);
-
-				// check if we're in a FunctionSignature, if so, it's finished
-				// eg `let foo: f (bar: string) = f (bar) {}`
-				this.endExpressionIfIn(NT.FunctionSignature);
-
-				// check if we're in a Parameter, if so, it's also finished
-				this.endExpressionIfIn(NT.Parameter);
-
-				// check if we're in a ParametersList, if so, it's also finished
-				this.endExpressionIfIn(NT.ParametersList);
-
-				// ... and then, check if currentRoot is a UnaryExpression, if so, it's also finished
-				// eg `(x * -2)`
-				this.endExpressionIfIn(NT.UnaryExpression);
-			} else if (token.type === 'brace_open') {
-				this.stack.push('{');
-
-				this.endExpressionWhileIn([NT.BinaryExpression]);
-				this.endExpressionWhileIn([NT.FunctionSignature, NT.FunctionReturns]);
-				this.endExpressionIfIn(NT.Extension);
-				this.endExpressionIfIn(NT.ExtensionsList);
-				this.endExpressionIfIn(NT.ClassImplement);
-				this.endExpressionIfIn(NT.ClassImplementsList);
-				this.endExpressionIfIn(NT.UnaryExpression);
-
-				// if in `for let i = 0; i < 10; i++ {}`, we need to end the UnaryExpression of i++
-				if (this.currentRoot.parent?.type === NT.ForStatement) {
-					this.endExpression(); // end the UnaryExpression
-				}
-
-				// this could be a BlockStatement or an ObjectExpression
-				const [, prevType] = this.prev();
-				const nodeTypesThatPrecedeAnObjectExpression: NT[] = [NT.AssignablesList, NT.ArgumentsList, NT.TypeArgumentsList];
-				const nodeTypesThatParentAnObjectExpression: NT[] = [NT.AssignablesList];
-				const nodeTypesThatParentAnObjectShape: NT[] = [NT.ArgumentsList, NT.TypeArgumentsList];
-				if (nodeTypesThatParentAnObjectShape.includes(this.currentRoot.type)) {
-					if (this.debug) {
-						console.debug('Parser: Beginning an ObjectShape');
+						return stackStatus;
 					}
 
-					this.beginExpressionWith(MakeNode(NT.ObjectShape, token, this.currentRoot, true));
-				} else if (nodeTypesThatParentAnObjectExpression.includes(this.currentRoot.type)) {
-					if (this.debug) {
-						console.debug('Parser: Beginning an ObjectExpression');
-					}
+					this.endExpressionIfIn(NT.IfStatement);
+					this.endExpressionIfIn(NT.PostfixIfStatement);
+					this.endExpressionIfIn(NT.TernaryAlternate);
+					this.endExpressionIfIn(NT.TernaryExpression);
+					this.endExpressionIfIn(NT.UnaryExpression);
+					this.endExpressionIfIn(NT.BinaryExpression);
 
-					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
-				} else if (typeof prevType === 'undefined') {
-					if (this.debug) {
-						console.debug('Parser: Beginning a BlockStatement');
-					}
+					// we may be ending a MemberList, and need to determine if it should become a MemberExpression or remain a MemberListExpression
+					// and that depends on the children of the MemberList. If there is only one child, and it matches the rules for what a
+					// MemberExpression looks like, then we can convert it to a MemberExpression, otherwise we leave it alone.
 
-					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
-				} else if (
-					nodeTypesThatPrecedeAnObjectExpression.includes(prevType) ||
-					(this.currentRoot.type === NT.Property && prevType === NT.Identifier)
-				) {
-					if (this.debug) {
-						console.debug('Parser: Beginning an ObjectExpression');
-					}
+					// we have to determine which of these scenarios we're in:
+					// - arr[0]
+					// - arr[index]
+					// - arr[0, 2, 4]
+					// - keys = [0, 2, 4]; arr[...keys]
+					// - arr[1 .. 3]
+					// - lower = 1; upper = 3; arr[lower .. upper]
+					// - obj['prop']
+					// - obj['prop', 'other']
+					// - keys = ['prop', 'other']; obj[...keys]
 
-					this.beginExpressionWith(MakeNode(NT.ObjectExpression, token, this.currentRoot, true));
-				} else {
-					if (this.debug) {
-						console.debug('Parser: Beginning a BlockStatement');
-					}
+					// a few other cases:
+					// - arr[index + 1]
+					// - arr[index + 1, index + 2]
+					// - arr[index + 1 .. index + 3]
+					// - arr[index++]
+					// - arr[++index]
+					// - arr[index--]
+					// - arr[--index]
+					// - arr[index += 1], etc.
 
-					this.beginExpressionWith(MakeNode(NT.BlockStatement, token, this.currentRoot, true));
-				}
-			} else if (token.type === 'brace_close') {
-				const stackStatus = this.popStack('{');
-				if (stackStatus.isError()) {
-					return error(stackStatus.error);
-				}
+					// rules are when it's a single item (number or string), it's a MemberExpression
+					// if it's a variable, we treat it as a single item
 
-				// check that a semicolon wasn't expected
-				const nodeTypesThatRequireASemicolonAndNotABraceClose: NT[] = [
-					NT.AssignablesList,
-					NT.AssignmentExpression,
-					NT.BinaryExpression,
-					NT.MemberExpression,
-					NT.MemberListExpression,
-					NT.PostfixIfStatement,
-					NT.PrintStatement,
-					NT.RangeExpression,
-					NT.RegularExpression,
-					NT.ReturnStatement,
-					NT.TernaryAlternate,
-					NT.TernaryExpression,
-					NT.TypeArgumentsList,
-					NT.UnaryExpression,
-					NT.VariableDeclaration,
-				];
+					// if it's a spread, we treat it as a MemberListExpression (even if the spreaded array has only a single item)
+					// if it's a range, we treat it as a MemberListExpression (even if the range has only a single item)
+					// if it's a comma separated list, we treat it as a MemberListExpression
 
-				if (nodeTypesThatRequireASemicolonAndNotABraceClose.includes(this.currentRoot.type)) {
-					return error(
-						new ParserError(
-							ParserErrorCode.UnexpectedToken,
-							'Unexpected close brace, expecting a semicolon',
-							this.currentRoot,
-							this.getErrorContext(token.value.length),
-						),
-					);
-				}
+					// If it should be a MemberListExpression, we don't need to do anything, because that's what it already is.
+					// But if it should be a MemberExpression, we need to change the type of the node(, and then move the
+					// children of the MemberList to the children of the MemberExpression).
 
-				this.endExpression();
-
-				this.endExpressionIfIn(NT.LoopStatement);
-				this.endExpressionIfIn(NT.ForStatement);
-				this.endExpressionIfIn(NT.FunctionDeclaration);
-				this.endExpressionIfIn(NT.FunctionSignature);
-				this.endExpressionIfIn(NT.ClassDeclaration);
-				this.endExpressionIfIn(NT.EnumDeclaration);
-				this.endExpressionIfIn(NT.InterfaceDeclaration);
-				this.endExpressionIfIn(NT.ObjectExpression);
-				this.endExpressionIfIn(NT.ObjectShape);
-			} else if (token.type === 'bracket_open') {
-				this.stack.push('[');
-
-				const isNextABracketClose = this.lexer.peek(0) === tokenTypesUsingSymbols.bracket_close;
-				const [, prevType] = this.prev();
-
-				if (typeof prevType === 'undefined') {
-					this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
-				} else {
 					if (
-						isNextABracketClose &&
-						([NT.ArrayOf, NT.Identifier, NT.ObjectShape, NT.TupleShape, NT.Type] as NT[]).includes(prevType)
+						this.currentRoot.type === NT.MemberList &&
+						this.currentRoot.parent?.type === NT.MemberListExpression &&
+						this.currentRoot.children.length === 1 &&
+						// object property
+						(this.currentRoot.children[0].type === NT.StringLiteral ||
+							// array, string, or tuple index
+							this.currentRoot.children[0].type === NT.NumberLiteral ||
+							// an Identifier is assumed to be an index of property name
+							this.currentRoot.children[0].type === NT.Identifier ||
+							// a MemberExpression is assumed to contain an index or property name
+							this.currentRoot.children[0].type === NT.MemberExpression ||
+							// a CallExpression is assumed to return an index or property name
+							this.currentRoot.children[0].type === NT.CallExpression ||
+							// a UnaryExpression is checked whether is contains a mathematical operation
+							(this.currentRoot.children[0].type === NT.UnaryExpression &&
+								this.currentRoot.children[0].value &&
+								[
+									tokenTypesUsingSymbols.plus_plus,
+									tokenTypesUsingSymbols.minus_minus,
+									tokenTypesUsingSymbols.minus,
+								].includes(this.currentRoot.children[0].value)) ||
+							// a BinaryExpression is checked whether is contains a mathematical operation
+							(this.currentRoot.children[0].type === NT.BinaryExpression &&
+								this.currentRoot.children[0].value &&
+								[
+									tokenTypesUsingSymbols.plus,
+									tokenTypesUsingSymbols.plus_equals,
+									tokenTypesUsingSymbols.minus,
+									tokenTypesUsingSymbols.minus_equals,
+									tokenTypesUsingSymbols.asterisk,
+									tokenTypesUsingSymbols.asterisk_equals,
+
+									// we don't support division or modulus operations since they return floats, which cannot be used as an index
+									// if the user wants to use division or modulus, they can use a CallExpression instead that returns an integer
+								].includes(this.currentRoot.children[0].value)) ||
+							// a TernaryExpression is assumed to return an index or property name
+							// it's possible it'll return an incompatiable type, but we'll let the compiler handle that
+							this.currentRoot.children[0].type === NT.TernaryExpression)
 					) {
-						// we have an array type
-						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.ArrayOf, token, this.currentRoot, true));
-						if (result.isError()) {
-							return result;
-						}
+						// some surgery is required:
+						// we're in a MemberListExpression.MemberList, and need to be a MemberExpression
+						// we're changing from a MemberListExpression -> [objectNode, propertyNode: MemberList -> this] to MemberExpression -> [objectNode, propertyNode: this]
+						ChangeNodeType(this.currentRoot.parent, NT.MemberExpression);
 
-						// the second condition is to preclude this `{a: [1]}`
-					} else if (
-						validNodeTypesAsMemberObject.includes(prevType) &&
-						!(this.currentRoot.type === NT.Property && prevType === NT.Identifier)
-					) {
-						// since we're an opening bracket, we're definitely either a MemberExpression or a MemberListExpression
-						// the difference being based on what is between the brackets. At this point, we don't know, so we'll
-						// assume it's a MemberListExpression, and then at the bracket_close, we can retroactively determine
-						// if it's a MemberListExpression or a MemberExpression (and then change the type of the node)
+						// make a copy of the current node, replacing the parent with the parent of the newly changed MemberExpression
+						// keep this in a variable, rather than inlining it, to avoid pointer issues
+						const currentRootIncumbent: Node = {
+							...this.currentRoot.children[0],
+							parent: this.currentRoot.parent,
+						};
 
-						const result = this.beginExpressionWithAdoptingPreviousNode(
-							MakeNode(NT.MemberListExpression, token, this.currentRoot, true),
-						);
-						if (result.isError()) {
-							return result;
-						}
+						this.currentRoot = this.currentRoot.parent;
 
-						this.beginExpressionWith(MakeNode(NT.MemberList, token, this.currentRoot, true));
-					} else {
-						this.beginExpressionWith(MakeNode(NT.ArrayExpression, token, this.currentRoot, true));
-					}
-				}
-			} else if (token.type === 'bracket_close') {
-				const stackStatus = this.popStack('[');
-				if (stackStatus.isError()) {
-					return error(stackStatus.error);
-				}
-
-				this.endExpressionIfIn(NT.IfStatement);
-				this.endExpressionIfIn(NT.PostfixIfStatement);
-				this.endExpressionIfIn(NT.TernaryAlternate);
-				this.endExpressionIfIn(NT.TernaryExpression);
-				this.endExpressionIfIn(NT.UnaryExpression);
-				this.endExpressionIfIn(NT.BinaryExpression);
-
-				// we may be ending a MemberList, and need to determine if it should become a MemberExpression or remain a MemberListExpression
-				// and that depends on the children of the MemberList. If there is only one child, and it matches the rules for what a
-				// MemberExpression looks like, then we can convert it to a MemberExpression, otherwise we leave it alone.
-
-				// we have to determine which of these scenarios we're in:
-				// - arr[0]
-				// - arr[index]
-				// - arr[0, 2, 4]
-				// - keys = [0, 2, 4]; arr[...keys]
-				// - arr[1 .. 3]
-				// - lower = 1; upper = 3; arr[lower .. upper]
-				// - obj['prop']
-				// - obj['prop', 'other']
-				// - keys = ['prop', 'other']; obj[...keys]
-
-				// a few other cases:
-				// - arr[index + 1]
-				// - arr[index + 1, index + 2]
-				// - arr[index + 1 .. index + 3]
-				// - arr[index++]
-				// - arr[++index]
-				// - arr[index--]
-				// - arr[--index]
-				// - arr[index += 1], etc.
-
-				// rules are when it's a single item (number or string), it's a MemberExpression
-				// if it's a variable, we treat it as a single item
-
-				// if it's a spread, we treat it as a MemberListExpression (even if the spreaded array has only a single item)
-				// if it's a range, we treat it as a MemberListExpression (even if the range has only a single item)
-				// if it's a comma separated list, we treat it as a MemberListExpression
-
-				// If it should be a MemberListExpression, we don't need to do anything, because that's what it already is.
-				// But if it should be a MemberExpression, we need to change the type of the node(, and then move the
-				// children of the MemberList to the children of the MemberExpression).
-
-				if (
-					this.currentRoot.type === NT.MemberList &&
-					this.currentRoot.parent?.type === NT.MemberListExpression &&
-					this.currentRoot.children.length === 1 &&
-					// object property
-					(this.currentRoot.children[0].type === NT.StringLiteral ||
-						// array, string, or tuple index
-						this.currentRoot.children[0].type === NT.NumberLiteral ||
-						// an Identifier is assumed to be an index of property name
-						this.currentRoot.children[0].type === NT.Identifier ||
-						// a MemberExpression is assumed to contain an index or property name
-						this.currentRoot.children[0].type === NT.MemberExpression ||
-						// a CallExpression is assumed to return an index or property name
-						this.currentRoot.children[0].type === NT.CallExpression ||
-						// a UnaryExpression is checked whether is contains a mathematical operation
-						(this.currentRoot.children[0].type === NT.UnaryExpression &&
-							this.currentRoot.children[0].value &&
-							[tokenTypesUsingSymbols.plus_plus, tokenTypesUsingSymbols.minus_minus, tokenTypesUsingSymbols.minus].includes(
-								this.currentRoot.children[0].value,
-							)) ||
-						// a BinaryExpression is checked whether is contains a mathematical operation
-						(this.currentRoot.children[0].type === NT.BinaryExpression &&
-							this.currentRoot.children[0].value &&
-							[
-								tokenTypesUsingSymbols.plus,
-								tokenTypesUsingSymbols.plus_equals,
-								tokenTypesUsingSymbols.minus,
-								tokenTypesUsingSymbols.minus_equals,
-								tokenTypesUsingSymbols.asterisk,
-								tokenTypesUsingSymbols.asterisk_equals,
-
-								// we don't support division or modulus operations since they return floats, which cannot be used as an index
-								// if the user wants to use division or modulus, they can use a CallExpression instead that returns an integer
-							].includes(this.currentRoot.children[0].value)) ||
-						// a TernaryExpression is assumed to return an index or property name
-						// it's possible it'll return an incompatiable type, but we'll let the compiler handle that
-						this.currentRoot.children[0].type === NT.TernaryExpression)
-				) {
-					// some surgery is required:
-					// we're in a MemberListExpression.MemberList, and need to be a MemberExpression
-					// we're changing from a MemberListExpression -> [objectNode, propertyNode: MemberList -> this] to MemberExpression -> [objectNode, propertyNode: this]
-					ChangeNodeType(this.currentRoot.parent, NT.MemberExpression);
-
-					// make a copy of the current node, replacing the parent with the parent of the newly changed MemberExpression
-					// keep this in a variable, rather than inlining it, to avoid pointer issues
-					const currentRootIncumbent: Node = {
-						...this.currentRoot.children[0],
-						parent: this.currentRoot.parent,
-					};
-
-					this.currentRoot = this.currentRoot.parent;
-
-					// replace the second child with the new node (the first child is the member object which we're not touching, the second child is the member property)
-					this.currentRoot.children[1] = currentRootIncumbent;
-				}
-
-				this.endExpressionIfIn(NT.ArrayExpression);
-				this.endExpressionIfIn(NT.ArrayOf);
-				this.endExpressionIfIn(NT.MemberList);
-				this.endExpressionIfIn(NT.MemberListExpression);
-				this.endExpressionWhileIn([NT.TypeInstantiationExpression]);
-				this.endExpressionIfIn(NT.MemberExpression);
-			} else if (token.type === 'bool') {
-				this.addNode(MakeNode(NT.BoolLiteral, token, this.currentRoot));
-			} else if (token.type === 'number') {
-				this.ifInWhenExpressionBlockStatementBeginCase(token);
-
-				if (this.debug) {
-					console.debug(`Parser: Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
-				}
-
-				this.addNode(MakeNode(NT.NumberLiteral, token, this.currentRoot));
-
-				// check if currentRoot is a UnaryExpression, if so, it's also finished
-				this.endExpressionIfIn(NT.UnaryExpression);
-
-				// check if currentRoot is a RangeExpression, if so, it's also finished
-				this.endExpressionIfIn(NT.RangeExpression);
-			} else if (token.type === 'regex') {
-				this.addNode(MakeNode(NT.RegularExpression, token, this.currentRoot));
-			} else if (token.type === 'string') {
-				this.addNode(MakeNode(NT.StringLiteral, token, this.currentRoot));
-			} else if (token.type === 'identifier') {
-				if (this.debug) {
-					console.debug(`Parser: Handling identifier "${token.value}"`);
-				}
-
-				// check if we're in one of the known Parent node types, if so, begin a child
-				if (this.currentRoot.type in this.mapParentNodeToChild) {
-					const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
-					if (this.debug) {
-						console.debug(`Parser: Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
+						// replace the second child with the new node (the first child is the member object which we're not touching, the second child is the member property)
+						this.currentRoot.children[1] = currentRootIncumbent;
 					}
 
-					this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
-				}
-
-				// if we're in a VariableDeclaration, we begin an AssigneesList
-				if (this.currentRoot.type === NT.VariableDeclaration) {
-					if (this.debug) {
-						console.debug(`Parser: Creating an AssigneesList Node in ${this.currentRoot.type} for "${token.value}"`);
-					}
-
-					// begin an AssigneesList node
-					this.beginExpressionWith(MakeNode(NT.AssigneesList, token, this.currentRoot, true));
-				}
-
-				if (this.debug) {
-					console.debug(`Parser: Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`);
-				}
-
-				this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
-
-				// check if currentRoot is a MemberExpression and next token is not a <| (types), and if so, it's finished
-				// since there may not be brackets. eg. `a.b` vs `a['b']`
-				if (`${this.lexer.peek(0)}${this.lexer.peek(1)}` !== tokenTypesUsingSymbols.triangle_open) {
+					this.endExpressionIfIn(NT.ArrayExpression);
+					this.endExpressionIfIn(NT.ArrayOf);
+					this.endExpressionIfIn(NT.MemberList);
+					this.endExpressionIfIn(NT.MemberListExpression);
+					this.endExpressionWhileIn([NT.TypeInstantiationExpression]);
 					this.endExpressionIfIn(NT.MemberExpression);
+					break;
 				}
-			} else if (token.type === 'comment') {
-				if (token.value.substring(0, 3) === '/**') {
-					this.addNode(MakeNode(NT.JoeDoc, token, this.currentRoot));
-				} else {
-					this.addNode(MakeNode(NT.Comment, token, this.currentRoot));
+				case 'bool': {
+					this.addNode(MakeNode(NT.BoolLiteral, token, this.currentRoot));
+					break;
 				}
-			} else if (token.type === 'assign') {
-				// end an AssigneesList if we're in one
-				this.endExpressionIfIn(NT.AssigneesList);
+				case 'number': {
+					this.ifInWhenExpressionBlockStatementBeginCase(token);
 
-				// end a TypeArgumentsList if we're in one
-				this.endExpressionIfIn(NT.TypeArgumentsList);
+					log.info(`Creating a NumberLiteral Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
 
-				if (!([NT.Parameter, NT.TypeParameter, NT.VariableDeclaration] as NT[]).includes(this.currentRoot.type)) {
-					// create an AssigneesList node taking the previous node as its child
-					{
-						const result = this.beginExpressionWithAdoptingPreviousNode(
-							MakeNode(NT.AssigneesList, token, this.currentRoot, true),
-						);
-						if (result.isError()) {
-							return result;
+					this.addNode(MakeNode(NT.NumberLiteral, token, this.currentRoot));
+
+					// check if currentRoot is a UnaryExpression, if so, it's also finished
+					this.endExpressionIfIn(NT.UnaryExpression);
+
+					// check if currentRoot is a RangeExpression, if so, it's also finished
+					this.endExpressionIfIn(NT.RangeExpression);
+					break;
+				}
+				case 'regex': {
+					this.addNode(MakeNode(NT.RegularExpression, token, this.currentRoot));
+					break;
+				}
+				case 'string': {
+					this.addNode(MakeNode(NT.StringLiteral, token, this.currentRoot));
+					break;
+				}
+				case 'identifier': {
+					log.info(`Handling identifier "${token.value}"`);
+
+					// check if we're in one of the known Parent node types, if so, begin a child
+					if (this.currentRoot.type in this.mapParentNodeToChild) {
+						const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
+						log.info(`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
+
+						this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
+					}
+
+					// if we're in a VariableDeclaration, we begin an AssigneesList
+					if (this.currentRoot.type === NT.VariableDeclaration) {
+						log.info(`Creating an AssigneesList Node in ${this.currentRoot.type} for "${token.value}"`);
+
+						// begin an AssigneesList node
+						this.beginExpressionWith(MakeNode(NT.AssigneesList, token, this.currentRoot, true));
+					}
+
+					log.info(`Creating an Identifier Node in ${this.currentRoot.type} for "${token.value}"`);
+
+					this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
+
+					// check if currentRoot is a MemberExpression and next token is not a <| (types), and if so, it's finished
+					// since there may not be brackets. eg. `a.b` vs `a['b']`
+					if (`${this.lexer.peek(0)}${this.lexer.peek(1)}` !== tokenTypesUsingSymbols.triangle_open) {
+						this.endExpressionIfIn(NT.MemberExpression);
+					}
+					break;
+				}
+				case 'comment': {
+					if (token.value.substring(0, 3) === '/**') {
+						this.addNode(MakeNode(NT.JoeDoc, token, this.currentRoot));
+					} else {
+						this.addNode(MakeNode(NT.Comment, token, this.currentRoot));
+					}
+					break;
+				}
+				case 'assign': {
+					// end an AssigneesList if we're in one
+					this.endExpressionIfIn(NT.AssigneesList);
+
+					// end a TypeArgumentsList if we're in one
+					this.endExpressionIfIn(NT.TypeArgumentsList);
+
+					if (!([NT.Parameter, NT.TypeParameter, NT.VariableDeclaration] as NT[]).includes(this.currentRoot.type)) {
+						// create an AssigneesList node taking the previous node as its child
+						{
+							const result = this.beginExpressionWithAdoptingPreviousNode(
+								MakeNode(NT.AssigneesList, token, this.currentRoot, true),
+							);
+							if (result.isError()) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error creating AssigneesList node', result.error.message);
+
+								return result;
+							}
+						}
+
+						// then create an AssignmentExpression node taking the AssigneesList as its child
+						{
+							const result = this.beginExpressionWithAdoptingCurrentRoot(
+								MakeNode(NT.AssignmentExpression, token, this.currentRoot, true),
+							);
+							if (result.isError()) {
+								log.warnAndDedent(
+									this.parserLogDedentFunc,
+									'Error creating AssignmentExpression node',
+									result.error.message,
+								);
+
+								return result;
+							}
+						}
+
+						// the currentRoot is now the AssignmentExpression and its child is the AssigneesList
+
+						// Check backwards for other identifiers as this may be assigning
+						// multiple variables. Get this.currentRoot's previous siblings
+						// in pairs of two and check if they're an identifier and a comma
+						let oneSiblingBack = this.currentRoot.parent?.children.at(-2);
+						let twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
+						while (oneSiblingBack?.type === NT.CommaSeparator && twoSiblingsBack?.type === NT.Identifier) {
+							// adopt the CommaSeparator and place it as the currentRoot's first grandchild
+							this.adoptNode(this.currentRoot.parent, oneSiblingBack, this.currentRoot.children[0], false);
+
+							// adopt the Identifier and place it as the currentRoot's first grandchild
+							this.adoptNode(this.currentRoot.parent, twoSiblingsBack, this.currentRoot.children[0], false);
+
+							// keep on going back and checking for more identifiers and commas
+							// we don't have to decrement the index because each time a node
+							// is adopted, it is removed from the parent's children array
+							// This cycle continues in pairs of two.
+							oneSiblingBack = this.currentRoot.parent?.children.at(-2);
+							twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
 						}
 					}
 
-					// then create an AssignmentExpression node taking the AssigneesList as its child
-					{
-						const result = this.beginExpressionWithAdoptingCurrentRoot(
-							MakeNode(NT.AssignmentExpression, token, this.currentRoot, true),
-						);
-						if (result.isError()) {
-							return result;
-						}
+					this.addNode(MakeNode(NT.AssignmentOperator, token, this.currentRoot, true));
+
+					if (this.currentRoot.type === NT.VariableDeclaration || this.currentRoot.type === NT.AssignmentExpression) {
+						// now begin an NT.AssignablesList node
+						this.beginExpressionWith(MakeNode(NT.AssignablesList, token, this.currentRoot, true));
 					}
-
-					// the currentRoot is now the AssignmentExpression and its child is the AssigneesList
-
-					// Check backwards for other identifiers as this may be assigning
-					// multiple variables. Get this.currentRoot's previous siblings
-					// in pairs of two and check if they're an identifier and a comma
-					let oneSiblingBack = this.currentRoot.parent?.children.at(-2);
-					let twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
-					while (oneSiblingBack?.type === NT.CommaSeparator && twoSiblingsBack?.type === NT.Identifier) {
-						// adopt the CommaSeparator and place it as the currentRoot's first grandchild
-						this.adoptNode(this.currentRoot.parent, oneSiblingBack, this.currentRoot.children[0], false);
-
-						// adopt the Identifier and place it as the currentRoot's first grandchild
-						this.adoptNode(this.currentRoot.parent, twoSiblingsBack, this.currentRoot.children[0], false);
-
-						// keep on going back and checking for more identifiers and commas
-						// we don't have to decrement the index because each time a node
-						// is adopted, it is removed from the parent's children array
-						// This cycle continues in pairs of two.
-						oneSiblingBack = this.currentRoot.parent?.children.at(-2);
-						twoSiblingsBack = this.currentRoot.parent?.children.at(-3);
-					}
+					break;
 				}
-
-				this.addNode(MakeNode(NT.AssignmentOperator, token, this.currentRoot, true));
-
-				if (this.currentRoot.type === NT.VariableDeclaration || this.currentRoot.type === NT.AssignmentExpression) {
-					// now begin an NT.AssignablesList node
-					this.beginExpressionWith(MakeNode(NT.AssignablesList, token, this.currentRoot, true));
-				}
-			} else if (token.type === 'plus') {
-				this.endExpressionIfIn(NT.UnaryExpression);
-				const result = this.handleBinaryExpression(token);
-				if (result.isError()) {
-					return result;
-				}
-			} else if (token.type === 'minus') {
-				if (
-					this.currentRoot.children.length > 0 &&
-					this.nodeTypesPrecedingArithmeticOperator.includes(
-						this.currentRoot.children[this.currentRoot.children.length - 1].type,
-					) &&
-					this.currentRoot.type !== NT.BinaryExpression &&
-					this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1 .. -2`
-				) {
+				case 'plus': {
 					this.endExpressionIfIn(NT.UnaryExpression);
 					const result = this.handleBinaryExpression(token);
 					if (result.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error creating BinaryExpression node', result.error.message);
+
 						return result;
 					}
-				} else {
-					// otherwise this is a unary operator
-					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
+					break;
 				}
-			} else if (token.type === 'plus_plus' || token.type === 'minus_minus') {
-				// check token before, then check token after
-				// works on an Identifier, and MemberExpression
-				const [, prevType] = this.prev();
-				if (prevType === NT.Identifier || prevType === NT.MemberExpression) {
-					// this is postfix
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeUnaryExpressionNode(token, false, this.currentRoot));
-					if (result.isError()) {
-						return result;
-					}
-				} else {
-					// this is prefix
-					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
-				}
-			} else if (token.type === 'asterisk') {
-				const result = this.handleBinaryExpression(token);
-				if (result.isError()) {
-					return result;
-				}
-			} else if (token.type === 'forward_slash') {
-				const result = this.handleBinaryExpression(token);
-				if (result.isError()) {
-					return result;
-				}
-			} else if (token.type === 'mod') {
-				const result = this.handleBinaryExpression(token);
-				if (result.isError()) {
-					return result;
-				}
-			} else if (token.type === 'exponent') {
-				const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-				if (result.isError()) {
-					return result;
-				}
-			} else if (token.type === 'semicolon') {
-				/**
-				 * this conditional is needed for situations like this
-				 * ```
-				 * when foo {
-				 * 	1 -> {
-				 * 		doThing1(); // <-- this semicolon would end the BlockStatement
-				 * 		doThing2();
-				 * 	}
-				 * }
-				 */
-				if (this.currentRoot.type !== NT.BlockStatement) {
-					this.endExpression();
-				}
-
-				// greedy ending - end as many nodes as relevantly possible
-				while (this.nodeTypesThatASemicolonEnds.includes(this.currentRoot.type)) {
-					this.endExpression();
-				}
-
-				this.addNode(MakeNode(NT.SemicolonSeparator, token, this.currentRoot));
-			} else if (token.type === 'dot') {
-				let [prev, prevType] = this.prev();
-
-				if (prev && prevType === NT.TypeArgumentsList) {
-					const [twoBack, twoBackType] = this.prev(2);
-					if (twoBackType && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)) {
-						// we're in a MemberExpression after the GenericTypesList
-						// eg. `foo<bar>.baz`
-						// we need to create a new TypeInstantiationExpression node
-						// capturing the previous two nodes of Identifier and GenericTypesList
-						const typeInstantiationExpressionNode = MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true);
-						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
-						if (wasAdopted.isError()) {
-							return error(wasAdopted.error);
-						}
-
-						wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
-						this.beginExpressionWith(typeInstantiationExpressionNode);
-						this.endExpression(); // end the TypeInstantiationExpression
-
-						// once done, this new node then becomes the "previous" for the next if
-						prev = typeInstantiationExpressionNode;
-						prevType = this.getEffectiveTypeOfNode(prev);
-					}
-				} // do not connect this to the next if since this is independent of the next if
-
-				if (
-					prevType === NT.CallExpression ||
-					prevType === NT.Identifier ||
-					prevType === NT.MemberExpression ||
-					prevType === NT.Type ||
-					prevType === NT.TypeInstantiationExpression ||
-					prevType === NT.ThisKeyword
-				) {
-					const result = this.beginExpressionWithAdoptingPreviousNode(
-						MakeNode(NT.MemberExpression, token, this.currentRoot, true),
-					);
-					if (result.isError()) {
-						return result;
-					}
-				}
-			} else if (token.type === 'dotdotdot') {
-				this.ifInWhenExpressionBlockStatementBeginCase(token);
-
-				// check if we're in a ParametersList, if so, begin a Parameter
-				if (this.currentRoot.type === NT.ParametersList) {
-					this.beginExpressionWith(MakeNode(NT.Parameter, token, this.currentRoot, true));
-				}
-
-				this.addNode(MakeNode(NT.RestElement, token, this.currentRoot));
-			} else if (token.type === 'colon') {
-				if (this.currentRoot.type === NT.TernaryConsequent) {
-					// TernaryExpression
-					this.endExpression(); // end the TernaryConsequent
-					this.beginExpressionWith(MakeNode(NT.TernaryAlternate, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.ObjectExpression && this.prev()[1] === NT.Identifier) {
-					// POJOs notation
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
-					if (result.isError()) {
-						return result;
-					}
-				} else if (this.currentRoot.type === NT.ObjectShape && this.prev()[1] === NT.Identifier) {
-					// POJOs notation
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.PropertyShape, token, this.currentRoot, true));
-					if (result.isError()) {
-						return result;
-					}
-				} else {
-					if (this.currentRoot.type === NT.BlockStatement) {
-						// convert BlockStatement to an ObjectExpression and create a Property node
-						this.currentRoot.type = NT.ObjectExpression;
-
-						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+				case 'minus': {
+					if (
+						this.currentRoot.children.length > 0 &&
+						this.nodeTypesPrecedingArithmeticOperator.includes(
+							this.currentRoot.children[this.currentRoot.children.length - 1].type,
+						) &&
+						this.currentRoot.type !== NT.BinaryExpression &&
+						this.currentRoot.type !== NT.RangeExpression // excludes scenarios such as `3^e-2`, `3 + -2`, `1 .. -2`
+					) {
+						this.endExpressionIfIn(NT.UnaryExpression);
+						const result = this.handleBinaryExpression(token);
 						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error creating BinaryExpression node', result.error.message);
+
 							return result;
 						}
 					} else {
-						this.endExpressionIfIn(NT.AssigneesList);
-
-						this.addNode(MakeNode(NT.ColonSeparator, token, this.currentRoot));
-
-						if (this.currentRoot.type === NT.VariableDeclaration) {
-							this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
-						}
+						// otherwise this is a unary operator
+						this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
 					}
+					break;
 				}
-			} else if (token.type === 'comma') {
-				if (this.currentRoot.type === NT.TernaryAlternate) {
-					this.endExpression(); // end the TernaryAlternate
-					this.endExpression(); // end the TernaryExpression
-					this.endExpressionIfIn(NT.Property); // end if in Property
-				} else if (this.currentRoot.type === NT.WhenCaseConsequent) {
-					this.endExpression(); // end the WhenCaseConsequent
-					this.endExpression(); // end the WhenCase
-				} else if (this.currentRoot.type === NT.CallExpression && this.currentRoot.parent?.type === NT.WhenCaseConsequent) {
-					this.endExpression(); // end the CallExpression
-					this.endExpression(); // end the WhenCaseConsequent
-					this.endExpression(); // end the WhenCase
-				} else if (this.currentRoot.type === NT.BinaryExpression) {
-					this.endExpression();
-				} else if (this.currentRoot.type === NT.UnaryExpression) {
-					this.endExpression();
-				} else if (this.currentRoot.type === NT.Parameter || this.currentRoot.type === NT.TypeParameter) {
-					this.endExpression();
-				} else if (this.currentRoot.type === NT.Extension || this.currentRoot.type === NT.ClassImplement) {
-					this.endExpression();
-				} else if (this.currentRoot.type === NT.Property || this.currentRoot.type === NT.PropertyShape) {
-					this.endExpression();
-				} else if (this.currentRoot.type === NT.RangeExpression) {
-					this.endExpression();
+				case 'plus_plus':
+				case 'minus_minus': {
+					// check token before, then check token after
+					// works on an Identifier, and MemberExpression
+					const [, prevType] = this.prev();
+					if (prevType === NT.Identifier || prevType === NT.MemberExpression) {
+						// this is postfix
+						const result = this.beginExpressionWithAdoptingPreviousNode(
+							MakeUnaryExpressionNode(token, false, this.currentRoot),
+						);
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error creating UnaryExpression node', result.error.message);
+
+							return result;
+						}
+					} else {
+						// this is prefix
+						this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
+					}
+					break;
 				}
-
-				// postfix `if` in an array
-				// this is separate from the above if/elses since this can happen _after and in addition to_ one of the above scenarios
-				if (this.currentRoot.type === NT.PostfixIfStatement && this.currentRoot.parent?.type === NT.ArrayExpression) {
-					this.endExpression(); // end the IfStatement which _is_ the entry
-				}
-
-				this.addNode(MakeNode(NT.CommaSeparator, token, this.currentRoot));
-			} else if (
-				[
-					// logic
-					'and',
-					'or',
-
-					// math
-					'asterisk_equals',
-					'forward_slash_equals',
-					'minus_equals',
-					'mod_equals',
-					'plus_equals',
-
-					// comparison
-					'compare',
-					'equals',
-					'less_than_equals',
-					'more_than_equals',
-					'not_equals',
-				].includes(token.type)
-			) {
-				// '<=>' can be a function name
-				if (token.type === 'compare' && this.isCurrentRootAFunctionInAClass()) {
-					this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
-				} else {
+				case 'asterisk': {
 					const result = this.handleBinaryExpression(token);
 					if (result.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error creating BinaryExpression node', result.error.message);
+
 						return result;
 					}
+					break;
 				}
-			} else if (token.type === 'type') {
-				// check if we're in one of the known Parent node types, if so, begin a child
-				if (this.currentRoot.type in this.mapParentNodeToChild) {
-					const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
-					if (this.debug) {
-						console.debug(`Parser: Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
+				case 'forward_slash': {
+					const result = this.handleBinaryExpression(token);
+					if (result.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error creating BinaryExpression node', result.error.message);
+
+						return result;
+					}
+					break;
+				}
+				case 'mod': {
+					const result = this.handleBinaryExpression(token);
+					if (result.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error creating BinaryExpression node', result.error.message);
+
+						return result;
+					}
+					break;
+				}
+				case 'exponent': {
+					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+					if (result.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error creating exponent', result.error.message);
+
+						return result;
+					}
+					break;
+				}
+				case 'semicolon': {
+					/**
+					 * this conditional is needed for situations like this
+					 * ```
+					 * when foo {
+					 * 	1 -> {
+					 * 		doThing1(); // <-- this semicolon would end the BlockStatement
+					 * 		doThing2();
+					 * 	}
+					 * }
+					 */
+					if (this.currentRoot.type !== NT.BlockStatement) {
+						this.endExpression();
 					}
 
-					this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
-				}
+					// greedy ending - end as many nodes as relevantly possible
+					while (this.nodeTypesThatASemicolonEnds.includes(this.currentRoot.type)) {
+						this.endExpression();
+					}
 
-				this.addNode(MakeNode(NT.Type, token, this.currentRoot));
-			} else if (token.type === 'bang') {
-				this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
-			} else if (token.type === 'right_arrow') {
-				if (this.currentRoot.type === NT.WhenCaseValues) {
-					this.endExpression();
-					this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
-					this.beginExpressionWith(MakeNode(NT.FunctionReturns, token, this.currentRoot, true));
-				} else {
-					this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
+					this.addNode(MakeNode(NT.SemicolonSeparator, token, this.currentRoot));
+					break;
 				}
-			} else if (token.type === 'dotdot') {
-				const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.RangeExpression, token, this.currentRoot, true));
-				if (result.isError()) {
-					return result;
-				}
-			} else if (token.type === 'triangle_open') {
-				this.stack.push('<|');
+				case 'dot': {
+					let [prev, prevType] = this.prev();
 
-				/**
-				 *
-				 * + f foo<|T|> {} // FunctionDeclaration[TypeDeclaration[Identifier, TypeParametersList[TypeParameter...]], BlockStatement]
-				 * + a(B<|T|>); // CallExpression[Identifier, ArgumentsList[Argument[TypeInstantiation[Identifier, TypeArgumentsList[Type...]]]]]
-				 *
-				 * - class Foo<|T|> {} // ClassDeclaration[Type]
-				 * - class Foo extends Bar<|T|> {} //
-				 *
-				 * - interface Foo<|T|> {} // InterfaceDeclaration
-				 * - class Bar implements Foo<|T|> {} //
-				 *
-				 * const foo = f <|T|>(x: T) -> x {}; // anonymous generic FunctionDeclaration
-				 * Foo<|{T: T}, T[]|>(); // generic CallExpression
-				 * const foo = Foo<|{string: string}, string[]|>; // concrete function assignment to a variable
-				 * let foo = [Foo <| T, U |> ()]; // Some Array with 1 CallExpression
-				 * let foo = Foo <| T, U |>; // A Function Type
-				 * foo(Foo <| T.S, U |>) // CallExpression with Function Type as Argument
-				 * class A<|T|> {}
-				 * class B extends A<|T|> {}
-				 * interface A<|T|> {}
-				 * class B implements A<|T|> {}
-				 */
+					if (prev && prevType === NT.TypeArgumentsList) {
+						const [twoBack, twoBackType] = this.prev(2);
+						if (twoBackType && ([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType)) {
+							// we're in a MemberExpression after the GenericTypesList
+							// eg. `foo<bar>.baz`
+							// we need to create a new TypeInstantiationExpression node
+							// capturing the previous two nodes of Identifier and GenericTypesList
+							const typeInstantiationExpressionNode = MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true);
+							let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
+							if (wasAdopted.isError()) {
+								log.warnAndDedent(
+									this.parserLogDedentFunc,
+									'Error creating InstantiationExpression node',
+									wasAdopted.error.message,
+								);
 
-				if (
-					(
-						[
-							NT.ClassDeclaration,
-							NT.EnumDeclaration,
-							NT.FunctionDeclaration,
-							NT.FunctionSignature,
-							NT.InterfaceDeclaration,
-						] as NT[]
-					).includes(this.currentRoot.type)
-				) {
-					this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
-				} else {
-					const [, prevType] = this.prev();
+								return error(wasAdopted.error);
+							}
+
+							wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
+							this.beginExpressionWith(typeInstantiationExpressionNode);
+							this.endExpression(); // end the TypeInstantiationExpression
+
+							// once done, this new node then becomes the "previous" for the next if
+							prev = typeInstantiationExpressionNode;
+							prevType = this.getEffectiveTypeOfNode(prev);
+						}
+					} // do not connect this to the next if since this is independent of the next if
+
 					if (
-						this.currentRoot.type === NT.ArgumentsList ||
-						// foo.bar<|T|>
-						(this.currentRoot.type === NT.MemberExpression && prevType === NT.Identifier)
+						prevType === NT.CallExpression ||
+						prevType === NT.Identifier ||
+						prevType === NT.MemberExpression ||
+						prevType === NT.Type ||
+						prevType === NT.TypeInstantiationExpression ||
+						prevType === NT.ThisKeyword
 					) {
 						const result = this.beginExpressionWithAdoptingPreviousNode(
-							MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true),
+							MakeNode(NT.MemberExpression, token, this.currentRoot, true),
+						);
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					}
+					break;
+				}
+				case 'dotdotdot': {
+					this.ifInWhenExpressionBlockStatementBeginCase(token);
+
+					// check if we're in a ParametersList, if so, begin a Parameter
+					if (this.currentRoot.type === NT.ParametersList) {
+						this.beginExpressionWith(MakeNode(NT.Parameter, token, this.currentRoot, true));
+					}
+
+					this.addNode(MakeNode(NT.RestElement, token, this.currentRoot));
+					break;
+				}
+				case 'colon': {
+					if (this.currentRoot.type === NT.TernaryConsequent) {
+						// TernaryExpression
+						this.endExpression(); // end the TernaryConsequent
+						this.beginExpressionWith(MakeNode(NT.TernaryAlternate, token, this.currentRoot, true));
+					} else if (this.currentRoot.type === NT.ObjectExpression && this.prev()[1] === NT.Identifier) {
+						// POJOs notation
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.Property, token, this.currentRoot, true));
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					} else if (this.currentRoot.type === NT.ObjectShape && this.prev()[1] === NT.Identifier) {
+						// POJOs notation
+						const result = this.beginExpressionWithAdoptingPreviousNode(
+							MakeNode(NT.PropertyShape, token, this.currentRoot, true),
+						);
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					} else {
+						if (this.currentRoot.type === NT.BlockStatement) {
+							// convert BlockStatement to an ObjectExpression and create a Property node
+							this.currentRoot.type = NT.ObjectExpression;
+
+							const result = this.beginExpressionWithAdoptingPreviousNode(
+								MakeNode(NT.Property, token, this.currentRoot, true),
+							);
+							if (result.isError()) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+								return result;
+							}
+						} else {
+							this.endExpressionIfIn(NT.AssigneesList);
+
+							this.addNode(MakeNode(NT.ColonSeparator, token, this.currentRoot));
+
+							if (this.currentRoot.type === NT.VariableDeclaration) {
+								this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
+							}
+						}
+					}
+					break;
+				}
+				case 'comma': {
+					if (this.currentRoot.type === NT.TernaryAlternate) {
+						this.endExpression(); // end the TernaryAlternate
+						this.endExpression(); // end the TernaryExpression
+						this.endExpressionIfIn(NT.Property); // end if in Property
+					} else if (this.currentRoot.type === NT.WhenCaseConsequent) {
+						this.endExpression(); // end the WhenCaseConsequent
+						this.endExpression(); // end the WhenCase
+					} else if (this.currentRoot.type === NT.CallExpression && this.currentRoot.parent?.type === NT.WhenCaseConsequent) {
+						this.endExpression(); // end the CallExpression
+						this.endExpression(); // end the WhenCaseConsequent
+						this.endExpression(); // end the WhenCase
+					} else if (this.currentRoot.type === NT.BinaryExpression) {
+						this.endExpression();
+					} else if (this.currentRoot.type === NT.UnaryExpression) {
+						this.endExpression();
+					} else if (this.currentRoot.type === NT.Parameter || this.currentRoot.type === NT.TypeParameter) {
+						this.endExpression();
+					} else if (this.currentRoot.type === NT.Extension || this.currentRoot.type === NT.ClassImplement) {
+						this.endExpression();
+					} else if (this.currentRoot.type === NT.Property || this.currentRoot.type === NT.PropertyShape) {
+						this.endExpression();
+					} else if (this.currentRoot.type === NT.RangeExpression) {
+						this.endExpression();
+					}
+
+					// postfix `if` in an array
+					// this is separate from the above if/elses since this can happen _after and in addition to_ one of the above scenarios
+					if (this.currentRoot.type === NT.PostfixIfStatement && this.currentRoot.parent?.type === NT.ArrayExpression) {
+						this.endExpression(); // end the IfStatement which _is_ the entry
+					}
+
+					this.addNode(MakeNode(NT.CommaSeparator, token, this.currentRoot));
+					break;
+				}
+				case 'and': /** logic */
+				case 'or':
+				case 'asterisk_equals': /** math */
+				case 'forward_slash_equals':
+				case 'minus_equals':
+				case 'mod_equals':
+				case 'plus_equals':
+				case 'compare': /** comparison */
+				case 'equals':
+				case 'less_than_equals':
+				case 'more_than_equals':
+				case 'not_equals': {
+					// '<=>' can be a function name
+					if (token.type === 'compare' && this.isCurrentRootAFunctionInAClass()) {
+						this.addNode(MakeNode(NT.Identifier, token, this.currentRoot));
+					} else {
+						const result = this.handleBinaryExpression(token);
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					}
+					break;
+				}
+				case 'type': {
+					// check if we're in one of the known Parent node types, if so, begin a child
+					if (this.currentRoot.type in this.mapParentNodeToChild) {
+						const subNode = this.mapParentNodeToChild[this.currentRoot.type] as NT;
+						log.info(`Currently there is a ${this.currentRoot.type} open; now creating a ${subNode} Node in it`);
+
+						this.beginExpressionWith(MakeNode(subNode, token, this.currentRoot, true));
+					}
+
+					this.addNode(MakeNode(NT.Type, token, this.currentRoot));
+					break;
+				}
+				case 'bang': {
+					this.beginExpressionWith(MakeUnaryExpressionNode(token, true, this.currentRoot));
+					break;
+				}
+				case 'right_arrow': {
+					if (this.currentRoot.type === NT.WhenCaseValues) {
+						this.endExpression();
+						this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
+					} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
+						this.beginExpressionWith(MakeNode(NT.FunctionReturns, token, this.currentRoot, true));
+					} else {
+						this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
+					}
+					break;
+				}
+				case 'dotdot': {
+					const result = this.beginExpressionWithAdoptingPreviousNode(
+						MakeNode(NT.RangeExpression, token, this.currentRoot, true),
+					);
+					if (result.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+						return result;
+					}
+					break;
+				}
+				case 'triangle_open': {
+					this.stack.push('<|');
+
+					/**
+					 *
+					 * + f foo<|T|> {} // FunctionDeclaration[TypeDeclaration[Identifier, TypeParametersList[TypeParameter...]], BlockStatement]
+					 * + a(B<|T|>); // CallExpression[Identifier, ArgumentsList[Argument[TypeInstantiation[Identifier, TypeArgumentsList[Type...]]]]]
+					 *
+					 * - class Foo<|T|> {} // ClassDeclaration[Type]
+					 * - class Foo extends Bar<|T|> {} //
+					 *
+					 * - interface Foo<|T|> {} // InterfaceDeclaration
+					 * - class Bar implements Foo<|T|> {} //
+					 *
+					 * const foo = f <|T|>(x: T) -> x {}; // anonymous generic FunctionDeclaration
+					 * Foo<|{T: T}, T[]|>(); // generic CallExpression
+					 * const foo = Foo<|{string: string}, string[]|>; // concrete function assignment to a variable
+					 * let foo = [Foo <| T, U |> ()]; // Some Array with 1 CallExpression
+					 * let foo = Foo <| T, U |>; // A Function Type
+					 * foo(Foo <| T.S, U |>) // CallExpression with Function Type as Argument
+					 * class A<|T|> {}
+					 * class B extends A<|T|> {}
+					 * interface A<|T|> {}
+					 * class B implements A<|T|> {}
+					 */
+
+					if (
+						(
+							[
+								NT.ClassDeclaration,
+								NT.EnumDeclaration,
+								NT.FunctionDeclaration,
+								NT.FunctionSignature,
+								NT.InterfaceDeclaration,
+							] as NT[]
+						).includes(this.currentRoot.type)
+					) {
+						this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
+					} else {
+						const [, prevType] = this.prev();
+						if (
+							this.currentRoot.type === NT.ArgumentsList ||
+							// foo.bar<|T|>
+							(this.currentRoot.type === NT.MemberExpression && prevType === NT.Identifier)
+						) {
+							const result = this.beginExpressionWithAdoptingPreviousNode(
+								MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true),
+							);
+							if (result.isError()) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+								return result;
+							}
+						}
+
+						this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
+					}
+					break;
+				}
+				case 'triangle_close': {
+					const stackStatus = this.popStack('<|');
+					if (stackStatus.isError()) {
+						log.warnAndDedent(this.parserLogDedentFunc, 'Error', stackStatus.error.message);
+
+						return stackStatus;
+					}
+
+					this.endExpressionIfIn(NT.TypeArgumentsList);
+					this.endExpressionIfIn(NT.TypeInstantiationExpression);
+
+					this.endExpressionIfIn(NT.TypeParameter);
+					this.endExpressionIfIn(NT.TypeParametersList);
+
+					const [prev, prevType] = this.prev();
+					if (prevType === NT.TypeArgumentsList) {
+						const [twoBack, twoBackType] = this.prev(2);
+
+						if (
+							twoBackType &&
+							([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType) &&
+							!([NT.Extension, NT.ClassImplement] as NT[]).includes(this.currentRoot.type) &&
+							this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
+						) {
+							// we're in a MemberExpression after the GenericTypesList
+							// eg. `foo<bar>.baz`
+							// we need to create a new TypeInstantiationExpression node
+							// capturing the previous two nodes of Identifier and GenericTypesList
+							const typeInstantiationExpressionNode = MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true);
+							let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
+							if (wasAdopted.isError()) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error', wasAdopted.error.message);
+
+								return wasAdopted;
+							}
+
+							wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
+							this.beginExpressionWith(typeInstantiationExpressionNode);
+							this.endExpression(); // end the TypeInstantiationExpression
+						}
+					}
+
+					this.endExpressionIfIn(NT.MemberExpression);
+					break;
+				}
+				case 'less_than': {
+					/**
+					 * < can be:
+					 * - a comparison
+					 *   - Foo<T; // BinaryExpression
+					 *   - let foo = [Foo < T, U > 3]; // Bool Array with 2 BinaryExpressions
+					 *   - let foo = [Foo < T, U > (3+4)]; // same
+					 *
+					 * - the beginning of a tuple expression
+					 *   - <> // empty Tuple
+					 *   - <T> // Tuple
+					 *   - foo = <T>; // tuple
+					 *   - foo(<T>) // tuple
+					 *   - [<T>] // tuple in array
+					 *   - {a: <T>} // tuple in pojo
+					 *
+					 * - the beginning of a tuple type
+					 */
+
+					const [, prevType] = this.prev();
+
+					const literals: NT[] = [NT.BoolLiteral, NT.NumberLiteral, NT.StringLiteral];
+					const nodeTypesThatPrecedeABinaryExpression: NT[] = [
+						NT.Identifier,
+						...literals,
+						NT.CallExpression,
+						NT.MemberExpression,
+						NT.UnaryExpression,
+					];
+
+					if (this.currentRoot.type === NT.FunctionReturns || this.currentRoot.type === NT.TypeArgumentsList) {
+						this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
+					} else if (typeof prevType === 'undefined') {
+						// TupleExpression
+						this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
+					} else if (this.currentRoot.type === NT.Property && prevType === NT.Identifier) {
+						// TupleExpression
+						this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
+					} else if (this.currentRoot.type === NT.PropertyShape && prevType === NT.Identifier) {
+						// TupleShape
+						this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
+					} else if (nodeTypesThatPrecedeABinaryExpression.includes(prevType)) {
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
+						// we need to go 2 levels up
+						const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
+						this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
+					} else {
+						this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
+					}
+					break;
+				}
+				case 'more_than': {
+					/**
+					 * > can be:
+					 * - a number comparison
+					 * - the end of a TupleExpression
+					 */
+
+					// first close out a ternary
+					if (this.currentRoot.type === NT.TernaryAlternate) {
+						this.endExpression(); // end the TernaryAlternate
+						this.endExpression(); // end the TernaryExpression
+					}
+
+					// then, then other stuff
+
+					if (this.currentRoot.type === NT.TupleExpression || this.currentRoot.type === NT.TupleShape) {
+						this.endExpression(); // end the TupleExpression or TupleShape
+					} else {
+						// 'more than' BinaryExpression
+						const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+							return result;
+						}
+					}
+					break;
+				}
+				case 'this': {
+					this.addNode(MakeNode(NT.ThisKeyword, token, this.currentRoot, true));
+					break;
+				}
+				case 'keyword': {
+					log.info(`Handling keyword "${token.value}"`);
+
+					switch (token.value) {
+						case 'abstract':
+						case 'pub':
+						case 'readonly':
+						case 'static':
+							// can either be a ClassDeclaration, EnumDeclaration, FunctionDeclaration or VariableDeclaration
+
+							// the simplest way is to start a ModifiersList,
+							// then when we come across a one of those declarations, we check if this.currentRoot is a ModifiersList
+
+							if (this.currentRoot.type !== NT.ModifiersList) {
+								log.info('Beginning a ModifiersList');
+
+								this.beginExpressionWith(MakeNode(NT.ModifiersList, token, this.currentRoot, true));
+							}
+
+							log.info(`Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
+
+							this.addNode(MakeNode(NT.Modifier, token, this.currentRoot));
+							break;
+						case 'class':
+							{
+								const classDeclaration = this.parseClassOrEnumDeclaration(token, NT.ClassDeclaration, 'ClassDeclaration');
+								if (classDeclaration.isError()) {
+									log.warnAndDedent(this.parserLogDedentFunc, 'Error', classDeclaration.error.message);
+
+									return classDeclaration;
+								}
+
+								// do NOT return for ok bec if you do, it will exit the loop
+							}
+							break;
+						case 'const':
+						case 'let':
+							{
+								let variableNode: Result<Node, ParserError>;
+
+								// the VariableDeclaration may have already started with some Modifier(s)
+								if (this.currentRoot.type === NT.ModifiersList) {
+									log.info(
+										'Currently there is a ModifiersList open; now beginning VariableDeclaration and adopting the ModifiersList',
+									);
+
+									variableNode = this.beginExpressionWithAdoptingCurrentRoot(
+										MakeNode(NT.VariableDeclaration, token, this.currentRoot),
+									);
+								} else {
+									log.info('There is no ModifiersList open; now beginning a VariableDeclaration');
+
+									variableNode = ok(this.beginExpressionWith(MakeNode(NT.VariableDeclaration, token, this.currentRoot)));
+								}
+
+								switch (variableNode.outcome) {
+									// do NOT return for ok bec if you do, it will exit the loop
+									case 'ok':
+										this.adoptPrecedingJoeDocIfPresent(variableNode.value);
+										break;
+									case 'error':
+										log.warnAndDedent(this.parserLogDedentFunc, 'Error', variableNode.error.message);
+
+										return error(variableNode.error);
+										break;
+								}
+							}
+							break;
+						case 'done':
+							this.addNode(MakeNode(NT.DoneStatement, token, this.currentRoot, true));
+							break;
+						case 'else':
+							// no need to do anything with this.
+							// A subsequent BlockStatement will go into the previous IfStatement
+							// A subsequent IfStatement will do the same
+							// Just check if we're in an IfStatement
+							if (this.currentRoot.type !== NT.IfStatement) {
+								log.warnAndDedent(this.parserLogDedentFunc, 'Error', '`else` keyword is used with if statements');
+
+								return error(
+									ParserError.MisplacedKeyword(
+										'`else` keyword is used with if statements',
+										this.currentRoot,
+										this.ctx(token.value.length),
+									),
+								);
+							}
+							break;
+
+						case 'enum':
+							{
+								const enumDeclaration = this.parseClassOrEnumDeclaration(token, NT.EnumDeclaration, 'EnumDeclaration');
+								if (enumDeclaration.isError()) {
+									log.warnAndDedent(this.parserLogDedentFunc, 'Error', enumDeclaration.error.message);
+
+									return enumDeclaration;
+								}
+
+								// do NOT return for ok bec if you do, it will exit the loop
+							}
+							break;
+
+						case 'extends':
+							if (
+								([NT.ClassDeclaration, NT.EnumDeclaration, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)
+							) {
+								this.beginExpressionWith(MakeNode(NT.ExtensionsList, token, this.currentRoot, true));
+							} else {
+								log.warnAndDedent(
+									this.parserLogDedentFunc,
+									'Error',
+									'`extends` keyword is used for a Class, Enum, or Interface to extend another',
+								);
+
+								return error(
+									ParserError.MisplacedKeyword(
+										'`extends` keyword is used for a Class, Enum, or Interface to extend another',
+										this.currentRoot,
+										this.ctx(token.value.length),
+									),
+								);
+							}
+							break;
+						case 'f':
+							{
+								// the FunctionDeclaration may have already started with a Modifier
+								let fNode: Result<Node, ParserError>;
+								if (this.currentRoot.type === NT.ModifiersList) {
+									log.info(
+										'Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList',
+									);
+
+									fNode = this.beginExpressionWithAdoptingCurrentRoot(
+										MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true),
+									);
+								} else {
+									log.info('There is no ModifiersList open; now beginning a FunctionDeclaration');
+
+									// if we're after a ColonSeparator, then this is a FunctionSignature
+									if (this.prev()[1] === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
+										fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionSignature, token, this.currentRoot, true)));
+									} else {
+										fNode = ok(
+											this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)),
+										);
+									}
+								}
+
+								switch (fNode.outcome) {
+									// do NOT return for ok bec if you do, it will exit the loop
+									case 'ok':
+										this.adoptPrecedingJoeDocIfPresent(fNode.value);
+										break;
+									case 'error':
+										log.warnAndDedent(this.parserLogDedentFunc, 'Error', fNode.error.message);
+
+										return error(fNode.error);
+										break;
+								}
+							}
+							break;
+						case 'from':
+							this.addNode(MakeNode(NT.FromKeyword, token, this.currentRoot, true));
+							break;
+						case 'for':
+							this.beginExpressionWith(MakeNode(NT.ForStatement, token, this.currentRoot, true));
+							break;
+						case 'if':
+							{
+								// check token before, then check token after
+								// works on a CallExpression as well as Literal in an ArrayExpression
+								const [, prevType] = this.prev();
+								if (prevType === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
+									// this is after, therefore take the CallExpression, array element, or Property
+									const result = this.beginExpressionWithAdoptingPreviousNode(
+										MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true),
+									);
+									if (result.isError()) {
+										log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+										return result;
+									}
+								} else {
+									// this is before
+
+									// if prev token is 'else', this IfStatement goes into current node
+									// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
+
+									// the token is already ready for the next, so we need to go 2 back
+									const prevToken = this.lexer.prevToken(2);
+									if (
+										this.currentRoot.type === NT.IfStatement &&
+										typeof prevToken !== 'undefined' &&
+										!(prevToken.type === 'keyword' && prevToken.value === 'else')
+									) {
+										log.info(
+											'Found an "if" statement after another "if" without an "else"; now closing the first IfStatement',
+										);
+
+										this.endExpression(); // end the IfStatement
+									}
+
+									this.beginExpressionWith(MakeNode(NT.IfStatement, token, this.currentRoot, true));
+								}
+							}
+							break;
+						case 'implements':
+							this.endExpressionIfIn(NT.Extension);
+							this.endExpressionIfIn(NT.ExtensionsList);
+
+							this.beginExpressionWith(MakeNode(NT.ClassImplementsList, token, this.currentRoot, true));
+							break;
+						case 'in':
+							{
+								// eg. for const i in ary {}, so we end the VariableDeclaration
+								this.endExpressionIfIn(NT.AssigneesList);
+								this.endExpressionIfIn(NT.VariableDeclaration);
+
+								// check the previous node, which should be either a VariableDeclaration or an Identifier
+								const [prev, prevType] = this.prev();
+								if (typeof prev === 'undefined') {
+									log.warnAndDedent(
+										this.parserLogDedentFunc,
+										'Error',
+										'We hoped to find a variable before it, but alas!',
+									);
+
+									return error(
+										ParserError.MissingPreviousNode(
+											'We hoped to find a variable before it, but alas!',
+											this.currentRoot,
+											this.ctx((token.value || '').length),
+										),
+									);
+								}
+
+								if (
+									(this.currentRoot.type === NT.ForStatement ||
+										(this.currentRoot.type === NT.Parenthesized &&
+											this.currentRoot.parent?.type === NT.ForStatement)) &&
+									([NT.Identifier, NT.VariableDeclaration] as NT[]).includes(prevType)
+								) {
+									this.addNode(MakeNode(NT.InKeyword, token, this.currentRoot, true));
+								} else {
+									log.warnAndDedent(
+										this.parserLogDedentFunc,
+										'Error',
+										'Misplaced keyword "in" found. Do you mean to use a "for" loop?',
+									);
+
+									return error(
+										ParserError.MissingParentNode(
+											'Misplaced keyword "in" found. Do you mean to use a "for" loop?',
+											this.currentRoot,
+											this.ctx((token.value || '').length),
+										),
+									);
+								}
+							}
+							break;
+						case 'interface':
+							{
+								const interfaceNode = this.beginExpressionWith(
+									MakeNode(NT.InterfaceDeclaration, token, this.currentRoot, true),
+								);
+								const result = this.adoptPrecedingJoeDocIfPresent(interfaceNode);
+								// do NOT return for ok bec if you do, it will exit the loop
+								if (result.isError()) {
+									log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+									return result;
+								}
+							}
+							break;
+						case 'loop':
+							this.beginExpressionWith(MakeNode(NT.LoopStatement, token, this.currentRoot, true));
+							break;
+						case 'next':
+							this.addNode(MakeNode(NT.NextStatement, token, this.currentRoot, true));
+							break;
+						case 'or':
+							{
+								const result = this.beginExpressionWithAdoptingPreviousNode(
+									MakeNode(NT.BinaryExpression, token, this.currentRoot),
+								);
+								if (result.isError()) {
+									log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
+
+									return result;
+								}
+							}
+							break;
+						case 'print':
+							this.beginExpressionWith(MakeNode(NT.PrintStatement, token, this.currentRoot, true));
+							break;
+						case 'return':
+							this.beginExpressionWith(MakeNode(NT.ReturnStatement, token, this.currentRoot, true));
+							break;
+						case 'use':
+							this.beginExpressionWith(MakeNode(NT.UseDeclaration, token, this.currentRoot, true));
+							break;
+						case 'when':
+							this.beginExpressionWith(MakeNode(NT.WhenExpression, token, this.currentRoot, true));
+							break;
+						default:
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', `Unknown keyword "${token.value}"`);
+
+							return error(
+								ParserError.UnknownKeyword(
+									`Unknown keyword "${token.value}"`,
+									this.currentRoot,
+									this.ctx((token.value || '').length),
+								),
+							);
+							break;
+					}
+					break;
+				}
+				case 'path': {
+					this.addNode(MakeNode(NT.Path, token, this.currentRoot));
+					break;
+				}
+				case 'question': {
+					{
+						const result = this.beginExpressionWithAdoptingPreviousNode(
+							MakeNode(NT.TernaryExpression, token, this.currentRoot, true),
 						);
 						if (result.isError()) {
 							return result;
 						}
 					}
 
-					this.beginExpressionWith(MakeNode(NT.TypeArgumentsList, token, this.currentRoot, true));
-				}
-			} else if (token.type === 'triangle_close') {
-				const stackStatus = this.popStack('<|');
-				if (stackStatus.isError()) {
-					return error(stackStatus.error);
-				}
-
-				this.endExpressionIfIn(NT.TypeArgumentsList);
-				this.endExpressionIfIn(NT.TypeInstantiationExpression);
-
-				this.endExpressionIfIn(NT.TypeParameter);
-				this.endExpressionIfIn(NT.TypeParametersList);
-
-				const [prev, prevType] = this.prev();
-				if (prevType === NT.TypeArgumentsList) {
-					const [twoBack, twoBackType] = this.prev(2);
-
-					if (
-						twoBackType &&
-						([NT.Identifier, NT.MemberExpression, NT.ThisKeyword] as NT[]).includes(twoBackType) &&
-						!([NT.Extension, NT.ClassImplement] as NT[]).includes(this.currentRoot.type) &&
-						this.lexer.peek(0) !== tokenTypesUsingSymbols.paren_open // CallExpression
-					) {
-						// we're in a MemberExpression after the GenericTypesList
-						// eg. `foo<bar>.baz`
-						// we need to create a new TypeInstantiationExpression node
-						// capturing the previous two nodes of Identifier and GenericTypesList
-						const typeInstantiationExpressionNode = MakeNode(NT.TypeInstantiationExpression, token, this.currentRoot, true);
-						let wasAdopted = this.adoptNode(this.currentRoot, twoBack, typeInstantiationExpressionNode);
-						if (wasAdopted.isError()) {
-							return error(wasAdopted.error);
-						}
-
-						wasAdopted = this.adoptNode(this.currentRoot, prev, typeInstantiationExpressionNode);
-						this.beginExpressionWith(typeInstantiationExpressionNode);
-						this.endExpression(); // end the TypeInstantiationExpression
-					}
-				}
-
-				this.endExpressionIfIn(NT.MemberExpression);
-			} else if (token.type === 'less_than') {
-				/**
-				 * < can be:
-				 * - a comparison
-				 *   - Foo<T; // BinaryExpression
-				 *   - let foo = [Foo < T, U > 3]; // Bool Array with 2 BinaryExpressions
-				 *   - let foo = [Foo < T, U > (3+4)]; // same
-				 *
-				 * - the beginning of a tuple expression
-				 *   - <> // empty Tuple
-				 *   - <T> // Tuple
-				 *   - foo = <T>; // tuple
-				 *   - foo(<T>) // tuple
-				 *   - [<T>] // tuple in array
-				 *   - {a: <T>} // tuple in pojo
-				 *
-				 * - the beginning of a tuple type
-				 */
-
-				const [, prevType] = this.prev();
-
-				const literals: NT[] = [NT.BoolLiteral, NT.NumberLiteral, NT.StringLiteral];
-				const nodeTypesThatPrecedeABinaryExpression: NT[] = [
-					NT.Identifier,
-					...literals,
-					NT.CallExpression,
-					NT.MemberExpression,
-					NT.UnaryExpression,
-				];
-
-				if (this.currentRoot.type === NT.FunctionReturns || this.currentRoot.type === NT.TypeArgumentsList) {
-					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
-				} else if (typeof prevType === 'undefined') {
-					// TupleExpression
-					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.Property && prevType === NT.Identifier) {
-					// TupleExpression
-					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
-				} else if (this.currentRoot.type === NT.PropertyShape && prevType === NT.Identifier) {
-					// TupleShape
-					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
-				} else if (nodeTypesThatPrecedeABinaryExpression.includes(prevType)) {
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.isError()) {
-						return result;
-					}
-				} else if (prevType === NT.ArgumentsList && this.currentRoot.type === NT.CallExpression) {
-					// we need to go 2 levels up
-					const result = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.isError()) {
-						return result;
-					}
-				} else if (prevType === NT.ColonSeparator && this.currentRoot.type !== NT.ObjectExpression) {
-					this.beginExpressionWith(MakeNode(NT.TupleShape, token, this.currentRoot, true));
-				} else {
-					this.beginExpressionWith(MakeNode(NT.TupleExpression, token, this.currentRoot, true));
-				}
-			} else if (token.type === 'more_than') {
-				/**
-				 * > can be:
-				 * - a number comparison
-				 * - the end of a TupleExpression
-				 */
-
-				// first close out a ternary
-				if (this.currentRoot.type === NT.TernaryAlternate) {
-					this.endExpression(); // end the TernaryAlternate
-					this.endExpression(); // end the TernaryExpression
-				}
-
-				// then, then other stuff
-
-				if (this.currentRoot.type === NT.TupleExpression || this.currentRoot.type === NT.TupleShape) {
-					this.endExpression(); // end the TupleExpression or TupleShape
-				} else {
-					// 'more than' BinaryExpression
-					const result = this.beginExpressionWithAdoptingPreviousNode(MakeNode(NT.BinaryExpression, token, this.currentRoot));
-					if (result.isError()) {
-						return result;
-					}
-				}
-			} else if (token.type === 'this') {
-				this.addNode(MakeNode(NT.ThisKeyword, token, this.currentRoot, true));
-			} else if (token.type === 'keyword') {
-				if (this.debug) {
-					console.debug(`Parser: Handling keyword "${token.value}"`);
-				}
-
-				switch (token.value) {
-					case 'abstract':
-					case 'pub':
-					case 'readonly':
-					case 'static':
-						// can either be a ClassDeclaration, EnumDeclaration, FunctionDeclaration or VariableDeclaration
-
-						// the simplest way is to start a ModifiersList,
-						// then when we come across a one of those declarations, we check if this.currentRoot is a ModifiersList
-
-						if (this.currentRoot.type !== NT.ModifiersList) {
-							if (this.debug) {
-								console.debug('Parser: Beginning a ModifiersList');
-							}
-
-							this.beginExpressionWith(MakeNode(NT.ModifiersList, token, this.currentRoot, true));
-						}
-
-						if (this.debug) {
-							console.debug(`Parser: Creating a Modifier Node in ${this.lineage(this.currentRoot)} for "${token.value}"`);
-						}
-
-						this.addNode(MakeNode(NT.Modifier, token, this.currentRoot));
-						break;
-					case 'class':
-						{
-							const classDeclaration = this.parseClassOrEnumDeclaration(token, NT.ClassDeclaration, 'ClassDeclaration');
-
-							if (classDeclaration.isError()) {
-								return classDeclaration;
-							}
-
-							// do NOT return for ok bec if you do, it will exit the loop
-						}
-						break;
-					case 'const':
-					case 'let':
-						{
-							let variableNode: Result<Node>;
-
-							// the VariableDeclaration may have already started with some Modifier(s)
-							if (this.currentRoot.type === NT.ModifiersList) {
-								if (this.debug) {
-									console.debug(
-										'Parser: Currently there is a ModifiersList open; now beginning VariableDeclaration and adopting the ModifiersList',
-									);
-								}
-
-								variableNode = this.beginExpressionWithAdoptingCurrentRoot(
-									MakeNode(NT.VariableDeclaration, token, this.currentRoot),
-								);
-							} else {
-								if (this.debug) {
-									console.debug('Parser: There is no ModifiersList open; now beginning a VariableDeclaration');
-								}
-
-								variableNode = ok(this.beginExpressionWith(MakeNode(NT.VariableDeclaration, token, this.currentRoot)));
-							}
-
-							switch (variableNode.outcome) {
-								// do NOT return for ok bec if you do, it will exit the loop
-								case 'ok':
-									this.adoptPrecedingJoeDocIfPresent(variableNode.value);
-									break;
-								case 'error':
-									return error(variableNode.error);
-									break;
-							}
-						}
-						break;
-					case 'done':
-						this.addNode(MakeNode(NT.DoneStatement, token, this.currentRoot, true));
-						break;
-					case 'else':
-						// no need to do anything with this.
-						// A subsequent BlockStatement will go into the previous IfStatement
-						// A subsequent IfStatement will do the same
-						// Just check if we're in an IfStatement
-						if (this.currentRoot.type !== NT.IfStatement) {
-							return error(
-								new ParserError(
-									ParserErrorCode.MisplacedKeyword,
-									'`else` keyword is used with if statements',
-									this.currentRoot,
-									this.getErrorContext(token.value.length),
-								),
-							);
-						}
-						break;
-
-					case 'enum':
-						{
-							const enumDeclaration = this.parseClassOrEnumDeclaration(token, NT.EnumDeclaration, 'EnumDeclaration');
-
-							if (enumDeclaration.isError()) {
-								return enumDeclaration;
-							}
-
-							// do NOT return for ok bec if you do, it will exit the loop
-						}
-						break;
-
-					case 'extends':
-						if (([NT.ClassDeclaration, NT.EnumDeclaration, NT.InterfaceDeclaration] as NT[]).includes(this.currentRoot.type)) {
-							this.beginExpressionWith(MakeNode(NT.ExtensionsList, token, this.currentRoot, true));
-						} else {
-							return error(
-								new ParserError(
-									ParserErrorCode.MisplacedKeyword,
-									'`extends` keyword is used for a Class, Enum, or Interface to extend another',
-									this.currentRoot,
-									this.getErrorContext(token.value.length),
-								),
-							);
-						}
-						break;
-					case 'f':
-						{
-							// the FunctionDeclaration may have already started with a Modifier
-							let fNode: Result<Node>;
-							if (this.currentRoot.type === NT.ModifiersList) {
-								if (this.debug) {
-									console.debug(
-										'Parser: Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList',
-									);
-								}
-
-								fNode = this.beginExpressionWithAdoptingCurrentRoot(
-									MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true),
-								);
-							} else {
-								if (this.debug) {
-									console.debug('Parser: There is no ModifiersList open; now beginning a FunctionDeclaration');
-								}
-
-								// if we're after a ColonSeparator, then this is a FunctionSignature
-								if (this.prev()[1] === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
-									fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionSignature, token, this.currentRoot, true)));
-								} else {
-									fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)));
-								}
-							}
-
-							switch (fNode.outcome) {
-								// do NOT return for ok bec if you do, it will exit the loop
-								case 'ok':
-									this.adoptPrecedingJoeDocIfPresent(fNode.value);
-									break;
-								case 'error':
-									return error(fNode.error);
-									break;
-							}
-						}
-						break;
-					case 'from':
-						this.addNode(MakeNode(NT.FromKeyword, token, this.currentRoot, true));
-						break;
-					case 'for':
-						this.beginExpressionWith(MakeNode(NT.ForStatement, token, this.currentRoot, true));
-						break;
-					case 'if':
-						{
-							// check token before, then check token after
-							// works on a CallExpression as well as Literal in an ArrayExpression
-							const [, prevType] = this.prev();
-							if (prevType === NT.CallExpression || this.nodeTypesThatAllowAPostfixIf.includes(this.currentRoot.type)) {
-								// this is after, therefore take the CallExpression, array element, or Property
-								const result = this.beginExpressionWithAdoptingPreviousNode(
-									MakeNode(NT.PostfixIfStatement, token, this.currentRoot, true),
-								);
-								if (result.isError()) {
-									return result;
-								}
-							} else {
-								// this is before
-
-								// if prev token is 'else', this IfStatement goes into current node
-								// Otherwise it's a new IfStatement and we must first close the current IfStatement if we're in one.
-
-								// the token is already ready for the next, so we need to go 2 back
-								const prevToken = this.lexer.prevToken(2);
-								if (
-									this.currentRoot.type === NT.IfStatement &&
-									typeof prevToken !== 'undefined' &&
-									!(prevToken.type === 'keyword' && prevToken.value === 'else')
-								) {
-									if (this.debug) {
-										console.debug(
-											'Parser: Found an "if" statement after another "if" without an "else"; now closing the first IfStatement',
-										);
-									}
-
-									this.endExpression(); // end the IfStatement
-								}
-
-								this.beginExpressionWith(MakeNode(NT.IfStatement, token, this.currentRoot, true));
-							}
-						}
-						break;
-					case 'implements':
-						this.endExpressionIfIn(NT.Extension);
-						this.endExpressionIfIn(NT.ExtensionsList);
-
-						this.beginExpressionWith(MakeNode(NT.ClassImplementsList, token, this.currentRoot, true));
-						break;
-					case 'in':
-						{
-							// eg. for const i in ary {}, so we end the VariableDeclaration
-							this.endExpressionIfIn(NT.AssigneesList);
-							this.endExpressionIfIn(NT.VariableDeclaration);
-
-							// check the previous node, which should be either a VariableDeclaration or an Identifier
-							const [prev, prevType] = this.prev();
-							if (typeof prev === 'undefined') {
-								return error(
-									new ParserError(
-										ParserErrorCode.MissingPreviousNode,
-										'We hoped to find a variable before it, but alas!',
-										this.currentRoot,
-										this.getErrorContext((token.value || '').length),
-									),
-								);
-							}
-
-							if (
-								(this.currentRoot.type === NT.ForStatement ||
-									(this.currentRoot.type === NT.Parenthesized && this.currentRoot.parent?.type === NT.ForStatement)) &&
-								([NT.Identifier, NT.VariableDeclaration] as NT[]).includes(prevType)
-							) {
-								this.addNode(MakeNode(NT.InKeyword, token, this.currentRoot, true));
-							} else {
-								return error(
-									new ParserError(
-										ParserErrorCode.MissingParentNode,
-										'Misplaced keyword "in" found. Do you mean to use a "for" loop?',
-										this.currentRoot,
-										this.getErrorContext((token.value || '').length),
-									),
-								);
-							}
-						}
-						break;
-					case 'interface':
-						{
-							const interfaceNode = this.beginExpressionWith(
-								MakeNode(NT.InterfaceDeclaration, token, this.currentRoot, true),
-							);
-							const result = this.adoptPrecedingJoeDocIfPresent(interfaceNode);
-							// do NOT return for ok bec if you do, it will exit the loop
-							if (result.isError()) {
-								return result;
-							}
-						}
-						break;
-					case 'loop':
-						this.beginExpressionWith(MakeNode(NT.LoopStatement, token, this.currentRoot, true));
-						break;
-					case 'next':
-						this.addNode(MakeNode(NT.NextStatement, token, this.currentRoot, true));
-						break;
-					case 'or':
-						{
-							const result = this.beginExpressionWithAdoptingPreviousNode(
-								MakeNode(NT.BinaryExpression, token, this.currentRoot),
-							);
-							if (result.isError()) {
-								return result;
-							}
-						}
-						break;
-					case 'print':
-						this.beginExpressionWith(MakeNode(NT.PrintStatement, token, this.currentRoot, true));
-						break;
-					case 'return':
-						this.beginExpressionWith(MakeNode(NT.ReturnStatement, token, this.currentRoot, true));
-						break;
-					case 'use':
-						this.beginExpressionWith(MakeNode(NT.UseDeclaration, token, this.currentRoot, true));
-						break;
-					case 'when':
-						this.beginExpressionWith(MakeNode(NT.WhenExpression, token, this.currentRoot, true));
-						break;
-					default:
-						return error(
-							new ParserError(
-								ParserErrorCode.UnknownKeyword,
-								`Unknown keyword "${token.value}"`,
-								this.currentRoot,
-								this.getErrorContext((token.value || '').length),
-							),
+					{
+						const result = this.beginExpressionWithAdoptingPreviousNode(
+							MakeNode(NT.TernaryCondition, token, this.currentRoot, true),
 						);
-						break;
-				}
-			} else if (token.type === 'path') {
-				this.addNode(MakeNode(NT.Path, token, this.currentRoot));
-			} else if (token.type === 'question') {
-				{
-					const result = this.beginExpressionWithAdoptingPreviousNode(
-						MakeNode(NT.TernaryExpression, token, this.currentRoot, true),
-					);
-					if (result.isError()) {
-						return result;
-					}
-				}
+						if (result.isError()) {
+							log.warnAndDedent(this.parserLogDedentFunc, 'Error', result.error.message);
 
-				{
-					const result = this.beginExpressionWithAdoptingPreviousNode(
-						MakeNode(NT.TernaryCondition, token, this.currentRoot, true),
-					);
-					if (result.isError()) {
-						return result;
+							return result;
+						}
 					}
-				}
 
-				this.endExpression(); // end the TernaryCondition
-				this.beginExpressionWith(MakeNode(NT.TernaryConsequent, token, this.currentRoot, true));
-			} else {
-				return error(
-					new ParserError(
-						ParserErrorCode.UnknownToken,
-						`Unknown token "${token.value}"`,
-						this.currentRoot,
-						this.getErrorContext((token.value || '').length),
-					),
-				);
+					this.endExpression(); // end the TernaryCondition
+					this.beginExpressionWith(MakeNode(NT.TernaryConsequent, token, this.currentRoot, true));
+					break;
+				}
+				default: {
+					return error(
+						ParserError.UnknownToken(`Unknown token "${token.value}"`, this.currentRoot, this.ctx((token.value || '').length)),
+					);
+				}
 			}
 		} while (this.currentToken.isOk());
 
-		if (this.debug) {
-			console.debug(`Parser: ${inspect(this.root, { showHidden: true, depth: null })}`);
-		}
+		// log.vars({ 'this.root': this.root });
+
+		log.successAndDedent(this.parserLogDedentFunc, 'Parsing completed');
 
 		return ok(this.root);
+	}
+
+	private updateEnds(newEnd: number) {
+		let node = this.currentRoot;
+		node.pos.end = newEnd;
+		while (node.parent) {
+			node = node.parent;
+			node.pos.end = newEnd;
+		}
 	}
 
 	/**
@@ -1450,24 +1609,18 @@ export default class Parser {
 			return ok(undefined);
 		}
 
-		return error(
-			new ParserError(ParserErrorCode.UnexpectedToken, stackPairs[token].message, this.currentRoot, this.getErrorContext(1)),
-		);
+		return error(ParserError.UnexpectedToken(stackPairs[token].message, this.currentRoot, this.ctx(stackPairs[token].pair.length)));
 	}
 
-	private parseClassOrEnumDeclaration(token: Token, nodeType: NT, name: string): Result<Node> {
+	private parseClassOrEnumDeclaration(token: Token, nodeType: NT, name: string): Result<Node, ParserError> {
 		// the Declaration may have already started with some Modifier(s)
-		let declarationNode: Result<Node>;
+		let declarationNode: Result<Node, ParserError>;
 		if (this.currentRoot.type === NT.ModifiersList) {
-			if (this.debug) {
-				console.debug(`Parser: Currently there is a ModifiersList open; now beginning ${name} and adopting the ModifiersList`);
-			}
+			log.info(`Currently there is a ModifiersList open; now beginning ${name} and adopting the ModifiersList`);
 
 			declarationNode = this.beginExpressionWithAdoptingCurrentRoot(MakeNode(nodeType, token, this.currentRoot, true));
 		} else {
-			if (this.debug) {
-				console.debug(`Parser: There is no ModifiersList open; now beginning a ${name}`);
-			}
+			log.info(`There is no ModifiersList open; now beginning a ${name}`);
 
 			// beginExpressionWith doesn't return a Result<>
 			declarationNode = ok(this.beginExpressionWith(MakeNode(nodeType, token, this.currentRoot, true)));
@@ -1491,7 +1644,7 @@ export default class Parser {
 	 * @param applicableNode for Class, Enum, Function, Interface, or Variable
 	 * @returns the applicableNode regardless
 	 */
-	private adoptPrecedingJoeDocIfPresent(applicableNode: Node): Result<Node> {
+	private adoptPrecedingJoeDocIfPresent(applicableNode: Node): Result<Node, ParserError> {
 		// grab preceding JoeDoc, if any
 		const prevNode = this.currentRoot.parent?.children.at(-2);
 
@@ -1517,7 +1670,7 @@ export default class Parser {
 	 *
 	 * @param token Current token
 	 */
-	private handleBinaryExpression(token: Token): Result<Node> {
+	private handleBinaryExpression(token: Token): Result<Node, ParserError> {
 		// TODO add PEMDAS
 
 		if (this.currentRoot.type === NT.BinaryExpression && ['and', 'or'].includes(token.type)) {
@@ -1588,7 +1741,7 @@ export default class Parser {
 	 *
 	 * @returns the next token
 	 */
-	private getNextToken(): Result<Token> {
+	private getNextToken(): Result<Token, LexerError> {
 		return this.lexer.getToken();
 	}
 
@@ -1601,6 +1754,9 @@ export default class Parser {
 			this.currentRoot.children.push(node);
 			this.currentRoot = currentRoot;
 		}
+
+		// update the current root's end to be the node's end
+		this.updateEnds(node.pos.end);
 	}
 
 	/**
@@ -1651,7 +1807,7 @@ export default class Parser {
 	 *
 	 * @returns A response error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Result<Node> {
+	private beginExpressionWithAdoptingPreviousNode(newKid: Node, whatWeExpectInPrevNode?: string): Result<Node, ParserError> {
 		return this.beginExpressionWithAdopting(newKid, this.prev()[0], whatWeExpectInPrevNode);
 	}
 
@@ -1696,7 +1852,7 @@ export default class Parser {
 	 *
 	 * @returns A response error if there is no previous node
 	 */
-	private beginExpressionWithAdoptingCurrentRoot(newKid: Node): Result<Node> {
+	private beginExpressionWithAdoptingCurrentRoot(newKid: Node): Result<Node, ParserError> {
 		return this.beginExpressionWithAdopting(newKid, this.currentRoot);
 	}
 
@@ -1708,26 +1864,27 @@ export default class Parser {
 	 * @param whatWeExpectInPrevNode - Human-readable phrase for expected prev node
 	 * @returns - newKid
 	 */
-	private beginExpressionWithAdopting(newKid: Node, adoptee: Node | undefined, whatWeExpectInPrevNode?: string): Result<Node> {
+	private beginExpressionWithAdopting(
+		newKid: Node,
+		adoptee: Node | undefined,
+		whatWeExpectInPrevNode?: string,
+	): Result<Node, ParserError> {
 		if (typeof adoptee === 'undefined') {
 			return error(
-				new ParserError(
-					ParserErrorCode.MissingPreviousNode,
+				ParserError.MissingPreviousNode(
 					`"${newKid.value}" is a ${newKid.type} and we hoped to find ${
 						whatWeExpectInPrevNode || 'something'
 					} before it, but alas!`,
 					this.currentRoot,
-					this.getErrorContext((newKid.value || '').length),
+					this.ctx((newKid.value || '').length),
 				),
 			);
 		}
 
-		if (this.debug) {
-			// Note in this case, it IS possible for adoptee to be a Parenthesized, and while under
-			// many circumstances, we would want to get the effective type, but here we want to log
-			// the actual type for debugging, so we use adoptee.type instead of the effective type.
-			console.debug(`Parser: Moving ${adoptee.type} to under ${newKid.type}`);
-		}
+		// Note in this case, it IS possible for adoptee to be a Parenthesized, and while under
+		// many circumstances, we would want to get the effective type, but here we want to log
+		// the actual type for debugging, so we use adoptee.type instead of the effective type.
+		log.info(`Moving ${adoptee.type} to under ${newKid.type}`);
 
 		// make a reference for convenience
 		const adopteesParent = adoptee.parent as Node;
@@ -1745,9 +1902,7 @@ export default class Parser {
 				// The currentRoot is dead (well, not really). Long live the currentRoot.
 				this.currentRoot = newKid;
 
-				if (this.debug) {
-					console.debug(`Parser: Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`);
-				}
+				log.info(`Finished moving this.currentRoot; this.currentRoot is now ${this.lineage(this.currentRoot)}`);
 
 				return ok(newKid);
 			case 'error':
@@ -1766,15 +1921,10 @@ export default class Parser {
 	 * @param adopter - The adopter
 	 * @param addToEnd - Whether to add to the end of the adopter's children. Default is true. If false, it will add to the beginning of the adopter's children.
 	 */
-	private adoptNode(adopteesParent: Node | undefined, adoptee: Node, adopter: Node, addToEnd = true): Result<undefined> {
+	private adoptNode(adopteesParent: Node | undefined, adoptee: Node, adopter: Node, addToEnd = true): Result<undefined, ParserError> {
 		if (typeof adopteesParent === 'undefined') {
 			return error(
-				new ParserError(
-					ParserErrorCode.MissingParentNode,
-					'Cannot find parent node',
-					this.currentRoot,
-					this.getErrorContext((adoptee.value || '').length),
-				),
+				ParserError.MissingParentNode('Cannot find parent node', this.currentRoot, this.ctx((adoptee.value || '').length)),
 			);
 		}
 
@@ -1796,6 +1946,9 @@ export default class Parser {
 			adopter.children.unshift(copy);
 		}
 
+		adopter.pos.start = Math.min(adopter.pos.start, adoptee.pos.start);
+		adopter.pos.end = Math.max(adopter.pos.end, adoptee.pos.end);
+
 		copy.parent = adopter;
 
 		return ok(undefined);
@@ -1805,11 +1958,7 @@ export default class Parser {
 	 * Runs when an expression has ended
 	 */
 	private endExpression() {
-		if (this.debug) {
-			console.debug(
-				`Parser: Ending a ${this.lineage(this.currentRoot)}; this.currentRoot is now ${this.lineage(this.currentRoot.parent)}`,
-			);
-		}
+		log.info(`Ending a ${this.lineage(this.currentRoot)}; this.currentRoot is now ${this.lineage(this.currentRoot.parent)}`);
 
 		// capure this one's pos.end
 		const nigh = this.currentRoot.pos.end;
@@ -1824,6 +1973,7 @@ export default class Parser {
 
 		// once up, update the currentRoot's pos.end with this one's pos.end
 		this.currentRoot.pos.end = nigh;
+		// this.updateEnds(nigh);
 	}
 
 	/**

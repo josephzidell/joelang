@@ -1,4 +1,4 @@
-import ErrorContext from '../shared/errorContext';
+import Context from '../shared/context';
 import { has, hasNot, Maybe } from '../shared/maybe';
 import { NumberSize, numberSizesAll } from '../shared/numbers/sizes';
 import { error, ok, Result } from '../shared/result';
@@ -52,7 +52,7 @@ export default class Lexer {
 	 *
 	 * @returns a Token
 	 */
-	getToken(): Result<Token> {
+	getToken(): Result<Token, LexerError> {
 		// get a char
 		this.char = this.code[this.cursorPosition];
 		if (typeof this.char === 'undefined') {
@@ -99,8 +99,8 @@ export default class Lexer {
 			return this.peekAndHandle(
 				{
 					[patterns.EQUALS]: 'forward_slash_equals',
-					[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processSingleLineComment()),
-					[patterns.ASTERISK]: (): Result<Token> => {
+					[patterns.FORWARD_SLASH]: (): Result<Token, LexerError> => ok(this.processSingleLineComment()),
+					[patterns.ASTERISK]: (): Result<Token, LexerError> => {
 						// continue as long there are no more chars, and the current char isn't an * and the following char isn't a /
 						const value = this.gobbleUntil(() => this.char === patterns.ASTERISK && this.peek() === patterns.FORWARD_SLASH);
 
@@ -279,7 +279,7 @@ export default class Lexer {
 		if (this.char === patterns.LESS_THAN) {
 			return this.peekAndHandle(
 				{
-					[patterns.EQUALS]: (): Result<Token> => {
+					[patterns.EQUALS]: (): Result<Token, LexerError> => {
 						return this.peekAndHandle(
 							{
 								[patterns.MORE_THAN]: 'compare', // <=>
@@ -371,7 +371,7 @@ export default class Lexer {
 
 			// confirm this is a closing quote
 			if (typeof this.char === 'undefined' || this.char !== quoteChar) {
-				return error(new LexerError('Syntax Error. Expected closing quote', this.tokens, this.getErrorContext(1)));
+				return error(new LexerError('L001', 'Syntax Error. Expected closing quote', this.tokens, this.ctx(1)));
 			}
 
 			// skip the closing quote char
@@ -470,8 +470,8 @@ export default class Lexer {
 		if (this.char === patterns.PERIOD) {
 			return this.peekAndHandle(
 				{
-					[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processPath()),
-					[patterns.PERIOD]: (): Result<Token> => {
+					[patterns.FORWARD_SLASH]: (): Result<Token, LexerError> => ok(this.processPath()),
+					[patterns.PERIOD]: (): Result<Token, LexerError> => {
 						return this.peekAndHandle(
 							{
 								[patterns.PERIOD]: 'dotdotdot',
@@ -492,7 +492,7 @@ export default class Lexer {
 		if (this.char === patterns.AT) {
 			return this.peekAndHandle(
 				{
-					[patterns.FORWARD_SLASH]: (): Result<Token> => ok(this.processPath()),
+					[patterns.FORWARD_SLASH]: (): Result<Token, LexerError> => ok(this.processPath()),
 				},
 				undefined,
 				line,
@@ -501,9 +501,7 @@ export default class Lexer {
 		}
 
 		// something we don't recognize
-		return error(
-			new LexerError(`Syntax Error. Unknown character: "${this.char}"`, this.tokens, this.getErrorContext(this.char.length)),
-		);
+		return error(new LexerError('L002', `Syntax Error. Unknown character: "${this.char}"`, this.tokens, this.ctx(this.char.length)));
 	}
 
 	public getAllTokens(): Result<Token[]> {
@@ -557,12 +555,12 @@ export default class Lexer {
 	 * @returns Result error if fallback is undefined and next char isn't defined in the map
 	 */
 	private peekAndHandle(
-		mapNextChar: Record<string, TokenType | (() => Result<Token>)>,
+		mapNextChar: Record<string, TokenType | (() => Result<Token, LexerError>)>,
 		fallback: TokenType | (() => Token) | undefined,
 		line: number,
 		col: number,
 		level = 1,
-	): Result<Token> {
+	): Result<Token, LexerError> {
 		const nextChar = this.peek(level);
 		if (typeof nextChar !== 'undefined' && typeof mapNextChar[nextChar] !== 'undefined') {
 			/* since there is a next char, everything in this block uses `level + 1`, since we're at the next char */
@@ -620,9 +618,10 @@ export default class Lexer {
 			// something we don't recognize
 			return error(
 				new LexerError(
+					'L003',
 					`Syntax Error. Unknown syntax: "${this.code.substring(this.cursorPosition, this.cursorPosition + level)}"`,
 					this.tokens,
-					this.getErrorContext(level),
+					this.ctx(level),
 				),
 			);
 		}
@@ -738,7 +737,7 @@ export default class Lexer {
 		return token;
 	}
 
-	processNumbers(): Result<Token> {
+	processNumbers(): Result<Token, LexerError> {
 		// capture these at the start of a potentially multi-character token
 		const [start, line, col] = [this.cursorPosition, this.line, this.col];
 
@@ -851,7 +850,7 @@ export default class Lexer {
 		return token;
 	}
 
-	getErrorContext(length: number): ErrorContext {
-		return new ErrorContext(this.code, this.line, this.col, length);
+	ctx(length: number): Context {
+		return new Context(this.code, this.line, this.col, length);
 	}
 }

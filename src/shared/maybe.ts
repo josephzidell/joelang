@@ -1,3 +1,5 @@
+import { Log } from './log';
+
 /**
  * This is an adaptation of the Maybe enum in Joelang
  */
@@ -57,22 +59,16 @@ export abstract class Maybe<T> {
 		return hasNot();
 	}
 
-	public debug() {
+	public debug(log: Log) {
 		if (this.has()) {
-			console.dir(
-				{
-					has: this._has,
-					value: this.value,
-				},
-				{ depth: null },
-			);
+			log.vars({
+				has: this._has,
+				value: this.value,
+			});
 		} else {
-			console.dir(
-				{
-					has: this._has,
-				},
-				{ depth: null },
-			);
+			log.vars({
+				has: this._has,
+			});
 		}
 	}
 

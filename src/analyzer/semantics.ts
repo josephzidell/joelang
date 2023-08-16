@@ -1,30 +1,38 @@
-import ErrorContext from '../shared/errorContext';
+import Context from '../shared/context';
 import { maybeIfNotUndefined } from '../shared/maybe';
 import { CreateResultFrom, Result, error, ok } from '../shared/result';
 import {
 	AST,
+	ASTArgumentsList,
+	ASTArrayExpression,
 	ASTCallExpression,
 	ASTClassDeclaration,
 	ASTEnumDeclaration,
+	ASTExtOrImpl,
 	ASTFunctionDeclaration,
 	ASTIdentifier,
 	ASTInterfaceDeclaration,
 	ASTMemberExpression,
 	ASTNumberLiteral,
+	ASTObjectExpression,
 	ASTParameter,
 	ASTPrintStatement,
 	ASTProgram,
 	ASTReturnStatement,
 	ASTStringLiteral,
 	ASTThisKeyword,
+	ASTTupleExpression,
 	ASTType,
 	ASTTypeInstantiationExpression,
+	ASTTypeList,
+	ASTTypeParameter,
 	ASTTypePrimitiveString,
 	ASTVariableDeclaration,
+	AssignableASTs,
 	MemberExpressionObjectASTs,
 } from './asts';
-import { findDuplicates, getErrorContext, getSingleInferredASTTypeFromASTAssignable, isAssignable, isTypeAssignable } from './helpers';
-import SemanticError, { SemanticErrorCode } from './semanticError';
+import Helpers from './helpers';
+import SemanticError from './semanticError';
 import SymbolError from './symbolError';
 import {
 	ClassSym,
@@ -40,8 +48,11 @@ import {
 	kindToSymMap,
 	symbolKinds,
 } from './symbolTable';
+import loggers from '../shared/log';
 
-type SemanticsOptions = Options & {
+const log = loggers.semantics;
+
+type SemanticsOptions = {
 	isASnippet: boolean;
 };
 
@@ -56,11 +67,15 @@ export default class Semantics {
 		this.options = options;
 	}
 
-	checkForErrors(): Result<unknown, SemanticError | SymbolError> {
+	public checkForErrors(): Result<unknown, SemanticError | SymbolError> {
+		const dedentFunc = log.indentWithInfo('begin ...');
+
 		// check for `main()`
 		if (!this.options.isASnippet) {
 			const result = this.mainFileMustHaveMainFunction(this.ast);
 			if (result.isError()) {
+				log.warnAndDedent(dedentFunc, result.error.message);
+
 				return result;
 			}
 		}
@@ -69,15 +84,25 @@ export default class Semantics {
 		for (const decl of this.ast.declarations) {
 			const result = this.checkASTNode(decl);
 			if (result.isError()) {
+				log.warnAndDedent(dedentFunc, result.error.message);
+
 				return result;
 			}
 		}
+
+		log.successAndDedent(dedentFunc, 'completed');
 
 		return ok(undefined);
 	}
 
 	private checkASTNode(ast: AST): Result<unknown, SemanticError | SymbolError> {
 		switch (ast.constructor) {
+			case ASTArrayExpression:
+				// if it's not empty, we can get the type from the first element
+				if ((ast as ASTArrayExpression<AssignableASTs>).items.length > 0) {
+					return this.checkArrayExpressionAndGetType(ast as ASTArrayExpression<AssignableASTs>);
+				}
+				break;
 			case ASTCallExpression:
 				return this.checkCallExpressionAndGetTypes(ast as ASTCallExpression);
 			case ASTClassDeclaration:
@@ -95,26 +120,19 @@ export default class Semantics {
 		}
 
 		// TODO this should go away once we've handled all AST types
-		return error(
-			new SemanticError(
-				SemanticErrorCode.Temp,
-				`Semantics.checkASTNode(${ast.constructor.name}) is unhandled`,
-				ast,
-				this.getErrorContext(ast),
-			),
-		);
+		return error(SemanticError.TODOThisIsTemp(`Semantics.checkASTNode(${ast.constructor.name}) is unhandled`, ast, this.ctx(ast)));
 	}
 
-	getSymTypeParams(value: SymbolInfo): ASTType[] {
+	private getSymTypeParams(value: SymbolInfo): ASTTypeList<ASTTypeParameter> {
 		const mapType: {
-			[key in keyof kindToSymMap]: (value: kindToSymMap[key]) => ASTType[];
+			[key in keyof kindToSymMap]: (value: kindToSymMap[key]) => ASTTypeList<ASTTypeParameter>;
 		} = {
-			class: (value: ClassSym): ASTType[] => value.typeParams,
-			enum: (value: EnumSym): ASTType[] => value.typeParams,
-			function: (value: FuncSym): ASTType[] => value.typeParams,
-			interface: (value: InterfaceSym): ASTType[] => value.typeParams,
-			parameter: (_value: ParamSym): ASTType[] => [], // TODO
-			variable: (_value: VarSym): ASTType[] => [], // TODO
+			class: (value: ClassSym): ASTTypeList<ASTTypeParameter> => value.typeParams,
+			enum: (value: EnumSym): ASTTypeList<ASTTypeParameter> => value.typeParams,
+			function: (value: FuncSym): ASTTypeList<ASTTypeParameter> => value.typeParams,
+			interface: (value: InterfaceSym): ASTTypeList<ASTTypeParameter> => value.typeParams,
+			parameter: (value: ParamSym): ASTTypeList<ASTTypeParameter> => ASTTypeList.empty(value.pos), // TODO
+			variable: (value: VarSym): ASTTypeList<ASTTypeParameter> => ASTTypeList.empty(value.pos), // TODO
 		};
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -123,74 +141,146 @@ export default class Semantics {
 	}
 
 	/**
+	 * Checks an array expression and returns the type of the values.
+	 *
+	 * @param ast
+	 * @returns The return type of the array
+	 */
+	private checkArrayExpressionAndGetType(ast: ASTArrayExpression<AssignableASTs>): Result<ASTType, SemanticError | SymbolError> {
+		// if there's at least one item, use that to infer the type
+		if (ast.items.length > 0) {
+			const result = this.checkASTNode(ast.items[0]);
+			if (result.isError()) {
+				return result;
+			}
+
+			return Helpers.inferType(ast.items[0], this.ctx(ast.items[0]));
+		}
+
+		/**
+		 * otherwise, check the context. Traversing up the tree, check for a number of possiblities:
+		 * 1. In a Variable declaration - get type from declaration
+		 * 2. Passed as an argument - get type from param
+		 * 3. In an array, object, tuple - get type from shape
+		 */
+
+		const parent = ast.parent;
+		if (typeof parent === 'undefined') {
+			// if the parent is undefined and there are no items in the array, we cannot determine the type
+			return error(SemanticError.CouldNotInferType('array', ast, this.ctx(ast)));
+		}
+
+		switch (parent.constructor) {
+			case ASTVariableDeclaration: {
+				const varDecl = parent as ASTVariableDeclaration;
+
+				// get the index of this array in the (potentially) multi-valued declaration
+				const index = varDecl.initialValues.findIndex((initialValue) => initialValue === ast);
+
+				// get the declared type
+				// TODO handle ASTCallExpressions that have multiple return types
+				const type = varDecl.declaredTypes[index];
+
+				return ok(type);
+			}
+			case ASTArgumentsList: {
+				// get the callExpression
+				// const callExpr = parent as ASTCallExpression;
+
+				// TODO do similar work as in checkCallExpressionAndGetTypes()
+
+				return error(
+					SemanticError.TODOThisIsTemp(
+						'semantics.checkArrayExpressionAndGetType() for an ASTArgumentsList',
+						ast,
+						this.ctx(parent),
+					),
+				);
+			}
+			case ASTArrayExpression: {
+				// get the parent's array's type since the "type" in the array is the type of all children
+				// this potentially can go up the chain and/or lead to other cases in this switch
+				return this.checkArrayExpressionAndGetType(parent as ASTArrayExpression<AssignableASTs>);
+			}
+			case ASTObjectExpression: {
+				return error(
+					SemanticError.TODOThisIsTemp(
+						'semantics.checkArrayExpressionAndGetType() for an ASTObjectExpression',
+						ast,
+						this.ctx(parent),
+					),
+				);
+			}
+			case ASTTupleExpression: {
+				return error(
+					SemanticError.TODOThisIsTemp(
+						'semantics.checkArrayExpressionAndGetType() for an ASTTupleExpression',
+						ast,
+						this.ctx(parent),
+					),
+				);
+			}
+		}
+
+		return error(
+			SemanticError.TODOThisIsTemp(
+				`semantics.checkArrayExpressionAndGetType() for an ${parent.constructor.name}`,
+				ast,
+				this.ctx(parent),
+			),
+		);
+	}
+
+	/**
 	 * Checks a call expression and returns the return types of the function.
 	 *
 	 * @param ast
 	 * @returns The return types of the function
 	 */
-	checkCallExpressionAndGetTypes(ast: ASTCallExpression): Result<ASTType[], SemanticError | SymbolError> {
+	private checkCallExpressionAndGetTypes(ast: ASTCallExpression): Result<ASTTypeList<ASTType>, SemanticError | SymbolError> {
 		let sym: FuncSym;
-		let calleeTypeParams: ASTType[] = [];
-		let returnTypes: ASTType[] = [];
+		let calleeTypeParams: ASTTypeList<ASTTypeParameter> = ASTTypeList.empty(ast.pos);
 
 		if (ast.callee.constructor === ASTIdentifier) {
-			const calleeResult = this.getSymbolForIdentifier(ast.callee, 'identifier', ['function']);
-			if (calleeResult.isError()) {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.FunctionNotFound,
-						`Function '${(ast.callee as ASTIdentifier).name}' not found`,
-						ast,
-						this.getErrorContext(ast),
-					),
-				);
+			const funcSymResult = this.getSymbolForIdentifier(ast.callee, ['function']);
+			if (funcSymResult.isError()) {
+				return error(SemanticError.NotFound('function', (ast.callee as ASTIdentifier).name, ast, this.ctx(ast.callee)));
 			}
 
 			// TODO: call a var that's assigned a func. `const foo = f {}; foo();`
-			sym = calleeResult.value;
-			calleeTypeParams = calleeResult
-				.mapValue<ASTType[]>((value: SymbolInfo) => this.getSymTypeParams(value))
-				.unwrapOr<ASTType[]>([]);
-			returnTypes = sym.returnTypes;
+			sym = funcSymResult.value;
+			calleeTypeParams = funcSymResult
+				.mapValue<ASTTypeList<ASTTypeParameter>>((value: SymbolInfo) => this.getSymTypeParams(value))
+				.unwrapOr<ASTTypeList<ASTTypeParameter>>(ASTTypeList.empty(ast.pos));
+
+			return ok(sym.returnTypes);
 		} else if (ast.callee.constructor === ASTCallExpression) {
 			// TODO check: f foo -> f {return f {};}
 			return error(
-				new SemanticError(
-					SemanticErrorCode.ThisIsImpossible,
-					'Impossible: A call expression cannot have a call expression as its callee',
-					ast,
-					this.getErrorContext(ast),
-				),
+				SemanticError.Impossible('A call expression cannot have a call expression as its callee', ast, this.ctx(ast.callee)),
 			);
 		} else if (ast.callee.constructor === ASTMemberExpression) {
-			const result = this.checkMemberExpressionAndGetTypes(ast.callee);
+			const result = this.checkMemberExpressionAndGetType(ast.callee);
 			if (result.isError()) {
 				return result;
 			}
 
-			const [types, symbolInfo] = result.value;
+			const [, symbolInfo] = result.value;
 
 			if (symbolInfo.kind !== 'function') {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.CallExpressionNotAFunction,
-						`Cannot call '${ast.callee}' because it is not a function`,
-						ast,
-						this.getErrorContext(ast),
-					),
-				);
+				return error(SemanticError.CallExpressionNotAFunction(ast.callee.toString(), ast, this.ctx(ast.callee)));
 			}
 
 			sym = symbolInfo;
-			calleeTypeParams = types;
-			returnTypes = sym.returnTypes;
+			calleeTypeParams = this.getSymTypeParams(sym);
+
+			return ok(sym.returnTypes);
 		} else if (ast.callee.constructor === ASTTypeInstantiationExpression) {
 			return error(
-				new SemanticError(
-					SemanticErrorCode.ThisIsImpossible,
-					'Impossible: A call expression cannot have a type instantiation expression as its callee',
+				SemanticError.Impossible(
+					'A call expression cannot have a type instantiation expression as its callee',
 					ast,
-					this.getErrorContext(ast),
+					this.ctx(ast.callee),
 				),
 			);
 		}
@@ -199,31 +289,25 @@ export default class Semantics {
 		if (ast.typeArgs.length > 0) {
 			// get the callee's type parameters
 			// check number of type args matches number of type params
-			if (calleeTypeParams.length !== ast.typeArgs.length) {
+			if (calleeTypeParams.items.length !== ast.typeArgs.length) {
 				return error(
-					new SemanticError(
-						SemanticErrorCode.TypeArgumentsLengthMismatch,
-						`Semantic: Expected ${calleeTypeParams.length} type arguments, but got ${ast.typeArgs.length}`,
+					SemanticError.TypeArgumentsLengthMismatch(
+						calleeTypeParams.items.length,
+						ast.typeArgs.length,
+						'type arguments',
 						ast,
-						this.getErrorContext(ast),
+						this.ctx(ast),
 					),
 				);
-			} else {
-				// check whether type args are assignable to type params
-				for (const [index, typeArg] of ast.typeArgs.entries()) {
-					const typeParam = calleeTypeParams[index];
+			}
 
-					// TODO check type arg is assignable to type param
-					if (!isTypeAssignable(typeArg, typeParam, this.options)) {
-						return error(
-							new SemanticError(
-								SemanticErrorCode.TypeArgumentNotAssignable,
-								`Semantic: Type argument ${typeArg} is not assignable to type parameter ${typeParam}`,
-								ast,
-								this.getErrorContext(ast),
-							),
-						);
-					}
+			// check whether type args are assignable to type params
+			for (const [index, typeArg] of ast.typeArgs.entries()) {
+				const typeParam = calleeTypeParams.items[index];
+
+				// TODO check type arg is assignable to type param
+				if (!Helpers.isTypeAssignable(typeArg, typeParam, typeArg, this.ctx(typeArg))) {
+					return error(SemanticError.NotAssignable.TypeArgument(typeArg, typeParam, ast, this.ctx(typeArg)));
 				}
 			}
 		}
@@ -235,33 +319,27 @@ export default class Semantics {
 				return result;
 			}
 
-			const [isReturnValAssignable] = isAssignable(arg, sym!.params[index].type!, this.options);
-			if (!isReturnValAssignable) {
+			const isValAssignable = Helpers.isAssignable(arg, sym!.params.items[index].type!, arg, this.ctx(arg));
+			if (isValAssignable.isError()) {
 				return error(
-					new SemanticError(
-						SemanticErrorCode.ArgumentNotAssignable,
-						`Semantic: ${arg} is not assignable to parameter ${sym!.params[index]}`,
-						ast,
-						this.getErrorContext(ast),
-					),
+					SemanticError.NotAssignable.Argument(arg, sym!.params.items[index], ast, this.ctx(arg), isValAssignable.error),
 				);
 			}
 		}
 
-		return ok(returnTypes);
+		// TODO check this over
+		return error(SemanticError.CallExpressionNotAFunction(ast.callee.toString(), ast, this.ctx(ast)));
 	}
 
-	checkClassDeclaration(ast: ASTClassDeclaration): Result<undefined, SemanticError | SymbolError> {
+	private checkClassDeclaration(ast: ASTClassDeclaration): Result<undefined, SemanticError | SymbolError> {
 		const defer = () => {
 			// exit the class's scope
 			SymbolTable.tree.exit();
 		};
 
-		if (this.options.debug) {
-			console.log(`IR Converter: converting ClassDeclaration ${ast.name.fqn}`);
-		}
+		log.info(`checking ClassDeclaration ${ast.name.fqn}`);
 
-		const wasAbleToEnter = SymbolTable.tree.enter(ast.name.fqn);
+		const wasAbleToEnter = SymbolTable.tree.enter(ast.name.name);
 		if (wasAbleToEnter.isError()) {
 			defer();
 
@@ -273,8 +351,29 @@ export default class Semantics {
 		// TODO check type parameters
 
 		// TODO check extends
+		for (const ext of ast.extends.items) {
+			const classSymResult = this.getSymbolForClassExt(ext);
+			if (classSymResult.isError()) {
+				defer();
+
+				return classSymResult;
+			}
+
+			// TODO check that the class can be extended
+		}
 
 		// TODO check implements
+		// for (const impl of ast.implements.items) {
+		// 	const interfaceSymResult = this.getSymbolForClassImpl(impl);
+		// 	if (interfaceSymResult.isError()) {
+		// 		defer();
+
+		// 		return interfaceSymResult;
+		// 	}
+
+		// TODO check that the interface can be implemented
+		// TODO check that the class implements all the interface's methods correctly
+		// }
 
 		for (const expr of ast.body.expressions) {
 			const result = this.checkASTNode(expr);
@@ -290,18 +389,66 @@ export default class Semantics {
 		return ok(undefined);
 	}
 
-	checkFunctionDeclaration(ast: ASTFunctionDeclaration): Result<undefined, SemanticError | SymbolError> {
+	private getSymbolForClassExt(ext: ASTExtOrImpl): Result<ClassSym, SemanticError> {
+		// the possible types of ext are: ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression
+
+		switch (ext.constructor) {
+			case ASTIdentifier: {
+				const identifier = ext as ASTIdentifier;
+
+				const extResult = this.getSymbolForIdentifier(identifier, ['class']);
+				if (extResult.isError()) {
+					return error(SemanticError.NotFound('class', identifier.name, identifier, this.ctx(identifier), extResult.error));
+				}
+
+				return ok(extResult.value);
+			}
+			case ASTMemberExpression: {
+				const memberExpr = ext as ASTMemberExpression;
+
+				const extResult = this.checkMemberExpressionAndGetType(memberExpr);
+				if (extResult.isError()) {
+					return error(
+						SemanticError.NotFound(
+							'class',
+							`${memberExpr.object.toString()}.${memberExpr.property.toString()}`,
+							memberExpr,
+							this.ctx(memberExpr),
+							extResult.error,
+						),
+					);
+				}
+
+				// check recursively
+				const [, symbolInfo] = extResult.value;
+				if (symbolInfo.kind !== 'class') {
+					return error(SemanticError.NotAClass(memberExpr, memberExpr, this.ctx(memberExpr)));
+				}
+
+				return ok(symbolInfo);
+			}
+			case ASTTypeInstantiationExpression: {
+				const typeInstExpr = ext as ASTTypeInstantiationExpression;
+
+				return this.getSymbolForClassExt(typeInstExpr.base);
+			}
+		}
+
+		return error(SemanticError.Impossible(`Unknown class extension type ${ext.constructor.name}`, ext, this.ctx(ext)));
+	}
+
+	private checkFunctionDeclaration(ast: ASTFunctionDeclaration): Result<undefined, SemanticError | SymbolError> {
 		const defer = () => {
 			// exit the function's scope
 			SymbolTable.tree.exit();
 		};
 
-		if (this.options.debug) {
-			console.log(`IR Converter: converting FunctionDeclaration ${ast.name.fqn}`);
-		}
+		const dedentFunc = log.indentWithInfo('checking FunctionDeclaration', ast.name.fqn);
 
-		const wasAbleToEnter = SymbolTable.tree.enter(ast.name.fqn);
+		const wasAbleToEnter = SymbolTable.tree.enter(ast.name.name);
 		if (wasAbleToEnter.isError()) {
+			log.warnAndDedent(dedentFunc, 'could not enter function scope');
+
 			defer();
 
 			return wasAbleToEnter;
@@ -312,6 +459,8 @@ export default class Semantics {
 		// check parameters
 		const result = this.checkParametersList(ast.params);
 		if (result.isError()) {
+			log.warnAndDedent(dedentFunc, 'could not check parameters');
+
 			defer();
 
 			return result;
@@ -322,6 +471,8 @@ export default class Semantics {
 			if (expr.constructor === ASTReturnStatement) {
 				const result = this.checkReturnStatement(expr, ast.returnTypes);
 				if (result.isError()) {
+					log.warnAndDedent(dedentFunc, 'Error checking return statement');
+
 					defer();
 
 					return result;
@@ -334,38 +485,42 @@ export default class Semantics {
 			// check any other statements
 			const result = this.checkASTNode(expr);
 			if (result.isError()) {
+				log.warnAndDedent(dedentFunc, 'Error checking', expr.toString());
+
 				defer();
 
 				return result;
 			}
 		}
 
+		log.successAndDedent(dedentFunc, ast.name.fqn, 'all good');
+
 		defer();
 
 		return ok(undefined);
 	}
 
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['class']): Result<ClassSym, SemanticError>;
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['enum']): Result<EnumSym, SemanticError>;
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['function']): Result<FuncSym, SemanticError>;
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['interface']): Result<InterfaceSym, SemanticError>;
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['parameter']): Result<ParamSym, SemanticError>;
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: ['variable']): Result<VarSym, SemanticError>;
-	public getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: SymbolKind[]): Result<SymbolInfo, SemanticError>;
-	getSymbolForIdentifier(ast: ASTIdentifier, word: string, symKinds: SymbolKind[]): Result<SymbolInfo, SemanticError> {
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: ['class']): Result<ClassSym, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: ['enum']): Result<EnumSym, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: ['function']): Result<FuncSym, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: ['interface']): Result<InterfaceSym, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: ['parameter']): Result<ParamSym, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: ['variable']): Result<VarSym, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: SymbolKind[]): Result<SymbolInfo, SemanticError>;
+	private getSymbolForIdentifier(ast: ASTIdentifier, symKinds: SymbolKind[]): Result<SymbolInfo, SemanticError> {
 		return CreateResultFrom.maybe(
-			SymbolTable.lookup(ast.fqn, symKinds, this.options),
-			new SemanticError(SemanticErrorCode.FunctionNotFound, `${word} ${ast.fqn} not found`, ast, this.getErrorContext(ast)),
+			SymbolTable.lookup(ast.fqn, symKinds),
+			SemanticError.UnrecognizedIdentifier(ast.fqn, ast, this.ctx(ast)),
 		);
 	}
 
-	getASTTypes(ast: AST, sym: SymbolInfo): ASTType[] {
+	private getASTTypes(ast: AST, sym: SymbolInfo): ASTType[] {
 		const mapType: {
 			[key in keyof kindToSymMap]: (value: kindToSymMap[key]) => ASTType[];
 		} = {
 			class: (_value: ClassSym): ASTType[] => [(ast as ASTClassDeclaration).name],
 			enum: (_value: EnumSym): ASTType[] => [(ast as ASTEnumDeclaration).name],
-			function: (_value: FuncSym): ASTType[] => (ast as ASTFunctionDeclaration).returnTypes,
+			function: (_value: FuncSym): ASTType[] => (ast as ASTFunctionDeclaration).returnTypes.items,
 			interface: (_value: InterfaceSym): ASTType[] => [(ast as ASTInterfaceDeclaration).name],
 
 			// by the time we get here, the declared type will have been set, either by the user
@@ -385,7 +540,7 @@ export default class Semantics {
 	 * @param ast
 	 * @returns The type of the member expression, and the symbol info of the member expression
 	 */
-	checkMemberExpressionAndGetTypes(ast: ASTMemberExpression): Result<[ASTType[], SymbolInfo], SemanticError> {
+	private checkMemberExpressionAndGetType(ast: ASTMemberExpression): Result<[ASTType, SymbolInfo], SemanticError> {
 		/**
 		 * The object could be one of several things:
 		 * - a class
@@ -399,7 +554,7 @@ export default class Semantics {
 		 * If it's an enum, we need to check the property against the enum's values.
 		 * If it's an array, we need to check the property against the array's values.
 		 * If it's a string, we need to get a substring.
-		 * If it's a tuple, we need to check the property against the tuple's values.
+		 * If it's a tuple, we need to check the index against the tuple's values.
 		 * If it's an object, we need to check the property against the object's properties.
 		 */
 
@@ -439,79 +594,57 @@ export default class Semantics {
 
 				// default to an error
 				return error(
-					new SemanticError(
-						SemanticErrorCode.MemberExpressionObjectNotSupported,
-						// TODO change this error message
-						`Semantic TODO: checkMemberExpressionAndGetTypes() ASTIdentifier property needs to support ${symNode.kind}`,
+					SemanticError.TODOThisIsTemp(
+						`checkMemberExpressionAndGetTypes() ASTIdentifier property needs to support ${symNode.kind}`,
 						ast,
-						this.getErrorContext(ast),
+						this.ctx(expr),
 					),
 				);
 			}
 		}
 
 		return error(
-			new SemanticError(
-				SemanticErrorCode.MemberExpressionObjectNotSupported,
-				// TODO change this error message
-				`Semantic TODO: checkMemberExpressionAndGetTypes() property needs to support ${ast.property.constructor.name}`,
+			SemanticError.TODOThisIsTemp(
+				`checkMemberExpressionAndGetTypes() property needs to support ${ast.property.constructor.name}`,
 				ast,
-				this.getErrorContext(ast),
+				this.ctx(ast.property),
 			),
 		);
 	}
 
 	private _unpackMemberExpressions = {
-		class: (classSymNode: SymNode, expr: ASTIdentifier): Result<[ASTType[], SymbolInfo], SemanticError> => {
+		class: (classSymNode: SymNode, expr: ASTIdentifier): Result<[ASTType, SymbolInfo], SemanticError> => {
 			// check the property
 			const maybeSymbolInfo = classSymNode.get(expr.fqn, symbolKinds);
 			if (!maybeSymbolInfo.has()) {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.MemberExpressionPropertyNotFound,
-						`Semantic: Property ${expr.fqn} not found`,
-						expr,
-						this.getErrorContext(expr),
-					),
-				);
+				return error(SemanticError.NotFound('Property', expr.fqn, expr, this.ctx(expr)));
 			}
 
 			const symbolInfo = maybeSymbolInfo.value;
 			switch (symbolInfo.kind) {
 				case 'class':
 				case 'enum':
-					return ok([[expr], symbolInfo]);
+					return ok([expr, symbolInfo]);
 				case 'function':
 					return ok([symbolInfo.returnTypes, symbolInfo]);
 				case 'variable':
-					return ok([[symbolInfo.type], symbolInfo]);
+					return ok([symbolInfo.type, symbolInfo]);
 			}
 
-			return error(
-				new SemanticError(
-					SemanticErrorCode.MemberExpressionPropertyNotSupported,
-					`Semantic: Class property type ${symbolInfo.kind} not supported`,
-					expr,
-					this.getErrorContext(expr),
-				),
-			);
+			// even though we're using a symbol kind here, it's still a SemanticError
+			return error(SemanticError.ClassPropertyKindNotSupported(symbolInfo.kind, expr, this.ctx(expr)));
 		},
 	};
 
-	checkMemberExpressionObjectASTAndGetSymNode(obj: MemberExpressionObjectASTs): Result<SymNode, SemanticError> {
+	private checkMemberExpressionObjectASTAndGetSymNode(obj: MemberExpressionObjectASTs): Result<SymNode, SemanticError> {
 		switch (obj.constructor) {
 			case ASTCallExpression:
 				break;
 			case ASTIdentifier: {
 				const expr = obj as ASTIdentifier;
 				return CreateResultFrom.maybe(
-					SymbolTable.lookupSymNode(expr.fqn, symbolKinds, this.options),
-					new SemanticError(
-						SemanticErrorCode.MemberExpressionObjectNotSupported,
-						`Semantic: Object ${expr.fqn} not found`,
-						obj,
-						this.getErrorContext(obj),
-					),
+					SymbolTable.lookupSymNode(expr.fqn, symbolKinds),
+					SemanticError.NotFound('Object', expr.fqn, obj, this.ctx(expr)),
 				);
 			}
 			case ASTMemberExpression:
@@ -522,65 +655,35 @@ export default class Semantics {
 				break;
 		}
 
-		return error(
-			new SemanticError(
-				SemanticErrorCode.MemberExpressionObjectNotSupported,
-				`Semantic: Member expression object ${obj} not supported`,
-				obj,
-				this.getErrorContext(obj),
-			),
-		);
+		return error(SemanticError.MemberExpressionObjectNotSupported(obj, obj, this.ctx(obj)));
 	}
 
-	checkParametersList(asts: ASTParameter[]): Result<undefined, SemanticError> {
+	private checkParametersList(paramsList: ASTTypeList<ASTParameter>): Result<undefined, SemanticError> {
+		const asts = paramsList.items;
 		// ensure rest param is at end
 		const restIndex = asts.findIndex((ast) => ast.isRest);
 		if (restIndex > -1 && restIndex < asts.length - 1) {
-			return error(
-				new SemanticError(
-					SemanticErrorCode.ParameterNotExpected,
-					'Semantic: A rest parameter must be the last one',
-					asts[restIndex],
-					this.getErrorContext(asts[restIndex]),
-				),
-			);
+			return error(SemanticError.RestParameterMustBeAtEnd(asts[restIndex], this.ctx(asts[restIndex])));
 		}
 
 		// params cannot have the same names
-		for (const dup of findDuplicates(asts.map((ast) => ast.name.name)).flat()) {
-			return error(
-				new SemanticError(
-					SemanticErrorCode.DuplicateIdentifier,
-					`Semantic: Duplicate identifier found ${asts[dup].name.name}`,
-					asts[dup],
-					this.getErrorContext(asts[dup]),
-				),
-			);
+		for (const dup of Helpers.findDuplicates(asts.map((ast) => ast.name.name)).flat()) {
+			// will return on the first instance
+			return error(SemanticError.DuplicateIdentifier(asts[dup].name.name, asts[dup], this.ctx(asts[dup])));
 		}
 
 		for (const ast of asts) {
-			// ensure each param has either a type or a default value
-			if (typeof ast.type === 'undefined' && typeof ast.defaultValue === 'undefined') {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.ParameterNotExpected,
-						'Semantic: Parameter must have either a type or a default value',
-						ast,
-						this.getErrorContext(ast),
-					),
-				);
-			}
-
-			// if it has both, check that the default value is assignable to the type
-			if (typeof ast.type !== 'undefined' && typeof ast.defaultValue !== 'undefined') {
-				const [isReturnValAssignable] = isAssignable(ast.defaultValue, ast.type, this.options);
-				if (!isReturnValAssignable) {
+			// if it has a default value, check it is assignable to the type
+			if (typeof ast.defaultValue !== 'undefined') {
+				const isValAssignable = Helpers.isAssignable(ast.defaultValue, ast.type, ast, this.ctx(ast.defaultValue));
+				if (isValAssignable.isError()) {
 					return error(
-						new SemanticError(
-							SemanticErrorCode.TypeNotAssignable,
-							`Semantic: Default value ${ast.defaultValue} is not assignable to type ${ast.type}`,
+						SemanticError.NotAssignable.Type(
+							ast.defaultValue,
+							ast.type,
 							ast,
-							this.getErrorContext(ast),
+							this.ctx(ast.defaultValue),
+							isValAssignable.error,
 						),
 					);
 				}
@@ -588,135 +691,98 @@ export default class Semantics {
 
 			// if it has a default value but not a type, check that there is only one inferred type
 			if (typeof ast.type === 'undefined' && typeof ast.defaultValue !== 'undefined') {
-				const singleInferredTypeResult = getSingleInferredASTTypeFromASTAssignable(
-					ast.defaultValue,
-					new SemanticError(
-						SemanticErrorCode.TypeNotAssignable,
-						`Semantic: Default value ${ast.defaultValue} has more than one possible type`,
-						ast,
-						this.getErrorContext(ast),
-					),
-					this.options,
-				);
-				if (singleInferredTypeResult.isError()) {
-					return singleInferredTypeResult;
+				const typeResult = Helpers.inferType(ast.defaultValue, this.ctx(ast.defaultValue));
+				if (typeResult.isError()) {
+					return typeResult;
 				}
 
-				// set the type to the (only) inferred type
-				ast.type = singleInferredTypeResult.value;
+				// set the type to the inferred type
+				ast.type = typeResult.value;
 			}
 		}
 
 		return ok(undefined);
 	}
 
-	checkPrintStatement(ast: ASTPrintStatement): Result<undefined, SemanticError> {
+	private checkPrintStatement(ast: ASTPrintStatement): Result<undefined, SemanticError> {
 		// ensure all expressions are assignable to a string
 		for (const [, expr] of ast.expressions.entries()) {
-			const [isReturnValAssignable] = isAssignable(expr, ASTTypePrimitiveString(ast.pos), this.options);
-			if (!isReturnValAssignable) {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.TypeNotAssignable,
-						`Semantic: Print expression ${expr} cannot be converted to a string`,
-						ast,
-						this.getErrorContext(ast),
-					),
-				);
+			const isValAssignable = Helpers.isAssignable(expr, ASTTypePrimitiveString(ast.pos, ast), expr, this.ctx(expr));
+			if (!isValAssignable) {
+				return error(SemanticError.CastNotDefined(expr, ASTTypePrimitiveString(ast.pos, ast), ast, this.ctx(expr)));
 			}
 		}
 
 		return ok(undefined);
 	}
 
-	checkReturnStatement(ast: ASTReturnStatement, returnTypes: ASTType[]): Result<undefined, SemanticError> {
+	private checkReturnStatement(ast: ASTReturnStatement, returnTypes: ASTTypeList<ASTType>): Result<undefined, SemanticError> {
 		// check number of type args matches number of type params
-		if (ast.expressions.length !== returnTypes.length) {
+		if (ast.expressions.length !== returnTypes.items.length) {
 			return error(
-				new SemanticError(
-					SemanticErrorCode.TypeArgumentsLengthMismatch,
-					`Semantic: Expected ${returnTypes.length} expressions, but got ${ast.expressions.length}`,
+				SemanticError.TypeArgumentsLengthMismatch(
+					returnTypes.items.length,
+					ast.expressions.length,
+					'expressions',
 					ast,
-					this.getErrorContext(ast),
+					this.ctx(ast),
 				),
 			);
 		}
 
 		// ensure all expressions are assignable to the return types
 		for (const [index, expr] of ast.expressions.entries()) {
-			const [isReturnValAssignable] = isAssignable(expr, returnTypes[index], this.options);
-			if (!isReturnValAssignable) {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.TypeNotAssignable,
-						`Semantic: Return expression ${expr} is not assignable to type ${returnTypes[index]}`,
-						ast,
-						this.getErrorContext(ast),
-					),
-				);
+			const isValAssignable = Helpers.isAssignable(expr, returnTypes.items[index], expr, this.ctx(expr));
+			if (isValAssignable.isError()) {
+				// return error(SemanticError.NotAssignable.Value(expr, returnTypes.items[index], ast, this.ctx(expr), isValAssignable.error));
+				// the original error is more useful
+				return isValAssignable;
 			}
 		}
 
 		return ok(undefined);
 	}
 
-	checkVariableDeclaration(ast: ASTVariableDeclaration): Result<undefined, SemanticError> {
-		for (const [index] of ast.identifiersList.entries()) {
+	// private checkTypeInstantiationExpression(ast: ASTTypeInstantiationExpression): Result<ASTType, SemanticError> {
+	// 	if (baseTypeResult.isError()) {
+	// 		return baseTypeResult;
+	// 	}
+
+	// 	// get the type arguments
+	// 	const typeArgumentsResults = typeInstantiationExpr.typeArgs.map((typeArg) => Helpers.inferType(typeArg, ctx));
+	// 	if (typeArgumentsResults.some((result) => result.isError())) {
+	// 		// set the first type as the type, it doesn't matter since this is an error
+	// 		return CreateResultFrom.arrayOfResults(typeArgumentsResults).mapValue((results) => results[0]);
+	// 	}
+
+	// 	// get the type parameters
+	// 	const typeParameters = baseTypeResult.value;
+
+	// }
+
+	private checkVariableDeclaration(ast: ASTVariableDeclaration): Result<undefined, SemanticError> {
+		for (const [index, identifier] of ast.identifiersList.entries()) {
 			const declaredType = ast.declaredTypes[index];
 			const defaultValue = ast.initialValues[index];
 
-			// ensure each has either a type or a default value
+			// check if there is neither a declared type nor a default value
 			if (typeof declaredType === 'undefined' && typeof defaultValue === 'undefined') {
-				return error(
-					new SemanticError(
-						SemanticErrorCode.ParameterNotExpected,
-						'Semantic: Parameter must have either a type or a default value',
-						ast,
-						this.getErrorContext(ast),
-					),
-				);
+				return error(SemanticError.VariableDeclarationTypeNotDefined(identifier, this.ctx(identifier)));
 			}
 
-			// if it has both, check that the default value is assignable to the type
-			if (typeof declaredType !== 'undefined' && typeof defaultValue !== 'undefined') {
-				const [isReturnValAssignable] = isAssignable(defaultValue, declaredType, this.options);
-				if (!isReturnValAssignable) {
-					return error(
-						new SemanticError(
-							SemanticErrorCode.TypeNotAssignable,
-							`Semantic: Default value ${defaultValue} is not assignable to type ${declaredType}`,
-							ast,
-							this.getErrorContext(ast),
-						),
-					);
+			// if it has a default value, check that it is assignable to the type
+			if (typeof defaultValue !== 'undefined') {
+				const isValAssignable = Helpers.isAssignable(defaultValue, declaredType, identifier, this.ctx(defaultValue));
+				if (!isValAssignable) {
+					return error(SemanticError.NotAssignable.Value(defaultValue, declaredType, ast, this.ctx(defaultValue)));
 				}
-			}
-
-			// if it has a default value but not a type, check that there is only one inferred type
-			if (typeof declaredType === 'undefined' && typeof defaultValue !== 'undefined') {
-				const singleInferredTypeResult = getSingleInferredASTTypeFromASTAssignable(
-					defaultValue,
-					new SemanticError(
-						SemanticErrorCode.TypeNotAssignable,
-						`Semantic: Default value ${defaultValue} has more than one possible type`,
-						ast,
-						this.getErrorContext(ast),
-					),
-					this.options,
-				);
-				if (singleInferredTypeResult.isError()) {
-					return singleInferredTypeResult;
-				}
-
-				// set the declared type to the (only) inferred type
-				ast.declaredTypes[index] = singleInferredTypeResult.value;
 			}
 		}
 
 		return ok(undefined);
 	}
 
-	mainFileMustHaveMainFunction(ast: ASTProgram): Result<undefined, SemanticError> {
+	private mainFileMustHaveMainFunction(ast: ASTProgram): Result<undefined, SemanticError> {
 		const mainFunction = maybeIfNotUndefined(
 			ast.declarations.find((decl) => {
 				return decl instanceof ASTFunctionDeclaration && decl.name?.name === 'main';
@@ -724,42 +790,23 @@ export default class Semantics {
 		);
 
 		if (!mainFunction.has()) {
-			return error(new SemanticError(SemanticErrorCode.FunctionNotFound, 'No main() function found', ast, this.getErrorContext(ast)));
+			return error(SemanticError.NotFound('function', 'main()', ast, this.ctx(ast)));
 		}
 
 		// check that `main()` has no type parameters
-		if (mainFunction.value.typeParams.length > 0) {
-			return error(
-				new SemanticError(
-					SemanticErrorCode.TypeParametersNotExpected,
-					'main() function cannot have type parameters',
-					ast,
-					this.getErrorContext(mainFunction.value.typeParams[0]),
-				),
-			);
+		if (mainFunction.value.typeParams.items.length > 0) {
+			return error(SemanticError.TypeParametersNotExpected('main()', ast, this.ctx(mainFunction.value.typeParams.items[0])));
 		}
 
 		// check that `main()` has no parameters
-		if (mainFunction.value.params.length > 0) {
-			return error(
-				new SemanticError(
-					SemanticErrorCode.ParameterNotExpected,
-					'main() function cannot have parameters',
-					ast,
-					this.getErrorContext(mainFunction.value.params[0]),
-				),
-			);
+		if (mainFunction.value.params.items.length > 0) {
+			return error(SemanticError.ParameterNotExpected('main()', ast, this.ctx(mainFunction.value.params.items[0])));
 		}
 
 		// check that `main()` has no return type
-		if (mainFunction.value.returnTypes.length > 0) {
+		if (mainFunction.value.returnTypes.items.length > 0) {
 			return error(
-				new SemanticError(
-					SemanticErrorCode.ReturnTypeNotExpected,
-					'main() function cannot have a return type',
-					mainFunction.value,
-					this.getErrorContext(mainFunction.value.returnTypes[0]),
-				),
+				SemanticError.ReturnTypeNotExpected('main()', mainFunction.value, this.ctx(mainFunction.value.returnTypes.items[0])),
 			);
 		}
 
@@ -773,7 +820,7 @@ export default class Semantics {
 	 * method should still be used, and pass in `child || node`, so we have
 	 * at least closely-relevant positional information.
 	 */
-	getErrorContext(ast: AST): ErrorContext {
-		return getErrorContext(this.loc[ast.pos.line - 1], ast.pos.line, ast.pos.col, 1); // TODO fix length
+	private ctx(ast: AST): Context {
+		return new Context(this.loc[ast.pos.line - 1], ast.pos.line, ast.pos.col, ast.pos.end - ast.pos.start);
 	}
 }

@@ -1,6 +1,6 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-	setupFilesAfterEnv: ['./setupJest.ts'],
+	setupFilesAfterEnv: ['./jestSetup.ts'],
 	preset: 'ts-jest',
 	silent: false,
 	testEnvironment: 'node',

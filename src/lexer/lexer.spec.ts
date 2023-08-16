@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
-import '../../setupJest';
+import '../../jestSetup';
 import { ResultOk } from '../shared/result';
 import LexerError from './error';
 import { Token, TokenType, declarableTypes, keywords, tokenTypesUsingSymbols } from './types';
@@ -956,9 +956,9 @@ describe('lexer.ts', (): void => {
 			// assert
 			assert(result.isError());
 			const error = result.error as LexerError;
-			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+			expect(error.getContext().toStringArray(error).join('\n')).toBe(`  |
 1 | 51_foo32
-  |   ^ Syntax Error. Unknown character: "_"
+  |   ^ L002: Syntax Error. Unknown character: "_"
   |`);
 		});
 
@@ -969,9 +969,9 @@ describe('lexer.ts', (): void => {
 			// assert
 			assert(result.isError());
 			const error = result.error as LexerError;
-			expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+			expect(error.getContext().toStringArray(error).join('\n')).toBe(`  |
 1 | f main {print "Hello}
-  |                      ^ Syntax Error. Expected closing quote
+  |                      ^ L001: Syntax Error. Expected closing quote
   |`);
 		});
 	});

@@ -5,7 +5,7 @@
 import util from 'util';
 import { patterns } from '../lexer/types';
 import { NumberSize } from '../shared/numbers/sizes';
-import { determinePossibleNumberSizes } from '../shared/numbers/utils';
+import { smallestNumberSize } from '../shared/numbers/utils';
 import { Pos } from '../shared/pos';
 import { ok, Result } from '../shared/result';
 import { ClassSym, EnumSym, FuncSym, InterfaceSym, ParamSym, VarSym } from './symbolTable';
@@ -23,7 +23,7 @@ export interface ASTThatHasRequiredBody {
 }
 
 export interface ASTThatHasTypeParams {
-	typeParams: ASTTypeParameter[];
+	typeParams: ASTTypeList<ASTTypeParameter>;
 }
 
 export abstract class AST {
@@ -32,12 +32,16 @@ export abstract class AST {
 	/** Positional information for an AST */
 	readonly pos: Pos;
 
+	/** Parent AST */
+	parent: AST | undefined;
+
 	/** A string representation of the node */
 	abstract toString(): string;
 
 	/** This constructor will be called through each instated class */
-	constructor(pos: Pos) {
+	constructor(pos: Pos, parent: AST | undefined) {
 		this.pos = pos;
+		this.parent = parent;
 	}
 
 	/**
@@ -46,12 +50,50 @@ export abstract class AST {
 	 * for JSON serialization since the class name isn't there.
 	 */
 	[util.inspect.custom](_depth: number, options: util.InspectOptions): string {
+		// do not display the `kind` property because it adds useless noise
+		// or the `parent` property since it adds infinite recursion
+
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const { kind, ...rest } = this;
+		const { kind, parent, ...rest } = this;
 
 		// we need to explicitly display the class name since it
 		// disappears when using a custom inspect function.
 		return `${this.constructor.name} ${util.inspect(rest, options)}`;
+	}
+}
+
+/**
+ * Special type representing an array of `ASTType`s
+ * for the `extends` clause of a class or interface.
+ */
+export class ASTTypeList<T extends ASTType> extends AST {
+	kind = 'List';
+	items: T[] = [];
+
+	// factory function
+	static _<T extends ASTType>(items: T[], pos: Pos): ASTTypeList<T> {
+		// since this is a special type, we don't need the parent AST
+		const ast = new ASTTypeList<T>(pos, undefined);
+		ast.items = items;
+		return ast;
+	}
+
+	static empty<T extends ASTType>(pos: Pos): ASTTypeList<T> {
+		return this._([], pos);
+	}
+
+	static wrapArray<T extends ASTType>(items: ASTTypeList<T> | T[], posIfListIsEmpty: Pos): ASTTypeList<T> {
+		if (Array.isArray(items)) {
+			const ast = new ASTTypeList<T>(items.length > 0 ? items[0].pos : posIfListIsEmpty, undefined);
+			ast.items = items;
+			return ast;
+		}
+
+		return items;
+	}
+
+	toString(): string {
+		return this.items.map((item) => item.toString()).join(', ');
 	}
 }
 
@@ -62,8 +104,8 @@ export abstract class ASTDeclaration
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
-	typeParams: ASTTypeParameter[] = [];
-	extends: ASTTypeExceptPrimitive[] = [];
+	typeParams!: ASTTypeList<ASTTypeParameter>;
+	extends!: ASTTypeList<ASTExtOrImpl>;
 	body!: ASTBlockStatement;
 }
 
@@ -72,8 +114,8 @@ export class ASTArgumentsList extends AST {
 	args: AssignableASTs[] = []; // usually this is empty and thus undefined, but the parser ensures it's an array, so we mimic that here
 
 	// factory function
-	static _(args: AssignableASTs[], pos: Pos): ASTArgumentsList {
-		const ast = new ASTArgumentsList(pos);
+	static _(args: AssignableASTs[], pos: Pos, parent: AST): ASTArgumentsList {
+		const ast = new ASTArgumentsList(pos, parent);
 		ast.args = args;
 		return ast;
 	}
@@ -86,23 +128,24 @@ export class ASTArgumentsList extends AST {
 export class ASTArrayExpression<T extends AssignableASTs> extends AST {
 	kind = 'ArrayExpression';
 	items: Array<T | ASTPostfixIfStatement> = []; // usually this would be empty and thus undefined, but the parser ensures it's an array, so we mimic that here
-	/** The possible types, usually inferred from the initial value, if any, or from context */
-	possibleTypes: ASTType[] = [];
+	/** The type, usually inferred from the initial value, if any, or from context */
+	type!: ASTType;
 
 	// factory function
 	static _<T extends AssignableASTs>(
 		{
 			items,
-			possibleTypes,
+			type,
 		}: {
 			items: Array<T | ASTPostfixIfStatement>;
-			possibleTypes: ASTType[];
+			type: ASTType;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTArrayExpression<T> {
-		const ast = new ASTArrayExpression<T>(pos);
+		const ast = new ASTArrayExpression<T>(pos, parent);
 		ast.items = items;
-		ast.possibleTypes = possibleTypes;
+		ast.type = type;
 		return ast;
 	}
 
@@ -116,8 +159,8 @@ export class ASTArrayOf extends AST {
 	type!: ASTType;
 
 	// factory function
-	static _(type: ASTType, pos: Pos): ASTArrayOf {
-		const ast = new ASTArrayOf(pos);
+	static _(type: ASTType, pos: Pos, parent: AST): ASTArrayOf {
+		const ast = new ASTArrayOf(pos, parent);
 		ast.type = type;
 		return ast;
 	}
@@ -142,8 +185,9 @@ export class ASTAssignmentExpression extends AST {
 			right: AssignableASTs[];
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTAssignmentExpression {
-		const ast = new ASTAssignmentExpression(pos);
+		const ast = new ASTAssignmentExpression(pos, parent);
 		ast.left = left;
 		ast.right = right;
 		return ast;
@@ -172,8 +216,9 @@ export class ASTBinaryExpression<L extends ExpressionASTs, R extends ExpressionA
 			right: R;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTBinaryExpression<L, R> {
-		const ast = new ASTBinaryExpression<L, R>(pos);
+		const ast = new ASTBinaryExpression<L, R>(pos, parent);
 		ast.operator = operator;
 		ast.left = left;
 		ast.right = right;
@@ -190,8 +235,8 @@ export class ASTBlockStatement extends AST {
 	expressions: AST[] = [];
 
 	// factory function
-	static _(expressions: AST[], pos: Pos): ASTBlockStatement {
-		const ast = new ASTBlockStatement(pos);
+	static _(expressions: AST[], pos: Pos, parent: AST): ASTBlockStatement {
+		const ast = new ASTBlockStatement(pos, parent);
 		ast.expressions = expressions;
 		return ast;
 	}
@@ -206,8 +251,8 @@ export class ASTBoolLiteral extends AST {
 	value!: boolean | ASTUnaryExpression<boolean>;
 
 	// factory function
-	static _(value: boolean | ASTUnaryExpression<boolean>, pos: Pos): ASTBoolLiteral {
-		const ast = new ASTBoolLiteral(pos);
+	static _(value: boolean | ASTUnaryExpression<boolean>, pos: Pos, parent: AST): ASTBoolLiteral {
+		const ast = new ASTBoolLiteral(pos, parent);
 		ast.value = value;
 		return ast;
 	}
@@ -235,8 +280,9 @@ export class ASTCallExpression extends AST {
 			args: ExpressionASTs[];
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTCallExpression {
-		const ast = new ASTCallExpression(pos);
+		const ast = new ASTCallExpression(pos, parent);
 		ast.callee = callee;
 
 		if (typeArgs) {
@@ -256,7 +302,7 @@ export class ASTCallExpression extends AST {
 
 export class ASTClassDeclaration extends ASTDeclaration {
 	kind = 'ClassDeclaration';
-	implements: ASTTypeExceptPrimitive[] = [];
+	implements!: ASTTypeList<ASTExtOrImpl>;
 	/** The ClassSym in the SymbolTable */
 	symbol: ClassSym | undefined;
 
@@ -274,14 +320,15 @@ export class ASTClassDeclaration extends ASTDeclaration {
 			joeDoc?: ASTJoeDoc;
 			modifiers: ASTModifier[];
 			name: ASTIdentifier;
-			typeParams: ASTTypeParameter[];
-			extends: ASTTypeExceptPrimitive[];
-			implements: ASTTypeExceptPrimitive[];
+			typeParams: ASTTypeList<ASTTypeParameter> | ASTTypeParameter[];
+			extends: ASTTypeList<ASTExtOrImpl> | ASTExtOrImpl[];
+			implements: ASTTypeList<ASTExtOrImpl> | ASTExtOrImpl[];
 			body: ASTBlockStatement;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTClassDeclaration {
-		const ast = new ASTClassDeclaration(pos);
+		const ast = new ASTClassDeclaration(pos, parent);
 
 		// only set if it's defined
 		if (typeof joeDoc !== 'undefined') {
@@ -290,9 +337,9 @@ export class ASTClassDeclaration extends ASTDeclaration {
 
 		ast.modifiers = modifiers;
 		ast.name = name;
-		ast.typeParams = typeParams;
-		ast.extends = _extends;
-		ast.implements = _implements;
+		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
+		ast.extends = ASTTypeList.wrapArray(_extends, pos);
+		ast.implements = ASTTypeList.wrapArray(_implements, pos);
 		ast.body = body;
 		return ast;
 	}
@@ -300,10 +347,13 @@ export class ASTClassDeclaration extends ASTDeclaration {
 	toString(): string {
 		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const typeParamsString =
-			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
-		const extendsString = this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+			this.typeParams.items.length > 0 ? `<| ${this.typeParams.items.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const extendsString =
+			this.extends.items.length > 0 ? ` extends ${this.extends.items.map((extend) => extend.toString()).join(', ')}` : '';
 		const implementsString =
-			this.implements.length > 0 ? ` implements ${this.implements.map((implement) => implement.toString()).join(', ')}` : '';
+			this.implements.items.length > 0
+				? ` implements ${this.implements.items.map((implement) => implement.toString()).join(', ')}`
+				: '';
 
 		return `${modifiersString}class ${this.name.toString()}${typeParamsString}${extendsString}${implementsString}{...}`;
 	}
@@ -313,8 +363,8 @@ export class ASTDoneStatement extends AST {
 	kind = 'DoneStatement';
 
 	// factory function
-	static _(pos: Pos): ASTDoneStatement {
-		return new ASTDoneStatement(pos);
+	static _(pos: Pos, parent: AST): ASTDoneStatement {
+		return new ASTDoneStatement(pos, parent);
 	}
 
 	toString(): string {
@@ -340,13 +390,14 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 			joeDoc?: ASTJoeDoc;
 			modifiers: ASTModifier[];
 			name: ASTIdentifier;
-			typeParams: ASTTypeParameter[];
-			extends: ASTTypeExceptPrimitive[];
+			typeParams: ASTTypeList<ASTTypeParameter> | ASTTypeParameter[];
+			extends: ASTTypeList<ASTExtOrImpl> | ASTExtOrImpl[];
 			body: ASTBlockStatement;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTEnumDeclaration {
-		const ast = new ASTEnumDeclaration(pos);
+		const ast = new ASTEnumDeclaration(pos, parent);
 
 		// only set if it's defined
 		if (typeof joeDoc !== 'undefined') {
@@ -355,8 +406,8 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 
 		ast.modifiers = modifiers;
 		ast.name = name;
-		ast.typeParams = typeParams;
-		ast.extends = _extends;
+		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
+		ast.extends = ASTTypeList.wrapArray(_extends, pos);
 		ast.body = body;
 		return ast;
 	}
@@ -364,8 +415,9 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 	toString(): string {
 		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const typeParamsString =
-			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
-		const extendsString = this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+			this.typeParams.items.length > 0 ? `<| ${this.typeParams.items.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const extendsString =
+			this.extends.items.length > 0 ? ` extends ${this.extends.items.map((extend) => extend.toString()).join(', ')}` : '';
 
 		return `${modifiersString}enum ${this.name.toString()}${typeParamsString}${extendsString}{...}`;
 	}
@@ -389,8 +441,9 @@ export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
 			body: ASTBlockStatement;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTForStatement {
-		const ast = new ASTForStatement(pos);
+		const ast = new ASTForStatement(pos, parent);
 		ast.initializer = initializer;
 		ast.iterable = iterable;
 		ast.body = body;
@@ -407,9 +460,9 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
 	name!: ASTIdentifier;
-	typeParams: ASTTypeParameter[] = [];
-	params: ASTParameter[] = [];
-	returnTypes: ASTType[] = [];
+	typeParams!: ASTTypeList<ASTTypeParameter>;
+	params!: ASTTypeList<ASTParameter>;
+	returnTypes!: ASTTypeList<ASTType>;
 	body: ASTBlockStatement | undefined = undefined;
 	/** The FuncSym in the SymbolTable */
 	symbol: FuncSym | undefined;
@@ -428,14 +481,15 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 			joeDoc?: ASTJoeDoc;
 			modifiers: ASTModifier[];
 			name: ASTIdentifier;
-			typeParams: ASTTypeParameter[];
-			params: ASTParameter[];
-			returnTypes: ASTType[];
+			typeParams: ASTTypeList<ASTTypeParameter> | ASTTypeParameter[];
+			params: ASTTypeList<ASTParameter> | ASTParameter[];
+			returnTypes: ASTTypeList<ASTType> | ASTType[];
 			body: ASTBlockStatement | undefined;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTFunctionDeclaration {
-		const ast = new ASTFunctionDeclaration(pos);
+		const ast = new ASTFunctionDeclaration(pos, parent);
 
 		// only set if it's defined
 		if (typeof joeDoc !== 'undefined') {
@@ -444,21 +498,21 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 		ast.modifiers = modifiers;
 		ast.name = name;
-		ast.typeParams = typeParams;
-		ast.params = params;
-		ast.returnTypes = returnTypes;
+		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
+		ast.params = ASTTypeList.wrapArray(params, pos);
+		ast.returnTypes = ASTTypeList.wrapArray(returnTypes, pos);
 		ast.body = body;
 		return ast;
 	}
 
 	toString(): string {
 		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
-		const nameString = this.name.name.includes('.f_anon_') ? '' : this.name.toString();
+		const nameString = this.name.name.includes('#f_anon_') ? '' : this.name.toString();
 		const typeParamsString =
-			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
-		const paramsString = this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
+			this.typeParams.items.length > 0 ? `<| ${this.typeParams.items.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const paramsString = this.params.items.length > 0 ? `(${this.params.items.map((param) => param.toString()).join(', ')})` : '()';
 		const returnTypesString =
-			this.returnTypes.length > 0 ? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}` : '';
+			this.returnTypes.items.length > 0 ? ` -> ${this.returnTypes.items.map((returnType) => returnType.toString()).join(', ')}` : '';
 
 		return `${modifiersString}f ${nameString}${typeParamsString}${paramsString}${returnTypesString}{...}`;
 	}
@@ -466,9 +520,9 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 	kind = 'FunctionSignature';
-	typeParams: ASTTypeParameter[] = [];
-	params: ASTParameter[] = [];
-	returnTypes: ASTType[] = [];
+	typeParams!: ASTTypeList<ASTTypeParameter>;
+	params!: ASTTypeList<ASTParameter>;
+	returnTypes!: ASTTypeList<ASTType>;
 
 	// factory function
 	static _(
@@ -477,25 +531,26 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 			params,
 			returnTypes,
 		}: {
-			typeParams: ASTTypeParameter[];
-			params: ASTParameter[];
-			returnTypes: ASTType[];
+			typeParams: ASTTypeList<ASTTypeParameter> | ASTTypeParameter[];
+			params: ASTTypeList<ASTParameter> | ASTParameter[];
+			returnTypes: ASTTypeList<ASTType> | ASTType[];
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTFunctionSignature {
-		const ast = new ASTFunctionSignature(pos);
-		ast.typeParams = typeParams;
-		ast.params = params;
-		ast.returnTypes = returnTypes;
+		const ast = new ASTFunctionSignature(pos, parent);
+		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
+		ast.params = ASTTypeList.wrapArray(params, pos);
+		ast.returnTypes = ASTTypeList.wrapArray(returnTypes, pos);
 		return ast;
 	}
 
 	toString(): string {
 		const typeParamsString =
-			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
-		const paramsString = this.params.length > 0 ? `(${this.params.map((param) => param.toString()).join(', ')})` : '()';
+			this.typeParams.items.length > 0 ? `<| ${this.typeParams.items.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const paramsString = this.params.items.length > 0 ? `(${this.params.items.map((param) => param.toString()).join(', ')})` : '()';
 		const returnTypesString =
-			this.returnTypes.length > 0 ? ` -> ${this.returnTypes.map((returnType) => returnType.toString()).join(', ')}` : '';
+			this.returnTypes.items.length > 0 ? ` -> ${this.returnTypes.items.map((returnType) => returnType.toString()).join(', ')}` : '';
 
 		return `f ${typeParamsString}${paramsString}${returnTypesString}`;
 	}
@@ -507,14 +562,19 @@ export class ASTIdentifier extends AST {
 	/** The fully qualified name */
 	fqn!: string;
 
-	// factory function
-	static _(name: string, pos: Pos): ASTIdentifier {
-		const ast = new ASTIdentifier(pos);
+	/**
+	 * factory function
+	 *
+	 * fqn is optional, but if it's not provided, it will be set to name
+	 */
+	static _(name: string, pos: Pos, parent: AST, fqn?: string): ASTIdentifier {
+		const ast = new ASTIdentifier(pos, parent);
 		ast.name = name;
-		ast.fqn = name; // begin with a simple copy
+		ast.fqn = fqn || name; // begin with a simple copy
 		return ast;
 	}
 
+	/** Eg: prependParentToFqn('C.') */
 	prependParentToFqn(newParentWithTrailingDot: string) {
 		// ignore if it's empty
 		if (newParentWithTrailingDot.length > 1) {
@@ -545,8 +605,9 @@ export class ASTIfStatement extends AST {
 			alternate?: ASTBlockStatement | ASTIfStatement;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTIfStatement {
-		const ast = new ASTIfStatement(pos);
+		const ast = new ASTIfStatement(pos, parent);
 		ast.test = test;
 		ast.consequent = consequent;
 
@@ -583,13 +644,14 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 			joeDoc?: ASTJoeDoc;
 			modifiers: ASTModifier[];
 			name: ASTIdentifier;
-			typeParams: ASTTypeParameter[];
-			extends: ASTTypeExceptPrimitive[];
+			typeParams: ASTTypeList<ASTTypeParameter> | ASTTypeParameter[];
+			extends: ASTTypeList<ASTExtOrImpl> | ASTExtOrImpl[];
 			body: ASTBlockStatement;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTInterfaceDeclaration {
-		const ast = new ASTInterfaceDeclaration(pos);
+		const ast = new ASTInterfaceDeclaration(pos, parent);
 
 		// only set if it's defined
 		if (typeof joeDoc !== 'undefined') {
@@ -598,8 +660,8 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 
 		ast.modifiers = modifiers;
 		ast.name = name;
-		ast.typeParams = typeParams;
-		ast.extends = _extends;
+		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
+		ast.extends = ASTTypeList.wrapArray(_extends, pos);
 		ast.body = body;
 		return ast;
 	}
@@ -607,8 +669,9 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 	toString(): string {
 		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
 		const typeParamsString =
-			this.typeParams.length > 0 ? `<| ${this.typeParams.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
-		const extendsString = this.extends.length > 0 ? ` extends ${this.extends.map((extend) => extend.toString()).join(', ')}` : '';
+			this.typeParams.items.length > 0 ? `<| ${this.typeParams.items.map((typeParam) => typeParam.toString()).join(', ')} |>` : '';
+		const extendsString =
+			this.extends.items.length > 0 ? ` extends ${this.extends.items.map((extend) => extend.toString()).join(', ')}` : '';
 
 		return `${modifiersString}interface ${this.name.toString()}${typeParamsString}${extendsString} {...}`;
 	}
@@ -619,8 +682,8 @@ export class ASTJoeDoc extends AST {
 	content?: string = undefined; // TODO parse into parts
 
 	// factory function
-	static _(content: string | undefined, pos: Pos): ASTJoeDoc {
-		const ast = new ASTJoeDoc(pos);
+	static _(content: string | undefined, pos: Pos, parent: AST): ASTJoeDoc {
+		const ast = new ASTJoeDoc(pos, parent);
 		ast.content = content;
 		return ast;
 	}
@@ -635,8 +698,8 @@ export class ASTLoopStatement extends AST {
 	body!: ASTBlockStatement;
 
 	// factory function
-	static _({ body }: { body: ASTBlockStatement }, pos: Pos): ASTLoopStatement {
-		const ast = new ASTLoopStatement(pos);
+	static _({ body }: { body: ASTBlockStatement }, pos: Pos, parent: AST): ASTLoopStatement {
+		const ast = new ASTLoopStatement(pos, parent);
 		ast.body = body;
 		return ast;
 	}
@@ -661,8 +724,9 @@ export class ASTMemberExpression extends AST {
 			property: MemberExpressionPropertyASTs;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTMemberExpression {
-		const ast = new ASTMemberExpression(pos);
+		const ast = new ASTMemberExpression(pos, parent);
 		ast.object = object;
 		ast.property = property;
 		return ast;
@@ -672,7 +736,7 @@ export class ASTMemberExpression extends AST {
 		const propertyString = this.property.toString();
 
 		// if the property begins with a number use brackets, otherwise use dot notation
-		if (propertyString.match(/^\d/)) {
+		if (/^\d/.test(propertyString)) {
 			return `${this.object.toString()}[${propertyString}]`;
 		}
 
@@ -695,8 +759,9 @@ export class ASTMemberListExpression extends AST {
 			properties: MemberExpressionPropertyASTs[];
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTMemberListExpression {
-		const ast = new ASTMemberListExpression(pos);
+		const ast = new ASTMemberListExpression(pos, parent);
 		ast.object = object;
 		ast.properties = properties;
 		return ast;
@@ -712,8 +777,8 @@ export class ASTModifier extends AST {
 	keyword!: string;
 
 	// factory function
-	static _(keyword: string, pos: Pos): ASTModifier {
-		const ast = new ASTModifier(pos);
+	static _(keyword: string, pos: Pos, parent: AST): ASTModifier {
+		const ast = new ASTModifier(pos, parent);
 		ast.keyword = keyword;
 		return ast;
 	}
@@ -727,8 +792,8 @@ export class ASTNextStatement extends AST {
 	kind = 'NextStatement';
 
 	// factory function
-	static _(pos: Pos): ASTNextStatement {
-		return new ASTNextStatement(pos);
+	static _(pos: Pos, parent: AST): ASTNextStatement {
+		return new ASTNextStatement(pos, parent);
 	}
 
 	toString(): string {
@@ -739,26 +804,31 @@ export class ASTNextStatement extends AST {
 export class ASTNumberLiteral extends AST {
 	kind = 'NumberLiteral';
 	value!: number | ASTUnaryExpression<number>;
-	declaredSize?: NumberSize = undefined;
-	possibleSizes: NumberSize[] = [];
+	size!: NumberSize;
 
-	// factory function
-	static _(
-		value: number | ASTUnaryExpression<number>,
-		declaredSize: NumberSize | undefined,
-		possibleSizes: NumberSize[],
-		pos: Pos,
-	): ASTNumberLiteral {
-		const ast = new ASTNumberLiteral(pos);
+	/**
+	 * Factory function
+	 *
+	 * @param value Number or UnaryExpression with a number
+	 * @param size NumberSize
+	 * @param pos Position in the source code
+	 * @returns
+	 */
+	static _(value: number | ASTUnaryExpression<number>, size: NumberSize, pos: Pos, parent: AST): ASTNumberLiteral {
+		const ast = new ASTNumberLiteral(pos, parent);
 		ast.value = value;
-		ast.declaredSize = declaredSize;
-		ast.possibleSizes = possibleSizes;
+		ast.size = size;
 		return ast;
 	}
 
-	static convertNumberValueTo<E extends Error>(value: string, pos: Pos, errFn: (value: string) => E): Result<ASTNumberLiteral, E> {
-		let declaredSize: NumberSize | undefined;
-		let possibleSizes: NumberSize[] = [];
+	/** eg convertNumberValueTo('5') // ASTNumberLiteral */
+	static convertNumberValueTo<E extends Error>(
+		value: string,
+		pos: Pos,
+		parent: AST,
+		errFn: (value: string) => E,
+	): Result<ASTNumberLiteral, E> {
+		let size: NumberSize | undefined;
 
 		// eslint-disable-next-line no-useless-escape
 		const pieces = value.split(/\_/g);
@@ -766,21 +836,19 @@ export class ASTNumberLiteral extends AST {
 		// check if there's a size suffix
 		if (patterns.NUMBER_TYPE_SUFFIXES.test(value)) {
 			// it has a declared size
-			declaredSize = pieces.pop() as NumberSize;
-
-			// only one possible size
-			possibleSizes = [declaredSize];
+			size = pieces.pop() as NumberSize;
 		} else {
 			// no declared size
-			declaredSize = undefined;
+			size = undefined;
 
-			// get the possible sizes
-			const determinePossibleNumberSizesResult = determinePossibleNumberSizes<E>(value, errFn);
-			if (determinePossibleNumberSizesResult.isError()) {
-				return determinePossibleNumberSizesResult;
+			// get the smallest relevant size
+			const sizeResult = smallestNumberSize<E>(value, errFn);
+			if (sizeResult.isError()) {
+				return sizeResult;
 			}
 
-			possibleSizes = determinePossibleNumberSizesResult.value;
+			// set the smallest size as the declared size
+			size = sizeResult.value;
 		}
 
 		// put value back together without underscores (and without the suffix)
@@ -788,14 +856,14 @@ export class ASTNumberLiteral extends AST {
 
 		// decimal
 		if (value.includes('.')) {
-			return ok(ASTNumberLiteral._(parseFloat(value), declaredSize, possibleSizes, pos));
+			return ok(ASTNumberLiteral._(parseFloat(value), size, pos, parent));
 		}
 
-		return ok(ASTNumberLiteral._(parseInt(value), declaredSize, possibleSizes, pos));
+		return ok(ASTNumberLiteral._(parseInt(value), size, pos, parent));
 	}
 
 	toString(): string {
-		return `${this.value.toString()}${this.declaredSize ? `_${this.declaredSize}` : ''}`;
+		return `${this.value.toString()}${this.size ? `_${this.size}` : ''}`;
 	}
 }
 
@@ -804,8 +872,8 @@ export class ASTObjectExpression extends AST {
 	properties!: ASTProperty[];
 
 	// factory function
-	static _(properties: ASTProperty[], pos: Pos): ASTObjectExpression {
-		const ast = new ASTObjectExpression(pos);
+	static _(properties: ASTProperty[], pos: Pos, parent: AST): ASTObjectExpression {
+		const ast = new ASTObjectExpression(pos, parent);
 		ast.properties = properties;
 		return ast;
 	}
@@ -820,8 +888,8 @@ export class ASTObjectShape extends AST {
 	properties: ASTPropertyShape[] = [];
 
 	// factory function
-	static _(properties: ASTPropertyShape[], pos: Pos): ASTObjectShape {
-		const ast = new ASTObjectShape(pos);
+	static _(properties: ASTPropertyShape[], pos: Pos, parent: AST): ASTObjectShape {
+		const ast = new ASTObjectShape(pos, parent);
 		ast.properties = properties;
 		return ast;
 	}
@@ -837,8 +905,8 @@ export class ASTProperty extends AST {
 	value!: AssignableASTs;
 
 	// factory function
-	static _(key: ASTIdentifier, value: AssignableASTs, pos: Pos): ASTProperty {
-		const ast = new ASTProperty(pos);
+	static _(key: ASTIdentifier, value: AssignableASTs, pos: Pos, parent: AST): ASTProperty {
+		const ast = new ASTProperty(pos, parent);
 		ast.key = key;
 		ast.value = value;
 		return ast;
@@ -852,18 +920,18 @@ export class ASTProperty extends AST {
 export class ASTPropertyShape extends AST {
 	kind = 'PropertyShape';
 	key!: ASTIdentifier;
-	possibleTypes!: ASTType[];
+	type!: ASTType;
 
 	// factory function
-	static _(key: ASTIdentifier, possibleTypes: ASTType[], pos: Pos): ASTPropertyShape {
-		const ast = new ASTPropertyShape(pos);
+	static _(key: ASTIdentifier, type: ASTType, pos: Pos, parent: AST): ASTPropertyShape {
+		const ast = new ASTPropertyShape(pos, parent);
 		ast.key = key;
-		ast.possibleTypes = possibleTypes;
+		ast.type = type;
 		return ast;
 	}
 
 	toString(): string {
-		return `${this.key.toString()}: ${this.possibleTypes.map((type) => type.toString()).join(' | ')}`;
+		return `${this.key.toString()}: ${this.type.toString()}`;
 	}
 }
 
@@ -893,8 +961,9 @@ export class ASTParameter extends AST {
 			defaultValue?: AssignableASTs;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTParameter {
-		const ast = new ASTParameter(pos);
+		const ast = new ASTParameter(pos, parent);
 		ast.modifiers = modifiers;
 		ast.isRest = isRest;
 		ast.name = name;
@@ -925,8 +994,8 @@ export class ASTPath extends AST {
 	isDir!: boolean;
 
 	// factory function
-	static _({ absolute, path, isDir }: { absolute: boolean; path: string; isDir: boolean }, pos: Pos): ASTPath {
-		const ast = new ASTPath(pos);
+	static _({ absolute, path, isDir }: { absolute: boolean; path: string; isDir: boolean }, pos: Pos, parent: AST): ASTPath {
+		const ast = new ASTPath(pos, parent);
 		ast.absolute = absolute;
 		ast.path = path;
 		ast.isDir = isDir;
@@ -944,8 +1013,8 @@ export class ASTPostfixIfStatement extends AST {
 	test!: ExpressionASTs;
 
 	// factory function
-	static _({ expression, test }: { expression: ExpressionASTs; test: ExpressionASTs }, pos: Pos): ASTPostfixIfStatement {
-		const ast = new ASTPostfixIfStatement(pos);
+	static _({ expression, test }: { expression: ExpressionASTs; test: ExpressionASTs }, pos: Pos, parent: AST): ASTPostfixIfStatement {
+		const ast = new ASTPostfixIfStatement(pos, parent);
 		ast.expression = expression;
 		ast.test = test;
 		return ast;
@@ -961,8 +1030,8 @@ export class ASTPrintStatement extends AST {
 	expressions: ExpressionASTs[] = [];
 
 	// factory function
-	static _(expressions: ExpressionASTs[], pos: Pos): ASTPrintStatement {
-		const ast = new ASTPrintStatement(pos);
+	static _(expressions: ExpressionASTs[], pos: Pos, parent: AST): ASTPrintStatement {
+		const ast = new ASTPrintStatement(pos, parent);
 		ast.expressions = expressions;
 		return ast;
 	}
@@ -979,7 +1048,7 @@ export class ASTProgram extends AST {
 
 	// factory function
 	static _({ declarations }: { declarations: AST[] }, pos: Pos): ASTProgram {
-		const ast = new ASTProgram(pos);
+		const ast = new ASTProgram(pos, undefined);
 
 		ast.declarations = declarations;
 
@@ -997,8 +1066,8 @@ export class ASTRangeExpression extends AST {
 	upper!: RangeBoundASTs;
 
 	// factory function
-	static _({ lower, upper }: { lower: RangeBoundASTs; upper: RangeBoundASTs }, pos: Pos): ASTRangeExpression {
-		const ast = new ASTRangeExpression(pos);
+	static _({ lower, upper }: { lower: RangeBoundASTs; upper: RangeBoundASTs }, pos: Pos, parent: AST): ASTRangeExpression {
+		const ast = new ASTRangeExpression(pos, parent);
 		ast.lower = lower;
 		ast.upper = upper;
 		return ast;
@@ -1015,8 +1084,8 @@ export class ASTRegularExpression extends AST {
 	flags!: string[];
 
 	// factory function
-	static _({ pattern, flags }: { pattern: string; flags: string[] }, pos: Pos): ASTRegularExpression {
-		const ast = new ASTRegularExpression(pos);
+	static _({ pattern, flags }: { pattern: string; flags: string[] }, pos: Pos, parent: AST): ASTRegularExpression {
+		const ast = new ASTRegularExpression(pos, parent);
 		ast.pattern = pattern;
 		ast.flags = flags;
 		return ast;
@@ -1030,8 +1099,8 @@ export class ASTRegularExpression extends AST {
 export class ASTRestElement extends AST {
 	kind = 'RestElement';
 	// factory function
-	static _(pos: Pos): ASTRestElement {
-		return new ASTRestElement(pos);
+	static _(pos: Pos, parent: AST): ASTRestElement {
+		return new ASTRestElement(pos, parent);
 	}
 
 	toString(): string {
@@ -1044,9 +1113,16 @@ export class ASTReturnStatement extends AST {
 	expressions: AssignableASTs[] = [];
 
 	// factory function
-	static _(expressions: AssignableASTs[], pos: Pos): ASTReturnStatement {
-		const ast = new ASTReturnStatement(pos);
+	static _(expressions: AssignableASTs[], pos: Pos, parent: AST): ASTReturnStatement {
+		const ast = new ASTReturnStatement(pos, parent);
 		ast.expressions = expressions;
+
+		// set the parent of all children. This is necessary since the
+		// ASTReturnStatement and its children are created at the same time
+		ast.expressions.forEach((expr) => {
+			expr.parent = ast;
+		});
+
 		return ast;
 	}
 
@@ -1060,8 +1136,8 @@ export class ASTStringLiteral extends AST {
 	value!: string;
 
 	// factory function
-	static _(value: string, pos: Pos): ASTStringLiteral {
-		const ast = new ASTStringLiteral(pos);
+	static _(value: string, pos: Pos, parent: AST): ASTStringLiteral {
+		const ast = new ASTStringLiteral(pos, parent);
 		ast.value = value;
 		return ast;
 	}
@@ -1076,8 +1152,8 @@ export class ASTTernaryAlternate<T extends AssignableASTs> extends AST {
 	value!: T;
 
 	// factory function
-	static _<T extends AssignableASTs>(expression: T, pos: Pos): ASTTernaryAlternate<T> {
-		const ast = new ASTTernaryAlternate<T>(pos);
+	static _<T extends AssignableASTs>(expression: T, pos: Pos, parent: AST): ASTTernaryAlternate<T> {
+		const ast = new ASTTernaryAlternate<T>(pos, parent);
 		ast.value = expression;
 		return ast;
 	}
@@ -1092,8 +1168,8 @@ export class ASTTernaryCondition extends AST {
 	expression!: ExpressionASTs;
 
 	// factory function
-	static _(expression: ExpressionASTs, pos: Pos): ASTTernaryCondition {
-		const ast = new ASTTernaryCondition(pos);
+	static _(expression: ExpressionASTs, pos: Pos, parent: AST): ASTTernaryCondition {
+		const ast = new ASTTernaryCondition(pos, parent);
 		ast.expression = expression;
 		return ast;
 	}
@@ -1108,8 +1184,8 @@ export class ASTTernaryConsequent<T extends AssignableASTs> extends AST {
 	value!: T;
 
 	// factory function
-	static _<T extends AssignableASTs>(expression: T, pos: Pos): ASTTernaryConsequent<T> {
-		const ast = new ASTTernaryConsequent<T>(pos);
+	static _<T extends AssignableASTs>(expression: T, pos: Pos, parent: AST): ASTTernaryConsequent<T> {
+		const ast = new ASTTernaryConsequent<T>(pos, parent);
 		ast.value = expression;
 		return ast;
 	}
@@ -1137,8 +1213,9 @@ export class ASTTernaryExpression<C extends AssignableASTs, A extends Assignable
 			alternate: ASTTernaryAlternate<A>;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTTernaryExpression<C, A> {
-		const ast = new ASTTernaryExpression<C, A>(pos);
+		const ast = new ASTTernaryExpression<C, A>(pos, parent);
 		ast.test = test;
 		ast.consequent = consequent;
 		ast.alternate = alternate;
@@ -1153,8 +1230,8 @@ export class ASTTernaryExpression<C extends AssignableASTs, A extends Assignable
 export class ASTThisKeyword extends AST {
 	kind = 'ThisKeyword';
 	// factory function
-	static _(pos: Pos): ASTThisKeyword {
-		return new ASTThisKeyword(pos);
+	static _(pos: Pos, parent: AST): ASTThisKeyword {
+		return new ASTThisKeyword(pos, parent);
 	}
 
 	toString(): string {
@@ -1167,8 +1244,8 @@ export class ASTTupleExpression extends AST {
 	items: AssignableASTs[] = [];
 
 	// factory function
-	static _(items: AssignableASTs[], pos: Pos): ASTTupleExpression {
-		const ast = new ASTTupleExpression(pos);
+	static _(items: AssignableASTs[], pos: Pos, parent: AST): ASTTupleExpression {
+		const ast = new ASTTupleExpression(pos, parent);
 		ast.items = items;
 		return ast;
 	}
@@ -1180,17 +1257,17 @@ export class ASTTupleExpression extends AST {
 
 export class ASTTupleShape extends AST {
 	kind = 'TupleShape';
-	possibleTypes!: ASTType[][];
+	types!: ASTType[];
 
 	// factory function
-	static _(possibleTypes: ASTType[][], pos: Pos): ASTTupleShape {
-		const ast = new ASTTupleShape(pos);
-		ast.possibleTypes = possibleTypes;
+	static _(types: ASTType[], pos: Pos, parent: AST): ASTTupleShape {
+		const ast = new ASTTupleShape(pos, parent);
+		ast.types = types;
 		return ast;
 	}
 
 	toString(): string {
-		return `<${this.possibleTypes.map((types) => types.map((type) => type.toString()).join(' | ')).join(', ')}>`;
+		return `<${this.types.map((type) => type.toString()).join(', ')}>`;
 	}
 }
 
@@ -1210,8 +1287,9 @@ export class ASTTypeInstantiationExpression extends AST {
 			typeArgs: ASTType[];
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTTypeInstantiationExpression {
-		const ast = new ASTTypeInstantiationExpression(pos);
+		const ast = new ASTTypeInstantiationExpression(pos, parent);
 		ast.base = base;
 		ast.typeArgs = typeArgs;
 		return ast;
@@ -1228,8 +1306,8 @@ export class ASTTypePrimitive extends AST {
 	type!: primitiveAstType;
 
 	// factory function
-	static _(type: primitiveAstType, pos: Pos): ASTTypePrimitive {
-		const ast = new ASTTypePrimitive(pos);
+	static _(type: primitiveAstType, pos: Pos, parent: AST): ASTTypePrimitive {
+		const ast = new ASTTypePrimitive(pos, parent);
 		ast.type = type;
 		return ast;
 	}
@@ -1238,23 +1316,23 @@ export class ASTTypePrimitive extends AST {
 		return this.type;
 	}
 }
-export function ASTTypePrimitiveBool(pos: Pos): ASTTypePrimitive {
-	const ast = new ASTTypePrimitive(pos);
+export function ASTTypePrimitiveBool(pos: Pos, parent: AST): ASTTypePrimitive {
+	const ast = new ASTTypePrimitive(pos, parent);
 	ast.type = 'bool';
 	return ast;
 }
-export function ASTTypePrimitivePath(pos: Pos): ASTTypePrimitive {
-	const ast = new ASTTypePrimitive(pos);
+export function ASTTypePrimitivePath(pos: Pos, parent: AST): ASTTypePrimitive {
+	const ast = new ASTTypePrimitive(pos, parent);
 	ast.type = 'path';
 	return ast;
 }
-export function ASTTypePrimitiveRegex(pos: Pos): ASTTypePrimitive {
-	const ast = new ASTTypePrimitive(pos);
+export function ASTTypePrimitiveRegex(pos: Pos, parent: AST): ASTTypePrimitive {
+	const ast = new ASTTypePrimitive(pos, parent);
 	ast.type = 'regex';
 	return ast;
 }
-export function ASTTypePrimitiveString(pos: Pos): ASTTypePrimitive {
-	const ast = new ASTTypePrimitive(pos);
+export function ASTTypePrimitiveString(pos: Pos, parent: AST): ASTTypePrimitive {
+	const ast = new ASTTypePrimitive(pos, parent);
 	ast.type = 'string';
 	return ast;
 }
@@ -1264,8 +1342,8 @@ export class ASTTypeNumber extends AST {
 	size!: NumberSize;
 
 	// factory function
-	static _(size: NumberSize, pos: Pos): ASTTypeNumber {
-		const ast = new ASTTypeNumber(pos);
+	static _(size: NumberSize, pos: Pos, parent: AST): ASTTypeNumber {
+		const ast = new ASTTypeNumber(pos, parent);
 		ast.size = size;
 		return ast;
 	}
@@ -1275,28 +1353,29 @@ export class ASTTypeNumber extends AST {
 	}
 }
 
-export const NumberSizesSignedIntASTs = [
-	(pos: Pos) => ASTTypeNumber._('int8', pos),
-	(pos: Pos) => ASTTypeNumber._('int16', pos),
-	(pos: Pos) => ASTTypeNumber._('int32', pos),
-	(pos: Pos) => ASTTypeNumber._('int64', pos),
-] as const;
-export const NumberSizesUnsignedIntASTs = [
-	(pos: Pos) => ASTTypeNumber._('uint8', pos),
-	(pos: Pos) => ASTTypeNumber._('uint16', pos),
-	(pos: Pos) => ASTTypeNumber._('uint32', pos),
-	(pos: Pos) => ASTTypeNumber._('uint64', pos),
-] as const;
+export const ASTTypeNumberInt8 = (pos: Pos, parent: AST) => ASTTypeNumber._('int8', pos, parent);
+export const ASTTypeNumberInt16 = (pos: Pos, parent: AST) => ASTTypeNumber._('int16', pos, parent);
+export const ASTTypeNumberInt32 = (pos: Pos, parent: AST) => ASTTypeNumber._('int32', pos, parent);
+export const ASTTypeNumberInt64 = (pos: Pos, parent: AST) => ASTTypeNumber._('int64', pos, parent);
+export const ASTTypeNumberUint8 = (pos: Pos, parent: AST) => ASTTypeNumber._('int8', pos, parent);
+export const ASTTypeNumberUint16 = (pos: Pos, parent: AST) => ASTTypeNumber._('int16', pos, parent);
+export const ASTTypeNumberUint32 = (pos: Pos, parent: AST) => ASTTypeNumber._('int32', pos, parent);
+export const ASTTypeNumberUint64 = (pos: Pos, parent: AST) => ASTTypeNumber._('int64', pos, parent);
+export const ASTTypeNumberDec32 = (pos: Pos, parent: AST) => ASTTypeNumber._('dec32', pos, parent);
+export const ASTTypeNumberDec64 = (pos: Pos, parent: AST) => ASTTypeNumber._('dec64', pos, parent);
+
+export const NumberSizesSignedIntASTs = [ASTTypeNumberInt8, ASTTypeNumberInt16, ASTTypeNumberInt32, ASTTypeNumberInt64] as const;
+export const NumberSizesUnsignedIntASTs = [ASTTypeNumberUint8, ASTTypeNumberUint16, ASTTypeNumberUint32, ASTTypeNumberUint64] as const;
 export const NumberSizesIntASTs = [...NumberSizesSignedIntASTs, ...NumberSizesUnsignedIntASTs] as const;
-export const NumberSizesDecimalASTs = [(pos: Pos) => ASTTypeNumber._('dec32', pos), (pos: Pos) => ASTTypeNumber._('dec64', pos)] as const;
+export const NumberSizesDecimalASTs = [ASTTypeNumberDec32, ASTTypeNumberDec64] as const;
 export const NumberSizesAllASTs = [...NumberSizesIntASTs, ...NumberSizesDecimalASTs] as const;
 
 export class ASTTypeRange extends AST {
 	kind = 'TypeRange';
 
 	// factory function
-	static _(pos: Pos): ASTTypeRange {
-		return new ASTTypeRange(pos);
+	static _(pos: Pos, parent: AST): ASTTypeRange {
+		return new ASTTypeRange(pos, parent);
 	}
 
 	toString(): string {
@@ -1304,14 +1383,12 @@ export class ASTTypeRange extends AST {
 	}
 }
 
-export type ASTTypeExceptPrimitive =
-	| ASTArrayOf
-	| ASTFunctionSignature
-	| ASTIdentifier
-	| ASTMemberExpression
-	| ASTTypeInstantiationExpression
-	| ASTTypeRange;
-export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive;
+/** Can be used as `extends` or `implements` */
+export type ASTExtOrImpl = ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
+
+export type ASTTypeExceptPrimitive = ASTArrayOf | ASTFunctionSignature | ASTTypeRange | ASTExtOrImpl;
+
+export type ASTType = ASTTypePrimitive | ASTTypeExceptPrimitive | ASTTypeList<ASTType>;
 /** End ASTType */
 
 export class ASTTypeParameter extends AST {
@@ -1321,8 +1398,8 @@ export class ASTTypeParameter extends AST {
 	defaultType?: ASTType;
 
 	// factory function
-	static _(type: ASTType, constraint: ASTType | undefined, defaultType: ASTType | undefined, pos: Pos): ASTTypeParameter {
-		const ast = new ASTTypeParameter(pos);
+	static _(type: ASTType, constraint: ASTType | undefined, defaultType: ASTType | undefined, pos: Pos, parent: AST): ASTTypeParameter {
+		const ast = new ASTTypeParameter(pos, parent);
 		ast.type = type;
 
 		// only set if it's defined
@@ -1363,8 +1440,9 @@ export class ASTUnaryExpression<T extends ExpressionASTs | boolean | number> ext
 			operand: T;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTUnaryExpression<T> {
-		const ast = new ASTUnaryExpression<T>(pos);
+		const ast = new ASTUnaryExpression<T>(pos, parent);
 		ast.before = before;
 		ast.operator = operator;
 		ast.operand = operand;
@@ -1388,8 +1466,8 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 
 	initialValues: AssignableASTs[] = [];
 
-	/** The possible types inferred from the initial value, if any */
-	inferredPossibleTypes: ASTType[][] = [];
+	/** The types inferred from the initial values, if any */
+	inferredTypes: ASTType[] = [];
 
 	/** The VarSyms in the SymbolTable */
 	symbols: Array<VarSym | undefined> = [];
@@ -1403,7 +1481,7 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 			identifiersList,
 			declaredTypes,
 			initialValues,
-			inferredPossibleTypes,
+			inferredTypes,
 		}: {
 			joeDoc?: ASTJoeDoc;
 			modifiers: ASTModifier[];
@@ -1411,11 +1489,12 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 			identifiersList: ASTIdentifier[];
 			declaredTypes: ASTType[];
 			initialValues: AssignableASTs[];
-			inferredPossibleTypes: ASTType[][];
+			inferredTypes: ASTType[];
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTVariableDeclaration {
-		const ast = new ASTVariableDeclaration(pos);
+		const ast = new ASTVariableDeclaration(pos, parent);
 
 		// only set if it's defined
 		if (typeof joeDoc !== 'undefined') {
@@ -1427,7 +1506,7 @@ export class ASTVariableDeclaration extends AST implements ASTThatHasJoeDoc, AST
 		ast.identifiersList = identifiersList;
 		ast.declaredTypes = declaredTypes;
 		ast.initialValues = initialValues;
-		ast.inferredPossibleTypes = inferredPossibleTypes;
+		ast.inferredTypes = inferredTypes;
 
 		return ast;
 	}
@@ -1450,8 +1529,12 @@ export class ASTUseDeclaration extends AST {
 	source?: ASTPath;
 
 	// factory function
-	static _({ identifier, source }: { identifier: ASTIdentifier | ASTMemberExpression; source?: ASTPath }, pos: Pos): ASTUseDeclaration {
-		const ast = new ASTUseDeclaration(pos);
+	static _(
+		{ identifier, source }: { identifier: ASTIdentifier | ASTMemberExpression; source?: ASTPath },
+		pos: Pos,
+		parent: AST,
+	): ASTUseDeclaration {
+		const ast = new ASTUseDeclaration(pos, parent);
 		ast.identifier = identifier;
 		ast.source = source;
 		return ast;
@@ -1481,8 +1564,9 @@ export class ASTWhenCase extends AST {
 			consequent: ASTBlockStatement | AssignableASTs;
 		},
 		pos: Pos,
+		parent: AST,
 	): ASTWhenCase {
-		const ast = new ASTWhenCase(pos);
+		const ast = new ASTWhenCase(pos, parent);
 		ast.values = values;
 		ast.consequent = consequent;
 		return ast;
@@ -1499,8 +1583,8 @@ export class ASTWhenExpression extends AST {
 	cases: ASTWhenCase[] = [];
 
 	// factory function
-	static _({ expression, cases }: { expression: ExpressionASTs; cases: ASTWhenCase[] }, pos: Pos): ASTWhenExpression {
-		const ast = new ASTWhenExpression(pos);
+	static _({ expression, cases }: { expression: ExpressionASTs; cases: ASTWhenCase[] }, pos: Pos, parent: AST): ASTWhenExpression {
+		const ast = new ASTWhenExpression(pos, parent);
 		ast.expression = expression;
 		ast.cases = cases;
 		return ast;
@@ -1564,6 +1648,22 @@ export const astUniqueness = (type: ASTType): string => {
 
 	if (type.constructor === ASTTypePrimitive) {
 		return (type as ASTTypePrimitive).type;
+	}
+
+	if (type.constructor === ASTFunctionDeclaration) {
+		return ASTFunctionSignature._(
+			{
+				typeParams: (type as ASTFunctionDeclaration).typeParams,
+				params: (type as ASTFunctionDeclaration).params,
+				returnTypes: (type as ASTFunctionDeclaration).returnTypes,
+			},
+			(type as ASTFunctionDeclaration).pos, // irrelevant
+			type, // irrelevant
+		).toString();
+	}
+
+	if (type.constructor === ASTFunctionSignature) {
+		return (type as ASTFunctionSignature).toString();
 	}
 
 	return type.kind;

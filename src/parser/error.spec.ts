@@ -11,9 +11,9 @@ describe('parser/error.ts', (): void => {
 		// assert
 		assert(result.isError());
 		const error = result.error as ParserError;
-		expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+		expect(error.getContext().toStringArray(error).join('\n')).toBe(`  |
 1 | else
-  | ^^^^ \`else\` keyword is used with if statements
+  | ^^^^ P000: \`else\` keyword is used with if statements
   |`);
 	});
 });

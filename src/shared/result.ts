@@ -236,10 +236,10 @@ export const CreateResultFrom = {
  * 	// - error(new Error('...')) if something went awry
  * }
  *
- * const somePossibleResult = listenForRequest();
- * switch (somePossibleResult.outcome) { // outcome: `ok` or `error`
+ * const someResult = listenForRequest();
+ * switch (someResult.outcome) { // outcome: `ok` or `error`
  * 	case 'ok':
- * 		const somePossibility = somePossibleResult.value;
+ * 		const somePossibility = someResult.value;
  * 		if (somePossibility.has()) { // has: true or false
  * 			// use the data
  * 			const req: Http.Request = somePossibility.value;
@@ -251,7 +251,7 @@ export const CreateResultFrom = {
  *
  * 	// An error occurred
  * 	case 'error':
- * 		console.error(somePossibleResult.error);
+ * 		console.error(someResult.error);
  * 		break;
  * }
  * ```

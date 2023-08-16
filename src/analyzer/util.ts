@@ -1,24 +1,30 @@
 import { expect } from '@jest/globals';
 import { Get } from 'type-fest';
+import LexerError from '../lexer/error';
+import ParserError from '../parser/error';
 import Parser from '../parser/parser';
 import { error, Result } from '../shared/result';
 import { ASTProgram } from './asts';
+import AnalysisError from './error';
 import SemanticAnalyzer from './semanticAnalyzer';
+import SemanticError from './semanticError';
+import SymbolError from './symbolError';
 import { SymTree } from './symbolTable';
 
 /** Shortcut method to `new SemanticAnalysis(cst, parser).analyze()` */
-export const analyze = (code: string, isASnippet: boolean, checkSemantics: boolean): Result<[ASTProgram, SymTree]> => {
+export const analyze = (
+	code: string,
+	isASnippet: boolean,
+	checkSemantics: boolean,
+): Result<[ASTProgram, SymTree], LexerError | ParserError | AnalysisError | SemanticError | SymbolError> => {
 	const parser = new Parser(code);
 	const nodeResult = parser.parse();
 	switch (nodeResult.outcome) {
 		case 'ok': {
-			const analyzer = new SemanticAnalyzer(nodeResult.value, parser, code.split('\n'), {
+			return SemanticAnalyzer.analyze(nodeResult.value, parser, code.split('\n'), {
 				isASnippet,
-				debug: false,
-			});
-			analyzer.setCheckSemantics(checkSemantics);
-
-			return analyzer.analyze();
+				checkSemantics,
+			}).result;
 		}
 		case 'error':
 			return error(nodeResult.error);

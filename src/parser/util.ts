@@ -1,7 +1,7 @@
 import { expect } from '@jest/globals';
 import assert from 'assert';
 import { Get } from 'type-fest';
-import '../../setupJest'; // for the types
+import '../../jestSetup'; // for the types
 import { ASTProgram } from '../analyzer/asts';
 import SemanticError from '../analyzer/semanticError';
 import { analyze } from '../analyzer/util';
@@ -33,10 +33,10 @@ export function testAnalyze(codeSnippet: string, ast: Get<ASTProgram, 'declarati
  * NOTE: unlike other testXyz() shortcut methods, this method
  * expects a full program including a `main()` function.
  */
-export function testAnalyzeExpectingSemanticError(codeFullProgram: string, errorCode: string) {
+export function testAnalyzeExpectingSemanticError(codeFullProgram: string, expectedMessage: string) {
 	const result = analyze(codeFullProgram, false, true); // false because we're testing for any semantic error, so treat this as a full program
 	expect(result.isError()).toBeTruthy(); // this is for Developer Experience
 	assert(result.isError()); // this is for TypeScript
 	assert(result.error instanceof SemanticError, `Expected result.error to be an instance of SemanticError, but it was '${result.error}'`);
-	expect(result.error.getErrorCode()).toEqual(errorCode);
+	expect(result.error.message).toEqual(expectedMessage);
 }

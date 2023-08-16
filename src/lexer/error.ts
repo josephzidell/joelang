@@ -1,26 +1,21 @@
-import ErrorContext from '../shared/errorContext';
+import Context from '../shared/context';
+import JoelangError from '../shared/errors/error';
 import { Token } from './types';
 
 /**
  * Custom error class so that we can display the already-extracted tokens
  * which will help the user see where the lexer is up to and got stuck
  */
-export default class LexerError extends TypeError {
+export default class LexerError extends JoelangError {
 	private tokens;
-	private context;
 
-	constructor(message: string, tokens: Token[], context: ErrorContext) {
-		super(message);
+	constructor(code: string, message: string, tokens: Token[], context: Context, cause?: JoelangError) {
+		super(code, message, context, cause);
 
 		this.tokens = tokens;
-		this.context = context;
 	}
 
 	getTokens(): Token[] {
 		return this.tokens;
-	}
-
-	getContext(): ErrorContext {
-		return this.context;
 	}
 }

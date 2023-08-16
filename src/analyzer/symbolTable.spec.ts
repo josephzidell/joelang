@@ -1,18 +1,19 @@
 // import assert from 'node:assert/strict';
 import { describe, it } from '@jest/globals';
-import '../../setupJest'; // for the types
-import { numberSizesInts } from '../shared/numbers/sizes';
-import { mockPos } from '../shared/pos';
+import { mockParent, mockPos } from '../../jestMocks';
+import '../../jestSetup'; // for the types
 import {
 	ASTIdentifier,
 	ASTNumberLiteral,
 	ASTRegularExpression,
 	ASTStringLiteral,
 	ASTTypeNumber,
+	ASTTypeNumberInt16,
+	ASTTypeNumberInt8,
 	ASTTypePrimitive,
 	ASTTypePrimitiveRegex,
+	ASTTypePrimitiveString,
 	ASTVariableDeclaration,
-	NumberSizesIntASTs,
 } from './asts';
 import { testAnalyzeAndSymbolTable } from './util';
 
@@ -25,23 +26,25 @@ describe('symbolTable', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, 'int16', ['int16'], mockPos)],
-							inferredPossibleTypes: [[ASTTypeNumber._('int16', mockPos)]],
+							identifiersList: [ASTIdentifier._('foo', mockPos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt16(mockPos, mockParent)],
+							initialValues: [ASTNumberLiteral._(1, 'int16', mockPos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt16(mockPos, mockParent)],
 						},
 						mockPos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('bar', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('foo', mockPos)],
-							inferredPossibleTypes: [[ASTTypeNumber._('int16', mockPos)]], // this is coming from the symbol table
+							identifiersList: [ASTIdentifier._('bar', mockPos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt16(mockPos, mockParent)],
+							initialValues: [ASTIdentifier._('foo', mockPos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt16(mockPos, mockParent)], // this is coming from the symbol table
 						},
 						mockPos,
+						mockParent,
 					),
 				]);
 			});
@@ -52,23 +55,25 @@ describe('symbolTable', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [ASTTypeNumber._('int16', mockPos)],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							identifiersList: [ASTIdentifier._('foo', mockPos, mockParent)],
+							declaredTypes: [ASTTypeNumber._('int16', mockPos, mockParent)],
+							initialValues: [ASTNumberLiteral._(1, 'int8', mockPos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt8(mockPos, mockParent)],
 						},
 						mockPos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('bar', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('foo', mockPos)],
-							inferredPossibleTypes: [[ASTTypeNumber._('int16', mockPos)]], // this is coming from the symbol table
+							identifiersList: [ASTIdentifier._('bar', mockPos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt16(mockPos, mockParent)],
+							initialValues: [ASTIdentifier._('foo', mockPos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt16(mockPos, mockParent)], // this is coming from the symbol table
 						},
 						mockPos,
+						mockParent,
 					),
 				]);
 			});
@@ -79,23 +84,25 @@ describe('symbolTable', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							identifiersList: [ASTIdentifier._('foo', mockPos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt8(mockPos, mockParent)],
+							initialValues: [ASTNumberLiteral._(1, 'int8', mockPos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt8(mockPos, mockParent)],
 						},
 						mockPos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('bar', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('foo', mockPos)],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))], // this is coming from the symbol table
+							identifiersList: [ASTIdentifier._('bar', mockPos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt8(mockPos, mockParent)],
+							initialValues: [ASTIdentifier._('foo', mockPos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt8(mockPos, mockParent)], // this is coming from the symbol table
 						},
 						mockPos,
+						mockParent,
 					),
 				]);
 			});
@@ -106,34 +113,37 @@ describe('symbolTable', () => {
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTStringLiteral._('hello', mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
+							identifiersList: [ASTIdentifier._('foo', mockPos, mockParent)],
+							declaredTypes: [ASTTypePrimitive._('string', mockPos, mockParent)],
+							initialValues: [ASTStringLiteral._('hello', mockPos, mockParent)],
+							inferredTypes: [ASTTypePrimitiveString(mockPos, mockParent)],
 						},
 						mockPos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('bar', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('foo', mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]], // this is coming from the symbol table
+							identifiersList: [ASTIdentifier._('bar', mockPos, mockParent)],
+							declaredTypes: [ASTTypePrimitive._('string', mockPos, mockParent)],
+							initialValues: [ASTIdentifier._('foo', mockPos, mockParent)],
+							inferredTypes: [ASTTypePrimitiveString(mockPos, mockParent)], // this is coming from the symbol table
 						},
 						mockPos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('baz', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('bar', mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]], // this is coming from the symbol table
+							identifiersList: [ASTIdentifier._('baz', mockPos, mockParent)],
+							declaredTypes: [ASTTypePrimitive._('string', mockPos, mockParent)],
+							initialValues: [ASTIdentifier._('bar', mockPos, mockParent)],
+							inferredTypes: [ASTTypePrimitiveString(mockPos, mockParent)], // this is coming from the symbol table
 						},
 						mockPos,
+						mockParent,
 					),
 				]);
 			});
@@ -146,23 +156,25 @@ describe('symbolTable', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTRegularExpression._({ pattern: '/a-z/', flags: [] }, mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitiveRegex(mockPos)]],
+							identifiersList: [ASTIdentifier._('foo', mockPos, mockParent)],
+							declaredTypes: [ASTTypePrimitiveRegex(mockPos, mockParent)],
+							initialValues: [ASTRegularExpression._({ pattern: '/a-z/', flags: [] }, mockPos, mockParent)],
+							inferredTypes: [ASTTypePrimitiveRegex(mockPos, mockParent)],
 						},
 						mockPos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('bar', mockPos), ASTIdentifier._('baz', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTIdentifier._('foo', mockPos), ASTIdentifier._('foo', mockPos)],
-							inferredPossibleTypes: [[ASTTypePrimitiveRegex(mockPos)], [ASTTypePrimitiveRegex(mockPos)]], // this is coming from the symbol table
+							identifiersList: [ASTIdentifier._('bar', mockPos, mockParent), ASTIdentifier._('baz', mockPos, mockParent)],
+							declaredTypes: [ASTTypePrimitiveRegex(mockPos, mockParent), ASTTypePrimitiveRegex(mockPos, mockParent)],
+							initialValues: [ASTIdentifier._('foo', mockPos, mockParent), ASTIdentifier._('foo', mockPos, mockParent)],
+							inferredTypes: [ASTTypePrimitiveRegex(mockPos, mockParent), ASTTypePrimitiveRegex(mockPos, mockParent)], // this is coming from the symbol table
 						},
 						mockPos,
+						mockParent,
 					),
 				]);
 			});

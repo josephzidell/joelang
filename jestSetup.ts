@@ -1,12 +1,13 @@
 import { expect } from '@jest/globals';
 import assert from 'node:assert';
 import { Get } from 'type-fest';
+import { mockPos } from './jestMocks';
 import { AST, ASTProgram } from './src/analyzer/asts';
 import { SymTab } from './src/analyzer/symbolTable';
 import { Token, TokenType } from './src/lexer/types';
 import { SParseTree, simplifyTree } from './src/parser/simplifier';
 import { Node } from './src/parser/types';
-import { mockPos } from './src/shared/pos';
+import { Color, colorize, objToString } from './src/shared/log';
 import { Result } from './src/shared/result';
 
 interface CustomMatcherResult {
@@ -108,16 +109,18 @@ const toMatchParseTree = (treeResult: Result<Node>, simplifiedVersion: SParseTre
 ////////////////////////////////////////////////////////////
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockASTPos = (obj: any): any => {
+const mockASTPosParentAndSymbol = (obj: any): any => {
 	if (Array.isArray(obj)) {
-		return obj.map(mockASTPos);
+		return obj.map(mockASTPosParentAndSymbol);
 	} else if (typeof obj === 'object' && obj !== null) {
 		const mocked: typeof obj = {};
 		for (const key in obj) {
-			if (obj instanceof AST && ['pos', 'symbol', 'symbols'].includes(key)) {
+			if (obj instanceof AST && 'pos' === key) {
 				mocked[key] = mockPos;
+			} else if (obj instanceof AST && ['symbol', 'symbols', 'parent'].includes(key)) {
+				continue;
 			} else {
-				mocked[key] = mockASTPos(obj[key]);
+				mocked[key] = mockASTPosParentAndSymbol(obj[key]);
 			}
 		}
 		return mocked as typeof obj;
@@ -126,9 +129,10 @@ const mockASTPos = (obj: any): any => {
 	}
 };
 
-const toEqualAstMockingPosProperty = (received: unknown, expected: unknown): CustomMatcherResult => {
-	const mockedReceived = mockASTPos(received);
-	const mockedExpected = mockASTPos(expected);
+const toEqualAstMockingPosParentSymbolProperties = (received: unknown, expected: unknown): CustomMatcherResult => {
+	const mockedReceived = mockASTPosParentAndSymbol(received);
+	const mockedExpected = mockASTPosParentAndSymbol(expected);
+
 	try {
 		expect(mockedReceived).toEqual(mockedExpected);
 
@@ -166,18 +170,18 @@ const toMatchAST = (
 
 	try {
 		// don't use .toMatchObject() because it only matches partially
-		expect(actualAstDeclarations).toEqualAstMockingPosProperty(expectedASTProgramDeclarations);
+		expect(actualAstDeclarations).toEqualAstMockingPosParentSymbolProperties(expectedASTProgramDeclarations);
 
 		return { pass: true, message: () => 'they match' };
-	} catch {
+	} catch (e) {
 		const diff = diffObjects(expectedASTProgramDeclarations, actualAstDeclarations, '', {
-			changedPathRegex: /\.(pos\.(start|end|line|col)|symbols?)$/,
-			diffPathParts: ['pos'],
+			changedPathRegex: /\.(pos(\.(start|end|line|col))?|parent|symbols?)$/,
+			diffPathParts: ['parent', 'pos', 'symbol'],
 		});
 
 		return {
 			pass: false,
-			message: () => `the ASTs do not match. (Plus in green is what was received, minus in red is what was expected). Diff:\n${diff}`,
+			message: () => diff.join('\n'),
 		};
 	}
 };
@@ -201,7 +205,7 @@ expect.extend({
 	toHaveKey,
 	toMatchTokens,
 	toMatchParseTree,
-	toEqualAstMockingPosProperty,
+	toEqualAstMockingPosParentSymbolProperties,
 	toMatchAST,
 });
 
@@ -211,7 +215,7 @@ declare module 'expect' {
 	}
 	interface Matchers<R> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		toEqualAstMockingPosProperty<E = any>(expected: E): R;
+		toEqualAstMockingPosParentSymbolProperties<E = any>(expected: E): R;
 
 		/**
 		 * Checks the a map has a key
@@ -252,73 +256,84 @@ interface IgnoreDiff {
 ////////////////////////////////////////////////////////////
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function diffObjects(expected: any, received: any, path = '', ignore: IgnoreDiff | undefined): string {
+function diffObjects(expected: any, received: any, path = '', ignore: IgnoreDiff | undefined): string[] {
 	const expectedKeys = Object.keys(expected);
 	const receivedKeys = Object.keys(received);
 	const addedKeys = receivedKeys.filter((key) => !expectedKeys.includes(key));
 	const removedKeys = expectedKeys.filter((key) => !receivedKeys.includes(key));
-	const changedKeys = expectedKeys.filter((key) => receivedKeys.includes(key) && expected[key] !== received[key]);
+	const changedKeys = expectedKeys
+		.filter((key) => receivedKeys.includes(key) && expected[key] !== received[key])
+		.filter((key) => !ignore?.changedPathRegex.test(`${path}.${key}`));
 
-	let output = '';
+	const output: string[] = [];
 
 	addedKeys.forEach((key) => {
 		const fullPath = `${path}.${key}`;
 		const value = stringify(received[key], ignore);
-		output += `${colorize(`+ ${fullPath}: ${value}`, Colors.Green)}\n`;
+		output.push(`${colorize(fullPath, Color.Cyan)}:`, `Expected: ${colorize(value, Color.Green)}\n`);
 	});
 
 	removedKeys.forEach((key) => {
 		const fullPath = `${path}.${key}`;
 		const value = stringify(expected[key], ignore);
-		output += `${colorize(`- ${fullPath}: ${value}`, Colors.Red)}\n`;
+		output.push(`Received: ${colorize(`${fullPath}: ${value}`, Color.Red)}\n`);
 	});
 
 	changedKeys.forEach((key) => {
 		const fullPath = `${path}.${key}`;
-		if (ignore?.changedPathRegex.test(fullPath)) {
-			return;
+
+		if (objToString(expected[key]) !== objToString(received[key])) {
+			if (typeof expected[key] === 'object' && typeof received[key] === 'object') {
+				output.push(...diffObjects(expected[key], received[key], fullPath, ignore));
+			} else {
+				const expectedString = objToString(expected[key]);
+				const receivedString = objToString(received[key]);
+				output.push(
+					`${colorize(fullPath, Color.Cyan)}:`,
+					`Expected: ${colorize(receivedString, Color.Green)}`,
+					`Received: ${colorize(expectedString, Color.Red)}\n`,
+				);
+			}
 		}
 
-		const expectedValue = expected[key];
-		const receivedValue = received[key];
-		if (Array.isArray(expectedValue) && Array.isArray(receivedValue)) {
-			const arrayDiff = diffArrays(expectedValue, receivedValue, `${fullPath}`, ignore);
-			if (arrayDiff !== '') {
-				output += arrayDiff;
-			}
-		} else if (typeof expectedValue === 'object' && typeof receivedValue === 'object') {
-			const objectDiff = diffObjects(expectedValue, receivedValue, `${fullPath}`, ignore);
-			if (objectDiff !== '') {
-				output += objectDiff;
-			}
-		} else {
-			const expectedString = stringify(expectedValue, ignore);
-			const receivedString = stringify(receivedValue, ignore);
-			output += `${colorize(`- ${fullPath}: ${expectedString}`, Colors.Red)}\n`;
-			output += `${colorize(`+ ${fullPath}: ${receivedString}`, Colors.Green)}\n`;
-		}
+		// if (Array.isArray(expectedValue) && Array.isArray(receivedValue)) {
+		// 	const arrayDiff = diffArrays(expectedValue, receivedValue, `${fullPath}`, ignore);
+		// 	if (arrayDiff.length > 0) {
+		// 		output.push(...arrayDiff);
+		// 	}
+		// } else if (typeof expectedValue === 'object' && typeof receivedValue === 'object') {
+		// 	const objectDiff = diffObjects(expectedValue, receivedValue, `${fullPath}`, ignore);
+		// 	if (objectDiff.length > 0) {
+		// 		output.push(...objectDiff);
+		// 	}
+		// } else {
+		// 	const expectedString = stringify(expectedValue, ignore);
+		// 	const receivedString = stringify(receivedValue, ignore);
+		// 	output.push(`${colorize(`- ${fullPath}: ${expectedString}`, Colors.Red)}\n`);
+		// 	output.push(`${colorize(`+ ${fullPath}: ${receivedString}`, Colors.Green)}\n`);
+		// }
 	});
 
 	return output;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function diffArrays(expected: any[], received: any[], path = '', ignore: IgnoreDiff | undefined): string {
-	const addedElements = received.filter((item) => !expected.includes(item));
-	const removedElements = expected.filter((item) => !received.includes(item));
-	let output = '';
-	addedElements.forEach((item, index) => {
-		const fullPath = `${path}[${expected.length + index}]`;
-		const value = stringify(item, ignore);
-		output += `${colorize(`+ ${fullPath}: ${value}`, Colors.Green)}\n`;
-	});
-	removedElements.forEach((item, index) => {
-		const fullPath = `${path}[${received.length + index}]`;
-		const value = stringify(item, ignore);
-		output += `${colorize(`- ${fullPath}: ${value}`, Colors.Red)}\n`;
-	});
-	return output;
-}
+// function diffArrays(expected: any[], received: any[], path = '', ignore: IgnoreDiff | undefined): string[] {
+// 	const addedElements = received.filter((item) => !expected.includes(item));
+// 	const removedElements = expected.filter((item) => !received.includes(item));
+// 	const output: string[] = [];
+// 	addedElements.forEach((item, index) => {
+// 		const fullPath = `${path}[${expected.length + index}]`;
+// 		const value = stringify(item, ignore);
+// 		output.push(`${colorize(`+ ${fullPath}: ${value}`, Colors.Green)}\n`);
+// 	});
+// 	removedElements.forEach((item, index) => {
+// 		const fullPath = `${path}[${received.length + index}]`;
+// 		const value = stringify(item, ignore);
+// 		output.push(`${colorize(`- ${fullPath}: ${value}`, Colors.Red)}\n`);
+// 	});
+// 	return output;
+// }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function stringify(obj: any, ignore: IgnoreDiff | undefined): string {
@@ -339,20 +354,4 @@ function stringify(obj: any, ignore: IgnoreDiff | undefined): string {
 	} else {
 		return obj.toString();
 	}
-}
-
-enum Colors {
-	Red = 31,
-	Green = 32,
-	Yellow = 33,
-	Blue = 34,
-	Magenta = 35,
-	Cyan = 36,
-	White = 37,
-}
-
-function colorize(text: string, colorCode: number): string {
-	const escapeCode = `\u001b[${colorCode}m`;
-	const resetCode = '\u001b[0m';
-	return `${escapeCode}${text}${resetCode}`;
 }

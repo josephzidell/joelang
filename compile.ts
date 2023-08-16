@@ -3,6 +3,8 @@ import System from './src/compiler/system';
 
 // Asynchronous function to check system requirements and compile the code
 async function main(slicedArgs: string[]) {
+	process.env.DEBUG = process.argv.includes('-d') ? '1' : '0';
+
 	// Check if the system meets the requirements for compilation
 	System.checkRequirements();
 

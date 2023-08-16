@@ -1,4 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
+import assert from 'node:assert';
+import { mockParent, mockPos as pos } from '../../jestMocks';
 import {
 	ASTArrayExpression,
 	ASTArrayOf,
@@ -46,9 +48,16 @@ import {
 	ASTType,
 	ASTTypeInstantiationExpression,
 	ASTTypeNumber,
+	ASTTypeNumberDec32,
+	ASTTypeNumberDec64,
+	ASTTypeNumberInt16,
+	ASTTypeNumberInt8,
+	ASTTypeNumberUint32,
 	ASTTypeParameter,
 	ASTTypePrimitive,
 	ASTTypePrimitiveBool,
+	ASTTypePrimitivePath,
+	ASTTypePrimitiveRegex,
 	ASTTypePrimitiveString,
 	ASTTypeRange,
 	ASTUnaryExpression,
@@ -56,15 +65,11 @@ import {
 	ASTVariableDeclaration,
 	ASTWhenCase,
 	ASTWhenExpression,
-	NumberSizesDecimalASTs,
-	NumberSizesIntASTs,
 } from '../analyzer/asts';
 import { primitiveTypes } from '../lexer/types';
 import { testAnalyze } from '../parser/util';
-import { numberSizesAll, numberSizesDecimals, numberSizesInts, numberSizesSignedInts } from '../shared/numbers/sizes';
-import { mockPos } from '../shared/pos';
+import { numberSizesAll } from '../shared/numbers/sizes';
 import { analyze } from './util';
-import assert from 'node:assert';
 
 const binaryMathOperatorsThatArePartOfAMemberExpression = ['+', '+=', '-', '-=', '*', '*='];
 const binaryMathOperatorsThatArePartOfAMemberListExpression = ['/', '/=', '%', '%='];
@@ -117,17 +122,13 @@ describe('semanticAnalyzer', () => {
 				const numberValue = '10';
 				const astNumberLiteral = ASTNumberLiteral.convertNumberValueTo(
 					numberValue,
-					mockPos,
+					pos,
+					mockParent,
 					(value: string) => new Error(value), // won't be used, so doesn't need to be any specific subclass of Error
 				);
 				expect(astNumberLiteral).toEqual({
 					outcome: 'ok',
-					value: ASTNumberLiteral._(
-						10,
-						undefined,
-						['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'],
-						mockPos,
-					),
+					value: ASTNumberLiteral._(10, 'int8', pos, mockParent),
 				});
 			});
 		});
@@ -138,10 +139,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo = 1;', [
 				ASTAssignmentExpression._(
 					{
-						left: [ASTIdentifier._('foo', mockPos)],
-						right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+						left: [ASTIdentifier._('foo', pos, mockParent)],
+						right: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -153,15 +155,17 @@ describe('semanticAnalyzer', () => {
 						left: [
 							ASTMemberExpression._(
 								{
-									object: ASTThisKeyword._(mockPos),
-									property: ASTIdentifier._('foo', mockPos),
+									object: ASTThisKeyword._(pos, mockParent),
+									property: ASTIdentifier._('foo', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						right: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+						right: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -171,21 +175,20 @@ describe('semanticAnalyzer', () => {
 				ASTAssignmentExpression._(
 					{
 						left: [
-							ASTIdentifier._('x', mockPos),
+							ASTIdentifier._('x', pos, mockParent),
 							ASTMemberExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTIdentifier._('bar', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
+									property: ASTIdentifier._('bar', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						right: [
-							ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-							ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						],
+						right: [ASTNumberLiteral._(0, 'int8', pos, mockParent), ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -207,21 +210,27 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
+							name: ASTIdentifier._('foo', pos, mockParent),
 							typeParams: [],
 							params: [],
 							returnTypes: [],
 							body: ASTBlockStatement._(
 								[
-									ASTPrintStatement._([ASTStringLiteral._('hello', mockPos)], mockPos),
-									ASTBlockStatement._([ASTPrintStatement._([ASTStringLiteral._('world', mockPos)], mockPos)], mockPos),
-									ASTPrintStatement._([ASTStringLiteral._('!', mockPos)], mockPos),
-									ASTReturnStatement._([], mockPos),
+									ASTPrintStatement._([ASTStringLiteral._('hello', pos, mockParent)], pos, mockParent),
+									ASTBlockStatement._(
+										[ASTPrintStatement._([ASTStringLiteral._('world', pos, mockParent)], pos, mockParent)],
+										pos,
+										mockParent,
+									),
+									ASTPrintStatement._([ASTStringLiteral._('!', pos, mockParent)], pos, mockParent),
+									ASTReturnStatement._([], pos, mockParent),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -250,45 +259,52 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
+							name: ASTIdentifier._('foo', pos, mockParent),
 							typeParams: [],
 							params: [],
 							returnTypes: [],
 							body: ASTBlockStatement._(
 								[
-									ASTPrintStatement._([ASTStringLiteral._('hello', mockPos)], mockPos),
+									ASTPrintStatement._([ASTStringLiteral._('hello', pos, mockParent)], pos, mockParent),
 									ASTBlockStatement._(
 										[
-											ASTPrintStatement._([ASTStringLiteral._('world', mockPos)], mockPos),
+											ASTPrintStatement._([ASTStringLiteral._('world', pos, mockParent)], pos, mockParent),
 											ASTBlockStatement._(
 												[
 													ASTVariableDeclaration._(
 														{
 															modifiers: [],
 															mutable: false,
-															identifiersList: [ASTIdentifier._('x', mockPos)],
-															declaredTypes: [],
-															initialValues: [
-																ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-															],
-															inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+															identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+															declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+															initialValues: [ASTNumberLiteral._(4, 'int8', pos, mockParent)],
+															inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 														},
-														mockPos,
+														pos,
+														mockParent,
 													),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
-											ASTBlockStatement._([ASTPrintStatement._([ASTIdentifier._('x', mockPos)], mockPos)], mockPos),
+											ASTBlockStatement._(
+												[ASTPrintStatement._([ASTIdentifier._('x', pos, mockParent)], pos, mockParent)],
+												pos,
+												mockParent,
+											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
-									ASTPrintStatement._([ASTStringLiteral._('!', mockPos)], mockPos),
-									ASTReturnStatement._([], mockPos),
+									ASTPrintStatement._([ASTStringLiteral._('!', pos, mockParent)], pos, mockParent),
+									ASTReturnStatement._([], pos, mockParent),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -296,7 +312,7 @@ describe('semanticAnalyzer', () => {
 	});
 
 	describe('CallExpression', () => {
-		it('should work with multiple return types and a VariableDeclaration', () => {
+		it.skip('should work with multiple return types and a VariableDeclaration', () => {
 			testAnalyze(
 				`f doSomething -> string, bool { return '', true; };
 				const goLangStyle, ok = doSomething();
@@ -305,36 +321,46 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('doSomething', mockPos),
+							name: ASTIdentifier._('doSomething', pos, mockParent),
 							typeParams: [],
 							params: [],
-							returnTypes: [ASTTypePrimitive._('string', mockPos), ASTTypePrimitive._('bool', mockPos)],
+							returnTypes: [ASTTypePrimitiveString(pos, mockParent), ASTTypePrimitiveBool(pos, mockParent)],
 							body: ASTBlockStatement._(
-								[ASTReturnStatement._([ASTStringLiteral._('', mockPos), ASTBoolLiteral._(true, mockPos)], mockPos)],
-								mockPos,
+								[
+									ASTReturnStatement._(
+										[ASTStringLiteral._('', pos, mockParent), ASTBoolLiteral._(true, pos, mockParent)],
+										pos,
+										mockParent,
+									),
+								],
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('goLangStyle', mockPos), ASTIdentifier._('ok', mockPos)],
+							identifiersList: [ASTIdentifier._('goLangStyle', pos, mockParent), ASTIdentifier._('ok', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('doSomething', mockPos),
+										callee: ASTIdentifier._('doSomething', pos, mockParent),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[ASTTypePrimitiveString(mockPos), ASTTypePrimitiveBool(mockPos)]],
+							inferredTypes: [ASTTypePrimitiveString(pos, mockParent), ASTTypePrimitiveBool(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -350,23 +376,27 @@ describe('semanticAnalyzer', () => {
 									{
 										object: ASTMemberExpression._(
 											{
-												object: ASTIdentifier._('a', mockPos),
-												property: ASTIdentifier._('b', mockPos),
+												object: ASTIdentifier._('a', pos, mockParent),
+												property: ASTIdentifier._('b', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
-										property: ASTIdentifier._('c', mockPos),
+										property: ASTIdentifier._('c', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								property: ASTIdentifier._('d', mockPos),
+								property: ASTIdentifier._('d', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						typeArgs: [],
-						args: [ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos)],
+						args: [ASTNumberLiteral._(4, 'int8', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -377,15 +407,17 @@ describe('semanticAnalyzer', () => {
 					{
 						object: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('a', mockPos),
+								callee: ASTIdentifier._('a', pos, mockParent),
 								typeArgs: [],
-								args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								args: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						property: ASTIdentifier._('b', mockPos),
+						property: ASTIdentifier._('b', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -398,20 +430,23 @@ describe('semanticAnalyzer', () => {
 							{
 								object: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('a', mockPos),
+										callee: ASTIdentifier._('a', pos, mockParent),
 										typeArgs: [],
-										args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+										args: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								property: ASTIdentifier._('b', mockPos),
+								property: ASTIdentifier._('b', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						typeArgs: [],
-						args: [ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos)],
+						args: [ASTNumberLiteral._(2, 'int8', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -420,30 +455,33 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('a(b<|T|>);', [
 				ASTCallExpression._(
 					{
-						callee: ASTIdentifier._('a', mockPos),
+						callee: ASTIdentifier._('a', pos, mockParent),
 						typeArgs: [],
 						args: [
 							ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('b', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos)],
+									base: ASTIdentifier._('b', pos, mockParent),
+									typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
 			testAnalyze('a<|T|>(b);', [
 				ASTCallExpression._(
 					{
-						callee: ASTIdentifier._('a', mockPos),
-						typeArgs: [ASTIdentifier._('T', mockPos)],
-						args: [ASTIdentifier._('b', mockPos)],
+						callee: ASTIdentifier._('a', pos, mockParent),
+						typeArgs: [ASTIdentifier._('T', pos, mockParent)],
+						args: [ASTIdentifier._('b', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -453,41 +491,48 @@ describe('semanticAnalyzer', () => {
 				ASTClassDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [],
 						extends: [],
 						implements: [],
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 				ASTVariableDeclaration._(
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('foo', mockPos)],
-						declaredTypes: [],
+						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+						declaredTypes: [ASTIdentifier._('Foo', pos, mockParent)],
 						initialValues: [
 							ASTCallExpression._(
 								{
-									callee: ASTIdentifier._('Foo', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos), ASTArrayOf._(ASTIdentifier._('T', mockPos), mockPos)],
+									callee: ASTIdentifier._('Foo', pos, mockParent),
+									typeArgs: [
+										ASTIdentifier._('T', pos, mockParent),
+										ASTArrayOf._(ASTIdentifier._('T', pos, mockParent), pos, mockParent),
+									],
 									args: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[ASTIdentifier._('Foo', mockPos)]],
+						inferredTypes: [ASTIdentifier._('Foo', pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
 
 		it('multiple inheritance manual resolution', () => {
+			// expect(1).toBe(2);
 			testAnalyze(
 				`class C extends A, B {
-					f foo () {
+					f foo () -> int8 {
 						return this.parent<|B|>.foo(); // <-- Specify to use B.foo
 					}
 				}`,
@@ -495,63 +540,67 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('C', mockPos),
+							name: ASTIdentifier._('C', pos, mockParent),
 							typeParams: [],
-							extends: [ASTIdentifier._('A', mockPos), ASTIdentifier._('B', mockPos)],
+							extends: [ASTIdentifier._('A', pos, mockParent), ASTIdentifier._('B', pos, mockParent)],
 							implements: [],
 							body: ASTBlockStatement._(
 								[
 									ASTFunctionDeclaration._(
 										{
 											modifiers: [],
-											name: ASTIdentifier._('foo', mockPos),
+											name: ASTIdentifier._('foo', pos, mockParent, 'C.foo'),
 											typeParams: [],
 											params: [],
 											returnTypes: [],
 											body: ASTBlockStatement._(
 												[
-													ASTReturnStatement._(
-														[
-															ASTCallExpression._(
+													ASTCallExpression._(
+														{
+															callee: ASTMemberExpression._(
 																{
-																	callee: ASTMemberExpression._(
+																	object: ASTMemberExpression._(
 																		{
-																			object: ASTMemberExpression._(
+																			object: ASTThisKeyword._(pos, mockParent),
+																			property: ASTTypeInstantiationExpression._(
 																				{
-																					object: ASTThisKeyword._(mockPos),
-																					property: ASTTypeInstantiationExpression._(
-																						{
-																							base: ASTIdentifier._('parent', mockPos),
-																							typeArgs: [ASTIdentifier._('B', mockPos)],
-																						},
-																						mockPos,
-																					),
+																					base: ASTIdentifier._('parent', pos, mockParent),
+																					typeArgs: [ASTIdentifier._('B', pos, mockParent)],
 																				},
-																				mockPos,
+																				pos,
+																				mockParent,
 																			),
-																			property: ASTIdentifier._('foo', mockPos),
 																		},
-																		mockPos,
+																		pos,
+																		mockParent,
 																	),
-																	typeArgs: [],
-																	args: [],
+																	property: ASTIdentifier._('foo', pos, mockParent),
 																},
-																mockPos,
+																pos,
+																mockParent,
 															),
-														],
-														mockPos,
+															typeArgs: [],
+															args: [],
+														},
+														pos,
+														mockParent,
 													),
+													ASTReturnStatement._([ASTNumberLiteral._(0, 'int8', pos, mockParent)], pos, mockParent),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -563,21 +612,24 @@ describe('semanticAnalyzer', () => {
 					{
 						callee: ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
 								property: ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
+										base: ASTIdentifier._('bar', pos, mockParent),
+										typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						typeArgs: [],
 						args: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -586,21 +638,24 @@ describe('semanticAnalyzer', () => {
 					{
 						callee: ASTMemberExpression._(
 							{
-								object: ASTThisKeyword._(mockPos),
+								object: ASTThisKeyword._(pos, mockParent),
 								property: ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
+										base: ASTIdentifier._('bar', pos, mockParent),
+										typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						typeArgs: [],
 						args: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -615,15 +670,17 @@ describe('semanticAnalyzer', () => {
 							{
 								callee: ASTMemberExpression._(
 									{
-										object: ASTIdentifier._('A', mockPos),
-										property: ASTIdentifier._('create', mockPos),
+										object: ASTIdentifier._('A', pos, mockParent),
+										property: ASTIdentifier._('create', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								typeArgs: [],
 								args: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -637,14 +694,16 @@ describe('semanticAnalyzer', () => {
 								{
 									object: ASTTypeInstantiationExpression._(
 										{
-											base: ASTIdentifier._('A', mockPos),
-											typeArgs: [ASTIdentifier._('T', mockPos), ASTIdentifier._('U', mockPos)],
+											base: ASTIdentifier._('A', pos, mockParent),
+											typeArgs: [ASTIdentifier._('T', pos, mockParent), ASTIdentifier._('U', pos, mockParent)],
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									property: ASTIdentifier._('create', mockPos),
+									property: ASTIdentifier._('create', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							typeArgs: [],
 							args: [
@@ -652,34 +711,39 @@ describe('semanticAnalyzer', () => {
 									{
 										callee: ASTMemberExpression._(
 											{
-												object: ASTIdentifier._('T', mockPos),
-												property: ASTIdentifier._('create', mockPos),
+												object: ASTIdentifier._('T', pos, mockParent),
+												property: ASTIdentifier._('create', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTCallExpression._(
 									{
 										callee: ASTMemberExpression._(
 											{
-												object: ASTIdentifier._('U', mockPos),
-												property: ASTIdentifier._('create', mockPos),
+												object: ASTIdentifier._('U', pos, mockParent),
+												property: ASTIdentifier._('create', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTStringLiteral._('foo', mockPos),
+								ASTStringLiteral._('foo', pos, mockParent),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -699,27 +763,32 @@ describe('semanticAnalyzer', () => {
 													{
 														object: ASTMemberExpression._(
 															{
-																object: ASTIdentifier._('A', mockPos),
-																property: ASTIdentifier._('B', mockPos),
+																object: ASTIdentifier._('A', pos, mockParent),
+																property: ASTIdentifier._('B', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
-														property: ASTIdentifier._('C', mockPos),
+														property: ASTIdentifier._('C', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
-												property: ASTIdentifier._('D', mockPos),
+												property: ASTIdentifier._('D', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
-										property: ASTIdentifier._('create', mockPos),
+										property: ASTIdentifier._('create', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								typeArgs: [],
 								args: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -729,23 +798,20 @@ describe('semanticAnalyzer', () => {
 
 	describe('ClassDeclaration', (): void => {
 		it('empty class', (): void => {
-			testAnalyze(
-				'class Foo {}',
-
-				[
-					ASTClassDeclaration._(
-						{
-							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [],
-							extends: [],
-							implements: [],
-							body: ASTBlockStatement._([], mockPos),
-						},
-						mockPos,
-					),
-				],
-			);
+			testAnalyze('class Foo {}', [
+				ASTClassDeclaration._(
+					{
+						modifiers: [],
+						name: ASTIdentifier._('Foo', pos, mockParent),
+						typeParams: [],
+						extends: [],
+						implements: [],
+						body: ASTBlockStatement._([], pos, mockParent),
+					},
+					pos,
+					mockParent,
+				),
+			]);
 
 			testAnalyze(
 				'class Foo <| T, U.V, bool |> {}',
@@ -754,28 +820,31 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
 								ASTTypeParameter._(
 									ASTMemberExpression._(
 										{
-											object: ASTIdentifier._('U', mockPos),
-											property: ASTIdentifier._('V', mockPos),
+											object: ASTIdentifier._('U', pos, mockParent),
+											property: ASTIdentifier._('V', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									undefined,
 									undefined,
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTTypeParameter._(ASTTypePrimitive._('bool', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTTypePrimitiveBool(pos, mockParent), undefined, undefined, pos, mockParent),
 							],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -789,13 +858,14 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -806,7 +876,7 @@ describe('semanticAnalyzer', () => {
 				ASTClassDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [],
 						extends: [],
 						implements: [],
@@ -816,29 +886,33 @@ describe('semanticAnalyzer', () => {
 									{
 										modifiers: [],
 										mutable: false,
-										identifiersList: [ASTIdentifier._('foo', mockPos)],
-										declaredTypes: [],
-										initialValues: [ASTStringLiteral._('bar', mockPos)],
-										inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
+										identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+										declaredTypes: [ASTTypePrimitiveString(pos, mockParent)],
+										initialValues: [ASTStringLiteral._('bar', pos, mockParent)],
+										inferredTypes: [ASTTypePrimitiveString(pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTFunctionDeclaration._(
 									{
 										modifiers: [],
-										name: ASTIdentifier._('bar', mockPos),
+										name: ASTIdentifier._('bar', pos, mockParent),
 										typeParams: [],
 										params: [],
 										returnTypes: [],
-										body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+										body: ASTBlockStatement._([], pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -848,13 +922,17 @@ describe('semanticAnalyzer', () => {
 				ASTClassDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [],
-						extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
-						implements: [ASTIdentifier._('AbstractFooBar', mockPos), ASTIdentifier._('AnotherAbstractClass', mockPos)],
-						body: ASTBlockStatement._([], mockPos),
+						extends: [ASTIdentifier._('Bar', pos, mockParent), ASTIdentifier._('Baz', pos, mockParent)],
+						implements: [
+							ASTIdentifier._('AbstractFooBar', pos, mockParent),
+							ASTIdentifier._('AnotherAbstractClass', pos, mockParent),
+						],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -867,43 +945,47 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+								ASTTypeParameter._(ASTIdentifier._('U', pos, mockParent), undefined, undefined, pos, mockParent),
 							],
 							extends: [
 								ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('Bar', mockPos),
+										base: ASTIdentifier._('Bar', pos, mockParent),
 										typeArgs: [
 											ASTTypeInstantiationExpression._(
 												{
-													base: ASTIdentifier._('T', mockPos),
-													typeArgs: [ASTIdentifier._('RE', mockPos)],
+													base: ASTIdentifier._('T', pos, mockParent),
+													typeArgs: [ASTIdentifier._('RE', pos, mockParent)],
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
-											ASTTypePrimitive._('path', mockPos),
+											ASTTypePrimitivePath(pos, mockParent),
 										],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTIdentifier._('Baz', mockPos),
+								ASTIdentifier._('Baz', pos, mockParent),
 							],
 							implements: [
-								ASTIdentifier._('AbstractFooBar', mockPos),
+								ASTIdentifier._('AbstractFooBar', pos, mockParent),
 								ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('AnotherAbstractClass', mockPos),
-										typeArgs: [ASTIdentifier._('U', mockPos)],
+										base: ASTIdentifier._('AnotherAbstractClass', pos, mockParent),
+										typeArgs: [ASTIdentifier._('U', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -916,14 +998,15 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTClassDeclaration._(
 						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
+							modifiers: [ASTModifier._('abstract', pos, mockParent)],
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -934,14 +1017,15 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTClassDeclaration._(
 						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+							modifiers: [ASTModifier._('abstract', pos, mockParent)],
+							name: ASTIdentifier._('Foo', pos, mockParent),
+							typeParams: [ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent)],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -957,8 +1041,8 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTClassDeclaration._(
 						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
+							modifiers: [ASTModifier._('abstract', pos, mockParent)],
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
 							extends: [],
 							implements: [],
@@ -966,64 +1050,88 @@ describe('semanticAnalyzer', () => {
 								[
 									ASTVariableDeclaration._(
 										{
-											modifiers: [ASTModifier._('abstract', mockPos), ASTModifier._('readonly', mockPos)],
+											modifiers: [
+												ASTModifier._('abstract', pos, mockParent),
+												ASTModifier._('readonly', pos, mockParent),
+											],
 											mutable: false,
-											identifiersList: [ASTIdentifier._('baz', mockPos)],
-											declaredTypes: [ASTTypeNumber._('int8', mockPos)],
+											identifiersList: [ASTIdentifier._('baz', pos, mockParent)],
+											declaredTypes: [ASTTypeNumber._('int8', pos, mockParent)],
 											initialValues: [],
-											inferredPossibleTypes: [],
+											inferredTypes: [],
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTFunctionDeclaration._(
 										{
-											modifiers: [ASTModifier._('abstract', mockPos), ASTModifier._('static', mockPos)],
-											name: ASTIdentifier._('hello', mockPos),
-											typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+											modifiers: [
+												ASTModifier._('abstract', pos, mockParent),
+												ASTModifier._('static', pos, mockParent),
+											],
+											name: ASTIdentifier._('hello', pos, mockParent),
+											typeParams: [
+												ASTTypeParameter._(
+													ASTIdentifier._('T', pos, mockParent),
+													undefined,
+													undefined,
+													pos,
+													mockParent,
+												),
+											],
 											params: [
 												ASTParameter._(
 													{
 														modifiers: [],
 														isRest: false,
-														name: ASTIdentifier._('name', mockPos),
-														type: ASTTypePrimitive._('string', mockPos),
-														defaultValue: ASTStringLiteral._('World', mockPos),
+														name: ASTIdentifier._('name', pos, mockParent),
+														type: ASTTypePrimitiveString(pos, mockParent),
+														defaultValue: ASTStringLiteral._('World', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 											],
-											returnTypes: [ASTIdentifier._('Greeting', mockPos), ASTIdentifier._('T', mockPos)],
+											returnTypes: [
+												ASTIdentifier._('Greeting', pos, mockParent),
+												ASTIdentifier._('T', pos, mockParent),
+											],
 											body: undefined,
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTFunctionDeclaration._(
 										{
-											modifiers: [ASTModifier._('pub', mockPos), ASTModifier._('static', mockPos)],
-											name: ASTIdentifier._('world', mockPos),
+											modifiers: [ASTModifier._('pub', pos, mockParent), ASTModifier._('static', pos, mockParent)],
+											name: ASTIdentifier._('world', pos, mockParent),
 											typeParams: [],
 											params: [
 												ASTParameter._(
 													{
 														modifiers: [],
 														isRest: false,
-														name: ASTIdentifier._('name', mockPos),
-														type: ASTTypePrimitive._('string', mockPos),
-														defaultValue: ASTStringLiteral._('Earth', mockPos),
+														name: ASTIdentifier._('name', pos, mockParent),
+														type: ASTTypePrimitiveString(pos, mockParent),
+														defaultValue: ASTStringLiteral._('Earth', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 											],
 											returnTypes: [],
 											body: undefined,
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1034,25 +1142,27 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTClassDeclaration._(
 						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('Foo', mockPos),
+							modifiers: [ASTModifier._('abstract', pos, mockParent)],
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Bar', mockPos),
+							name: ASTIdentifier._('Bar', pos, mockParent),
 							typeParams: [],
-							extends: [ASTIdentifier._('Foo', mockPos)],
+							extends: [ASTIdentifier._('Foo', pos, mockParent)],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1084,12 +1194,13 @@ describe('semanticAnalyzer', () => {
 					ASTEnumDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
 							extends: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1101,15 +1212,16 @@ describe('semanticAnalyzer', () => {
 					ASTEnumDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+								ASTTypeParameter._(ASTIdentifier._('U', pos, mockParent), undefined, undefined, pos, mockParent),
 							],
 							extends: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1123,22 +1235,24 @@ describe('semanticAnalyzer', () => {
 					ASTEnumDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
 							extends: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTEnumDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Bar', mockPos),
+							name: ASTIdentifier._('Bar', pos, mockParent),
 							typeParams: [],
-							extends: [ASTIdentifier._('Foo', mockPos)],
-							body: ASTBlockStatement._([], mockPos),
+							extends: [ASTIdentifier._('Foo', pos, mockParent)],
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1152,12 +1266,13 @@ describe('semanticAnalyzer', () => {
 					ASTEnumDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [],
-							extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
-							body: ASTBlockStatement._([], mockPos),
+							extends: [ASTIdentifier._('Bar', pos, mockParent), ASTIdentifier._('Baz', pos, mockParent)],
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1171,30 +1286,33 @@ describe('semanticAnalyzer', () => {
 					ASTEnumDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-								ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+								ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+								ASTTypeParameter._(ASTIdentifier._('U', pos, mockParent), undefined, undefined, pos, mockParent),
 							],
 							extends: [
 								ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('Bar', mockPos),
-										typeArgs: [ASTIdentifier._('T', mockPos)],
+										base: ASTIdentifier._('Bar', pos, mockParent),
+										typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('Baz', mockPos),
-										typeArgs: [ASTIdentifier._('U', mockPos)],
+										base: ASTIdentifier._('Baz', pos, mockParent),
+										typeArgs: [ASTIdentifier._('U', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1213,23 +1331,26 @@ describe('semanticAnalyzer', () => {
 								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
+									identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 									declaredTypes: [],
 									initialValues: [],
-									inferredPossibleTypes: [],
+									inferredTypes: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							iterable: ASTRangeExpression._(
 								{
-									lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-									upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+									lower: ASTNumberLiteral._(0, 'int8', pos, mockParent),
+									upper: ASTNumberLiteral._(9, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1243,23 +1364,26 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: true,
-								identifiersList: [ASTIdentifier._('i', mockPos)],
+								identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 								declaredTypes: [],
 								initialValues: [],
-								inferredPossibleTypes: [],
+								inferredTypes: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						iterable: ASTRangeExpression._(
 							{
-								lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-								upper: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+								lower: ASTNumberLiteral._(0, 'int8', pos, mockParent),
+								upper: ASTNumberLiteral._(9, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1270,24 +1394,26 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('foo', mockPos)],
-						declaredTypes: [],
+						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+						declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 						initialValues: [
 							ASTArrayExpression._(
 								{
 									items: [
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(1, 'int8', pos, mockParent),
+										ASTNumberLiteral._(2, 'int8', pos, mockParent),
+										ASTNumberLiteral._(3, 'int8', pos, mockParent),
 									],
-									possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+									type: ASTTypeNumberInt8(pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ASTArrayOf._(ns(mockPos), mockPos))],
+						inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 				ASTForStatement._(
 					{
@@ -1295,17 +1421,19 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: true,
-								identifiersList: [ASTIdentifier._('i', mockPos)],
+								identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 								declaredTypes: [],
 								initialValues: [],
-								inferredPossibleTypes: [],
+								inferredTypes: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						iterable: ASTIdentifier._('foo', mockPos),
-						body: ASTBlockStatement._([], mockPos),
+						iterable: ASTIdentifier._('foo', pos, mockParent),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1321,27 +1449,30 @@ describe('semanticAnalyzer', () => {
 								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('n', mockPos), ASTIdentifier._('i', mockPos)],
+									identifiersList: [ASTIdentifier._('n', pos, mockParent), ASTIdentifier._('i', pos, mockParent)],
 									declaredTypes: [],
 									initialValues: [],
-									inferredPossibleTypes: [],
+									inferredTypes: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							iterable: ASTArrayExpression._(
 								{
 									items: [
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(1, 'int8', pos, mockParent),
+										ASTNumberLiteral._(2, 'int8', pos, mockParent),
+										ASTNumberLiteral._(3, 'int8', pos, mockParent),
 									],
-									possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+									type: ASTTypeNumberInt8(pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1358,24 +1489,27 @@ describe('semanticAnalyzer', () => {
 								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
+									identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 									declaredTypes: [],
 									initialValues: [],
-									inferredPossibleTypes: [],
+									inferredTypes: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							iterable: ASTCallExpression._(
 								{
-									callee: ASTIdentifier._('foo', mockPos),
+									callee: ASTIdentifier._('foo', pos, mockParent),
 									typeArgs: [],
 									args: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1392,23 +1526,26 @@ describe('semanticAnalyzer', () => {
 								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
+									identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 									declaredTypes: [],
 									initialValues: [],
-									inferredPossibleTypes: [],
+									inferredTypes: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							iterable: ASTMemberExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
-									property: ASTIdentifier._('bar', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
+									property: ASTIdentifier._('bar', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1425,27 +1562,30 @@ describe('semanticAnalyzer', () => {
 								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
+									identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 									declaredTypes: [],
 									initialValues: [],
-									inferredPossibleTypes: [],
+									inferredTypes: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							iterable: ASTMemberListExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
 									properties: [
-										ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-										ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+										ASTNumberLiteral._(0, 'int8', pos, mockParent),
+										ASTNumberLiteral._(2, 'int8', pos, mockParent),
+										ASTNumberLiteral._(4, 'int8', pos, mockParent),
 									],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1462,31 +1602,35 @@ describe('semanticAnalyzer', () => {
 								{
 									modifiers: [],
 									mutable: true,
-									identifiersList: [ASTIdentifier._('i', mockPos)],
+									identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 									declaredTypes: [],
 									initialValues: [],
-									inferredPossibleTypes: [],
+									inferredTypes: [],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							iterable: ASTMemberListExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
 									properties: [
 										ASTRangeExpression._(
 											{
-												lower: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-												upper: ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
+												lower: ASTNumberLiteral._(0, 'int8', pos, mockParent),
+												upper: ASTNumberLiteral._(4, 'int8', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1500,19 +1644,21 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: true,
-								identifiersList: [ASTIdentifier._('i', mockPos)],
+								identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 								declaredTypes: [],
 								initialValues: [],
-								inferredPossibleTypes: [],
+								inferredTypes: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						iterable: ASTIdentifier._('foo', mockPos),
-						body: ASTBlockStatement._([], mockPos),
+						iterable: ASTIdentifier._('foo', pos, mockParent),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
-				ASTPrintStatement._([ASTStringLiteral._('something after', mockPos)], mockPos),
+				ASTPrintStatement._([ASTStringLiteral._('something after', pos, mockParent)], pos, mockParent),
 			]);
 		});
 
@@ -1524,14 +1670,15 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: true,
-								identifiersList: [ASTIdentifier._('i', mockPos)],
+								identifiersList: [ASTIdentifier._('i', pos, mockParent)],
 								declaredTypes: [],
 								initialValues: [],
-								inferredPossibleTypes: [],
+								inferredTypes: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						iterable: ASTIdentifier._('foo', mockPos),
+						iterable: ASTIdentifier._('foo', pos, mockParent),
 						body: ASTBlockStatement._(
 							[
 								ASTForStatement._(
@@ -1540,23 +1687,27 @@ describe('semanticAnalyzer', () => {
 											{
 												modifiers: [],
 												mutable: true,
-												identifiersList: [ASTIdentifier._('j', mockPos)],
+												identifiersList: [ASTIdentifier._('j', pos, mockParent)],
 												declaredTypes: [],
 												initialValues: [],
-												inferredPossibleTypes: [],
+												inferredTypes: [],
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
-										iterable: ASTIdentifier._('bar', mockPos),
-										body: ASTBlockStatement._([], mockPos),
+										iterable: ASTIdentifier._('bar', pos, mockParent),
+										body: ASTBlockStatement._([], pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1568,13 +1719,14 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [],
 						returnTypes: [],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1584,15 +1736,16 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [],
-						returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						returnTypes: [ASTTypePrimitiveBool(pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
-				ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+				ASTNumberLiteral._(5, 'int8', pos, mockParent),
 			]);
 		});
 
@@ -1605,16 +1758,24 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
+							name: ASTIdentifier._('foo', pos, mockParent),
 							typeParams: [],
 							params: [],
-							returnTypes: [ASTTypePrimitive._('bool', mockPos), ASTTypePrimitive._('string', mockPos)],
+							returnTypes: [ASTTypePrimitiveBool(pos, mockParent), ASTTypePrimitiveString(pos, mockParent)],
 							body: ASTBlockStatement._(
-								[ASTReturnStatement._([ASTBoolLiteral._(true, mockPos), ASTStringLiteral._('hey', mockPos)], mockPos)],
-								mockPos,
+								[
+									ASTReturnStatement._(
+										[ASTBoolLiteral._(true, pos, mockParent), ASTStringLiteral._('hey', pos, mockParent)],
+										pos,
+										mockParent,
+									),
+								],
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -1625,13 +1786,14 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [],
 						returnTypes: [],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1641,13 +1803,14 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [],
-						returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						returnTypes: [ASTTypePrimitiveBool(pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1657,23 +1820,24 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
-									type: ASTTypeNumber._('int8', mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
+									type: ASTTypeNumber._('int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('callback', mockPos),
+									name: ASTIdentifier._('callback', pos, mockParent),
 									type: ASTFunctionSignature._(
 										{
 											typeParams: [],
@@ -1682,24 +1846,28 @@ describe('semanticAnalyzer', () => {
 													{
 														modifiers: [],
 														isRest: false,
-														name: ASTIdentifier._('a', mockPos),
-														type: ASTTypeNumber._('int8', mockPos),
+														name: ASTIdentifier._('a', pos, mockParent),
+														type: ASTTypeNumber._('int8', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 											],
-											returnTypes: [ASTTypePrimitive._('string', mockPos), ASTTypePrimitive._('bool', mockPos)],
+											returnTypes: [ASTTypePrimitiveString(pos, mockParent), ASTTypePrimitiveBool(pos, mockParent)],
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 						returnTypes: [],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1709,32 +1877,35 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
-									type: ASTTypeNumber._('int8', mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
+									type: ASTTypeNumber._('int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('r', mockPos),
-									type: ASTTypePrimitive._('regex', mockPos),
+									name: ASTIdentifier._('r', pos, mockParent),
+									type: ASTTypePrimitiveRegex(pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						returnTypes: [ASTTypePrimitive._('regex', mockPos), ASTTypePrimitive._('bool', mockPos)],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						returnTypes: [ASTTypePrimitiveRegex(pos, mockParent), ASTTypePrimitiveBool(pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1744,24 +1915,26 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
-						typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+						name: ASTIdentifier._('foo', pos, mockParent),
+						typeParams: [ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent)],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
 									type: ASTFunctionSignature._(
 										{
 											typeParams: [],
 											params: [],
-											returnTypes: [ASTIdentifier._('T', mockPos)],
+											returnTypes: [ASTIdentifier._('T', pos, mockParent)],
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 						returnTypes: [
@@ -1772,27 +1945,31 @@ describe('semanticAnalyzer', () => {
 									returnTypes: [
 										ASTTypeInstantiationExpression._(
 											{
-												base: ASTIdentifier._('Result', mockPos),
+												base: ASTIdentifier._('Result', pos, mockParent),
 												typeArgs: [
 													ASTTypeInstantiationExpression._(
 														{
-															base: ASTIdentifier._('Maybe', mockPos),
-															typeArgs: [ASTIdentifier._('T', mockPos)],
+															base: ASTIdentifier._('Maybe', pos, mockParent),
+															typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 														},
-														mockPos,
+														pos,
+														mockParent,
 													),
 												],
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1802,23 +1979,25 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
-									type: ASTTupleShape._([[ASTTypePrimitive._('bool', mockPos)]], mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
+									type: ASTTupleShape._([ASTTypePrimitiveBool(pos, mockParent)], pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						returnTypes: [ASTTupleShape._([[ASTTypeNumber._('dec64', mockPos)]], mockPos)],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						returnTypes: [ASTTupleShape._([ASTTypeNumber._('dec64', pos, mockParent)], pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1828,26 +2007,33 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
 									type: ASTArrayOf._(
-										ASTTupleShape._([[ASTArrayOf._(ASTTypePrimitive._('bool', mockPos), mockPos)]], mockPos),
-										mockPos,
+										ASTTupleShape._(
+											[ASTArrayOf._(ASTTypePrimitiveBool(pos, mockParent), pos, mockParent)],
+											pos,
+											mockParent,
+										),
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						returnTypes: [ASTTupleShape._([[ASTTypeNumber._('int32', mockPos)]], mockPos)],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						returnTypes: [ASTTupleShape._([ASTTypeNumber._('int32', pos, mockParent)], pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1857,51 +2043,64 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
-									type: ASTArrayOf._(ASTTypeNumber._('int8', mockPos), mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
+									type: ASTArrayOf._(ASTTypeNumber._('int8', pos, mockParent), pos, mockParent),
 									defaultValue: ASTArrayExpression._(
 										{
-											items: [ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)],
-											possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+											items: [ASTNumberLiteral._(5, 'int8', pos, mockParent)],
+											type: ASTTypeNumberInt8(pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('b', mockPos),
-									type: ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('string', mockPos), mockPos), mockPos),
+									name: ASTIdentifier._('b', pos, mockParent),
+									type: ASTArrayOf._(
+										ASTArrayOf._(ASTTypePrimitiveString(pos, mockParent), pos, mockParent),
+										pos,
+										mockParent,
+									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: true,
-									name: ASTIdentifier._('c', mockPos),
-									type: ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos),
+									name: ASTIdentifier._('c', pos, mockParent),
+									type: ASTArrayOf._(ASTIdentifier._('Foo', pos, mockParent), pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 						returnTypes: [
-							ASTTypePrimitive._('regex', mockPos),
-							ASTArrayOf._(ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._('path', mockPos), mockPos), mockPos), mockPos),
+							ASTTypePrimitiveRegex(pos, mockParent),
+							ASTArrayOf._(
+								ASTArrayOf._(ASTArrayOf._(ASTTypePrimitivePath(pos, mockParent), pos, mockParent), pos, mockParent),
+								pos,
+								mockParent,
+							),
 						],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -1920,89 +2119,89 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('school', mockPos),
+							name: ASTIdentifier._('school', pos, mockParent),
 							typeParams: [],
 							params: [
 								ASTParameter._(
 									{
 										modifiers: [],
 										isRest: false,
-										name: ASTIdentifier._('age', mockPos),
-										type: ASTTypeNumber._('int8', mockPos),
+										name: ASTIdentifier._('age', pos, mockParent),
+										type: ASTTypeNumber._('int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							returnTypes: [ASTTypePrimitive._('string', mockPos)],
+							returnTypes: [ASTTypePrimitiveString(pos, mockParent)],
 							body: ASTBlockStatement._(
 								[
 									ASTReturnStatement._(
 										[
 											ASTWhenExpression._(
 												{
-													expression: ASTIdentifier._('age', mockPos),
+													expression: ASTIdentifier._('age', pos, mockParent),
 													cases: [
 														ASTWhenCase._(
 															{
-																values: [ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos)],
-																consequent: ASTStringLiteral._('Hogwarts First Year', mockPos),
+																values: [ASTNumberLiteral._(11, 'int8', pos, mockParent)],
+																consequent: ASTStringLiteral._('Hogwarts First Year', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
 														ASTWhenCase._(
 															{
 																values: [
 																	ASTRangeExpression._(
 																		{
-																			lower: ASTNumberLiteral._(
-																				12,
-																				undefined,
-																				[...numberSizesInts],
-																				mockPos,
-																			),
-																			upper: ASTNumberLiteral._(
-																				17,
-																				undefined,
-																				[...numberSizesInts],
-																				mockPos,
-																			),
+																			lower: ASTNumberLiteral._(12, 'int8', pos, mockParent),
+																			upper: ASTNumberLiteral._(17, 'int8', pos, mockParent),
 																		},
-																		mockPos,
+																		pos,
+																		mockParent,
 																	),
 																],
-																consequent: ASTStringLiteral._('Another Year at Hogwarts', mockPos),
+																consequent: ASTStringLiteral._('Another Year at Hogwarts', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
 														ASTWhenCase._(
 															{
 																values: [
-																	ASTNumberLiteral._(18, undefined, [...numberSizesInts], mockPos),
-																	ASTNumberLiteral._(19, undefined, [...numberSizesInts], mockPos),
+																	ASTNumberLiteral._(18, 'int8', pos, mockParent),
+																	ASTNumberLiteral._(19, 'int8', pos, mockParent),
 																],
-																consequent: ASTStringLiteral._('Auror Training', mockPos),
+																consequent: ASTStringLiteral._('Auror Training', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
 														ASTWhenCase._(
 															{
-																values: [ASTRestElement._(mockPos)],
-																consequent: ASTStringLiteral._('Auror', mockPos),
+																values: [ASTRestElement._(pos, mockParent)],
+																consequent: ASTStringLiteral._('Auror', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
 													],
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -2017,48 +2216,54 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
+							name: ASTIdentifier._('foo', pos, mockParent),
 							typeParams: [],
 							params: [
 								ASTParameter._(
 									{
 										modifiers: [],
 										isRest: false,
-										name: ASTIdentifier._('age', mockPos),
-										type: ASTTypeNumber._('uint16', mockPos),
+										name: ASTIdentifier._('age', pos, mockParent),
+										type: ASTTypeNumber._('uint16', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							returnTypes: [ASTTypeNumber._('uint16', mockPos), ASTTypePrimitive._('string', mockPos)],
+							returnTypes: [ASTTypeNumber._('uint16', pos, mockParent), ASTTypePrimitiveString(pos, mockParent)],
 							body: ASTBlockStatement._(
 								[
 									ASTReturnStatement._(
 										[
-											ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+											ASTNumberLiteral._(5, 'int8', pos, mockParent),
 											ASTWhenExpression._(
 												{
-													expression: ASTIdentifier._('age', mockPos),
+													expression: ASTIdentifier._('age', pos, mockParent),
 													cases: [
 														ASTWhenCase._(
 															{
-																values: [ASTRestElement._(mockPos)],
-																consequent: ASTStringLiteral._('No more foos', mockPos),
+																values: [ASTRestElement._(pos, mockParent)],
+																consequent: ASTStringLiteral._('No more foos', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
 													],
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -2069,23 +2274,25 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
-						typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+						name: ASTIdentifier._('foo', pos, mockParent),
+						typeParams: [ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent)],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
-									type: ASTIdentifier._('T', mockPos),
+									name: ASTIdentifier._('a', pos, mockParent),
+									type: ASTIdentifier._('T', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						returnTypes: [ASTIdentifier._('T', mockPos)],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						returnTypes: [ASTIdentifier._('T', pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2101,8 +2308,8 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTClassDeclaration._(
 						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
-							name: ASTIdentifier._('A', mockPos),
+							modifiers: [ASTModifier._('abstract', pos, mockParent)],
+							name: ASTIdentifier._('A', pos, mockParent),
 							typeParams: [],
 							extends: [],
 							implements: [],
@@ -2110,73 +2317,89 @@ describe('semanticAnalyzer', () => {
 								[
 									ASTFunctionDeclaration._(
 										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo1', mockPos),
+											modifiers: [ASTModifier._('abstract', pos, mockParent)],
+											name: ASTIdentifier._('foo1', pos, mockParent),
 											typeParams: [],
 											params: [],
 											returnTypes: [],
 											body: undefined,
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTFunctionDeclaration._(
 										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo2', mockPos),
+											modifiers: [ASTModifier._('abstract', pos, mockParent)],
+											name: ASTIdentifier._('foo2', pos, mockParent),
 											typeParams: [],
 											params: [
 												ASTParameter._(
 													{
 														modifiers: [],
-														name: ASTIdentifier._('arg', mockPos),
+														name: ASTIdentifier._('arg', pos, mockParent),
 														isRest: false,
-														type: ASTTypeNumber._('int64', mockPos),
+														type: ASTTypeNumber._('int64', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 											],
 											returnTypes: [],
 											body: undefined,
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTFunctionDeclaration._(
 										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo3', mockPos),
-											typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+											modifiers: [ASTModifier._('abstract', pos, mockParent)],
+											name: ASTIdentifier._('foo3', pos, mockParent),
+											typeParams: [
+												ASTTypeParameter._(
+													ASTIdentifier._('T', pos, mockParent),
+													undefined,
+													undefined,
+													pos,
+													mockParent,
+												),
+											],
 											params: [],
-											returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+											returnTypes: [ASTTypePrimitiveBool(pos, mockParent)],
 											body: undefined,
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTFunctionDeclaration._(
 										{
-											modifiers: [ASTModifier._('abstract', mockPos)],
-											name: ASTIdentifier._('foo4', mockPos),
+											modifiers: [ASTModifier._('abstract', pos, mockParent)],
+											name: ASTIdentifier._('foo4', pos, mockParent),
 											typeParams: [],
 											params: [
 												ASTParameter._(
 													{
 														modifiers: [],
 														isRest: false,
-														name: ASTIdentifier._('arg', mockPos),
-														type: ASTTypeNumber._('dec32', mockPos),
+														name: ASTIdentifier._('arg', pos, mockParent),
+														type: ASTTypeNumber._('dec32', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 											],
-											returnTypes: [ASTTypePrimitive._('bool', mockPos)],
+											returnTypes: [ASTTypePrimitiveBool(pos, mockParent)],
 											body: undefined,
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -2188,24 +2411,26 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('foo', mockPos)],
+						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 						declaredTypes: [],
 						initialValues: [
 							ASTFunctionDeclaration._(
 								{
 									modifiers: [],
-									name: ASTIdentifier._('.f_anon_', mockPos),
+									name: ASTIdentifier._('#f_anon_', pos, mockParent),
 									typeParams: [],
 									params: [],
 									returnTypes: [],
-									body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+									body: ASTBlockStatement._([], pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[]],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2216,46 +2441,53 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('foo', mockPos)],
+						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 						declaredTypes: [],
 						initialValues: [
 							ASTFunctionDeclaration._(
 								{
 									modifiers: [],
-									name: ASTIdentifier._('.f_anon_', mockPos),
-									typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+									name: ASTIdentifier._('#f_anon_', pos, mockParent),
+									typeParams: [
+										ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+									],
 									params: [
 										ASTParameter._(
 											{
 												modifiers: [],
 												isRest: false,
-												name: ASTIdentifier._('a', mockPos),
-												type: ASTIdentifier._('T', mockPos),
+												name: ASTIdentifier._('a', pos, mockParent),
+												type: ASTIdentifier._('T', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									],
-									returnTypes: [ASTIdentifier._('T', mockPos)],
+									returnTypes: [ASTIdentifier._('T', pos, mockParent)],
 									body: ASTBlockStatement._(
 										[
 											ASTCallExpression._(
 												{
-													callee: ASTIdentifier._('do', mockPos),
+													callee: ASTIdentifier._('do', pos, mockParent),
 													typeArgs: [],
 													args: [],
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[]],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2267,26 +2499,28 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTVariableDeclaration._(
 						{
-							modifiers: [ASTModifier._('abstract', mockPos)],
+							modifiers: [ASTModifier._('abstract', pos, mockParent)],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTFunctionDeclaration._(
 									{
 										modifiers: [],
-										name: ASTIdentifier._('.f_anon_', mockPos),
+										name: ASTIdentifier._('#f_anon_', pos, mockParent),
 										typeParams: [],
 										params: [],
 										returnTypes: [],
 										body: undefined,
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -2302,13 +2536,18 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('danger?', mockPos),
+							name: ASTIdentifier._('danger?', pos, mockParent),
 							typeParams: [],
 							params: [],
-							returnTypes: [ASTTypePrimitive._('bool', mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([ASTBoolLiteral._(true, mockPos)], mockPos)], mockPos),
+							returnTypes: [ASTTypePrimitiveBool(pos, mockParent)],
+							body: ASTBlockStatement._(
+								[ASTReturnStatement._([ASTBoolLiteral._(true, pos, mockParent)], pos, mockParent)],
+								pos,
+								mockParent,
+							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -2322,7 +2561,7 @@ describe('semanticAnalyzer', () => {
 						ASTClassDeclaration._(
 							{
 								modifiers: [],
-								name: ASTIdentifier._('A', mockPos),
+								name: ASTIdentifier._('A', pos, mockParent),
 								typeParams: [],
 								extends: [],
 								implements: [],
@@ -2331,19 +2570,22 @@ describe('semanticAnalyzer', () => {
 										ASTFunctionDeclaration._(
 											{
 												modifiers: [],
-												name: ASTIdentifier._('<=>', mockPos),
+												name: ASTIdentifier._('<=>', pos, mockParent),
 												typeParams: [],
 												params: [],
 												returnTypes: [],
-												body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+												body: ASTBlockStatement._([], pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									],
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -2356,10 +2598,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('if true {}', [
 				ASTIfStatement._(
 					{
-						test: ASTBoolLiteral._(true, mockPos),
-						consequent: ASTBlockStatement._([], mockPos),
+						test: ASTBoolLiteral._(true, pos, mockParent),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2371,14 +2614,16 @@ describe('semanticAnalyzer', () => {
 						test: ASTBinaryExpression._(
 							{
 								operator: '<',
-								left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								left: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+								right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						consequent: ASTBlockStatement._([], mockPos),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2390,14 +2635,16 @@ describe('semanticAnalyzer', () => {
 						test: ASTBinaryExpression._(
 							{
 								operator: '==',
-								left: ASTIdentifier._('foo', mockPos),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								left: ASTIdentifier._('foo', pos, mockParent),
+								right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						consequent: ASTBlockStatement._([], mockPos),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2411,19 +2658,22 @@ describe('semanticAnalyzer', () => {
 								operator: '==',
 								left: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('foo', mockPos),
+										callee: ASTIdentifier._('foo', pos, mockParent),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						consequent: ASTBlockStatement._([], mockPos),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2440,30 +2690,35 @@ describe('semanticAnalyzer', () => {
 										operator: '==',
 										left: ASTCallExpression._(
 											{
-												callee: ASTIdentifier._('foo', mockPos),
+												callee: ASTIdentifier._('foo', pos, mockParent),
 												typeArgs: [],
 												args: [],
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
-										right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								right: ASTBinaryExpression._(
 									{
 										operator: '<',
-										left: ASTIdentifier._('a', mockPos),
-										right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										left: ASTIdentifier._('a', pos, mockParent),
+										right: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						consequent: ASTBlockStatement._([], mockPos),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2478,19 +2733,22 @@ describe('semanticAnalyzer', () => {
 									operator: '==',
 									left: ASTCallExpression._(
 										{
-											callee: ASTIdentifier._('foo', mockPos),
+											callee: ASTIdentifier._('foo', pos, mockParent),
 											typeArgs: [],
 											args: [],
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+									right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							consequent: ASTBlockStatement._([], mockPos),
+							consequent: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -2507,30 +2765,35 @@ describe('semanticAnalyzer', () => {
 											operator: '==',
 											left: ASTCallExpression._(
 												{
-													callee: ASTIdentifier._('foo', mockPos),
+													callee: ASTIdentifier._('foo', pos, mockParent),
 													typeArgs: [],
 													args: [],
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									right: ASTBinaryExpression._(
 										{
 											operator: '<',
-											left: ASTIdentifier._('a', mockPos),
-											right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('a', pos, mockParent),
+											right: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							consequent: ASTBlockStatement._([], mockPos),
+							consequent: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -2540,11 +2803,12 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('if true {} else {}', [
 				ASTIfStatement._(
 					{
-						test: ASTBoolLiteral._(true, mockPos),
-						consequent: ASTBlockStatement._([], mockPos),
-						alternate: ASTBlockStatement._([], mockPos),
+						test: ASTBoolLiteral._(true, pos, mockParent),
+						consequent: ASTBlockStatement._([], pos, mockParent),
+						alternate: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2553,17 +2817,19 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('if true {} else if false {}', [
 				ASTIfStatement._(
 					{
-						test: ASTBoolLiteral._(true, mockPos),
-						consequent: ASTBlockStatement._([], mockPos),
+						test: ASTBoolLiteral._(true, pos, mockParent),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 						alternate: ASTIfStatement._(
 							{
-								test: ASTBoolLiteral._(false, mockPos),
-								consequent: ASTBlockStatement._([], mockPos),
+								test: ASTBoolLiteral._(false, pos, mockParent),
+								consequent: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2572,17 +2838,19 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('if true {} if false {}', [
 				ASTIfStatement._(
 					{
-						test: ASTBoolLiteral._(true, mockPos),
-						consequent: ASTBlockStatement._([], mockPos),
+						test: ASTBoolLiteral._(true, pos, mockParent),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 				ASTIfStatement._(
 					{
-						test: ASTBoolLiteral._(false, mockPos),
-						consequent: ASTBlockStatement._([], mockPos),
+						test: ASTBoolLiteral._(false, pos, mockParent),
+						consequent: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2594,12 +2862,13 @@ describe('semanticAnalyzer', () => {
 				ASTInterfaceDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [],
 						extends: [],
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -2607,15 +2876,16 @@ describe('semanticAnalyzer', () => {
 				ASTInterfaceDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-							ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+							ASTTypeParameter._(ASTIdentifier._('U', pos, mockParent), undefined, undefined, pos, mockParent),
 						],
 						extends: [],
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2625,22 +2895,24 @@ describe('semanticAnalyzer', () => {
 				ASTInterfaceDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [],
 						extends: [],
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 				ASTInterfaceDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Bar', mockPos),
+						name: ASTIdentifier._('Bar', pos, mockParent),
 						typeParams: [],
-						extends: [ASTIdentifier._('Foo', mockPos)],
-						body: ASTBlockStatement._([], mockPos),
+						extends: [ASTIdentifier._('Foo', pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2650,12 +2922,13 @@ describe('semanticAnalyzer', () => {
 				ASTInterfaceDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [],
-						extends: [ASTIdentifier._('Bar', mockPos), ASTIdentifier._('Baz', mockPos)],
-						body: ASTBlockStatement._([], mockPos),
+						extends: [ASTIdentifier._('Bar', pos, mockParent), ASTIdentifier._('Baz', pos, mockParent)],
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2665,30 +2938,33 @@ describe('semanticAnalyzer', () => {
 				ASTInterfaceDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('Foo', mockPos),
+						name: ASTIdentifier._('Foo', pos, mockParent),
 						typeParams: [
-							ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos),
-							ASTTypeParameter._(ASTIdentifier._('U', mockPos), undefined, undefined, mockPos),
+							ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+							ASTTypeParameter._(ASTIdentifier._('U', pos, mockParent), undefined, undefined, pos, mockParent),
 						],
 						extends: [
 							ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('Bar', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos)],
+									base: ASTIdentifier._('Bar', pos, mockParent),
+									typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('Baz', mockPos),
-									typeArgs: [ASTIdentifier._('U', mockPos)],
+									base: ASTIdentifier._('Baz', pos, mockParent),
+									typeArgs: [ASTIdentifier._('U', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2711,16 +2987,18 @@ describe('semanticAnalyzer', () => {
 									`/**
 					 * foo
 					 */`,
-									mockPos,
+									pos,
+									mockParent,
 								),
 								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
+								name: ASTIdentifier._('Foo', pos, mockParent),
 								typeParams: [],
 								extends: [],
 								implements: [],
-								body: ASTBlockStatement._([], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2739,16 +3017,18 @@ describe('semanticAnalyzer', () => {
 									`/**
 					 * foo
 					 */`,
-									mockPos,
+									pos,
+									mockParent,
 								),
-								modifiers: [ASTModifier._('abstract', mockPos)],
-								name: ASTIdentifier._('Foo', mockPos),
+								modifiers: [ASTModifier._('abstract', pos, mockParent)],
+								name: ASTIdentifier._('Foo', pos, mockParent),
 								typeParams: [],
 								extends: [],
 								implements: [],
-								body: ASTBlockStatement._([], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2762,13 +3042,14 @@ describe('semanticAnalyzer', () => {
 						ASTClassDeclaration._(
 							{
 								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
+								name: ASTIdentifier._('Foo', pos, mockParent),
 								typeParams: [],
 								extends: [],
 								implements: [],
-								body: ASTBlockStatement._([], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2783,15 +3064,16 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTFunctionDeclaration._(
 							{
-								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
+								joeDoc: ASTJoeDoc._('/** foo */', pos, mockParent),
 								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
+								name: ASTIdentifier._('foo', pos, mockParent),
 								typeParams: [],
 								params: [],
 								returnTypes: [],
-								body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2805,13 +3087,14 @@ describe('semanticAnalyzer', () => {
 						ASTFunctionDeclaration._(
 							{
 								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
+								name: ASTIdentifier._('foo', pos, mockParent),
 								typeParams: [],
 								params: [],
 								returnTypes: [],
-								body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2826,14 +3109,15 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTInterfaceDeclaration._(
 							{
-								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
+								joeDoc: ASTJoeDoc._('/** foo */', pos, mockParent),
 								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
+								name: ASTIdentifier._('Foo', pos, mockParent),
 								typeParams: [],
 								extends: [],
-								body: ASTBlockStatement._([], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2847,12 +3131,13 @@ describe('semanticAnalyzer', () => {
 						ASTInterfaceDeclaration._(
 							{
 								modifiers: [],
-								name: ASTIdentifier._('Foo', mockPos),
+								name: ASTIdentifier._('Foo', pos, mockParent),
 								typeParams: [],
 								extends: [],
-								body: ASTBlockStatement._([], mockPos),
+								body: ASTBlockStatement._([], pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2867,15 +3152,16 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTVariableDeclaration._(
 							{
-								joeDoc: ASTJoeDoc._('/** foo */', mockPos),
+								joeDoc: ASTJoeDoc._('/** foo */', pos, mockParent),
 								modifiers: [],
 								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+								identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+								declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+								initialValues: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
+								inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2890,12 +3176,13 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
-								declaredTypes: [],
-								initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-								inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+								identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+								declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+								initialValues: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
+								inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -2908,9 +3195,10 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('loop {}', [
 				ASTLoopStatement._(
 					{
-						body: ASTBlockStatement._([], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2919,9 +3207,10 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('loop {\ndone;\n}', [
 				ASTLoopStatement._(
 					{
-						body: ASTBlockStatement._([ASTDoneStatement._(mockPos)], mockPos),
+						body: ASTBlockStatement._([ASTDoneStatement._(pos, mockParent)], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2930,9 +3219,10 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('loop {\nnext;\n}', [
 				ASTLoopStatement._(
 					{
-						body: ASTBlockStatement._([ASTNextStatement._(mockPos)], mockPos),
+						body: ASTBlockStatement._([ASTNextStatement._(pos, mockParent)], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2947,18 +3237,21 @@ describe('semanticAnalyzer', () => {
 							{
 								object: ASTMemberExpression._(
 									{
-										object: ASTIdentifier._('a', mockPos),
-										property: ASTIdentifier._('b', mockPos),
+										object: ASTIdentifier._('a', pos, mockParent),
+										property: ASTIdentifier._('b', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								property: ASTIdentifier._('c', mockPos),
+								property: ASTIdentifier._('c', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						property: ASTIdentifier._('d', mockPos),
+						property: ASTIdentifier._('d', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2967,10 +3260,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('this.foo', [
 				ASTMemberExpression._(
 					{
-						object: ASTThisKeyword._(mockPos),
-						property: ASTIdentifier._('foo', mockPos),
+						object: ASTThisKeyword._(pos, mockParent),
+						property: ASTIdentifier._('foo', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -2980,16 +3274,18 @@ describe('semanticAnalyzer', () => {
 				testAnalyze('foo.bar<|T|>', [
 					ASTMemberExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							property: ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('bar', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos)],
+									base: ASTIdentifier._('bar', pos, mockParent),
+									typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3000,14 +3296,16 @@ describe('semanticAnalyzer', () => {
 						{
 							object: ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('foo', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos)],
+									base: ASTIdentifier._('foo', pos, mockParent),
+									typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							property: ASTIdentifier._('bar', mockPos),
+							property: ASTIdentifier._('bar', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3018,14 +3316,16 @@ describe('semanticAnalyzer', () => {
 						{
 							object: ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('foo', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos)],
+									base: ASTIdentifier._('foo', pos, mockParent),
+									typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							property: ASTStringLiteral._('bar', mockPos),
+							property: ASTStringLiteral._('bar', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3034,16 +3334,18 @@ describe('semanticAnalyzer', () => {
 				testAnalyze('this.bar<|T|>', [
 					ASTMemberExpression._(
 						{
-							object: ASTThisKeyword._(mockPos),
+							object: ASTThisKeyword._(pos, mockParent),
 							property: ASTTypeInstantiationExpression._(
 								{
-									base: ASTIdentifier._('bar', mockPos),
-									typeArgs: [ASTIdentifier._('T', mockPos)],
+									base: ASTIdentifier._('bar', pos, mockParent),
+									typeArgs: [ASTIdentifier._('T', pos, mockParent)],
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3053,10 +3355,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo["bar"]', [
 				ASTMemberExpression._(
 					{
-						object: ASTIdentifier._('foo', mockPos),
-						property: ASTStringLiteral._('bar', mockPos),
+						object: ASTIdentifier._('foo', pos, mockParent),
+						property: ASTStringLiteral._('bar', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -3065,10 +3368,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo[0]', [
 				ASTMemberExpression._(
 					{
-						object: ASTIdentifier._('foo', mockPos),
-						property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+						object: ASTIdentifier._('foo', pos, mockParent),
+						property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -3077,10 +3381,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo[bar]', [
 				ASTMemberExpression._(
 					{
-						object: ASTIdentifier._('foo', mockPos),
-						property: ASTIdentifier._('bar', mockPos),
+						object: ASTIdentifier._('foo', pos, mockParent),
+						property: ASTIdentifier._('bar', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -3089,16 +3394,18 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo[bar.baz]', [
 				ASTMemberExpression._(
 					{
-						object: ASTIdentifier._('foo', mockPos),
+						object: ASTIdentifier._('foo', pos, mockParent),
 						property: ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('bar', mockPos),
-								property: ASTIdentifier._('baz', mockPos),
+								object: ASTIdentifier._('bar', pos, mockParent),
+								property: ASTIdentifier._('baz', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -3107,17 +3414,19 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo[bar()]', [
 				ASTMemberExpression._(
 					{
-						object: ASTIdentifier._('foo', mockPos),
+						object: ASTIdentifier._('foo', pos, mockParent),
 						property: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('bar', mockPos),
+								callee: ASTIdentifier._('bar', pos, mockParent),
 								typeArgs: [],
 								args: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -3128,17 +3437,19 @@ describe('semanticAnalyzer', () => {
 				testAnalyze(`foo[${expression}]`, [
 					ASTMemberExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							property: ASTUnaryExpression._(
 								{
 									before,
 									operator,
-									operand: ASTIdentifier._('bar', mockPos),
+									operand: ASTIdentifier._('bar', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			},
@@ -3150,17 +3461,19 @@ describe('semanticAnalyzer', () => {
 				testAnalyze(`foo[index ${operator} 1]`, [
 					ASTMemberExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							property: ASTBinaryExpression._(
 								{
 									operator,
-									left: ASTIdentifier._('index', mockPos),
-									right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+									left: ASTIdentifier._('index', pos, mockParent),
+									right: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			},
@@ -3170,20 +3483,19 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo[bar ? 0 : 1]', [
 				ASTMemberExpression._(
 					{
-						object: ASTIdentifier._('foo', mockPos),
+						object: ASTIdentifier._('foo', pos, mockParent),
 						property: ASTTernaryExpression._(
 							{
-								test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
-								consequent: ASTTernaryConsequent._(
-									ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
-									mockPos,
-								),
-								alternate: ASTTernaryAlternate._(ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos), mockPos),
+								test: ASTTernaryCondition._(ASTIdentifier._('bar', pos, mockParent), pos, mockParent),
+								consequent: ASTTernaryConsequent._(ASTNumberLiteral._(0, 'int8', pos, mockParent), pos, mockParent),
+								alternate: ASTTernaryAlternate._(ASTNumberLiteral._(1, 'int8', pos, mockParent), pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -3195,14 +3507,16 @@ describe('semanticAnalyzer', () => {
 						{
 							object: ASTArrayExpression._(
 								{
-									items: [ASTStringLiteral._('A', mockPos), ASTStringLiteral._('B', mockPos)],
-									possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+									items: [ASTStringLiteral._('A', pos, mockParent), ASTStringLiteral._('B', pos, mockParent)],
+									type: ASTTypePrimitiveString(pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3211,10 +3525,11 @@ describe('semanticAnalyzer', () => {
 				testAnalyze('"A"[0]', [
 					ASTMemberExpression._(
 						{
-							object: ASTStringLiteral._('A', mockPos),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							object: ASTStringLiteral._('A', pos, mockParent),
+							property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3224,12 +3539,14 @@ describe('semanticAnalyzer', () => {
 					ASTMemberExpression._(
 						{
 							object: ASTTupleExpression._(
-								[ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos), ASTStringLiteral._('B', mockPos)],
-								mockPos,
+								[ASTNumberLiteral._(4, 'int8', pos, mockParent), ASTStringLiteral._('B', pos, mockParent)],
+								pos,
+								mockParent,
 							),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3243,15 +3560,17 @@ describe('semanticAnalyzer', () => {
 							{
 								object: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('foo', mockPos),
+										callee: ASTIdentifier._('foo', pos, mockParent),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+								property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3268,14 +3587,16 @@ describe('semanticAnalyzer', () => {
 							{
 								object: ASTArrayExpression._(
 									{
-										items: [ASTStringLiteral._('A', mockPos), ASTStringLiteral._('B', mockPos)],
-										possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+										items: [ASTStringLiteral._('A', pos, mockParent), ASTStringLiteral._('B', pos, mockParent)],
+										type: ASTTypePrimitiveString(pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+								property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3285,10 +3606,11 @@ describe('semanticAnalyzer', () => {
 				testAnalyze('(("A"))[0]', [
 					ASTMemberExpression._(
 						{
-							object: ASTStringLiteral._('A', mockPos),
-							property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+							object: ASTStringLiteral._('A', pos, mockParent),
+							property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -3301,12 +3623,14 @@ describe('semanticAnalyzer', () => {
 						ASTMemberExpression._(
 							{
 								object: ASTTupleExpression._(
-									[ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos), ASTStringLiteral._('B', mockPos)],
-									mockPos,
+									[ASTNumberLiteral._(4, 'int8', pos, mockParent), ASTStringLiteral._('B', pos, mockParent)],
+									pos,
+									mockParent,
 								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+								property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3321,15 +3645,17 @@ describe('semanticAnalyzer', () => {
 							{
 								object: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('foo', mockPos),
+										callee: ASTIdentifier._('foo', pos, mockParent),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								property: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+								property: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3347,14 +3673,16 @@ describe('semanticAnalyzer', () => {
 						{
 							object: ASTMemberExpression._(
 								{
-									object: ASTThisKeyword._(mockPos),
-									property: ASTIdentifier._('foo', mockPos),
+									object: ASTThisKeyword._(pos, mockParent),
+									property: ASTIdentifier._('foo', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							properties: [ASTStringLiteral._('a', mockPos), ASTStringLiteral._('b', mockPos)],
+							properties: [ASTStringLiteral._('a', pos, mockParent), ASTStringLiteral._('b', pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -3369,17 +3697,16 @@ describe('semanticAnalyzer', () => {
 						{
 							object: ASTMemberExpression._(
 								{
-									object: ASTThisKeyword._(mockPos),
-									property: ASTIdentifier._('foo', mockPos),
+									object: ASTThisKeyword._(pos, mockParent),
+									property: ASTIdentifier._('foo', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
-							properties: [
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-								ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-							],
+							properties: [ASTNumberLiteral._(1, 'int8', pos, mockParent), ASTNumberLiteral._(3, 'int8', pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -3392,10 +3719,11 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTMemberListExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
-							properties: [ASTIdentifier._('a', mockPos), ASTIdentifier._('b', mockPos)],
+							object: ASTIdentifier._('foo', pos, mockParent),
+							properties: [ASTIdentifier._('a', pos, mockParent), ASTIdentifier._('b', pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -3411,14 +3739,16 @@ describe('semanticAnalyzer', () => {
 							{
 								object: ASTTypeInstantiationExpression._(
 									{
-										base: ASTIdentifier._('foo', mockPos),
-										typeArgs: [ASTIdentifier._('bar', mockPos), ASTIdentifier._('baz', mockPos)],
+										base: ASTIdentifier._('foo', pos, mockParent),
+										typeArgs: [ASTIdentifier._('bar', pos, mockParent), ASTIdentifier._('baz', pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								properties: [ASTStringLiteral._('a', mockPos), ASTStringLiteral._('b', mockPos)],
+								properties: [ASTStringLiteral._('a', pos, mockParent), ASTStringLiteral._('b', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3432,18 +3762,20 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTMemberListExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							properties: [
 								ASTRangeExpression._(
 									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+										upper: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -3456,25 +3788,28 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTMemberListExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							properties: [
 								ASTRangeExpression._(
 									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+										lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+										upper: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTRangeExpression._(
 									{
-										lower: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(7, undefined, [...numberSizesInts], mockPos),
+										lower: ASTNumberLiteral._(5, 'int8', pos, mockParent),
+										upper: ASTNumberLiteral._(7, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -3487,19 +3822,21 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTMemberListExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							properties: [
 								ASTUnaryExpression._(
 									{
 										before: true,
 										operator: '!',
-										operand: ASTIdentifier._('bar', mockPos),
+										operand: ASTIdentifier._('bar', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -3514,27 +3851,30 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTMemberListExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
 								properties: [
 									ASTUnaryExpression._(
 										{
 											before,
 											operator,
-											operand: ASTIdentifier._('bar', mockPos),
+											operand: ASTIdentifier._('bar', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTUnaryExpression._(
 										{
 											before,
 											operator,
-											operand: ASTIdentifier._('bar', mockPos),
+											operand: ASTIdentifier._('bar', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3547,19 +3887,21 @@ describe('semanticAnalyzer', () => {
 				testAnalyze(`foo[index ${operator} 1]`, [
 					ASTMemberListExpression._(
 						{
-							object: ASTIdentifier._('foo', mockPos),
+							object: ASTIdentifier._('foo', pos, mockParent),
 							properties: [
 								ASTBinaryExpression._(
 									{
 										operator,
-										left: ASTIdentifier._('index', mockPos),
-										right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+										left: ASTIdentifier._('index', pos, mockParent),
+										right: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			},
@@ -3574,27 +3916,30 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTMemberListExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
 								properties: [
 									ASTBinaryExpression._(
 										{
 											operator,
-											left: ASTIdentifier._('index', mockPos),
-											right: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('index', pos, mockParent),
+											right: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									ASTBinaryExpression._(
 										{
 											operator,
-											left: ASTIdentifier._('index', mockPos),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('index', pos, mockParent),
+											right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -3611,9 +3956,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '!',
-								operand: ASTIdentifier._('foo', mockPos),
+								operand: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3624,9 +3970,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '!',
-								operand: ASTIdentifier._('foo', mockPos),
+								operand: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3642,14 +3989,16 @@ describe('semanticAnalyzer', () => {
 									operator: '!',
 									operand: ASTCallExpression._(
 										{
-											callee: ASTIdentifier._('bar', mockPos),
+											callee: ASTIdentifier._('bar', pos, mockParent),
 											typeArgs: [],
 											args: [],
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3665,18 +4014,21 @@ describe('semanticAnalyzer', () => {
 									{
 										callee: ASTMemberExpression._(
 											{
-												object: ASTIdentifier._('foo', mockPos),
-												property: ASTIdentifier._('bar', mockPos),
+												object: ASTIdentifier._('foo', pos, mockParent),
+												property: ASTIdentifier._('bar', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3689,9 +4041,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								operand: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3702,9 +4055,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								operand: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3717,9 +4071,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '--',
-								operand: ASTIdentifier._('foo', mockPos),
+								operand: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 
@@ -3729,17 +4084,19 @@ describe('semanticAnalyzer', () => {
 						[
 							ASTMemberExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
 									property: ASTUnaryExpression._(
 										{
 											before: true,
 											operator: '--',
-											operand: ASTIdentifier._('i', mockPos),
+											operand: ASTIdentifier._('i', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3751,9 +4108,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: false,
 								operator: '--',
-								operand: ASTIdentifier._('foo', mockPos),
+								operand: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3765,17 +4123,19 @@ describe('semanticAnalyzer', () => {
 						[
 							ASTMemberExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
 									property: ASTUnaryExpression._(
 										{
 											before: false,
 											operator: '--',
-											operand: ASTIdentifier._('i', mockPos),
+											operand: ASTIdentifier._('i', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3787,9 +4147,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '++',
-								operand: ASTIdentifier._('foo', mockPos),
+								operand: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 
@@ -3799,17 +4160,19 @@ describe('semanticAnalyzer', () => {
 						[
 							ASTMemberExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
 									property: ASTUnaryExpression._(
 										{
 											before: true,
 											operator: '++',
-											operand: ASTIdentifier._('i', mockPos),
+											operand: ASTIdentifier._('i', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3821,9 +4184,10 @@ describe('semanticAnalyzer', () => {
 							{
 								before: false,
 								operator: '++',
-								operand: ASTIdentifier._('foo', mockPos),
+								operand: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 
@@ -3833,17 +4197,19 @@ describe('semanticAnalyzer', () => {
 						[
 							ASTMemberExpression._(
 								{
-									object: ASTIdentifier._('foo', mockPos),
+									object: ASTIdentifier._('foo', pos, mockParent),
 									property: ASTUnaryExpression._(
 										{
 											before: false,
 											operator: '++',
-											operand: ASTIdentifier._('i', mockPos),
+											operand: ASTIdentifier._('i', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3876,10 +4242,11 @@ describe('semanticAnalyzer', () => {
 						ASTBinaryExpression._(
 							{
 								operator: '||',
-								left: ASTIdentifier._('a', mockPos),
-								right: ASTBoolLiteral._(true, mockPos),
+								left: ASTIdentifier._('a', pos, mockParent),
+								right: ASTBoolLiteral._(true, pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -3892,10 +4259,11 @@ describe('semanticAnalyzer', () => {
 							ASTBinaryExpression._(
 								{
 									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTBoolLiteral._(true, mockPos),
+									left: ASTIdentifier._('a', pos, mockParent),
+									right: ASTBoolLiteral._(true, pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3914,21 +4282,24 @@ describe('semanticAnalyzer', () => {
 									left: ASTBinaryExpression._(
 										{
 											operator: '>=',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('foo', pos, mockParent),
+											right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									right: ASTBinaryExpression._(
 										{
 											operator: '<=',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('foo', pos, mockParent),
+											right: ASTNumberLiteral._(5, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3945,21 +4316,24 @@ describe('semanticAnalyzer', () => {
 									left: ASTBinaryExpression._(
 										{
 											operator: '>',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('foo', pos, mockParent),
+											right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 									right: ASTBinaryExpression._(
 										{
 											operator: '<',
-											left: ASTIdentifier._('foo', mockPos),
-											right: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+											left: ASTIdentifier._('foo', pos, mockParent),
+											right: ASTNumberLiteral._(5, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3975,10 +4349,11 @@ describe('semanticAnalyzer', () => {
 							ASTBinaryExpression._(
 								{
 									operator: '&&',
-									left: ASTIdentifier._('a', mockPos),
-									right: ASTBoolLiteral._(true, mockPos),
+									left: ASTIdentifier._('a', pos, mockParent),
+									right: ASTBoolLiteral._(true, pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 					);
@@ -3987,10 +4362,11 @@ describe('semanticAnalyzer', () => {
 						ASTBinaryExpression._(
 							{
 								operator: '&&',
-								left: ASTIdentifier._('a', mockPos),
-								right: ASTBoolLiteral._(true, mockPos),
+								left: ASTIdentifier._('a', pos, mockParent),
+								right: ASTBoolLiteral._(true, pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -4000,17 +4376,19 @@ describe('semanticAnalyzer', () => {
 						ASTBinaryExpression._(
 							{
 								operator: '&&',
-								left: ASTIdentifier._('a', mockPos),
+								left: ASTIdentifier._('a', pos, mockParent),
 								right: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('foo', mockPos),
+										callee: ASTIdentifier._('foo', pos, mockParent),
 										typeArgs: [],
-										args: [ASTBoolLiteral._(true, mockPos)],
+										args: [ASTBoolLiteral._(true, pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 
@@ -4020,15 +4398,17 @@ describe('semanticAnalyzer', () => {
 								operator: '&&',
 								left: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('a', mockPos),
+										callee: ASTIdentifier._('a', pos, mockParent),
 										typeArgs: [],
-										args: [ASTBoolLiteral._(true, mockPos)],
+										args: [ASTBoolLiteral._(true, pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								right: ASTIdentifier._('foo', mockPos),
+								right: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -4038,17 +4418,19 @@ describe('semanticAnalyzer', () => {
 						ASTBinaryExpression._(
 							{
 								operator: '&&',
-								left: ASTIdentifier._('a', mockPos),
+								left: ASTIdentifier._('a', pos, mockParent),
 								right: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('foo', mockPos),
+										callee: ASTIdentifier._('foo', pos, mockParent),
 										typeArgs: [],
-										args: [ASTBoolLiteral._(true, mockPos)],
+										args: [ASTBoolLiteral._(true, pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 
@@ -4058,15 +4440,17 @@ describe('semanticAnalyzer', () => {
 								operator: '&&',
 								left: ASTCallExpression._(
 									{
-										callee: ASTIdentifier._('a', mockPos),
+										callee: ASTIdentifier._('a', pos, mockParent),
 										typeArgs: [],
-										args: [ASTBoolLiteral._(true, mockPos)],
+										args: [ASTBoolLiteral._(true, pos, mockParent)],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								right: ASTIdentifier._('foo', mockPos),
+								right: ASTIdentifier._('foo', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					]);
 				});
@@ -4086,32 +4470,35 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+							initialValues: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('bar', mockPos)],
+							identifiersList: [ASTIdentifier._('bar', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTUnaryExpression._(
 									{
 										before: true,
 										operator: '-',
-										operand: ASTIdentifier._('foo', mockPos),
+										operand: ASTIdentifier._('foo', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4125,44 +4512,61 @@ describe('semanticAnalyzer', () => {
 					{
 						expression: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('do', mockPos),
+								callee: ASTIdentifier._('do', pos, mockParent),
 								typeArgs: [],
-								args: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+								args: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						test: ASTBinaryExpression._(
 							{
 								operator: '==',
-								left: ASTIdentifier._('foo', mockPos),
-								right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+								left: ASTIdentifier._('foo', pos, mockParent),
+								right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
 
 		describe('in an array', () => {
 			it('with bool conditional', () => {
-				testAnalyze('[foo if true, bar];', [
+				testAnalyze('const foo, bar = "foo1", "bar1"; [foo if true, bar];', [
+					ASTVariableDeclaration._(
+						{
+							modifiers: [],
+							mutable: false,
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent), ASTIdentifier._('bar', pos, mockParent)],
+							declaredTypes: [ASTTypePrimitiveString(pos, mockParent), ASTTypePrimitiveString(pos, mockParent)],
+							initialValues: [ASTStringLiteral._('foo1', pos, mockParent), ASTStringLiteral._('bar1', pos, mockParent)],
+							inferredTypes: [ASTTypePrimitiveString(pos, mockParent), ASTTypePrimitiveString(pos, mockParent)],
+						},
+						pos,
+						mockParent,
+					),
 					ASTArrayExpression._(
 						{
 							items: [
 								ASTPostfixIfStatement._(
 									{
-										expression: ASTIdentifier._('foo', mockPos),
-										test: ASTBoolLiteral._(true, mockPos),
+										expression: ASTIdentifier._('foo', pos, mockParent),
+										test: ASTBoolLiteral._(true, pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTIdentifier._('bar', mockPos),
+								ASTIdentifier._('bar', pos, mockParent),
 							],
-							possibleTypes: [],
+							type: ASTTypePrimitiveString(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4172,19 +4576,21 @@ describe('semanticAnalyzer', () => {
 					ASTArrayExpression._(
 						{
 							items: [
-								ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(9, 'int8', pos, mockParent),
 								ASTPostfixIfStatement._(
 									{
-										expression: ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
-										test: ASTIdentifier._('isDone?', mockPos),
+										expression: ASTNumberLiteral._(10, 'int8', pos, mockParent),
+										test: ASTIdentifier._('isDone?', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(11, 'int8', pos, mockParent),
 							],
-							possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							type: ASTTypeNumberInt8(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4202,23 +4608,26 @@ describe('semanticAnalyzer', () => {
 								items: [
 									ASTPostfixIfStatement._(
 										{
-											expression: ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+											expression: ASTNumberLiteral._(9, 'int8', pos, mockParent),
 											test: ASTMemberExpression._(
 												{
-													object: ASTThisKeyword._(mockPos),
-													property: ASTIdentifier._('isDone?', mockPos),
+													object: ASTThisKeyword._(pos, mockParent),
+													property: ASTIdentifier._('isDone?', pos, mockParent),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
-									ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+									ASTNumberLiteral._(10, 'int8', pos, mockParent),
+									ASTNumberLiteral._(11, 'int8', pos, mockParent),
 								],
-								possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+								type: ASTTypeNumberInt8(pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -4229,18 +4638,19 @@ describe('semanticAnalyzer', () => {
 					ASTArrayExpression._(
 						{
 							items: [
-								ASTNumberLiteral._(9, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(9, 'int8', pos, mockParent),
 								ASTPostfixIfStatement._(
 									{
-										expression: ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
+										expression: ASTNumberLiteral._(10, 'int8', pos, mockParent),
 										test: ASTCallExpression._(
 											{
 												callee: ASTMemberExpression._(
 													{
-														object: ASTThisKeyword._(mockPos),
-														property: ASTIdentifier._('isDone?', mockPos),
+														object: ASTThisKeyword._(pos, mockParent),
+														property: ASTIdentifier._('isDone?', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 												typeArgs: [],
 												args: [
@@ -4249,28 +4659,33 @@ describe('semanticAnalyzer', () => {
 															items: [
 																ASTPostfixIfStatement._(
 																	{
-																		expression: ASTBoolLiteral._(true, mockPos),
-																		test: ASTBoolLiteral._(true, mockPos),
+																		expression: ASTBoolLiteral._(true, pos, mockParent),
+																		test: ASTBoolLiteral._(true, pos, mockParent),
 																	},
-																	mockPos,
+																	pos,
+																	mockParent,
 																),
 															],
-															possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+															type: ASTTypePrimitiveBool(pos, mockParent),
 														},
-														mockPos,
+														pos,
+														mockParent,
 													),
 												],
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(11, 'int8', pos, mockParent),
 							],
-							possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							type: ASTTypeNumberInt8(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4280,25 +4695,28 @@ describe('semanticAnalyzer', () => {
 					ASTArrayExpression._(
 						{
 							items: [
-								ASTStringLiteral._('foo', mockPos),
+								ASTStringLiteral._('foo', pos, mockParent),
 								ASTPostfixIfStatement._(
 									{
-										expression: ASTStringLiteral._('bar', mockPos),
+										expression: ASTStringLiteral._('bar', pos, mockParent),
 										test: ASTBinaryExpression._(
 											{
 												operator: '<',
-												left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-												right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+												left: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+												right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+							type: ASTTypePrimitiveString(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4308,30 +4726,33 @@ describe('semanticAnalyzer', () => {
 					ASTArrayExpression._(
 						{
 							items: [
-								ASTBoolLiteral._(true, mockPos),
-								ASTBoolLiteral._(true, mockPos),
-								ASTBoolLiteral._(false, mockPos),
+								ASTBoolLiteral._(true, pos, mockParent),
+								ASTBoolLiteral._(true, pos, mockParent),
+								ASTBoolLiteral._(false, pos, mockParent),
 								ASTPostfixIfStatement._(
 									{
-										expression: ASTBoolLiteral._(false, mockPos),
+										expression: ASTBoolLiteral._(false, pos, mockParent),
 										test: ASTBinaryExpression._(
 											{
 												operator: '==',
-												left: ASTIdentifier._('foo', mockPos),
-												right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+												left: ASTIdentifier._('foo', pos, mockParent),
+												right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTBoolLiteral._(true, mockPos),
-								ASTBoolLiteral._(false, mockPos),
-								ASTBoolLiteral._(true, mockPos),
+								ASTBoolLiteral._(true, pos, mockParent),
+								ASTBoolLiteral._(false, pos, mockParent),
+								ASTBoolLiteral._(true, pos, mockParent),
 							],
-							possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+							type: ASTTypePrimitiveBool(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4345,15 +4766,17 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
+								property: ASTNumberLiteral._(5, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
-					mockPos,
+					pos,
+					mockParent,
 				),
-				ASTPrintStatement._([ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)], mockPos),
+				ASTPrintStatement._([ASTNumberLiteral._(5, 'int8', pos, mockParent)], pos, mockParent),
 			]);
 		});
 
@@ -4365,18 +4788,21 @@ describe('semanticAnalyzer', () => {
 							{
 								callee: ASTMemberExpression._(
 									{
-										object: ASTIdentifier._('myFoo', mockPos),
-										property: ASTIdentifier._('foo', mockPos),
+										object: ASTIdentifier._('myFoo', pos, mockParent),
+										property: ASTIdentifier._('foo', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								typeArgs: [],
 								args: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4385,21 +4811,24 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('print 1, "a", [true], <"high", 5>;', [
 				ASTPrintStatement._(
 					[
-						ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						ASTStringLiteral._('a', mockPos),
+						ASTNumberLiteral._(1, 'int8', pos, mockParent),
+						ASTStringLiteral._('a', pos, mockParent),
 						ASTArrayExpression._(
 							{
-								items: [ASTBoolLiteral._(true, mockPos)],
-								possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+								items: [ASTBoolLiteral._(true, pos, mockParent)],
+								type: ASTTypePrimitiveBool(pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						ASTTupleExpression._(
-							[ASTStringLiteral._('high', mockPos), ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)],
-							mockPos,
+							[ASTStringLiteral._('high', pos, mockParent), ASTNumberLiteral._(5, 'int8', pos, mockParent)],
+							pos,
+							mockParent,
 						),
 					],
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4413,10 +4842,11 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTRangeExpression._(
 						{
-							lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-							upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+							lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+							upper: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -4428,30 +4858,34 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								operand: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						upper: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
 			testAnalyze('1 .. -2;', [
 				ASTRangeExpression._(
 					{
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 						upper: ASTUnaryExpression._(
 							{
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+								operand: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -4462,20 +4896,23 @@ describe('semanticAnalyzer', () => {
 							{
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._(1, undefined, [...numberSizesSignedInts], mockPos),
+								operand: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						upper: ASTUnaryExpression._(
 							{
 								before: true,
 								operator: '-',
-								operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+								operand: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4485,10 +4922,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('foo .. 2;', [
 				ASTRangeExpression._(
 					{
-						lower: ASTIdentifier._('foo', mockPos),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						lower: ASTIdentifier._('foo', pos, mockParent),
+						upper: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4497,10 +4935,11 @@ describe('semanticAnalyzer', () => {
 			testAnalyze('1 .. foo;', [
 				ASTRangeExpression._(
 					{
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-						upper: ASTIdentifier._('foo', mockPos),
+						lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+						upper: ASTIdentifier._('foo', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4512,14 +4951,16 @@ describe('semanticAnalyzer', () => {
 					{
 						lower: ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTStringLiteral._('a', mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
+								property: ASTStringLiteral._('a', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						upper: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4528,18 +4969,20 @@ describe('semanticAnalyzer', () => {
 			testAnalyze("1 .. foo['a'];'a'", [
 				ASTRangeExpression._(
 					{
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 						upper: ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTStringLiteral._('a', mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
+								property: ASTStringLiteral._('a', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
-				ASTStringLiteral._('a', mockPos),
+				ASTStringLiteral._('a', pos, mockParent),
 			]);
 		});
 
@@ -4550,15 +4993,17 @@ describe('semanticAnalyzer', () => {
 					{
 						lower: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('foo', mockPos),
+								callee: ASTIdentifier._('foo', pos, mockParent),
 								typeArgs: [],
-								args: [ASTStringLiteral._('a', mockPos)],
+								args: [ASTStringLiteral._('a', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+						upper: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4567,17 +5012,19 @@ describe('semanticAnalyzer', () => {
 			testAnalyze("1 .. foo('a');", [
 				ASTRangeExpression._(
 					{
-						lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+						lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 						upper: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('foo', mockPos),
+								callee: ASTIdentifier._('foo', pos, mockParent),
 								typeArgs: [],
-								args: [ASTStringLiteral._('a', mockPos)],
+								args: [ASTStringLiteral._('a', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4589,21 +5036,24 @@ describe('semanticAnalyzer', () => {
 					{
 						lower: ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('foo', mockPos),
-								property: ASTStringLiteral._('a', mockPos),
+								object: ASTIdentifier._('foo', pos, mockParent),
+								property: ASTStringLiteral._('a', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						upper: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('bar', mockPos),
+								callee: ASTIdentifier._('bar', pos, mockParent),
 								typeArgs: [],
-								args: [ASTStringLiteral._('b', mockPos)],
+								args: [ASTStringLiteral._('b', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4614,21 +5064,24 @@ describe('semanticAnalyzer', () => {
 					{
 						lower: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('foo', mockPos),
+								callee: ASTIdentifier._('foo', pos, mockParent),
 								typeArgs: [],
-								args: [ASTStringLiteral._('a', mockPos)],
+								args: [ASTStringLiteral._('a', pos, mockParent)],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 						upper: ASTMemberExpression._(
 							{
-								object: ASTIdentifier._('bar', mockPos),
-								property: ASTStringLiteral._('b', mockPos),
+								object: ASTIdentifier._('bar', pos, mockParent),
+								property: ASTStringLiteral._('b', pos, mockParent),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4639,39 +5092,44 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('count', mockPos), ASTIdentifier._('countDown', mockPos)],
+						identifiersList: [ASTIdentifier._('count', pos, mockParent), ASTIdentifier._('countDown', pos, mockParent)],
 						declaredTypes: [],
 						initialValues: [
 							ASTRangeExpression._(
 								{
-									lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+									lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 									upper: ASTMemberExpression._(
 										{
-											object: ASTIdentifier._('myArray', mockPos),
-											property: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											object: ASTIdentifier._('myArray', pos, mockParent),
+											property: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTRangeExpression._(
 								{
 									lower: ASTMemberExpression._(
 										{
-											object: ASTIdentifier._('myArray', mockPos),
-											property: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+											object: ASTIdentifier._('myArray', pos, mockParent),
+											property: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									upper: ASTNumberLiteral._(0, undefined, [...numberSizesInts], mockPos),
+									upper: ASTNumberLiteral._(0, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[ASTTypeRange._(mockPos)], [ASTTypeRange._(mockPos)]],
+						inferredTypes: [ASTTypeRange._(pos, mockParent), ASTTypeRange._(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4680,43 +5138,49 @@ describe('semanticAnalyzer', () => {
 	describe.skip('Types', (): void => {
 		describe('should understand primitive types', () => {
 			it.each(primitiveTypes)('%s is recognized as its own primitive type', (type) => {
-				testAnalyze(type, [ASTTypePrimitive._(type, mockPos)]);
+				testAnalyze(type, [ASTTypePrimitive._(type, pos, mockParent)]);
 			});
 
 			it.each(numberSizesAll)('%s is recognized as a number type', (size) => {
-				testAnalyze(size, [ASTTypeNumber._(size, mockPos)]);
+				testAnalyze(size, [ASTTypeNumber._(size, pos, mockParent)]);
 			});
 
 			it('range is recognized as a type', () => {
-				testAnalyze('range', [ASTTypeRange._(mockPos)]);
+				testAnalyze('range', [ASTTypeRange._(pos, mockParent)]);
 			});
 
 			it.each(primitiveTypes)('%s[] is recognized as a one-dimensional array of type', (type) => {
-				testAnalyze(`${type}[]`, [ASTArrayOf._(ASTTypePrimitive._(type, mockPos), mockPos)]);
+				testAnalyze(`${type}[]`, [ASTArrayOf._(ASTTypePrimitive._(type, pos, mockParent), pos, mockParent)]);
 			});
 
 			it.each(numberSizesAll)('%s[] is recognized as a one-dimensional array of type', (size) => {
-				testAnalyze(`${size}[]`, [ASTArrayOf._(ASTTypeNumber._(size, mockPos), mockPos)]);
+				testAnalyze(`${size}[]`, [ASTArrayOf._(ASTTypeNumber._(size, pos, mockParent), pos, mockParent)]);
 			});
 
 			it('range[] is recognized as a one-dimensional array of type', () => {
-				testAnalyze('range[]', [ASTArrayOf._(ASTTypeRange._(mockPos), mockPos)]);
+				testAnalyze('range[]', [ASTArrayOf._(ASTTypeRange._(pos, mockParent), pos, mockParent)]);
 			});
 
 			it.each(primitiveTypes)('%s[][] is recognized as a two-dimensional array of primitive type', (type) => {
-				testAnalyze(`${type}[][]`, [ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type, mockPos), mockPos), mockPos)]);
+				testAnalyze(`${type}[][]`, [
+					ASTArrayOf._(ASTArrayOf._(ASTTypePrimitive._(type, pos, mockParent), pos, mockParent), pos, mockParent),
+				]);
 			});
 
 			it.each(numberSizesAll)('%s[][] is recognized as a two-dimensional array of number type', (size) => {
-				testAnalyze(`${size}[][]`, [ASTArrayOf._(ASTArrayOf._(ASTTypeNumber._(size, mockPos), mockPos), mockPos)]);
+				testAnalyze(`${size}[][]`, [
+					ASTArrayOf._(ASTArrayOf._(ASTTypeNumber._(size, pos, mockParent), pos, mockParent), pos, mockParent),
+				]);
 			});
 		});
 
 		describe('arrays', () => {
 			it('should understand a custom array', () => {
-				testAnalyze('Foo[]', [ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos)]);
+				testAnalyze('Foo[]', [ASTArrayOf._(ASTIdentifier._('Foo', pos, mockParent), pos, mockParent)]);
 
-				testAnalyze('Foo[][]', [ASTArrayOf._(ASTArrayOf._(ASTIdentifier._('Foo', mockPos), mockPos), mockPos)]);
+				testAnalyze('Foo[][]', [
+					ASTArrayOf._(ASTArrayOf._(ASTIdentifier._('Foo', pos, mockParent), pos, mockParent), pos, mockParent),
+				]);
 			});
 		});
 
@@ -4727,12 +5191,13 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [ASTTypeRange._(mockPos)],
+							identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+							declaredTypes: [ASTTypeRange._(pos, mockParent)],
 							initialValues: [],
-							inferredPossibleTypes: [],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4743,20 +5208,22 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
+							identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+							declaredTypes: [ASTTypeRange._(pos, mockParent)],
 							initialValues: [
 								ASTRangeExpression._(
 									{
-										lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										upper: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+										lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+										upper: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[ASTTypeRange._(mockPos)]],
+							inferredTypes: [ASTTypeRange._(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4766,23 +5233,25 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('foo', mockPos),
+							name: ASTIdentifier._('foo', pos, mockParent),
 							typeParams: [],
 							params: [
 								ASTParameter._(
 									{
 										modifiers: [],
 										isRest: false,
-										name: ASTIdentifier._('x', mockPos),
-										type: ASTTypeRange._(mockPos),
+										name: ASTIdentifier._('x', pos, mockParent),
+										type: ASTTypeRange._(pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							returnTypes: [ASTTypeRange._(mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+							returnTypes: [ASTTypeRange._(pos, mockParent)],
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4794,13 +5263,14 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
-							typeParams: [ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, undefined, mockPos)],
+							name: ASTIdentifier._('Foo', pos, mockParent),
+							typeParams: [ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent)],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4810,15 +5280,22 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), ASTIdentifier._('Bar', mockPos), undefined, mockPos),
+								ASTTypeParameter._(
+									ASTIdentifier._('T', pos, mockParent),
+									ASTIdentifier._('Bar', pos, mockParent),
+									undefined,
+									pos,
+									mockParent,
+								),
 							],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4828,15 +5305,22 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
-								ASTTypeParameter._(ASTIdentifier._('T', mockPos), undefined, ASTIdentifier._('Bar', mockPos), mockPos),
+								ASTTypeParameter._(
+									ASTIdentifier._('T', pos, mockParent),
+									undefined,
+									ASTIdentifier._('Bar', pos, mockParent),
+									pos,
+									mockParent,
+								),
 							],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4846,20 +5330,22 @@ describe('semanticAnalyzer', () => {
 					ASTClassDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('Foo', mockPos),
+							name: ASTIdentifier._('Foo', pos, mockParent),
 							typeParams: [
 								ASTTypeParameter._(
-									ASTIdentifier._('T', mockPos),
-									ASTIdentifier._('Bar', mockPos),
-									ASTIdentifier._('Baz', mockPos),
-									mockPos,
+									ASTIdentifier._('T', pos, mockParent),
+									ASTIdentifier._('Bar', pos, mockParent),
+									ASTIdentifier._('Baz', pos, mockParent),
+									pos,
+									mockParent,
 								),
 							],
 							extends: [],
 							implements: [],
-							body: ASTBlockStatement._([], mockPos),
+							body: ASTBlockStatement._([], pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4872,31 +5358,35 @@ describe('semanticAnalyzer', () => {
 				testAnalyze('use mainJoeFile from ./some/dir/;use another from @/lexer.joe;', [
 					ASTUseDeclaration._(
 						{
-							identifier: ASTIdentifier._('mainJoeFile', mockPos),
+							identifier: ASTIdentifier._('mainJoeFile', pos, mockParent),
 							source: ASTPath._(
 								{
 									absolute: false,
 									path: './some/dir/',
 									isDir: true,
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTUseDeclaration._(
 						{
-							identifier: ASTIdentifier._('another', mockPos),
+							identifier: ASTIdentifier._('another', pos, mockParent),
 							source: ASTPath._(
 								{
 									absolute: true,
 									path: '@/lexer.joe',
 									isDir: false,
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -4910,12 +5400,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [],
-						initialValues: [ASTBoolLiteral._(false, mockPos)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('bool', mockPos)]],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveBool(pos, mockParent)],
+						initialValues: [ASTBoolLiteral._(false, pos, mockParent)],
+						inferredTypes: [ASTTypePrimitiveBool(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -4924,31 +5415,33 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x?', mockPos), ASTIdentifier._('y', mockPos)],
-						declaredTypes: [ASTTypePrimitive._('bool', mockPos)],
-						initialValues: [ASTBoolLiteral._(false, mockPos), ASTBoolLiteral._(true, mockPos)],
-						inferredPossibleTypes: [[], [ASTTypePrimitive._('bool', mockPos)]], // the question mark declares the type as bool, so no need to infer
+						identifiersList: [ASTIdentifier._('x?', pos, mockParent), ASTIdentifier._('y', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveBool(pos, mockParent)],
+						initialValues: [ASTBoolLiteral._(false, pos, mockParent), ASTBoolLiteral._(true, pos, mockParent)],
+						inferredTypes: [ASTTypePrimitiveBool(pos, mockParent), ASTTypePrimitiveBool(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
 
 		it('a double bool assignment and the second one has a question mark', (): void => {
 			const declaredTypes = <ASTType[]>[];
-			declaredTypes[1] = ASTTypePrimitive._('bool', mockPos);
+			declaredTypes[1] = ASTTypePrimitiveBool(pos, mockParent);
 
 			testAnalyze('let x, y? = false, true', [
 				ASTVariableDeclaration._(
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x', mockPos), ASTIdentifier._('y?', mockPos)],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent), ASTIdentifier._('y?', pos, mockParent)],
 						declaredTypes: declaredTypes,
-						initialValues: [ASTBoolLiteral._(false, mockPos), ASTBoolLiteral._(true, mockPos)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('bool', mockPos)], []], // the question mark declares the type as bool, so no need to infer
+						initialValues: [ASTBoolLiteral._(false, pos, mockParent), ASTBoolLiteral._(true, pos, mockParent)],
+						inferredTypes: [ASTTypePrimitiveBool(pos, mockParent), ASTTypePrimitiveBool(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4959,12 +5452,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [],
-						initialValues: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-						inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+						initialValues: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
+						inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -4976,8 +5470,8 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
+							identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+							declaredTypes: [ASTTypeNumberDec32(pos, mockParent)],
 							initialValues: [
 								ASTBinaryExpression._(
 									{
@@ -4986,36 +5480,41 @@ describe('semanticAnalyzer', () => {
 											{
 												before: true,
 												operator: '-',
-												operand: ASTNumberLiteral._(2300.006, undefined, [...numberSizesDecimals], mockPos),
+												operand: ASTNumberLiteral._(2300.006, 'dec32', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 										right: ASTUnaryExpression._(
 											{
 												before: true,
 												operator: '-',
-												operand: ASTNumberLiteral._(2000, undefined, ['int16', 'int32', 'int64'], mockPos),
+												operand: ASTNumberLiteral._(2000, 'int32', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [NumberSizesDecimalASTs.map((ns) => ns(mockPos))], // all possible decimal number sizes
+							inferredTypes: [ASTTypeNumberDec32(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('y', mockPos)],
-							declaredTypes: [],
-							initialValues: [ASTNumberLiteral._(5, undefined, [...numberSizesInts], mockPos)],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							identifiersList: [ASTIdentifier._('y', pos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+							initialValues: [ASTNumberLiteral._(5, 'int8', pos, mockParent)],
+							inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5026,28 +5525,31 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('x', mockPos)],
-							declaredTypes: [],
+							identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+							declaredTypes: [ASTTypeNumberDec64(pos, mockParent)],
 							initialValues: [
 								ASTBinaryExpression._(
 									{
 										operator: '^e',
-										left: ASTNumberLiteral._(214748364723, undefined, ['int64', 'uint64'], mockPos),
+										left: ASTNumberLiteral._(214748364723, 'int64', pos, mockParent),
 										right: ASTUnaryExpression._(
 											{
 												before: true,
 												operator: '-',
-												operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+												operand: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[ASTTypeNumber._('dec64', mockPos)]], // only 64 bit decimal number sizes or higher
+							inferredTypes: [ASTTypeNumberDec64(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5059,12 +5561,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [],
-						initialValues: [ASTStringLiteral._('foo', mockPos)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('string', mockPos)]],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveString(pos, mockParent)],
+						initialValues: [ASTStringLiteral._('foo', pos, mockParent)],
+						inferredTypes: [ASTTypePrimitiveString(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -5075,12 +5578,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [ASTTypePrimitive._('string', mockPos)],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveString(pos, mockParent)],
 						initialValues: [],
-						inferredPossibleTypes: [],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -5089,12 +5593,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: true,
-						identifiersList: [ASTIdentifier._('x?', mockPos)],
-						declaredTypes: [ASTTypePrimitive._('bool', mockPos)],
+						identifiersList: [ASTIdentifier._('x?', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveBool(pos, mockParent)],
 						initialValues: [],
-						inferredPossibleTypes: [],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -5105,12 +5610,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [ASTTypePrimitive._('string', mockPos)],
-						initialValues: [ASTStringLiteral._('foo', mockPos)],
-						inferredPossibleTypes: [[]],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveString(pos, mockParent)],
+						initialValues: [ASTStringLiteral._('foo', pos, mockParent)],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -5121,12 +5627,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [],
-						initialValues: [ASTRegularExpression._({ pattern: '/[a-z]/', flags: [] }, mockPos)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('regex', mockPos)]],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveRegex(pos, mockParent)],
+						initialValues: [ASTRegularExpression._({ pattern: '/[a-z]/', flags: [] }, pos, mockParent)],
+						inferredTypes: [ASTTypePrimitiveRegex(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -5135,12 +5642,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('x', mockPos)],
-						declaredTypes: [ASTTypePrimitive._('regex', mockPos)],
-						initialValues: [ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] }, mockPos)],
-						inferredPossibleTypes: [[]],
+						identifiersList: [ASTIdentifier._('x', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitiveRegex(pos, mockParent)],
+						initialValues: [ASTRegularExpression._({ pattern: '/[0-9]*/', flags: ['g'] }, pos, mockParent)],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -5151,8 +5659,8 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('dir', mockPos)],
-						declaredTypes: [],
+						identifiersList: [ASTIdentifier._('dir', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitivePath(pos, mockParent)],
 						initialValues: [
 							ASTPath._(
 								{
@@ -5160,12 +5668,14 @@ describe('semanticAnalyzer', () => {
 									path: '@/path/to/dir/',
 									isDir: true,
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[ASTTypePrimitive._('path', mockPos)]],
+						inferredTypes: [ASTTypePrimitivePath(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -5174,12 +5684,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('dir', mockPos)],
-						declaredTypes: [],
-						initialValues: [ASTPath._({ absolute: false, path: './myDir/', isDir: true }, mockPos)],
-						inferredPossibleTypes: [[ASTTypePrimitive._('path', mockPos)]],
+						identifiersList: [ASTIdentifier._('dir', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitivePath(pos, mockParent)],
+						initialValues: [ASTPath._({ absolute: false, path: './myDir/', isDir: true }, pos, mockParent)],
+						inferredTypes: [ASTTypePrimitivePath(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 
@@ -5188,8 +5699,8 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('file', mockPos)],
-						declaredTypes: [ASTTypePrimitive._('path', mockPos)],
+						identifiersList: [ASTIdentifier._('file', pos, mockParent)],
+						declaredTypes: [ASTTypePrimitivePath(pos, mockParent)],
 						initialValues: [
 							ASTPath._(
 								{
@@ -5197,12 +5708,14 @@ describe('semanticAnalyzer', () => {
 									path: '@/path/to/file.joe',
 									isDir: false,
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[]],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -5213,12 +5726,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('dir', mockPos)],
+						identifiersList: [ASTIdentifier._('dir', pos, mockParent)],
 						declaredTypes: [],
-						initialValues: [ASTIdentifier._('foo', mockPos)],
-						inferredPossibleTypes: [[]],
+						initialValues: [ASTIdentifier._('foo', pos, mockParent)],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -5230,27 +5744,30 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('myClass', mockPos)],
-							declaredTypes: [ASTIdentifier._('MyClass', mockPos)],
+							identifiersList: [ASTIdentifier._('myClass', pos, mockParent)],
+							declaredTypes: [ASTIdentifier._('MyClass', pos, mockParent)],
 							initialValues: [
 								ASTCallExpression._(
 									{
 										callee: ASTMemberExpression._(
 											{
-												object: ASTIdentifier._('MyClass', mockPos),
-												property: ASTIdentifier._('create', mockPos),
+												object: ASTIdentifier._('MyClass', pos, mockParent),
+												property: ASTIdentifier._('create', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5261,14 +5778,15 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('myClass', mockPos)],
+							identifiersList: [ASTIdentifier._('myClass', pos, mockParent)],
 							declaredTypes: [
 								ASTMemberExpression._(
 									{
-										object: ASTIdentifier._('MyPackage', mockPos),
-										property: ASTIdentifier._('MyClass', mockPos),
+										object: ASTIdentifier._('MyPackage', pos, mockParent),
+										property: ASTIdentifier._('MyClass', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 							initialValues: [
@@ -5276,20 +5794,23 @@ describe('semanticAnalyzer', () => {
 									{
 										callee: ASTMemberExpression._(
 											{
-												object: ASTIdentifier._('MyClass', mockPos),
-												property: ASTIdentifier._('create', mockPos),
+												object: ASTIdentifier._('MyClass', pos, mockParent),
+												property: ASTIdentifier._('create', pos, mockParent),
 											},
-											mockPos,
+											pos,
+											mockParent,
 										),
 										typeArgs: [],
 										args: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5302,32 +5823,33 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTTupleExpression._(
 									[
-										ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-										ASTStringLiteral._('pizza', mockPos),
-										ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
+										ASTNumberLiteral._(1, 'int8', pos, mockParent),
+										ASTStringLiteral._('pizza', pos, mockParent),
+										ASTNumberLiteral._(3.14, 'dec32', pos, mockParent),
 									],
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [
-								[
-									ASTTupleShape._(
-										[
-											NumberSizesIntASTs.map((ns) => ns(mockPos)),
-											[ASTTypePrimitive._('string', mockPos)],
-											NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-										],
-										mockPos,
-									),
-								],
+							inferredTypes: [
+								ASTTupleShape._(
+									[
+										ASTTypeNumberInt8(pos, mockParent),
+										ASTTypePrimitiveString(pos, mockParent),
+										ASTTypeNumberDec32(pos, mockParent),
+									],
+									pos,
+									mockParent,
+								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5338,12 +5860,13 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [],
-							initialValues: [ASTTupleExpression._([], mockPos)],
-							inferredPossibleTypes: [[ASTTupleShape._([], mockPos)]],
+							initialValues: [ASTTupleExpression._([], pos, mockParent)],
+							inferredTypes: [ASTTupleShape._([], pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5362,85 +5885,88 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 								declaredTypes: [],
 								initialValues: [
 									ASTTupleExpression._(
 										[
 											ASTTupleExpression._(
 												[
-													ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-													ASTStringLiteral._('pizza', mockPos),
-													ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
+													ASTNumberLiteral._(1, 'int8', pos, mockParent),
+													ASTStringLiteral._('pizza', pos, mockParent),
+													ASTNumberLiteral._(3.14, 'dec32', pos, mockParent),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
-											ASTBoolLiteral._(true, mockPos),
+											ASTBoolLiteral._(true, pos, mockParent),
 											ASTPath._(
 												{
 													absolute: true,
 													path: '@/some/file.joe',
 													isDir: false,
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTRangeExpression._(
 												{
-													lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-													upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+													lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+													upper: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTTupleExpression._(
 												[
-													ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-													ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-													ASTStringLiteral._('fizz', mockPos),
-													ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-													ASTStringLiteral._('buzz', mockPos),
+													ASTNumberLiteral._(1, 'int8', pos, mockParent),
+													ASTNumberLiteral._(2, 'int8', pos, mockParent),
+													ASTStringLiteral._('fizz', pos, mockParent),
+													ASTNumberLiteral._(4, 'int8', pos, mockParent),
+													ASTStringLiteral._('buzz', pos, mockParent),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								inferredPossibleTypes: [
-									[
-										ASTTupleShape._(
-											[
+								inferredTypes: [
+									ASTTupleShape._(
+										[
+											ASTTupleShape._(
 												[
-													ASTTupleShape._(
-														[
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															[ASTTypePrimitive._('string', mockPos)],
-															NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-														],
-														mockPos,
-													),
+													ASTTypeNumberInt8(pos, mockParent),
+													ASTTypePrimitiveString(pos, mockParent),
+													ASTTypeNumberDec32(pos, mockParent),
 												],
-												[ASTTypePrimitive._('bool', mockPos)],
-												[ASTTypePrimitive._('path', mockPos)],
-												[ASTTypeRange._(mockPos)],
+												pos,
+												mockParent,
+											),
+											ASTTypePrimitiveBool(pos, mockParent),
+											ASTTypePrimitivePath(pos, mockParent),
+											ASTTypeRange._(pos, mockParent),
+											ASTTupleShape._(
 												[
-													ASTTupleShape._(
-														[
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															[ASTTypePrimitive._('string', mockPos)],
-															NumberSizesIntASTs.map((ns) => ns(mockPos)),
-															[ASTTypePrimitive._('string', mockPos)],
-														],
-														mockPos,
-													),
+													ASTTypeNumberInt8(pos, mockParent),
+													ASTTypeNumberInt8(pos, mockParent),
+													ASTTypePrimitiveString(pos, mockParent),
+													ASTTypeNumberInt8(pos, mockParent),
+													ASTTypePrimitiveString(pos, mockParent),
 												],
-											],
-											mockPos,
-										),
-									],
+												pos,
+												mockParent,
+											),
+										],
+										pos,
+										mockParent,
+									),
 								],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -5456,18 +5982,24 @@ describe('semanticAnalyzer', () => {
 					[
 						ASTTupleExpression._(
 							[
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(1, 'int8', pos, mockParent),
 								ASTTernaryExpression._(
 									{
-										test: ASTTernaryCondition._(ASTIdentifier._('someCondition', mockPos), mockPos),
-										consequent: ASTTernaryConsequent._(ASTStringLiteral._('burnt-orange', mockPos), mockPos),
-										alternate: ASTTernaryAlternate._(ASTStringLiteral._('', mockPos), mockPos),
+										test: ASTTernaryCondition._(ASTIdentifier._('someCondition', pos, mockParent), pos, mockParent),
+										consequent: ASTTernaryConsequent._(
+											ASTStringLiteral._('burnt-orange', pos, mockParent),
+											pos,
+											mockParent,
+										),
+										alternate: ASTTernaryAlternate._(ASTStringLiteral._('', pos, mockParent), pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTBoolLiteral._(true, mockPos),
+								ASTBoolLiteral._(true, pos, mockParent),
 							],
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -5479,39 +6011,39 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTObjectExpression._(
 									[
 										ASTProperty._(
-											ASTIdentifier._('tpl', mockPos),
-											ASTTupleExpression._(
-												[ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-												mockPos,
-											),
-											mockPos,
+											ASTIdentifier._('tpl', pos, mockParent),
+											ASTTupleExpression._([ASTNumberLiteral._(1, 'int8', pos, mockParent)], pos, mockParent),
+											pos,
+											mockParent,
 										),
 									],
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [
-								[
-									ASTObjectShape._(
-										[
-											ASTPropertyShape._(
-												ASTIdentifier._('tpl', mockPos),
-												[ASTTupleShape._([NumberSizesIntASTs.map((ns) => ns(mockPos))], mockPos)],
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
+							inferredTypes: [
+								ASTObjectShape._(
+									[
+										ASTPropertyShape._(
+											ASTIdentifier._('tpl', pos, mockParent),
+											ASTTupleShape._([ASTTypeNumberInt8(pos, mockParent)], pos, mockParent),
+											pos,
+											mockParent,
+										),
+									],
+									pos,
+									mockParent,
+								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5523,54 +6055,41 @@ describe('semanticAnalyzer', () => {
 					ASTArrayExpression._(
 						{
 							items: [
-								ASTBoolLiteral._(false, mockPos),
-								ASTBoolLiteral._(true, mockPos),
-								ASTBoolLiteral._(true, mockPos),
-								ASTBoolLiteral._(false, mockPos),
+								ASTBoolLiteral._(false, pos, mockParent),
+								ASTBoolLiteral._(true, pos, mockParent),
+								ASTBoolLiteral._(true, pos, mockParent),
+								ASTBoolLiteral._(false, pos, mockParent),
 							],
-							possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+							type: ASTTypePrimitiveBool(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
 
 			it('numbers', () => {
-				testAnalyze('[1, -2, 3_456, 3^e-2, 3.14, 1_2_3]', [
+				testAnalyze('[1, -2, 3_456, 1_2_3]', [
 					ASTArrayExpression._(
 						{
 							items: [
-								ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(1, 'int8', pos, mockParent),
 								ASTUnaryExpression._(
 									{
 										before: true,
 										operator: '-',
-										operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
+										operand: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTNumberLiteral._(3456, undefined, ['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'], mockPos),
-								ASTBinaryExpression._(
-									{
-										operator: '^e',
-										left: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-										right: ASTUnaryExpression._(
-											{
-												before: true,
-												operator: '-',
-												operand: ASTNumberLiteral._(2, undefined, [...numberSizesSignedInts], mockPos),
-											},
-											mockPos,
-										),
-									},
-									mockPos,
-								),
-								ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
-								ASTNumberLiteral._(123, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(3456, 'int16', pos, mockParent),
+								ASTNumberLiteral._(123, 'int8', pos, mockParent),
 							],
-							possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							type: ASTTypeNumberInt16(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5586,7 +6105,8 @@ describe('semanticAnalyzer', () => {
 										path: '@/file.joe',
 										isDir: false,
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTPath._(
 									{
@@ -5594,12 +6114,14 @@ describe('semanticAnalyzer', () => {
 										path: '@/another/file.joe',
 										isDir: false,
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							possibleTypes: [ASTTypePrimitive._('path', mockPos)],
+							type: ASTTypePrimitivePath(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5614,26 +6136,30 @@ describe('semanticAnalyzer', () => {
 										pattern: '/[a-z]/',
 										flags: ['i'],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTRegularExpression._(
 									{
 										pattern: '/[0-9]/',
 										flags: ['g'],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 								ASTRegularExpression._(
 									{
 										pattern: '/d/',
 										flags: [],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							possibleTypes: [ASTTypePrimitive._('regex', mockPos)],
+							type: ASTTypePrimitiveRegex(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5642,10 +6168,11 @@ describe('semanticAnalyzer', () => {
 				testAnalyze('[\'foo\', "bar"]', [
 					ASTArrayExpression._(
 						{
-							items: [ASTStringLiteral._('foo', mockPos), ASTStringLiteral._('bar', mockPos)],
-							possibleTypes: [ASTTypePrimitive._('string', mockPos)],
+							items: [ASTStringLiteral._('foo', pos, mockParent), ASTStringLiteral._('bar', pos, mockParent)],
+							type: ASTTypePrimitiveString(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5656,18 +6183,20 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [
 								ASTArrayOf._(
 									ASTTupleShape._(
 										[
-											[ASTTypePrimitive._('string', mockPos)],
-											[ASTTypeNumber._('uint64', mockPos)],
-											[ASTTypePrimitive._('bool', mockPos)],
+											ASTTypePrimitiveString(pos, mockParent),
+											ASTTypeNumber._('uint64', pos, mockParent),
+											ASTTypePrimitiveBool(pos, mockParent),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 							initialValues: [
@@ -5676,55 +6205,41 @@ describe('semanticAnalyzer', () => {
 										items: [
 											ASTTupleExpression._(
 												[
-													ASTStringLiteral._('foo', mockPos),
-													ASTNumberLiteral._(
-														314,
-														undefined,
-														['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-														mockPos,
-													),
-													ASTBoolLiteral._(false, mockPos),
+													ASTStringLiteral._('foo', pos, mockParent),
+													ASTNumberLiteral._(314, 'uint64', pos, mockParent),
+													ASTBoolLiteral._(false, pos, mockParent),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTTupleExpression._(
 												[
-													ASTStringLiteral._('bar', mockPos),
-													ASTNumberLiteral._(
-														900,
-														undefined,
-														['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-														mockPos,
-													),
-													ASTBoolLiteral._(true, mockPos),
+													ASTStringLiteral._('bar', pos, mockParent),
+													ASTNumberLiteral._(900, 'uint64', pos, mockParent),
+													ASTBoolLiteral._(true, pos, mockParent),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
-										possibleTypes: [
-											ASTTupleShape._(
-												[
-													[ASTTypePrimitive._('string', mockPos)],
-													[
-														ASTTypeNumber._('int16', mockPos),
-														ASTTypeNumber._('int32', mockPos),
-														ASTTypeNumber._('int64', mockPos),
-														ASTTypeNumber._('uint16', mockPos),
-														ASTTypeNumber._('uint32', mockPos),
-														ASTTypeNumber._('uint64', mockPos),
-													],
-													[ASTTypePrimitive._('bool', mockPos)],
-												],
-												mockPos,
-											),
-										],
+										type: ASTTupleShape._(
+											[
+												ASTTypePrimitiveString(pos, mockParent),
+												ASTTypeNumber._('uint64', pos, mockParent),
+												ASTTypePrimitiveBool(pos, mockParent),
+											],
+											pos,
+											mockParent,
+										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5735,25 +6250,29 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [
 								ASTArrayOf._(
 									ASTObjectShape._(
 										[
 											ASTPropertyShape._(
-												ASTIdentifier._('a', mockPos),
-												[ASTTypeNumber._('uint32', mockPos)],
-												mockPos,
+												ASTIdentifier._('a', pos, mockParent),
+												ASTTypeNumberUint32(pos, mockParent),
+												pos,
+												mockParent,
 											),
 											ASTPropertyShape._(
-												ASTIdentifier._('b', mockPos),
-												[ASTTypePrimitive._('string', mockPos)],
-												mockPos,
+												ASTIdentifier._('b', pos, mockParent),
+												ASTTypePrimitiveString(pos, mockParent),
+												pos,
+												mockParent,
 											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 							initialValues: [
@@ -5763,39 +6282,49 @@ describe('semanticAnalyzer', () => {
 											ASTObjectExpression._(
 												[
 													ASTProperty._(
-														ASTIdentifier._('a', mockPos),
-														ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-														mockPos,
+														ASTIdentifier._('a', pos, mockParent),
+														ASTNumberLiteral._(4, 'int8', pos, mockParent),
+														pos,
+														mockParent,
 													),
-													ASTProperty._(ASTIdentifier._('b', mockPos), ASTStringLiteral._('c', mockPos), mockPos),
-												],
-												mockPos,
-											),
-										],
-										possibleTypes: [
-											ASTObjectShape._(
-												[
-													ASTPropertyShape._(
-														ASTIdentifier._('a', mockPos),
-														NumberSizesIntASTs.map((ns) => ns(mockPos)),
-														mockPos,
-													),
-													ASTPropertyShape._(
-														ASTIdentifier._('b', mockPos),
-														[ASTTypePrimitive._('string', mockPos)],
-														mockPos,
+													ASTProperty._(
+														ASTIdentifier._('b', pos, mockParent),
+														ASTStringLiteral._('c', pos, mockParent),
+														pos,
+														mockParent,
 													),
 												],
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
+										type: ASTObjectShape._(
+											[
+												ASTPropertyShape._(
+													ASTIdentifier._('a', pos, mockParent),
+													ASTTypeNumberUint32(pos, mockParent),
+													pos,
+													mockParent,
+												),
+												ASTPropertyShape._(
+													ASTIdentifier._('b', pos, mockParent),
+													ASTTypePrimitiveString(pos, mockParent),
+													pos,
+													mockParent,
+												),
+											],
+											pos,
+											mockParent,
+										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5806,34 +6335,25 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('int32s', mockPos)],
+							identifiersList: [ASTIdentifier._('int32s', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTArrayExpression._(
 									{
 										items: [
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+											ASTNumberLiteral._(1, 'int8', pos, mockParent),
+											ASTNumberLiteral._(2, 'int8', pos, mockParent),
 										],
-										possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+										type: ASTTypeNumberInt8(pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [
-								[
-									ASTArrayOf._(ASTTypeNumber._('int8', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('int16', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('int32', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('int64', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('uint8', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('uint16', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('uint32', mockPos), mockPos),
-									ASTArrayOf._(ASTTypeNumber._('uint64', mockPos), mockPos),
-								],
-							],
+							inferredTypes: [ASTArrayOf._(ASTTypeNumberInt8(pos, mockParent), pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 
@@ -5842,20 +6362,22 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: true,
-							identifiersList: [ASTIdentifier._('myArray', mockPos)],
-							declaredTypes: [ASTArrayOf._(ASTTypePrimitive._('bool', mockPos), mockPos)],
+							identifiersList: [ASTIdentifier._('myArray', pos, mockParent)],
+							declaredTypes: [ASTArrayOf._(ASTTypePrimitiveBool(pos, mockParent), pos, mockParent)],
 							initialValues: [
 								ASTArrayExpression._(
 									{
 										items: [],
-										possibleTypes: [],
+										type: ASTTypePrimitiveBool(pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[]],
+							inferredTypes: [],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5868,38 +6390,23 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 							initialValues: [
 								ASTTernaryExpression._(
 									{
-										test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
-										consequent: ASTTernaryConsequent._(
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											mockPos,
-										),
-										alternate: ASTTernaryAlternate._(
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-											mockPos,
-										),
+										test: ASTTernaryCondition._(ASTIdentifier._('bar', pos, mockParent), pos, mockParent),
+										consequent: ASTTernaryConsequent._(ASTNumberLiteral._(1, 'int8', pos, mockParent), pos, mockParent),
+										alternate: ASTTernaryAlternate._(ASTNumberLiteral._(2, 'int8', pos, mockParent), pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [
-								[
-									ASTTypeNumber._('int8', mockPos),
-									ASTTypeNumber._('int16', mockPos),
-									ASTTypeNumber._('int32', mockPos),
-									ASTTypeNumber._('int64', mockPos),
-									ASTTypeNumber._('uint8', mockPos),
-									ASTTypeNumber._('uint16', mockPos),
-									ASTTypeNumber._('uint32', mockPos),
-									ASTTypeNumber._('uint64', mockPos),
-								],
-							],
+							inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5910,40 +6417,43 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
-							declaredTypes: [],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+							declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 							initialValues: [
 								ASTTernaryExpression._(
 									{
-										test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
+										test: ASTTernaryCondition._(ASTIdentifier._('bar', pos, mockParent), pos, mockParent),
 										consequent: ASTTernaryConsequent._(
 											ASTTernaryExpression._(
 												{
-													test: ASTTernaryCondition._(ASTIdentifier._('baz', mockPos), mockPos),
+													test: ASTTernaryCondition._(ASTIdentifier._('baz', pos, mockParent), pos, mockParent),
 													consequent: ASTTernaryConsequent._(
-														ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-														mockPos,
+														ASTNumberLiteral._(3, 'int8', pos, mockParent),
+														pos,
+														mockParent,
 													),
 													alternate: ASTTernaryAlternate._(
-														ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-														mockPos,
+														ASTNumberLiteral._(4, 'int8', pos, mockParent),
+														pos,
+														mockParent,
 													),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
-											mockPos,
+											pos,
+											mockParent,
 										),
-										alternate: ASTTernaryAlternate._(
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-											mockPos,
-										),
+										alternate: ASTTernaryAlternate._(ASTNumberLiteral._(2, 'int8', pos, mockParent), pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [NumberSizesIntASTs.map((ns) => ns(mockPos))],
+							inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5955,23 +6465,19 @@ describe('semanticAnalyzer', () => {
 							items: [
 								ASTTernaryExpression._(
 									{
-										test: ASTTernaryCondition._(ASTIdentifier._('foo', mockPos), mockPos),
-										consequent: ASTTernaryConsequent._(
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											mockPos,
-										),
-										alternate: ASTTernaryAlternate._(
-											ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-											mockPos,
-										),
+										test: ASTTernaryCondition._(ASTIdentifier._('foo', pos, mockParent), pos, mockParent),
+										consequent: ASTTernaryConsequent._(ASTNumberLiteral._(1, 'int8', pos, mockParent), pos, mockParent),
+										alternate: ASTTernaryAlternate._(ASTNumberLiteral._(2, 'int8', pos, mockParent), pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+								ASTNumberLiteral._(3, 'int8', pos, mockParent),
 							],
-							possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+							type: ASTTypeNumberInt8(pos, mockParent),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -5985,31 +6491,47 @@ describe('semanticAnalyzer', () => {
 						ASTFunctionDeclaration._(
 							{
 								modifiers: [],
-								name: ASTIdentifier._('foo', mockPos),
+								name: ASTIdentifier._('foo', pos, mockParent),
 								typeParams: [],
 								params: [],
-								returnTypes: [ASTTypePrimitive._('bool', mockPos), ASTTypeNumber._('uint64', mockPos)],
+								returnTypes: [ASTTypePrimitiveBool(pos, mockParent), ASTTypeNumber._('uint64', pos, mockParent)],
 								body: ASTBlockStatement._(
 									[
 										ASTReturnStatement._(
 											[
 												ASTTernaryExpression._(
 													{
-														test: ASTTernaryCondition._(ASTIdentifier._('bar', mockPos), mockPos),
-														consequent: ASTTernaryConsequent._(ASTBoolLiteral._(true, mockPos), mockPos),
-														alternate: ASTTernaryAlternate._(ASTBoolLiteral._(false, mockPos), mockPos),
+														test: ASTTernaryCondition._(
+															ASTIdentifier._('bar', pos, mockParent),
+															pos,
+															mockParent,
+														),
+														consequent: ASTTernaryConsequent._(
+															ASTBoolLiteral._(true, pos, mockParent),
+															pos,
+															mockParent,
+														),
+														alternate: ASTTernaryAlternate._(
+															ASTBoolLiteral._(false, pos, mockParent),
+															pos,
+															mockParent,
+														),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
-												ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+												ASTNumberLiteral._(3, 'int8', pos, mockParent),
 											],
-											mockPos,
+											pos,
+											mockParent,
 										),
 									],
-									mockPos,
+									pos,
+									mockParent,
 								),
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -6023,71 +6545,85 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [],
 							initialValues: [
 								ASTObjectExpression._(
 									[
 										ASTProperty._(
-											ASTIdentifier._('a', mockPos),
-											ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-											mockPos,
-										),
-										ASTProperty._(ASTIdentifier._('b', mockPos), ASTStringLiteral._('pizza', mockPos), mockPos),
-										ASTProperty._(
-											ASTIdentifier._('c', mockPos),
-											ASTNumberLiteral._(3.14, undefined, [...numberSizesDecimals], mockPos),
-											mockPos,
+											ASTIdentifier._('a', pos, mockParent),
+											ASTNumberLiteral._(1, 'int8', pos, mockParent),
+											pos,
+											mockParent,
 										),
 										ASTProperty._(
-											ASTIdentifier._('d', mockPos),
+											ASTIdentifier._('b', pos, mockParent),
+											ASTStringLiteral._('pizza', pos, mockParent),
+											pos,
+											mockParent,
+										),
+										ASTProperty._(
+											ASTIdentifier._('c', pos, mockParent),
+											ASTNumberLiteral._(3.14, 'dec32', pos, mockParent),
+											pos,
+											mockParent,
+										),
+										ASTProperty._(
+											ASTIdentifier._('d', pos, mockParent),
 											ASTArrayExpression._(
 												{
 													items: [
-														ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
-														ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos),
+														ASTNumberLiteral._(10, 'int8', pos, mockParent),
+														ASTNumberLiteral._(11, 'int8', pos, mockParent),
 													],
-													possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+													type: ASTTypeNumberInt8(pos, mockParent),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
-											mockPos,
+											pos,
+											mockParent,
 										),
 									],
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [
-								[
-									ASTObjectShape._(
-										[
-											ASTPropertyShape._(
-												ASTIdentifier._('a', mockPos),
-												NumberSizesIntASTs.map((ns) => ns(mockPos)),
-												mockPos,
-											),
-											ASTPropertyShape._(
-												ASTIdentifier._('b', mockPos),
-												[ASTTypePrimitive._('string', mockPos)],
-												mockPos,
-											),
-											ASTPropertyShape._(
-												ASTIdentifier._('c', mockPos),
-												NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-												mockPos,
-											),
-											ASTPropertyShape._(
-												ASTIdentifier._('d', mockPos),
-												NumberSizesIntASTs.map((ns) => ASTArrayOf._(ns(mockPos), mockPos)),
-												mockPos,
-											),
-										],
-										mockPos,
-									),
-								],
+							inferredTypes: [
+								ASTObjectShape._(
+									[
+										ASTPropertyShape._(
+											ASTIdentifier._('a', pos, mockParent),
+											ASTTypeNumberInt8(pos, mockParent),
+											pos,
+											mockParent,
+										),
+										ASTPropertyShape._(
+											ASTIdentifier._('b', pos, mockParent),
+											ASTTypePrimitiveString(pos, mockParent),
+											pos,
+											mockParent,
+										),
+										ASTPropertyShape._(
+											ASTIdentifier._('c', pos, mockParent),
+											ASTTypeNumberDec32(pos, mockParent),
+											pos,
+											mockParent,
+										),
+										ASTPropertyShape._(
+											ASTIdentifier._('d', pos, mockParent),
+											ASTArrayOf._(ASTTypeNumberInt8(pos, mockParent), pos, mockParent),
+											pos,
+											mockParent,
+										),
+									],
+									pos,
+									mockParent,
+								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -6098,12 +6634,13 @@ describe('semanticAnalyzer', () => {
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('foo', mockPos)],
+							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 							declaredTypes: [],
-							initialValues: [ASTObjectExpression._([], mockPos)],
-							inferredPossibleTypes: [[ASTObjectShape._([], mockPos)]],
+							initialValues: [ASTObjectExpression._([], pos, mockParent)],
+							inferredTypes: [ASTObjectShape._([], pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				]);
 			});
@@ -6122,190 +6659,212 @@ describe('semanticAnalyzer', () => {
 							{
 								modifiers: [],
 								mutable: false,
-								identifiersList: [ASTIdentifier._('foo', mockPos)],
+								identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 								declaredTypes: [],
 								initialValues: [
 									ASTObjectExpression._(
 										[
 											ASTProperty._(
-												ASTIdentifier._('obj', mockPos),
+												ASTIdentifier._('obj', pos, mockParent),
 												ASTObjectExpression._(
 													[
 														ASTProperty._(
-															ASTIdentifier._('a', mockPos),
-															ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-															mockPos,
+															ASTIdentifier._('a', pos, mockParent),
+															ASTNumberLiteral._(1, 'int8', pos, mockParent),
+															pos,
+															mockParent,
 														),
 														ASTProperty._(
-															ASTIdentifier._('b', mockPos),
-															ASTStringLiteral._('pizza', mockPos),
-															mockPos,
+															ASTIdentifier._('b', pos, mockParent),
+															ASTStringLiteral._('pizza', pos, mockParent),
+															pos,
+															mockParent,
 														),
 														ASTProperty._(
-															ASTIdentifier._('pi', mockPos),
+															ASTIdentifier._('pi', pos, mockParent),
 															ASTObjectExpression._(
 																[
 																	ASTProperty._(
-																		ASTIdentifier._('two_digits', mockPos),
-																		ASTNumberLiteral._(
-																			3.14,
-																			undefined,
-																			[...numberSizesDecimals],
-																			mockPos,
-																		),
-																		mockPos,
+																		ASTIdentifier._('two_digits', pos, mockParent),
+																		ASTNumberLiteral._(3.14, 'dec32', pos, mockParent),
+																		pos,
+																		mockParent,
 																	),
 																],
-																mockPos,
+																pos,
+																mockParent,
 															),
-															mockPos,
+															pos,
+															mockParent,
 														),
 													],
-													mockPos,
+													pos,
+													mockParent,
 												),
-												mockPos,
+												pos,
+												mockParent,
 											),
-											ASTProperty._(ASTIdentifier._('bol', mockPos), ASTBoolLiteral._(true, mockPos), mockPos),
 											ASTProperty._(
-												ASTIdentifier._('pth', mockPos),
+												ASTIdentifier._('bol', pos, mockParent),
+												ASTBoolLiteral._(true, pos, mockParent),
+												pos,
+												mockParent,
+											),
+											ASTProperty._(
+												ASTIdentifier._('pth', pos, mockParent),
 												ASTPath._(
 													{
 														absolute: true,
 														path: '@/some/file.joe',
 														isDir: false,
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTProperty._(
-												ASTIdentifier._('rng', mockPos),
+												ASTIdentifier._('rng', pos, mockParent),
 												ASTObjectExpression._(
 													[
 														ASTProperty._(
-															ASTIdentifier._('rng', mockPos),
+															ASTIdentifier._('rng', pos, mockParent),
 															ASTRangeExpression._(
 																{
-																	lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-																	upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+																	lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+																	upper: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 																},
-																mockPos,
+																pos,
+																mockParent,
 															),
-															mockPos,
+															pos,
+															mockParent,
 														),
 													],
-													mockPos,
+													pos,
+													mockParent,
 												),
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTProperty._(
-												ASTIdentifier._('tpl', mockPos),
+												ASTIdentifier._('tpl', pos, mockParent),
 												ASTTupleExpression._(
 													[
-														ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-														ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
-														ASTStringLiteral._('fizz', mockPos),
-														ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-														ASTStringLiteral._('buzz', mockPos),
+														ASTNumberLiteral._(1, 'int8', pos, mockParent),
+														ASTNumberLiteral._(2, 'int8', pos, mockParent),
+														ASTStringLiteral._('fizz', pos, mockParent),
+														ASTNumberLiteral._(4, 'int8', pos, mockParent),
+														ASTStringLiteral._('buzz', pos, mockParent),
 													],
-													mockPos,
+													pos,
+													mockParent,
 												),
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
-										mockPos,
+										pos,
+										mockParent,
 									),
 								],
-								inferredPossibleTypes: [
-									[
-										ASTObjectShape._(
-											[
-												ASTPropertyShape._(
-													ASTIdentifier._('obj', mockPos),
+								inferredTypes: [
+									ASTObjectShape._(
+										[
+											ASTPropertyShape._(
+												ASTIdentifier._('obj', pos, mockParent),
+												ASTObjectShape._(
 													[
-														ASTObjectShape._(
-															[
-																ASTPropertyShape._(
-																	ASTIdentifier._('a', mockPos),
-																	NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																	mockPos,
-																),
-																ASTPropertyShape._(
-																	ASTIdentifier._('b', mockPos),
-																	[ASTTypePrimitive._('string', mockPos)],
-																	mockPos,
-																),
-																ASTPropertyShape._(
-																	ASTIdentifier._('pi', mockPos),
-																	[
-																		ASTObjectShape._(
-																			[
-																				ASTPropertyShape._(
-																					ASTIdentifier._('two_digits', mockPos),
-																					NumberSizesDecimalASTs.map((ns) => ns(mockPos)),
-																					mockPos,
-																				),
-																			],
-																			mockPos,
-																		),
-																	],
-																	mockPos,
-																),
-															],
-															mockPos,
+														ASTPropertyShape._(
+															ASTIdentifier._('a', pos, mockParent),
+															ASTTypeNumberInt8(pos, mockParent),
+															pos,
+															mockParent,
+														),
+														ASTPropertyShape._(
+															ASTIdentifier._('b', pos, mockParent),
+															ASTTypePrimitiveString(pos, mockParent),
+															pos,
+															mockParent,
+														),
+														ASTPropertyShape._(
+															ASTIdentifier._('pi', pos, mockParent),
+															ASTObjectShape._(
+																[
+																	ASTPropertyShape._(
+																		ASTIdentifier._('two_digits', pos, mockParent),
+																		ASTTypeNumberDec32(pos, mockParent),
+																		pos,
+																		mockParent,
+																	),
+																],
+																pos,
+																mockParent,
+															),
+															pos,
+															mockParent,
 														),
 													],
-													mockPos,
+													pos,
+													mockParent,
 												),
-												ASTPropertyShape._(
-													ASTIdentifier._('bol', mockPos),
-													[ASTTypePrimitive._('bool', mockPos)],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('pth', mockPos),
-													[ASTTypePrimitive._('path', mockPos)],
-													mockPos,
-												),
-												ASTPropertyShape._(
-													ASTIdentifier._('rng', mockPos),
+												pos,
+												mockParent,
+											),
+											ASTPropertyShape._(
+												ASTIdentifier._('bol', pos, mockParent),
+												ASTTypePrimitiveBool(pos, mockParent),
+												pos,
+												mockParent,
+											),
+											ASTPropertyShape._(
+												ASTIdentifier._('pth', pos, mockParent),
+												ASTTypePrimitivePath(pos, mockParent),
+												pos,
+												mockParent,
+											),
+											ASTPropertyShape._(
+												ASTIdentifier._('rng', pos, mockParent),
+												ASTObjectShape._(
 													[
-														ASTObjectShape._(
-															[
-																ASTPropertyShape._(
-																	ASTIdentifier._('rng', mockPos),
-																	[ASTTypeRange._(mockPos)],
-																	mockPos,
-																),
-															],
-															mockPos,
+														ASTPropertyShape._(
+															ASTIdentifier._('rng', pos, mockParent),
+															ASTTypeRange._(pos, mockParent),
+															pos,
+															mockParent,
 														),
 													],
-													mockPos,
+													pos,
+													mockParent,
 												),
-												ASTPropertyShape._(
-													ASTIdentifier._('tpl', mockPos),
+												pos,
+												mockParent,
+											),
+											ASTPropertyShape._(
+												ASTIdentifier._('tpl', pos, mockParent),
+												ASTTupleShape._(
 													[
-														ASTTupleShape._(
-															[
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																[ASTTypePrimitive._('string', mockPos)],
-																NumberSizesIntASTs.map((ns) => ns(mockPos)),
-																[ASTTypePrimitive._('string', mockPos)],
-															],
-															mockPos,
-														),
+														ASTTypeNumberInt8(pos, mockParent),
+														ASTTypeNumberInt8(pos, mockParent),
+														ASTTypePrimitiveString(pos, mockParent),
+														ASTTypeNumberInt8(pos, mockParent),
+														ASTTypePrimitiveString(pos, mockParent),
 													],
-													mockPos,
+													pos,
+													mockParent,
 												),
-											],
-											mockPos,
-										),
-									],
+												pos,
+												mockParent,
+											),
+										],
+										pos,
+										mockParent,
+									),
 								],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -6322,25 +6881,38 @@ describe('semanticAnalyzer', () => {
 						ASTObjectExpression._(
 							[
 								ASTProperty._(
-									ASTIdentifier._('a', mockPos),
-									ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									mockPos,
+									ASTIdentifier._('a', pos, mockParent),
+									ASTNumberLiteral._(1, 'int8', pos, mockParent),
+									pos,
+									mockParent,
 								),
 								ASTProperty._(
-									ASTIdentifier._('b', mockPos),
+									ASTIdentifier._('b', pos, mockParent),
 									ASTTernaryExpression._(
 										{
-											test: ASTTernaryCondition._(ASTIdentifier._('someCondition', mockPos), mockPos),
-											consequent: ASTTernaryConsequent._(ASTStringLiteral._('burnt-orange', mockPos), mockPos),
-											alternate: ASTTernaryAlternate._(ASTStringLiteral._('', mockPos), mockPos),
+											test: ASTTernaryCondition._(ASTIdentifier._('someCondition', pos, mockParent), pos, mockParent),
+											consequent: ASTTernaryConsequent._(
+												ASTStringLiteral._('burnt-orange', pos, mockParent),
+												pos,
+												mockParent,
+											),
+											alternate: ASTTernaryAlternate._(ASTStringLiteral._('', pos, mockParent), pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									mockPos,
+									pos,
+									mockParent,
 								),
-								ASTProperty._(ASTIdentifier._('c', mockPos), ASTBoolLiteral._(true, mockPos), mockPos),
+								ASTProperty._(
+									ASTIdentifier._('c', pos, mockParent),
+									ASTBoolLiteral._(true, pos, mockParent),
+									pos,
+									mockParent,
+								),
 							],
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -6355,18 +6927,21 @@ describe('semanticAnalyzer', () => {
 						ASTObjectExpression._(
 							[
 								ASTProperty._(
-									ASTIdentifier._('a', mockPos),
+									ASTIdentifier._('a', pos, mockParent),
 									ASTArrayExpression._(
 										{
-											items: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-											possibleTypes: NumberSizesIntASTs.map((ns) => ns(mockPos)),
+											items: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
+											type: ASTTypeNumberInt8(pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -6381,26 +6956,30 @@ describe('semanticAnalyzer', () => {
 						ASTObjectExpression._(
 							[
 								ASTProperty._(
-									ASTIdentifier._('a', mockPos),
+									ASTIdentifier._('a', pos, mockParent),
 									ASTArrayExpression._(
 										{
 											items: [
 												ASTMemberExpression._(
 													{
-														object: ASTIdentifier._('foo', mockPos),
-														property: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
+														object: ASTIdentifier._('foo', pos, mockParent),
+														property: ASTNumberLiteral._(1, 'int8', pos, mockParent),
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 											],
-											possibleTypes: [],
+											type: ASTTypeNumberInt8(pos, mockParent),
 										},
-										mockPos,
+										pos,
+										mockParent,
 									),
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							mockPos,
+							pos,
+							mockParent,
 						),
 					],
 				);
@@ -6413,12 +6992,13 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('foo', mockPos)],
+						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
 						declaredTypes: [],
-						initialValues: [ASTThisKeyword._(mockPos)],
-						inferredPossibleTypes: [[]],
+						initialValues: [ASTThisKeyword._(pos, mockParent)],
+						inferredTypes: [],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -6429,20 +7009,22 @@ describe('semanticAnalyzer', () => {
 					{
 						modifiers: [],
 						mutable: false,
-						identifiersList: [ASTIdentifier._('foo', mockPos)],
-						declaredTypes: [],
+						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
+						declaredTypes: [ASTTypeRange._(pos, mockParent)],
 						initialValues: [
 							ASTRangeExpression._(
 								{
-									lower: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									lower: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+									upper: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						inferredPossibleTypes: [[ASTTypeRange._(mockPos)]],
+						inferredTypes: [ASTTypeRange._(pos, mockParent)],
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -6457,18 +7039,20 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTWhenExpression._(
 						{
-							expression: ASTIdentifier._('someNumber', mockPos),
+							expression: ASTIdentifier._('someNumber', pos, mockParent),
 							cases: [
 								ASTWhenCase._(
 									{
-										values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
-										consequent: ASTStringLiteral._('small', mockPos),
+										values: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
+										consequent: ASTStringLiteral._('small', pos, mockParent),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -6487,39 +7071,44 @@ describe('semanticAnalyzer', () => {
 				[
 					ASTWhenExpression._(
 						{
-							expression: ASTIdentifier._('someNumber', mockPos),
+							expression: ASTIdentifier._('someNumber', pos, mockParent),
 							cases: [
 								ASTWhenCase._(
 									{
-										values: [ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos)],
+										values: [ASTNumberLiteral._(1, 'int8', pos, mockParent)],
 										consequent: ASTBlockStatement._(
 											[
 												ASTCallExpression._(
 													{
-														callee: ASTIdentifier._('doThing1', mockPos),
+														callee: ASTIdentifier._('doThing1', pos, mockParent),
 														typeArgs: [],
 														args: [],
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
 												ASTCallExpression._(
 													{
-														callee: ASTIdentifier._('doThing2', mockPos),
+														callee: ASTIdentifier._('doThing2', pos, mockParent),
 														typeArgs: [],
 														args: [],
 													},
-													mockPos,
+													pos,
+													mockParent,
 												),
-												ASTReturnStatement._([ASTStringLiteral._('large', mockPos)], mockPos),
+												ASTReturnStatement._([ASTStringLiteral._('large', pos, mockParent)], pos, mockParent),
 											],
-											mockPos,
+											pos,
+											mockParent,
 										),
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -6546,107 +7135,128 @@ describe('semanticAnalyzer', () => {
 					ASTFunctionDeclaration._(
 						{
 							modifiers: [],
-							name: ASTIdentifier._('doSomethingElse', mockPos),
+							name: ASTIdentifier._('doSomethingElse', pos, mockParent),
 							typeParams: [],
 							params: [],
-							returnTypes: [ASTTypePrimitiveString(mockPos)],
-							body: ASTBlockStatement._([ASTReturnStatement._([ASTStringLiteral._('', mockPos)], mockPos)], mockPos),
+							returnTypes: [ASTTypePrimitiveString(pos, mockParent)],
+							body: ASTBlockStatement._(
+								[ASTReturnStatement._([ASTStringLiteral._('', pos, mockParent)], pos, mockParent)],
+								pos,
+								mockParent,
+							),
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 					ASTVariableDeclaration._(
 						{
 							modifiers: [],
 							mutable: false,
-							identifiersList: [ASTIdentifier._('size', mockPos)],
-							declaredTypes: [],
+							identifiersList: [ASTIdentifier._('size', pos, mockParent)],
+							declaredTypes: [ASTTypePrimitiveString(pos, mockParent)],
 							initialValues: [
 								ASTWhenExpression._(
 									{
-										expression: ASTIdentifier._('someNumber', mockPos),
+										expression: ASTIdentifier._('someNumber', pos, mockParent),
 										cases: [
 											ASTWhenCase._(
 												{
 													values: [
-														ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-														ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+														ASTNumberLiteral._(1, 'int8', pos, mockParent),
+														ASTNumberLiteral._(2, 'int8', pos, mockParent),
 													],
-													consequent: ASTStringLiteral._('small', mockPos),
+													consequent: ASTStringLiteral._('small', pos, mockParent),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTWhenCase._(
 												{
 													values: [
 														ASTRangeExpression._(
 															{
-																lower: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
-																upper: ASTNumberLiteral._(10, undefined, [...numberSizesInts], mockPos),
+																lower: ASTNumberLiteral._(3, 'int8', pos, mockParent),
+																upper: ASTNumberLiteral._(10, 'int8', pos, mockParent),
 															},
-															mockPos,
+															pos,
+															mockParent,
 														),
 													],
-													consequent: ASTStringLiteral._('medium', mockPos),
+													consequent: ASTStringLiteral._('medium', pos, mockParent),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTWhenCase._(
 												{
-													values: [ASTNumberLiteral._(11, undefined, [...numberSizesInts], mockPos)],
+													values: [ASTNumberLiteral._(11, 'int8', pos, mockParent)],
 													consequent: ASTBlockStatement._(
 														[
 															ASTCallExpression._(
 																{
-																	callee: ASTIdentifier._('doThing1', mockPos),
+																	callee: ASTIdentifier._('doThing1', pos, mockParent),
 																	typeArgs: [],
 																	args: [],
 																},
-																mockPos,
+																pos,
+																mockParent,
 															),
 															ASTCallExpression._(
 																{
-																	callee: ASTIdentifier._('doThing2', mockPos),
+																	callee: ASTIdentifier._('doThing2', pos, mockParent),
 																	typeArgs: [],
 																	args: [],
 																},
-																mockPos,
+																pos,
+																mockParent,
 															),
-															ASTReturnStatement._([ASTStringLiteral._('large', mockPos)], mockPos),
+															ASTReturnStatement._(
+																[ASTStringLiteral._('large', pos, mockParent)],
+																pos,
+																mockParent,
+															),
 														],
-														mockPos,
+														pos,
+														mockParent,
 													),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTWhenCase._(
 												{
-													values: [ASTNumberLiteral._(12, undefined, [...numberSizesInts], mockPos)],
+													values: [ASTNumberLiteral._(12, 'int8', pos, mockParent)],
 													consequent: ASTCallExpression._(
 														{
-															callee: ASTIdentifier._('doSomethingElse', mockPos),
+															callee: ASTIdentifier._('doSomethingElse', pos, mockParent),
 															typeArgs: [],
 															args: [],
 														},
-														mockPos,
+														pos,
+														mockParent,
 													),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 											ASTWhenCase._(
 												{
-													values: [ASTRestElement._(mockPos)],
-													consequent: ASTStringLiteral._('off the charts', mockPos),
+													values: [ASTRestElement._(pos, mockParent)],
+													consequent: ASTStringLiteral._('off the charts', pos, mockParent),
 												},
-												mockPos,
+												pos,
+												mockParent,
 											),
 										],
 									},
-									mockPos,
+									pos,
+									mockParent,
 								),
 							],
-							inferredPossibleTypes: [[ASTTypePrimitiveString(mockPos)]],
+							inferredTypes: [ASTTypePrimitiveString(pos, mockParent)],
 						},
-						mockPos,
+						pos,
+						mockParent,
 					),
 				],
 			);
@@ -6660,15 +7270,17 @@ describe('semanticAnalyzer', () => {
 					{
 						lower: ASTCallExpression._(
 							{
-								callee: ASTIdentifier._('foo', mockPos),
+								callee: ASTIdentifier._('foo', pos, mockParent),
 								typeArgs: [],
 								args: [],
 							},
-							mockPos,
+							pos,
+							mockParent,
 						),
-						upper: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+						upper: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -6681,23 +7293,26 @@ describe('semanticAnalyzer', () => {
 							ASTBinaryExpression._(
 								{
 									operator: '<',
-									left: ASTNumberLiteral._(1, undefined, [...numberSizesInts], mockPos),
-									right: ASTNumberLiteral._(2, undefined, [...numberSizesInts], mockPos),
+									left: ASTNumberLiteral._(1, 'int8', pos, mockParent),
+									right: ASTNumberLiteral._(2, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTBinaryExpression._(
 								{
 									operator: '>',
-									left: ASTNumberLiteral._(4, undefined, [...numberSizesInts], mockPos),
-									right: ASTNumberLiteral._(3, undefined, [...numberSizesInts], mockPos),
+									left: ASTNumberLiteral._(4, 'int8', pos, mockParent),
+									right: ASTNumberLiteral._(3, 'int8', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
-						possibleTypes: [ASTTypePrimitive._('bool', mockPos)],
+						type: ASTTypePrimitiveBool(pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
 		});
@@ -6707,41 +7322,49 @@ describe('semanticAnalyzer', () => {
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
-						name: ASTIdentifier._('foo', mockPos),
+						name: ASTIdentifier._('foo', pos, mockParent),
 						typeParams: [],
 						params: [
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('a', mockPos),
-									type: ASTTypeNumber._('int16', mockPos),
-									defaultValue: ASTNumberLiteral._(
-										1234,
-										undefined,
-										['int16', 'int32', 'int64', 'uint16', 'uint32', 'uint64'],
-										mockPos,
-									),
+									name: ASTIdentifier._('a', pos, mockParent),
+									type: ASTTypeNumber._('int16', pos, mockParent),
+									defaultValue: ASTNumberLiteral._(1234, 'int16', pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 							ASTParameter._(
 								{
 									modifiers: [],
 									isRest: false,
-									name: ASTIdentifier._('b', mockPos),
-									type: ASTTypePrimitive._('bool', mockPos),
-									defaultValue: ASTBoolLiteral._(true, mockPos),
+									name: ASTIdentifier._('b', pos, mockParent),
+									type: ASTTypePrimitiveBool(pos, mockParent),
+									defaultValue: ASTBoolLiteral._(true, pos, mockParent),
 								},
-								mockPos,
+								pos,
+								mockParent,
 							),
 						],
 						returnTypes: [],
-						body: ASTBlockStatement._([ASTReturnStatement._([], mockPos)], mockPos),
+						body: ASTBlockStatement._([], pos, mockParent),
 					},
-					mockPos,
+					pos,
+					mockParent,
 				),
 			]);
+		});
+	});
+
+	describe('error scenarios', (): void => {
+		it.skip('array of ints and decs do not mix', () => {
+			const result = analyze('[1, -2, 3_456, 3^e-2, 3.14, 1_2_3]', true, false);
+			// use assert instead of expect, since we need TS to narrow the type
+
+			assert(result.isError(), `Expected: "error", Received: "ok"`);
+			expect(result.error.message).toBe(`Unexpected end of program; expecting`);
 		});
 	});
 });

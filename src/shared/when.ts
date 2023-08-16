@@ -13,3 +13,15 @@ export function whenResult<R, T, E extends Error = Error, ED = unknown>(
 
 	return cases.Error(condition.error, condition.data, condition);
 }
+
+export function when<R, C extends string>(condition: C, cases: Record<C, () => R> & Record<'...', () => R>): R {
+	if (condition in cases) {
+		return cases[condition]();
+	}
+
+	if ('...' in cases) {
+		return cases['...']();
+	}
+
+	throw new Error(`Unhandled condition: ${condition}`);
+}

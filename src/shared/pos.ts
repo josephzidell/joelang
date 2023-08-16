@@ -12,6 +12,3 @@ export type Pos = {
 	/** col position this item begins at, counting from 1, within the line of the first char (similar to `start`, but within the line - if the entire file were one line, then `col` would be `start + 1`) */
 	col: number;
 };
-
-/** Mock the Pos for unit tests. */
-export const mockPos: Pos = { start: 0, end: 0, line: 1, col: 1 };

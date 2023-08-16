@@ -1,7 +1,7 @@
 /* eslint-disable no-useless-escape */
 import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
-import '../../setupJest'; // for the types
+import '../../jestSetup'; // for the types
 import { primitiveTypes } from '../lexer/types';
 import { numberSizesAll } from '../shared/numbers/sizes';
 import { stackPairs } from './parser';
@@ -4635,7 +4635,7 @@ describe('parser.ts', (): void => {
 				]);
 			});
 
-			it('a 64-bit main number and a negative exponent should infer the possible types as dec64 and higher only', (): void => {
+			it('a 64-bit main number and a negative exponent should infer the type as dec64 and higher only', (): void => {
 				testParse('const x = 214748364723^e-2;', [
 					[
 						NT.VariableDeclaration,

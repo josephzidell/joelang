@@ -1,4 +1,7 @@
-export default class ErrorContext {
+import JoelangError from './errors/error';
+import { Pos } from './pos';
+
+export default class Context {
 	/** the source code */
 	code = '';
 
@@ -11,14 +14,23 @@ export default class ErrorContext {
 	/** The length of the erroneous code, or how many ^^^s to use */
 	length = 1;
 
-	constructor(code: string, line: number, col: number, length: number) {
+	constructor(code: string, ast: { pos: Pos });
+	constructor(code: string, line: number, col: number, length: number);
+	constructor(code: string, astOrLine: { pos: Pos } | number, col?: number, length?: number) {
 		this.code = code;
-		this.line = line;
-		this.col = col;
-		this.length = length;
+
+		if (typeof astOrLine === 'number') {
+			this.line = astOrLine;
+			this.col = col || 1;
+			this.length = length || 1;
+		} else {
+			this.line = astOrLine.pos.line;
+			this.col = astOrLine.pos.col;
+			this.length = length || astOrLine.pos.end - astOrLine.pos.start;
+		}
 	}
 
-	toStringArray(errorMessage: string): string[] {
+	toStringArray(error: JoelangError): string[] {
 		const lines = this.code.split('\n');
 
 		type Line = {
@@ -54,6 +66,13 @@ export default class ErrorContext {
 
 		const lineToString = (line: Line): string => `${line.number} | ${line.content}`;
 
+		// The number of carets should be the length of the erroneous
+		// code, or the length of the line, whichever is smaller
+		// For example, if the line has 5 chars, and the issue is on 2 of them,
+		// then we want 2 carets. But, if the issue is longer than the line,
+		// just put carets on the whole line but shouldn't extend beyond that.
+		const caretCount = Math.min(this.length, currentLine.content.length);
+
 		return [
 			// blank line to start
 			prefix,
@@ -65,7 +84,7 @@ export default class ErrorContext {
 			lineToString(currentLine),
 
 			// ^^^
-			`${prefix} ${' '.repeat(this.col - 1)}${'^'.repeat(this.length)} ${errorMessage}`,
+			`${prefix} ${' '.repeat(this.col - 1)}${'^'.repeat(caretCount)} ${error.getCode()}: ${error.message}`,
 
 			// next line, if any
 			...(nextLine ? [lineToString(nextLine)] : []),

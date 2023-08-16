@@ -8,7 +8,7 @@ import SemanticAnalyzer from '../analyzer/semanticAnalyzer';
 import SemanticError from '../analyzer/semanticError';
 import SymbolError from '../analyzer/symbolError';
 import { SymTree } from '../analyzer/symbolTable';
-import CompilerError from '../compiler/error';
+import LLVMError from '../compiler/error';
 import LexerError from '../lexer/error';
 import Lexer from '../lexer/lexer';
 import { standardizeLineEndings } from '../lexer/util';
@@ -17,6 +17,7 @@ import Parser from '../parser/parser';
 import { simplifyTree } from '../parser/simplifier';
 import { Node } from '../parser/types';
 import { handleProcessOutput } from '../shared/command';
+import loggers from '../shared/log';
 import { Result, ResultError, error, ok } from '../shared/result';
 import LlvmIrConverter from './llvm_ir_converter';
 import { llcCommand } from './system';
@@ -30,7 +31,6 @@ export class Compiler {
 		loc: [],
 	};
 	private isASnippet: boolean;
-	private debug = false;
 	private stopAfterStep: StopCompilerAfterStep;
 	private sourceFilenameSansExt = '.inline';
 
@@ -83,7 +83,7 @@ export class Compiler {
 		}
 
 		// continue to the parser
-		const parser = new Parser(this.source.code, this.debug);
+		const parser = new Parser(this.source.code);
 		const parserResult = parser.parse();
 		if (parserResult.isError()) {
 			this.handleErrorFromParser(parserResult);
@@ -114,7 +114,7 @@ export class Compiler {
 			return false;
 		}
 
-		if (this.stopAfterStep !== 'll') {
+		if (this.stopAfterStep !== 'll' && !this.isASnippet) {
 			await this.afterCompiler(compilerResult.isOk());
 		}
 
@@ -130,7 +130,7 @@ export class Compiler {
 		}
 
 		// delete the this.buildDir directory
-		if (!this.debug) {
+		if (process.env.DEBUG !== '0') {
 			await fsPromises.rm(this.buildDir, { recursive: true });
 		}
 	}
@@ -139,52 +139,32 @@ export class Compiler {
 		if (errorResult.error instanceof AnalysisError) {
 			const error = errorResult.error;
 
-			console.groupCollapsed(`Error[Analysis/${error.getErrorCode()}]: ${error.message}`);
-			error
-				.getContext()
-				.toStringArray(error.message)
-				.forEach((str) => console.info(str));
-			console.groupEnd();
-
-			if (this.debug) {
-				console.groupCollapsed('Current Node');
-				console.info(error.getNode());
-				console.groupEnd();
+			loggers.analyzer.error('Analysis', error, () => {
+				loggers.analyzer.vars({ 'Current Node': error.getNode() });
 
 				if (typeof errorResult.data !== 'undefined' && errorResult.data?.constructor.name === 'Node') {
-					console.groupCollapsed('CST');
-					const parseTree = simplifyTree([errorResult.data as unknown as Node]);
-					const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
-					console.info(output);
-					console.groupEnd();
+					loggers.analyzer.vars({ CST: simplifyTree([errorResult.data as unknown as Node]) });
 				}
-			}
+			});
 		} else if (errorResult.error instanceof SemanticError) {
 			const error = errorResult.error;
 
-			console.groupCollapsed(`Error[Semantics/${error.getErrorCode()}]: ${error.message}`);
-			error
-				.getContext()
-				.toStringArray(error.message)
-				.forEach((str) => console.info(str));
-			console.groupEnd();
-
-			if (this.debug) {
-				console.groupCollapsed('Current AST');
-				console.info(error.getAST());
-				console.groupEnd();
-			}
+			loggers.semantics.error('Semantics', error, () => {
+				// loggers.semantics.vars({ AST: error.getAST() });
+			});
 		} else if (errorResult.error instanceof SymbolError) {
 			const error = errorResult.error;
 
-			console.groupCollapsed(`Error[Symbol]: ${error.getErrorCode()} ${error.message}`);
+			console.groupCollapsed(`Error[Symbol]: ${error.getCode()} ${error.message}`);
+			if (error.cause) {
+				console.info(`Caused by: ${error.cause}`);
+			}
 			error
 				.getContext()
-				.toStringArray(error.message)
+				.toStringArray(error)
 				.forEach((str) => console.info(str));
-			if (this.debug) {
-				error.getSymNode()?.getDebug();
-			}
+			error.getSymNode()?.getDebug();
+
 			console.groupEnd();
 		} else {
 			const error = errorResult.error as Error;
@@ -200,13 +180,16 @@ export class Compiler {
 	 * @param compilerResult
 	 */
 	private handleErrorFromCompiler(compilerResult: ResultError<Error>) {
-		if (compilerResult.error instanceof CompilerError) {
-			const llvmIrError = compilerResult.error as CompilerError;
+		if (compilerResult.error instanceof LLVMError) {
+			const llvmIrError = compilerResult.error as LLVMError;
 
 			console.groupCollapsed(`Error[Compiler/LLVM]: ${llvmIrError.getFilename()} ${llvmIrError.message}`);
+			if (llvmIrError.cause) {
+				console.info(`Caused by: ${llvmIrError.cause}`);
+			}
 			llvmIrError
 				.getContext()
-				.toStringArray(llvmIrError.message)
+				.toStringArray(llvmIrError)
 				.forEach((str) => console.log(str));
 			console.groupEnd();
 		} else {
@@ -229,18 +212,14 @@ export class Compiler {
 
 		// then output parse tree
 		const parseTree = simplifyTree([parserResult.value]);
-		const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
-		if (this.debug || this.stopAfterStep === 'parse') {
-			console.groupCollapsed('\n=== Tokens ===\n');
-			console.table(parser.lexer.tokens);
-			console.groupEnd();
+		if (this.stopAfterStep === 'parse') {
+			loggers.lexer.table('=== Tokens ===', parser.lexer.tokens);
 
-			console.groupCollapsed('\n=== Parse Tree ===\n');
-			console.info(output);
-			console.groupEnd();
+			loggers.parser.vars({ 'Parse Tree': parseTree });
 		} else {
 			const parseTreeFilePath = this.targetPaths.parseTree();
+			const output = inspect(parseTree, { compact: 1, showHidden: false, depth: null });
 
 			if (!(await this.writeToFile(parseTreeFilePath, output, 'Parse Tree'))) {
 				process.exit(1);
@@ -251,33 +230,17 @@ export class Compiler {
 	private handleErrorFromParser(parserResult: { outcome: 'error'; error: Error; data?: unknown }) {
 		switch (parserResult.error.constructor) {
 			case LexerError:
-				{
-					const lexerError = parserResult.error as LexerError;
-
-					console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
-					lexerError
-						.getContext()
-						.toStringArray(lexerError.message)
-						.forEach((str) => console.log(str));
-					console.groupEnd();
-				}
+				loggers.lexer.error('Lexer', parserResult.error as LexerError);
 				break;
 			case ParserError:
 				{
-					const parserError = parserResult.error as ParserError;
+					const error = parserResult.error as ParserError;
 
-					console.groupCollapsed(`Error[Parser/${parserError.getErrorCode()}]: ${parserError.message}`);
-					parserError
-						.getContext()
-						.toStringArray(parserError.message)
-						.forEach((str) => console.log(str));
-					console.groupEnd();
-
-					if ('getTree' in parserError) {
-						console.debug('Derived CST:');
-						console.debug(parserError.getTree());
-					}
-					console.groupEnd();
+					loggers.parser.error('Parser', error, () => {
+						if ('getTree' in error) {
+							loggers.parser.vars({ 'Derived CST': error.getTree() });
+						}
+					});
 				}
 				break;
 		}
@@ -299,7 +262,7 @@ export class Compiler {
 	private async runCompiler(ast: ASTProgram, symTree: SymTree, loc: string[]): Promise<Result<unknown>> {
 		// convert AST to LLVM IR and compile
 		try {
-			const llvmIrConverter = new LlvmIrConverter(symTree, this.debug);
+			const llvmIrConverter = new LlvmIrConverter(symTree);
 			const filename = `${this.sourceFilenameSansExt}.joe`;
 			const conversionResult = llvmIrConverter.convert(filename, ast, loc);
 
@@ -312,13 +275,9 @@ export class Compiler {
 				return conversionResult;
 			}
 
-			if (this.debug) {
-				console.groupCollapsed('\n=== LLVM IR ===\n');
-				console.info(llvmModule.print());
-				console.groupEnd();
-			}
-
 			const output = llvmModule.print();
+			loggers.llvm.vars({ IR: output });
+
 			const llvmIrFilePath = this.targetPaths.llvmIr(filename);
 
 			try {
@@ -333,7 +292,8 @@ export class Compiler {
 			}
 
 			// if we are only compiling to LLVM IR, then we are done
-			if (this.stopAfterStep === 'll') {
+			// similarly, if this is a snippet, we are done
+			if (this.stopAfterStep === 'll' || this.isASnippet) {
 				return conversionResult;
 			}
 
@@ -412,9 +372,6 @@ export class Compiler {
 		}
 
 		const stopAfterParse = this.cliArgs.includes('-p');
-		if ((stopAfterLex || stopAfterParse) && this.cliArgs.includes('--json')) {
-			throw new Error('The --json option is not supported with the -l or -p options.');
-		}
 
 		const stopAfterAnalyze = this.cliArgs.includes('-a');
 		if (stopAfterAnalyze && (stopAfterLex || stopAfterParse)) {
@@ -436,9 +393,6 @@ export class Compiler {
 
 		// get the loc
 		this.source.loc = this.source.code.split('\n');
-
-		// right now, it's a bool
-		this.debug = this.cliArgs.includes('-d') || this.cliArgs.includes('--json');
 
 		// stop after running certain steps
 		this.stopAfterStep = this.getOptionToStopAfterStep();
@@ -502,9 +456,12 @@ export class Compiler {
 					const lexerError = tokensResult.error as LexerError;
 
 					console.groupCollapsed(`Error[Lexer]: ${lexerError.message}`);
+					if (lexerError.cause) {
+						console.info(`Caused by: ${lexerError.cause}`);
+					}
 					lexerError
 						.getContext()
-						.toStringArray(lexerError.message)
+						.toStringArray(lexerError)
 						.forEach((str) => console.log(str));
 					console.groupEnd();
 
@@ -543,37 +500,23 @@ export class Compiler {
 		parser: Parser,
 		isASnippet: boolean,
 	): Promise<Result<[ASTProgram, SymTree], AnalysisError | SemanticError | SymbolError>> {
-		const analyzer = new SemanticAnalyzer(cst, parser, this.source.loc, {
+		const analyzer = SemanticAnalyzer.analyze(cst, parser, this.source.loc, {
 			isASnippet,
-			debug: this.debug,
+			checkSemantics: true,
 		});
 
-		const analysisResult = analyzer.analyze();
+		const analysisResult = analyzer.result;
 		switch (analysisResult.outcome) {
 			case 'ok':
 				{
 					const [ast, symTree] = analysisResult.value;
 
-					if (this.debug || this.stopAfterStep === 'analyze') {
-						// output ast
-						console.groupCollapsed('\n=== Abstract Syntax Tree ===\n');
-						if (this.cliArgs.includes('--json')) {
-							console.info(JSON.stringify(ast, null, '\t'));
-						} else {
-							console.info(inspect(ast, { compact: 1, showHidden: false, depth: null }));
-						}
-						console.groupEnd();
-
-						// output symbol table
-						console.groupCollapsed('\n=== Symbol Table ===\n');
-						console.info(
-							inspect(symTree.root.table, {
-								compact: 1,
-								showHidden: false,
-								depth: null,
-							}),
-						);
-						console.groupEnd();
+					if (this.stopAfterStep === 'analyze') {
+						// output ast and symbol table
+						loggers.analyzer.vars({
+							'Abstract Syntax Tree': ast,
+							'Symbol Table': symTree.root.table,
+						});
 					}
 
 					// stop here if the user wants to stop after analyze
@@ -584,7 +527,7 @@ export class Compiler {
 					if (!this.source.fromStdin) {
 						// otherwise, write the AST and symbol table to files
 						{
-							const output = JSON.stringify(ast, null, '\t');
+							const output = inspect(ast, { compact: 1, showHidden: false, depth: null });
 							const astFilePath = await this.targetPaths.ast();
 
 							if (!(await this.writeToFile(astFilePath, output, 'AST'))) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import assert from 'node:assert/strict';
-import ErrorContext from '../shared/errorContext';
+import Context from '../shared/context';
 import LexerError from './error';
 import { lex } from './util';
 
@@ -12,9 +12,9 @@ describe('lexer/error.ts', (): void => {
 		// assert
 		assert(!result.isOk());
 		const error = result.error as LexerError;
-		expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+		expect(error.getContext().toStringArray(error).join('\n')).toBe(`  |
 1 | |%
-  | ^ Syntax Error. Unknown syntax: "|"
+  | ^ L003: Syntax Error. Unknown syntax: "|"
   |`);
 	});
 
@@ -25,9 +25,9 @@ describe('lexer/error.ts', (): void => {
 		// assert
 		assert(result.isError());
 		const error = result.error as LexerError;
-		expect(error.getContext().toStringArray(error.message).join('\n')).toBe(`  |
+		expect(error.getContext().toStringArray(error).join('\n')).toBe(`  |
 1 | $
-  | ^ Syntax Error. Unknown character: "$"
+  | ^ L002: Syntax Error. Unknown character: "$"
   |`);
 	});
 
@@ -37,7 +37,7 @@ describe('lexer/error.ts', (): void => {
 			const result = lex('1 2 3');
 			assert(result.isOk());
 			const tokens = result.value;
-			const error = new LexerError('test', tokens, new ErrorContext('1 2 3', 1, 1, 5));
+			const error = new LexerError('L000', 'test', tokens, new Context('1 2 3', 1, 1, 5));
 
 			// assert
 			expect(
