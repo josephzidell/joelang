@@ -92,25 +92,28 @@ export class Log {
 		console.warn(this.preambleForCont(), '⚠️', ...args);
 	}
 
-	error(cat: string, error: JoelangError, additional?: () => void) {
-		if (typeof process.env.DEBUG === 'undefined' || process.env.DEBUG === '0') {
-			return;
+	/**
+	 * This works differently than the other methods here in that:
+	 * - it takes a Joelang Error rather than a custom message
+	 * - it displays even if debug is off
+	 *
+	 * @param type Error type
+	 * @param error The Joelang Error
+	 * @param additional Callback for any additional logging after the context is displayed
+	 */
+	error(type: string, error: JoelangError, additional?: () => void) {
+		console.error(this.preambleForCont(), '🚨', `Error[${type}/${error.getCode()}]: ${error.message}`);
+		if (error.cause) {
+			console.error(this.preambleForCont(), '🚨', `Caused by: ${error.cause}`);
 		}
+		error
+			.getContext()
+			.toStringArray(error)
+			.forEach((str) => console.error(this.preambleForCont(), '🚨', str));
 
-		this.indentFor(() => {
-			console.error(this.preambleForCont(), '🚨', `Error[${cat}/${error.getCode()}]: ${error.message}`);
-			if (error.cause) {
-				console.error(this.preambleForCont(), '🚨', `Caused by: ${error.cause}`);
-			}
-			error
-				.getContext()
-				.toStringArray(error)
-				.forEach((str) => console.error(this.preambleForCont(), '🚨', str));
-
-			if (additional) {
-				additional();
-			}
-		});
+		if (additional) {
+			additional();
+		}
 	}
 
 	success(...args: unknown[]) {
@@ -145,6 +148,10 @@ export class Log {
 
 	/** Indents with info message, and returns a dedent function */
 	indentWithInfo(...args: unknown[]): DedentFunc {
+		if (typeof process.env.DEBUG === 'undefined' || process.env.DEBUG === '0') {
+			return () => {};
+		}
+
 		this.info(...args); // log first so the indentation lines will come from it, beneath it
 
 		return this.indent();
