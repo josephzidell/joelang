@@ -37,6 +37,7 @@ import SymbolError from './symbolError';
 import {
 	ClassSym,
 	EnumSym,
+	ExtendableSymbol,
 	FuncSym,
 	InterfaceSym,
 	ParamSym,
@@ -109,6 +110,8 @@ export default class Semantics {
 				return this.checkClassDeclaration(ast as ASTClassDeclaration);
 			case ASTFunctionDeclaration:
 				return this.checkFunctionDeclaration(ast as ASTFunctionDeclaration);
+			case ASTInterfaceDeclaration:
+				return this.checkInterfaceDeclaration(ast as ASTInterfaceDeclaration);
 			case ASTNumberLiteral:
 			case ASTStringLiteral:
 				return ok(undefined);
@@ -352,7 +355,7 @@ export default class Semantics {
 
 		// TODO check extends
 		for (const ext of ast.extends.items) {
-			const classSymResult = this.getSymbolForClassExt(ext);
+			const classSymResult = this.getSymbolForExt<ClassSym>('class', ext);
 			if (classSymResult.isError()) {
 				defer();
 
@@ -389,16 +392,16 @@ export default class Semantics {
 		return ok(undefined);
 	}
 
-	private getSymbolForClassExt(ext: ASTExtOrImpl): Result<ClassSym, SemanticError> {
+	private getSymbolForExt<S extends ExtendableSymbol>(symbolKind: SymbolKind, ext: ASTExtOrImpl): Result<S, SemanticError> {
 		// the possible types of ext are: ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression
 
 		switch (ext.constructor) {
 			case ASTIdentifier: {
 				const identifier = ext as ASTIdentifier;
 
-				const extResult = this.getSymbolForIdentifier(identifier, ['class']);
+				const extResult = this.getSymbolForIdentifier(identifier, [symbolKind]) as Result<S, SemanticError>;
 				if (extResult.isError()) {
-					return error(SemanticError.NotFound('class', identifier.name, identifier, this.ctx(identifier), extResult.error));
+					return error(SemanticError.NotFound(symbolKind, identifier.name, identifier, this.ctx(identifier), extResult.error));
 				}
 
 				return ok(extResult.value);
@@ -410,7 +413,7 @@ export default class Semantics {
 				if (extResult.isError()) {
 					return error(
 						SemanticError.NotFound(
-							'class',
+							symbolKind,
 							`${memberExpr.object.toString()}.${memberExpr.property.toString()}`,
 							memberExpr,
 							this.ctx(memberExpr),
@@ -421,20 +424,20 @@ export default class Semantics {
 
 				// check recursively
 				const [, symbolInfo] = extResult.value;
-				if (symbolInfo.kind !== 'class') {
-					return error(SemanticError.NotAClass(memberExpr, memberExpr, this.ctx(memberExpr)));
+				if (symbolInfo.kind !== symbolKind) {
+					return error(SemanticError.NotA(memberExpr, symbolKind, memberExpr, this.ctx(memberExpr)));
 				}
 
-				return ok(symbolInfo);
+				return ok(symbolInfo as S);
 			}
 			case ASTTypeInstantiationExpression: {
 				const typeInstExpr = ext as ASTTypeInstantiationExpression;
 
-				return this.getSymbolForClassExt(typeInstExpr.base);
+				return this.getSymbolForExt(symbolKind, typeInstExpr.base);
 			}
 		}
 
-		return error(SemanticError.Impossible(`Unknown class extension type ${ext.constructor.name}`, ext, this.ctx(ext)));
+		return error(SemanticError.Impossible(`Unknown ${symbolKind} extension type ${ext.constructor.name}`, ext, this.ctx(ext)));
 	}
 
 	private checkFunctionDeclaration(ast: ASTFunctionDeclaration): Result<undefined, SemanticError | SymbolError> {
@@ -532,6 +535,51 @@ export default class Semantics {
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-ignore
 		return mapType[sym.kind](sym);
+	}
+
+	private checkInterfaceDeclaration(ast: ASTInterfaceDeclaration): Result<undefined, SemanticError | SymbolError> {
+		const defer = () => {
+			// exit the interface's scope
+			SymbolTable.tree.exit();
+		};
+
+		log.info(`checking InterfaceDeclaration ${ast.name.fqn}`);
+
+		const wasAbleToEnter = SymbolTable.tree.enter(ast.name.name);
+		if (wasAbleToEnter.isError()) {
+			defer();
+
+			return wasAbleToEnter;
+		}
+
+		// TODO check modifiers
+
+		// TODO check type parameters
+
+		// TODO check extends
+		for (const ext of ast.extends.items) {
+			const interfaceSymResult = this.getSymbolForExt<InterfaceSym>('interface', ext);
+			if (interfaceSymResult.isError()) {
+				defer();
+
+				return interfaceSymResult;
+			}
+
+			// TODO check that the interface can be extended
+		}
+
+		for (const expr of ast.body.expressions) {
+			const result = this.checkASTNode(expr);
+			if (result.isError()) {
+				defer();
+
+				return result;
+			}
+		}
+
+		defer();
+
+		return ok(undefined);
 	}
 
 	/**

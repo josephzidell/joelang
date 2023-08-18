@@ -79,6 +79,7 @@ export type VarSym = {
 	allocaInst?: llvm.AllocaInst;
 } & Sym;
 
+export type ExtendableSymbol = ClassSym | EnumSym | InterfaceSym;
 export type SymbolInfo = ClassSym | EnumSym | FuncSym | InterfaceSym | ParamSym | VarSym;
 export type SymbolKind = Get<SymbolInfo, 'kind'>;
 export type SymNodeKind = SymbolKind | 'global'; // TODO add packages

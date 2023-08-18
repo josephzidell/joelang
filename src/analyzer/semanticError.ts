@@ -107,9 +107,9 @@ export default class SemanticError extends JoelangError {
 	/** msg: `Semantic: Member expression property ${prop} not supported` */
 	static MemberExpressionPropertyNotSupported = (prop: AST, ast: AST, ctx: Context, cause?: JoelangError) =>
 		new SemanticError('S021', `Semantic: Member expression property ${prop.constructor.name} not supported`, ast, ctx, cause);
-	/** msg: `Semantic: ${fraudster} is not a class` */
-	static NotAClass = (fraudster: AST, ast: AST, ctx: Context, cause?: JoelangError) =>
-		new SemanticError('S024', `Semantic: ${fraudster} is not a class`, ast, ctx, cause);
+	/** msg: `Semantic: ${fraudster} is not a(n) ${slimShady}` */
+	static NotA = (fraudster: AST, slimShady: string, ast: AST, ctx: Context, cause?: JoelangError) =>
+		new SemanticError('S024', `Semantic: ${fraudster} is not a(n) ${slimShady}`, ast, ctx, cause);
 	/** msg: `Semantic: ${fraudster} is not an enum` */
 	static NotAnEnum = (fraudster: AST, ast: AST, ctx: Context, cause?: JoelangError) =>
 		new SemanticError('S025', `Semantic: ${fraudster} is not an enum`, ast, ctx, cause);
