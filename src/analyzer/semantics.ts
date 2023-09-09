@@ -1,4 +1,5 @@
 import Context from '../shared/context';
+import loggers from '../shared/log';
 import { maybeIfNotUndefined } from '../shared/maybe';
 import { CreateResultFrom, Result, error, ok } from '../shared/result';
 import {
@@ -30,6 +31,7 @@ import {
 	ASTVariableDeclaration,
 	AssignableASTs,
 	MemberExpressionObjectASTs,
+	isASTExtOrImplInstanceOf,
 } from './asts';
 import Helpers from './helpers';
 import SemanticError from './semanticError';
@@ -49,7 +51,6 @@ import {
 	kindToSymMap,
 	symbolKinds,
 } from './symbolTable';
-import loggers from '../shared/log';
 
 const log = loggers.semantics;
 
@@ -588,7 +589,7 @@ export default class Semantics {
 	 * @param ast
 	 * @returns The type of the member expression, and the symbol info of the member expression
 	 */
-	private checkMemberExpressionAndGetType(ast: ASTMemberExpression): Result<[ASTType, SymbolInfo], SemanticError> {
+	private checkMemberExpressionAndGetType(ast: ASTMemberExpression): Result<[ASTType, SymbolInfo], SemanticError | SymbolError> {
 		/**
 		 * The object could be one of several things:
 		 * - a class
@@ -649,6 +650,61 @@ export default class Semantics {
 					),
 				);
 			}
+			case ASTTypeInstantiationExpression: {
+				const expr = ast.property as ASTTypeInstantiationExpression;
+
+				// this.parent<|T|> is a special case
+				if (expr.base instanceof ASTIdentifier && expr.base.name === 'parent') {
+					if (expr.typeArgs.length !== 1) {
+						return error(SemanticError.TypeArgumentsLengthMismatch(1, expr.typeArgs.length, 'parent', expr, this.ctx(expr)));
+					}
+
+					// check if this class extends this parent
+					const unverifiedParent = expr.typeArgs[0];
+					const actualParentsList: Result<ASTTypeList<ASTExtOrImpl>, SemanticError | SymbolError> = CreateResultFrom.maybe(
+						SymbolTable.findNearestClass(),
+						SemanticError.ClassNotFound(expr, this.ctx(expr)),
+					)
+						// get the SymNode's parent
+						.mapResultIfOk((symNode) =>
+							CreateResultFrom.maybe(symNode.parent, SymbolError.AtTopAndNotExpectingToBe(symNode, this.ctx(expr))),
+						)
+						// get the ClassSym
+						.mapResultIfOk((parent) =>
+							CreateResultFrom.maybe(
+								parent.get(symNode.name, ['class']),
+								SymbolError.SymbolNotFound(symNode.name, parent, this.ctx(expr)),
+								this.ctx(expr),
+							),
+						)
+						// get the extends
+						.mapResultIfOk((cls) =>
+							CreateResultFrom.astListNotBeingEmpty(
+								cls._extends,
+								SemanticError.ClassExtendNotFound(unverifiedParent.toString(), expr.typeArgs[0], this.ctx(expr)),
+							),
+						);
+					if (actualParentsList.isError()) {
+						return actualParentsList;
+					}
+
+					// check if the parent is in the list of parents
+					const actualParents = actualParentsList.value;
+					const parent = actualParents.items.find((parent) => isASTExtOrImplInstanceOf(parent, unverifiedParent));
+					if (typeof parent === 'undefined') {
+						return error(SemanticError.ClassExtendNotFound(unverifiedParent.toString(), expr.typeArgs[0], this.ctx(expr)));
+					}
+
+					const classSymMaybe = SymbolTable.lookup(unverifiedParent.toString(), ['class']);
+					if (!classSymMaybe.has()) {
+						return error(SemanticError.ClassNotFound(expr, this.ctx(expr)));
+					}
+
+					return ok([unverifiedParent, classSymMaybe.value]);
+				}
+				console.debug({ expr });
+				break;
+			}
 		}
 
 		return error(
@@ -684,7 +740,7 @@ export default class Semantics {
 		},
 	};
 
-	private checkMemberExpressionObjectASTAndGetSymNode(obj: MemberExpressionObjectASTs): Result<SymNode, SemanticError> {
+	private checkMemberExpressionObjectASTAndGetSymNode(obj: MemberExpressionObjectASTs): Result<SymNode, SemanticError | SymbolError> {
 		switch (obj.constructor) {
 			case ASTCallExpression:
 				break;
@@ -695,10 +751,27 @@ export default class Semantics {
 					SemanticError.NotFound('Object', expr.fqn, obj, this.ctx(expr)),
 				);
 			}
-			case ASTMemberExpression:
-				break;
-			case ASTThisKeyword:
-				break;
+			case ASTMemberExpression: {
+				const result = this.checkMemberExpressionAndGetType(obj as ASTMemberExpression);
+				if (result.isError()) {
+					return result;
+				}
+
+				const [, symbolInfo] = result.value;
+
+				return CreateResultFrom.maybe(
+					SymbolTable.lookupSymNode(symbolInfo.name, symbolKinds),
+					SemanticError.NotFound('Object', symbolInfo.fqn, obj, this.ctx(obj)),
+				);
+			}
+			case ASTThisKeyword: {
+				const that = obj as ASTThisKeyword;
+
+				return CreateResultFrom.maybe(
+					SymbolTable.findNearestClass(),
+					SemanticError.NotFound('Class', 'for this', that, this.ctx(that)),
+				);
+			}
 			case ASTTypeInstantiationExpression:
 				break;
 		}

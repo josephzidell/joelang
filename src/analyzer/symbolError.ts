@@ -20,6 +20,9 @@ export default class SymbolError extends JoelangError {
 	/** msg: `${kind} symbol ${oldName} could not be updated to ${newName}` */
 	static SymbolNameNotUpdated = (oldName: string, newName: string, kind: SymbolKind, symNode: SymNode, ctx: Context) =>
 		new SymbolError('SY005', `${kind} symbol ${oldName} could not be updated to ${newName}`, symNode, ctx);
+	/** msg: `SymTab: Cannot find ${name} in ${symNode.name}` */
+	static SymbolNotFound = (name: string, symNode: SymNode, ctx: Context) =>
+		new SymbolError('SY006', `SymTab: Cannot find ${name} in ${symNode.name}`, symNode, ctx);
 
 	private symNode: SymNode;
 

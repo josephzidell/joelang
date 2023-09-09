@@ -47,6 +47,7 @@ import {
 	ASTTupleShape,
 	ASTType,
 	ASTTypeInstantiationExpression,
+	ASTTypeList,
 	ASTTypeNumber,
 	ASTTypeNumberDec32,
 	ASTTypeNumberDec64,
@@ -83,27 +84,19 @@ const unaryMathOperatorScenarios = [
 
 describe('semanticAnalyzer', () => {
 	describe('FQNs', () => {
-		function keyToPyramid(key: string): string[] {
-			const parts = key.split('.');
-			const steps = [];
-
-			for (let i = 0; i < parts.length; i++) {
-				steps.push(parts.slice(0, i + 1).join('.'));
-			}
-
-			return steps;
-		}
-
-		function toHaveKeyPath(code: string, keyPath: string) {
+		function toHaveKeyPath(code: string, ...keyPaths: string[]) {
 			const result = analyze(code, true, false);
 			assert(result.isOk());
 			const [, symTree] = result.value;
-			const pyramid = keyToPyramid(keyPath);
-			let symNode = symTree.getCurrentNode();
-			for (const step of pyramid) {
-				expect(symNode.table).toHaveKey(step + '');
-				symNode = symNode.table.ownerNode.children[step];
-			}
+
+			keyPaths.forEach((keyPath) => {
+				const pyramid = keyPath.split('.');
+				let symNode = symTree.getCurrentNode();
+				for (const step of pyramid) {
+					expect(symNode.table).toHaveKey(step + '');
+					symNode = symNode.table.ownerNode.children[step];
+				}
+			});
 		}
 
 		it('main', () => {
@@ -111,8 +104,9 @@ describe('semanticAnalyzer', () => {
 		});
 
 		it('class with nested items', () => {
-			toHaveKeyPath('class C{f foo {}class Bar{}}', 'C.foo');
-			toHaveKeyPath('class C{f foo {}class Bar{class D{class E{}}}}', 'C.Bar.D.E');
+			toHaveKeyPath('class C{f foo {}class Bar{}}', 'C.foo', 'C.Bar');
+			toHaveKeyPath('class C{f <=> {}class Bar{}}', 'C.<=>', 'C.Bar');
+			toHaveKeyPath('class C{f foo {}class Bar{class D{class E{}}}}', 'C.foo', 'C.Bar.D.E');
 		});
 	});
 
@@ -223,7 +217,6 @@ describe('semanticAnalyzer', () => {
 										mockParent,
 									),
 									ASTPrintStatement._([ASTStringLiteral._('!', pos, mockParent)], pos, mockParent),
-									ASTReturnStatement._([], pos, mockParent),
 								],
 								pos,
 								mockParent,
@@ -297,7 +290,6 @@ describe('semanticAnalyzer', () => {
 										mockParent,
 									),
 									ASTPrintStatement._([ASTStringLiteral._('!', pos, mockParent)], pos, mockParent),
-									ASTReturnStatement._([], pos, mockParent),
 								],
 								pos,
 								mockParent,
@@ -532,8 +524,8 @@ describe('semanticAnalyzer', () => {
 			// expect(1).toBe(2);
 			testAnalyze(
 				`class C extends A, B {
-					f foo () -> int8 {
-						return this.parent<|B|>.foo(); // <-- Specify to use B.foo
+					f foo () {
+						this.parent<|B|>.foo(); // <-- Specify to use B.foo
 					}
 				}`,
 				[
@@ -585,7 +577,6 @@ describe('semanticAnalyzer', () => {
 														pos,
 														mockParent,
 													),
-													ASTReturnStatement._([ASTNumberLiteral._(0, 'int8', pos, mockParent)], pos, mockParent),
 												],
 												pos,
 												mockParent,
@@ -1395,7 +1386,7 @@ describe('semanticAnalyzer', () => {
 						modifiers: [],
 						mutable: false,
 						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
-						declaredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+						declaredTypes: [ASTArrayOf._(ASTTypeNumberInt8(pos, mockParent), pos, mockParent)],
 						initialValues: [
 							ASTArrayExpression._(
 								{
@@ -1410,7 +1401,7 @@ describe('semanticAnalyzer', () => {
 								mockParent,
 							),
 						],
-						inferredTypes: [ASTTypeNumberInt8(pos, mockParent)],
+						inferredTypes: [ASTArrayOf._(ASTTypeNumberInt8(pos, mockParent), pos, mockParent)],
 					},
 					pos,
 					mockParent,
@@ -1816,7 +1807,7 @@ describe('semanticAnalyzer', () => {
 		});
 
 		it('params but no return types', (): void => {
-			testAnalyze('f foo (a: int8, callback: f (a: int8) -> string, bool) {}', [
+			testAnalyze('f foo (a: int8, callback: f (b: int8) -> string, bool) {}', [
 				ASTFunctionDeclaration._(
 					{
 						modifiers: [],
@@ -1846,7 +1837,7 @@ describe('semanticAnalyzer', () => {
 													{
 														modifiers: [],
 														isRest: false,
-														name: ASTIdentifier._('a', pos, mockParent),
+														name: ASTIdentifier._('b', pos, mockParent),
 														type: ASTTypeNumber._('int8', pos, mockParent),
 													},
 													pos,
@@ -2412,7 +2403,17 @@ describe('semanticAnalyzer', () => {
 						modifiers: [],
 						mutable: false,
 						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
-						declaredTypes: [],
+						declaredTypes: [
+							ASTFunctionSignature._(
+								{
+									typeParams: ASTTypeList.empty(pos),
+									params: ASTTypeList.empty(pos),
+									returnTypes: ASTTypeList.empty(pos),
+								},
+								pos,
+								mockParent,
+							),
+						],
 						initialValues: [
 							ASTFunctionDeclaration._(
 								{
@@ -2427,7 +2428,17 @@ describe('semanticAnalyzer', () => {
 								mockParent,
 							),
 						],
-						inferredTypes: [],
+						inferredTypes: [
+							ASTFunctionSignature._(
+								{
+									typeParams: ASTTypeList.empty(pos),
+									params: ASTTypeList.empty(pos),
+									returnTypes: ASTTypeList.empty(pos),
+								},
+								pos,
+								mockParent,
+							),
+						],
 					},
 					pos,
 					mockParent,
@@ -2436,13 +2447,36 @@ describe('semanticAnalyzer', () => {
 		});
 
 		it('anonymous complex', () => {
-			testAnalyze('const foo = f <|T|>(a: T) -> T {\ndo();\n};', [
+			testAnalyze('const foo = f <|T|>(a: T) -> T {do();};', [
 				ASTVariableDeclaration._(
 					{
 						modifiers: [],
 						mutable: false,
 						identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
-						declaredTypes: [],
+						declaredTypes: [
+							ASTFunctionSignature._(
+								{
+									typeParams: [
+										ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+									],
+									params: [
+										ASTParameter._(
+											{
+												modifiers: [],
+												isRest: false,
+												name: ASTIdentifier._('a', pos, mockParent),
+												type: ASTIdentifier._('T', pos, mockParent),
+											},
+											pos,
+											mockParent,
+										),
+									],
+									returnTypes: [ASTIdentifier._('T', pos, mockParent)],
+								},
+								pos,
+								mockParent,
+							),
+						],
 						initialValues: [
 							ASTFunctionDeclaration._(
 								{
@@ -2484,7 +2518,30 @@ describe('semanticAnalyzer', () => {
 								mockParent,
 							),
 						],
-						inferredTypes: [],
+						inferredTypes: [
+							ASTFunctionSignature._(
+								{
+									typeParams: [
+										ASTTypeParameter._(ASTIdentifier._('T', pos, mockParent), undefined, undefined, pos, mockParent),
+									],
+									params: [
+										ASTParameter._(
+											{
+												modifiers: [],
+												isRest: false,
+												name: ASTIdentifier._('a', pos, mockParent),
+												type: ASTIdentifier._('T', pos, mockParent),
+											},
+											pos,
+											mockParent,
+										),
+									],
+									returnTypes: [ASTIdentifier._('T', pos, mockParent)],
+								},
+								pos,
+								mockParent,
+							),
+						],
 					},
 					pos,
 					mockParent,
@@ -2502,7 +2559,17 @@ describe('semanticAnalyzer', () => {
 							modifiers: [ASTModifier._('abstract', pos, mockParent)],
 							mutable: false,
 							identifiersList: [ASTIdentifier._('foo', pos, mockParent)],
-							declaredTypes: [],
+							declaredTypes: [
+								ASTFunctionSignature._(
+									{
+										typeParams: [],
+										params: [],
+										returnTypes: [],
+									},
+									pos,
+									mockParent,
+								),
+							],
 							initialValues: [
 								ASTFunctionDeclaration._(
 									{
@@ -2517,7 +2584,17 @@ describe('semanticAnalyzer', () => {
 									mockParent,
 								),
 							],
-							inferredTypes: [],
+							inferredTypes: [
+								ASTFunctionSignature._(
+									{
+										typeParams: [],
+										params: [],
+										returnTypes: [],
+									},
+									pos,
+									mockParent,
+								),
+							],
 						},
 						pos,
 						mockParent,

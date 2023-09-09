@@ -128,6 +128,9 @@ export default class SemanticError extends JoelangError {
 	/** msg: `Semantic: ${identifier.name} needs a type` */
 	static VariableDeclarationTypeNotDefined = (identifier: ASTIdentifier, ctx: Context) =>
 		new SemanticError('S031', `Semantic: ${identifier.name} needs a type`, identifier, ctx);
+	/** msg: `Semantic: ${identifier.name} needs a type` */
+	static ClassExtendNotFound = (awolParent: string, ast: AST, ctx: Context) =>
+		new SemanticError('S031', `Semantic: This class does not extend ${awolParent}`, ast, ctx);
 
 	private ast;
 

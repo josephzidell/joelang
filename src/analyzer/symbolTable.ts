@@ -278,9 +278,10 @@ export class SymTree {
 				this.currentNode.parent.value.children[newName] = this.currentNode.parent.value.children[oldName];
 
 				// update the FQNs
-				for (const child of Object.keys(this.currentNode.parent.value.children)) {
-					this.currentNode.parent.value.children[child].fqn = `${newFqn}.${child}`;
-				}
+				// TODO this code is buggy and leads to C.C, C.<=>.<=>, etc.
+				// for (const child of Object.keys(this.currentNode.parent.value.children)) {
+				// 	this.currentNode.parent.value.children[child].fqn = `${newFqn}.${child}`;
+				// }
 
 				// delete old
 				delete this.currentNode.parent.value.children[oldName];
@@ -359,6 +360,8 @@ export class SymbolTable {
 
 			symTab.symbols.set(name, classSymbol);
 
+			log.info('SymbolTable: Insert class', name, fqn);
+
 			return ok(classSymbol);
 		});
 	}
@@ -393,6 +396,8 @@ export class SymbolTable {
 			};
 
 			symTab.symbols.set(name, enumSymbol);
+
+			log.info('SymbolTable: Insert enum', name, fqn);
 
 			return ok(enumSymbol);
 		});
@@ -434,6 +439,8 @@ export class SymbolTable {
 
 			symTab.symbols.set(name, functionSymbol);
 
+			log.info('SymbolTable: Insert func', name, fqn);
+
 			return ok(functionSymbol);
 		});
 	}
@@ -470,6 +477,8 @@ export class SymbolTable {
 			};
 
 			symTab.symbols.set(name, interfaceSymbol);
+
+			log.info('SymbolTable: Insert interface', name, fqn);
 
 			return ok(interfaceSymbol);
 		});
@@ -513,6 +522,8 @@ export class SymbolTable {
 
 			symTab.symbols.set(name, parameterSymbol);
 
+			log.info('SymbolTable: Insert param', name, fqn);
+
 			return ok(parameterSymbol);
 		});
 	}
@@ -544,6 +555,8 @@ export class SymbolTable {
 
 			symTab.symbols.set(name, variableSymbol);
 
+			log.info('SymbolTable: Insert var', name, fqn);
+
 			return ok(variableSymbol);
 		});
 	}
@@ -561,7 +574,7 @@ export class SymbolTable {
 	 * @param inParent Defaulting to false, should the symbol be defined in the parent node or the current node?
 	 * @returns
 	 */
-	public static updateSymbolName(
+	public static updateName(
 		oldName: string,
 		newName: string,
 		newFqn: string,
@@ -569,11 +582,16 @@ export class SymbolTable {
 		ctx: Context,
 		inParent = false,
 	): Result<boolean, SymbolError> {
-		return SymbolTable.tree.proxy((_symTab: SymTab, _symNode: SymNode, symTree: SymTree) => {
+		// update the symbol table's node name
+		SymbolTable.tree.updateSymNodeName(newName, newFqn);
+
+		return SymbolTable.tree.proxy((symTab: SymTab, _symNode: SymNode, symTree: SymTree) => {
 			const nodeToWorkIn = symTree.getCurrentOrParentNode(inParent);
 			if (nodeToWorkIn.isError()) {
 				return nodeToWorkIn;
 			}
+
+			symTab.updateName(newName);
 
 			return nodeToWorkIn.value.table.updateSymbolName(oldName, newName, newFqn, kind, ctx);
 		});
@@ -994,7 +1012,7 @@ export class SymTab {
 	public readonly ownerNode: SymNode;
 
 	/** Copy of the parent SymNode's name */
-	public readonly name: string;
+	public name: string;
 
 	public symbols: Map<string, SymbolInfo>;
 
@@ -1006,6 +1024,12 @@ export class SymTab {
 		this.symbols = new Map<string, SymbolInfo>();
 	}
 
+	/** Updates the name of this table */
+	public updateName(newName: string): void {
+		this.name = newName;
+	}
+
+	/** Updates the name of a symbol in this table */
 	public updateSymbolName(
 		oldName: string,
 		newName: string,
@@ -1014,7 +1038,7 @@ export class SymTab {
 		ctx: Context,
 	): Result<boolean, SymbolError> {
 		const maybe = this.contains(oldName, [kind]).map((symbol) => {
-			log.info(`SymTab: Renaming Symbol from ${oldName} to ${newName}`);
+			log.info(`SymTab: Renaming Symbol from ${oldName} to ${newName} (${symbol.fqn} to ${newFqn})`);
 
 			symbol.name = newName;
 			symbol.fqn = newFqn;

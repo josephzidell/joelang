@@ -14,7 +14,13 @@ export enum Color {
 	Orange = '38;5;208',
 }
 
+const useColors = process.stdout.isTTY === true;
+
 export function colorize(text: string, color: Color, bold: boolean = false): string {
+	if (!useColors) {
+		return text;
+	}
+
 	const boldCode = bold ? '1;' : '';
 	const escapeCode = `\u001b[${boldCode}${color}m`;
 	const resetCode = '\u001b[0m';
@@ -47,7 +53,7 @@ export function stripColor(text: string): string {
 }
 
 export function objToString(obj: unknown): string {
-	return inspect(obj, { compact: 1, showHidden: false, depth: null, colors: true });
+	return inspect(obj, { compact: 1, showHidden: false, depth: null, colors: useColors });
 }
 
 export type DedentFunc = () => void;
@@ -89,7 +95,7 @@ export class Log {
 			return;
 		}
 
-		console.warn(this.preambleForCont(), '⚠️', ...args);
+		console.info(this.preambleForCont(), '⚠️', ...args);
 	}
 
 	/**
@@ -102,17 +108,21 @@ export class Log {
 	 * @param additional Callback for any additional logging after the context is displayed
 	 */
 	error(type: string, error: JoelangError, additional?: () => void) {
-		console.error(this.preambleForCont(), '🚨', `Error[${type}/${error.getCode()}]: ${error.message}`);
+		console.info(this.preambleForCont(), '🚨', `Error[${type}/${error.getCode()}]: ${error.message}`);
 		if (error.cause) {
-			console.error(this.preambleForCont(), '🚨', `Caused by: ${error.cause}`);
+			console.info(this.preambleForCont(), '🚨', `Caused by: ${error.cause}`);
 		}
 		error
 			.getContext()
 			.toStringArray(error)
-			.forEach((str) => console.error(this.preambleForCont(), '🚨', str));
+			.forEach((str) => console.info(this.preambleForCont(), '🚨', str));
 
 		if (additional) {
 			additional();
+		}
+
+		if (error.stack) {
+			console.info(error.stack);
 		}
 	}
 
@@ -192,7 +202,7 @@ export class Log {
 			return;
 		}
 
-		console.warn(this.preambleForEnd(), '⚠️', ...args);
+		console.log(this.preambleForEnd(), '⚠️', ...args);
 
 		dedent();
 	}

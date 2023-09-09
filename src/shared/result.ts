@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { Maybe } from './maybe';
+import { AST, ASTTypeList } from '../analyzer/asts';
 
 export type Result<T, E extends Error = Error, ED = unknown> = ResultOk<T> | ResultError<E, ED>;
 
@@ -20,6 +21,24 @@ abstract class SomeResult<T, E extends Error = Error, ED = unknown> {
 
 	public abstract isError(): this is ResultError<E, ED>;
 
+	// /**
+	//  * Maps the value, error, and error data of a Result to new values
+	//  *
+	//  * @param valueFn To convert the value of an OK result
+	//  * @param errorFn To convert the error of an error result
+	//  * @param errorDataFn To convert the error data of an error result
+	//  * @returns a modified result
+	//  */
+	// public mapResultIfOk<U, F extends Error = Error, FD = unknown>(
+	// 	result: Result<U, F, FD>,
+	// ): Result<U, E | F, ED | FD> {
+	// 	if (this.isOk()) {
+	// 		return result;
+	// 	}
+
+	// 	return this;
+	// }
+
 	/**
 	 * Maps the value of a Result in the event it's OK
 	 *
@@ -33,6 +52,24 @@ abstract class SomeResult<T, E extends Error = Error, ED = unknown> {
 
 		assert(this.isError()); // needed for TS
 		return error(this.error, this.data) as unknown as Result<U, E, ED>;
+	}
+
+	/**
+	 * Maps the error of a Result in the event it's an error
+	 *
+	 * @param errorFn To convert the error of an error result
+	 * @returns a possibly modified result
+	 */
+	public mapError<F extends Error = Error, FD = unknown>(
+		errorFn: (error: E) => F,
+		dataFn: (data: ED | undefined) => FD | undefined,
+	): Result<T, F, FD> {
+		if (this.isOk()) {
+			return ok(this.value);
+		}
+
+		assert(this.isError()); // needed for TS
+		return error(errorFn(this.error), typeof this.data !== 'undefined' ? dataFn(this.data) : this.data); // as unknown as Result<T, F, ED>;
 	}
 
 	/**
@@ -79,6 +116,23 @@ export class ResultOk<T> extends SomeResult<T> {
 	public unwrapOr(_defaultValue: T): T {
 		return this.value;
 	}
+
+	/**
+	 * If the Result is Ok, map the value, error, and error data of a Result to new values,
+	 * otherwise keep the same error and error data.
+	 *
+	 * This is useful for chaining together multiple results, where the error and error data
+	 * of the first result should be kept if it's an error, otherwise keep on going to
+	 * subsequent chained calls.
+	 *
+	 * @param valueFn To convert the value of an OK result
+	 * @param errorFn To convert the error of an error result
+	 * @param errorDataFn To convert the error data of an error result
+	 * @returns a modified result
+	 */
+	public mapResultIfOk<U, F extends Error = Error, FD = unknown>(result: (oldValue: T) => Result<U, F, FD>): Result<U, F, FD> {
+		return result(this.value);
+	}
 }
 
 export class ResultError<E extends Error, ED = unknown> extends SomeResult<never, E, ED> {
@@ -105,6 +159,23 @@ export class ResultError<E extends Error, ED = unknown> extends SomeResult<never
 
 	public unwrapOr<T>(defaultValue: T): T {
 		return defaultValue;
+	}
+
+	/**
+	 * If the Result is Ok, map the value, error, and error data of a Result to new values,
+	 * otherwise keep the same error and error data.
+	 *
+	 * This is useful for chaining together multiple results, where the error and error data
+	 * of the first result should be kept if it's an error, otherwise keep on going to
+	 * subsequent chained calls.
+	 *
+	 * @param valueFn To convert the value of an OK result
+	 * @param errorFn To convert the error of an error result
+	 * @param errorDataFn To convert the error data of an error result
+	 * @returns a modified result
+	 */
+	public mapResultIfOk<U, F extends Error = Error, FD = unknown>(): Result<U, E | F, ED | FD> {
+		return this;
 	}
 }
 
@@ -198,6 +269,18 @@ export const CreateResultFrom = {
 		}
 
 		return ok(value) as unknown as Result<T, E, ED>;
+	},
+
+	astListNotBeingEmpty<A extends AST, T extends ASTTypeList<A>, E extends Error = Error, ED = unknown>(
+		value: T,
+		errorIfFalse: E,
+		data?: ED,
+	): Result<T, E, ED> {
+		if (value.items.length === 0) {
+			return error(errorIfFalse, data);
+		}
+
+		return ok(value);
 	},
 
 	maybe<T, E extends Error = Error, ED = unknown>(maybe: Maybe<T>, err: E, data?: ED): Result<T, E, ED> {

@@ -36,7 +36,7 @@ export abstract class Maybe<T> {
 	}
 
 	/**
-	 * Maps this maybe to another maybe, if it has a value.
+	 * If this maybe has a value, maps it to another value.
 	 *
 	 * @param fn The function to map with
 	 * @returns A new maybe, has if this maybe has, hasNot if this maybe has not
@@ -54,6 +54,30 @@ export abstract class Maybe<T> {
 	public map<U>(fn: (value: T) => U): Maybe<U> {
 		if (this.has()) {
 			return has(fn(this.value));
+		}
+
+		return hasNot();
+	}
+
+	/**
+	 * If this maybe has a value, maps it to another maybe and flatten to a single maybe.
+	 *
+	 * @param fn The function to map with
+	 * @returns A new maybe, has if this maybe has, hasNot if this maybe has not
+	 *
+	 * @example
+	 * const maybe = has(1);
+	 * const mapped = maybe.map(value => has(value + 1));
+	 * // mapped is has(2)
+	 *
+	 * @example
+	 * const maybe = hasNot();
+	 * const mapped = maybe.map(value => has(value + 1));
+	 * // mapped is hasNot()
+	 */
+	public mapFlat<U>(fn: (value: T) => Maybe<U>): Maybe<U> {
+		if (this.has()) {
+			return fn(this.value);
 		}
 
 		return hasNot();

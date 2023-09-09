@@ -24,7 +24,7 @@ module.exports = {
 		'@typescript-eslint/no-empty-interface': ['error', { allowSingleExtends: true }],
 
 		// prettier rules
-		// 'prettier/prettier': 'error',
+		'prettier/prettier': 'warn',
 
 		// general rules
 		// 'indent': ['error', 'tab', {SwitchCase: 1}],

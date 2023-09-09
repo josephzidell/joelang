@@ -2,7 +2,7 @@ import { expect } from '@jest/globals';
 import assert from 'node:assert';
 import { Get } from 'type-fest';
 import { mockPos } from './jestMocks';
-import { AST, ASTProgram } from './src/analyzer/asts';
+import { AST, ASTFunctionDeclaration, ASTIdentifier, ASTProgram } from './src/analyzer/asts';
 import { SymTab } from './src/analyzer/symbolTable';
 import { Token, TokenType } from './src/lexer/types';
 import { SParseTree, simplifyTree } from './src/parser/simplifier';
@@ -116,10 +116,20 @@ const mockASTPosParentAndSymbol = (obj: any): any => {
 		const mocked: typeof obj = {};
 		for (const key in obj) {
 			if (obj instanceof AST && 'pos' === key) {
+				// replace
 				mocked[key] = mockPos;
 			} else if (obj instanceof AST && ['symbol', 'symbols', 'parent'].includes(key)) {
+				// skip
 				continue;
 			} else {
+				// modify
+				if (obj instanceof ASTFunctionDeclaration && key === 'name' && obj.name.name.startsWith('#f_anon_')) {
+					obj.name.name = '#f_anon_';
+					obj.name.fqn = '#f_anon_';
+				} else if (obj instanceof ASTIdentifier && ASTFunctionDeclaration.AnonRegex.test(obj.fqn)) {
+					obj.fqn = obj.fqn.replace(ASTFunctionDeclaration.AnonRegex, '#f_anon_');
+				}
+
 				mocked[key] = mockASTPosParentAndSymbol(obj[key]);
 			}
 		}
@@ -296,21 +306,21 @@ function diffObjects(expected: any, received: any, path = '', ignore: IgnoreDiff
 			}
 		}
 
-		// if (Array.isArray(expectedValue) && Array.isArray(receivedValue)) {
-		// 	const arrayDiff = diffArrays(expectedValue, receivedValue, `${fullPath}`, ignore);
+		// if (Array.isArray(expected[key]) && Array.isArray(received[key])) {
+		// 	const arrayDiff = diffArrays(expected[key], received[key], `${fullPath}`, ignore);
 		// 	if (arrayDiff.length > 0) {
 		// 		output.push(...arrayDiff);
 		// 	}
-		// } else if (typeof expectedValue === 'object' && typeof receivedValue === 'object') {
-		// 	const objectDiff = diffObjects(expectedValue, receivedValue, `${fullPath}`, ignore);
+		// } else if (typeof expected[key] === 'object' && typeof received[key] === 'object') {
+		// 	const objectDiff = diffObjects(expected[key], received[key], `${fullPath}`, ignore);
 		// 	if (objectDiff.length > 0) {
 		// 		output.push(...objectDiff);
 		// 	}
 		// } else {
-		// 	const expectedString = stringify(expectedValue, ignore);
-		// 	const receivedString = stringify(receivedValue, ignore);
-		// 	output.push(`${colorize(`- ${fullPath}: ${expectedString}`, Colors.Red)}\n`);
-		// 	output.push(`${colorize(`+ ${fullPath}: ${receivedString}`, Colors.Green)}\n`);
+		// 	const expectedString = stringify(expected[key], ignore);
+		// 	const receivedString = stringify(received[key], ignore);
+		// 	output.push(`${colorize(`- ${fullPath}: ${expectedString}`, Color.Red)}\n`);
+		// 	output.push(`${colorize(`+ ${fullPath}: ${receivedString}`, Color.Green)}\n`);
 		// }
 	});
 
@@ -322,15 +332,15 @@ function diffObjects(expected: any, received: any, path = '', ignore: IgnoreDiff
 // 	const addedElements = received.filter((item) => !expected.includes(item));
 // 	const removedElements = expected.filter((item) => !received.includes(item));
 // 	const output: string[] = [];
-// 	addedElements.forEach((item, index) => {
-// 		const fullPath = `${path}[${expected.length + index}]`;
-// 		const value = stringify(item, ignore);
-// 		output.push(`${colorize(`+ ${fullPath}: ${value}`, Colors.Green)}\n`);
-// 	});
 // 	removedElements.forEach((item, index) => {
 // 		const fullPath = `${path}[${received.length + index}]`;
 // 		const value = stringify(item, ignore);
-// 		output.push(`${colorize(`- ${fullPath}: ${value}`, Colors.Red)}\n`);
+// 		output.push(`${colorize(`- ${fullPath}: ${value}`, Color.Red)}\n`);
+// 	});
+// 	addedElements.forEach((item, index) => {
+// 		const fullPath = `${path}[${expected.length + index}]`;
+// 		const value = stringify(item, ignore);
+// 		output.push(`${colorize(`+ ${fullPath}: ${value}`, Color.Green)}\n`);
 // 	});
 // 	return output;
 // }

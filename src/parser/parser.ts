@@ -45,8 +45,9 @@ export default class Parser {
 		NT.AssignablesList,
 		NT.AssignmentExpression,
 		NT.BinaryExpression,
-		NT.FunctionDeclaration, // for abstract functions
-		NT.FunctionReturns, // for abstract functions
+		NT.FunctionDeclaration, // for types and abstract functions
+		NT.FunctionReturns, // for types and abstract functions
+		NT.FunctionSignature, // for types
 		NT.IfStatement,
 		NT.MemberExpression,
 		NT.MemberListExpression,
@@ -242,13 +243,13 @@ export default class Parser {
 							break;
 						case NT.TypeParametersList:
 							if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
-								// we're in a FunctionDeclaration after the GenericTypesList
+								// we're in a FunctionDeclaration or FunctionSignature after the GenericTypesList
 								this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 							}
 							break;
 						default:
 							if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
-								// we're in an anonymous FunctionDeclaration after the `f` keyword
+								// we're in an anonymous FunctionDeclaration or FunctionSignature after the `f` keyword
 								// and there is no previous node
 								this.beginExpressionWith(MakeNode(NT.ParametersList, token, this.currentRoot, true));
 							} else {
@@ -290,7 +291,7 @@ export default class Parser {
 					this.endExpressionIfIn(NT.FunctionReturns);
 
 					// check if we're in a FunctionSignature, if so, it's finished
-					// eg `let foo: f (bar: string) = f (bar) {}`
+					// eg `let foo: f (string) = f (bar: string) {}`
 					this.endExpressionIfIn(NT.FunctionSignature);
 
 					// check if we're in a Parameter, if so, it's also finished
@@ -309,7 +310,13 @@ export default class Parser {
 					this.stack.push('{');
 
 					this.endExpressionWhileIn([NT.BinaryExpression]);
-					this.endExpressionWhileIn([NT.FunctionSignature, NT.FunctionReturns]);
+
+					// this ends a FunctionReturns and converts a FunctionSignature to a FunctionDeclaration
+					this.endExpressionWhileIn([NT.FunctionReturns]);
+					if (this.currentRoot.type === NT.FunctionSignature) {
+						ChangeNodeType(this.currentRoot, NT.FunctionDeclaration);
+					}
+
 					this.endExpressionIfIn(NT.Extension);
 					this.endExpressionIfIn(NT.ExtensionsList);
 					this.endExpressionIfIn(NT.ClassImplement);
@@ -399,7 +406,6 @@ export default class Parser {
 					this.endExpressionIfIn(NT.LoopStatement);
 					this.endExpressionIfIn(NT.ForStatement);
 					this.endExpressionIfIn(NT.FunctionDeclaration);
-					this.endExpressionIfIn(NT.FunctionSignature);
 					this.endExpressionIfIn(NT.ClassDeclaration);
 					this.endExpressionIfIn(NT.EnumDeclaration);
 					this.endExpressionIfIn(NT.InterfaceDeclaration);
@@ -1007,7 +1013,7 @@ export default class Parser {
 					if (this.currentRoot.type === NT.WhenCaseValues) {
 						this.endExpression();
 						this.beginExpressionWith(MakeNode(NT.WhenCaseConsequent, token, this.currentRoot, true));
-					} else if (this.currentRoot.type === NT.FunctionDeclaration || this.currentRoot.type === NT.FunctionSignature) {
+					} else if (this.currentRoot.type === NT.FunctionSignature) {
 						this.beginExpressionWith(MakeNode(NT.FunctionReturns, token, this.currentRoot, true));
 					} else {
 						this.addNode(MakeNode(NT.RightArrowOperator, token, this.currentRoot));
@@ -1030,7 +1036,7 @@ export default class Parser {
 
 					/**
 					 *
-					 * + f foo<|T|> {} // FunctionDeclaration[TypeDeclaration[Identifier, TypeParametersList[TypeParameter...]], BlockStatement]
+					 * + f foo<|T|> {} // FunctionSignature[TypeDeclaration[Identifier, TypeParametersList[TypeParameter...]], BlockStatement]
 					 * + a(B<|T|>); // CallExpression[Identifier, ArgumentsList[Argument[TypeInstantiation[Identifier, TypeArgumentsList[Type...]]]]]
 					 *
 					 * - class Foo<|T|> {} // ClassDeclaration[Type]
@@ -1052,15 +1058,9 @@ export default class Parser {
 					 */
 
 					if (
-						(
-							[
-								NT.ClassDeclaration,
-								NT.EnumDeclaration,
-								NT.FunctionDeclaration,
-								NT.FunctionSignature,
-								NT.InterfaceDeclaration,
-							] as NT[]
-						).includes(this.currentRoot.type)
+						([NT.ClassDeclaration, NT.EnumDeclaration, NT.FunctionSignature, NT.InterfaceDeclaration] as NT[]).includes(
+							this.currentRoot.type,
+						)
 					) {
 						this.beginExpressionWith(MakeNode(NT.TypeParametersList, token, this.currentRoot, true));
 					} else {
@@ -1232,7 +1232,7 @@ export default class Parser {
 						case 'pub':
 						case 'readonly':
 						case 'static':
-							// can either be a ClassDeclaration, EnumDeclaration, FunctionDeclaration or VariableDeclaration
+							// can either be a ClassDeclaration, EnumDeclaration, FunctionSignature or VariableDeclaration
 
 							// the simplest way is to start a ModifiersList,
 							// then when we come across a one of those declarations, we check if this.currentRoot is a ModifiersList
@@ -1349,27 +1349,25 @@ export default class Parser {
 							break;
 						case 'f':
 							{
-								// the FunctionDeclaration may have already started with a Modifier
+								// there maybe a FunctionDeclaration or a FunctionSignature coming.
+								// the strategy is we begin a FunctionSignature, and then converts
+								// it to a FunctionDeclaration if we come across a BlockStatement
+
+								// the FunctionSignature may have already started with a Modifier
 								let fNode: Result<Node, ParserError>;
 								if (this.currentRoot.type === NT.ModifiersList) {
 									log.info(
-										'Currently there is a ModifiersList open; now beginning FunctionDeclaration and adopting the ModifiersList',
+										'Currently there is a ModifiersList open; now beginning FunctionSignature and adopting the ModifiersList',
 									);
 
 									fNode = this.beginExpressionWithAdoptingCurrentRoot(
-										MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true),
+										MakeNode(NT.FunctionSignature, token, this.currentRoot, true),
 									);
 								} else {
-									log.info('There is no ModifiersList open; now beginning a FunctionDeclaration');
+									log.info('There is no ModifiersList open; now beginning a FunctionSignature');
 
-									// if we're after a ColonSeparator, then this is a FunctionSignature
-									if (this.prev()[1] === NT.ColonSeparator || this.currentRoot.type === NT.FunctionReturns) {
-										fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionSignature, token, this.currentRoot, true)));
-									} else {
-										fNode = ok(
-											this.beginExpressionWith(MakeNode(NT.FunctionDeclaration, token, this.currentRoot, true)),
-										);
-									}
+									// at this point, we're beginning a FunctionSignature
+									fNode = ok(this.beginExpressionWith(MakeNode(NT.FunctionSignature, token, this.currentRoot, true)));
 								}
 
 								switch (fNode.outcome) {
@@ -1681,9 +1679,9 @@ export default class Parser {
 		}
 	}
 
-	/** Shortcut method to check if the current root is a FunctionDeclaration and is inside of a ClassDeclaration */
+	/** Shortcut method to check if the current root is a FunctionSignature and is inside of a ClassDeclaration */
 	private isCurrentRootAFunctionInAClass() {
-		return this.currentRoot.type === NT.FunctionDeclaration && this.currentRoot.parent?.parent?.type === NT.ClassDeclaration;
+		return this.currentRoot.type === NT.FunctionSignature && this.currentRoot.parent?.parent?.type === NT.ClassDeclaration;
 	}
 
 	private ifInWhenExpressionBlockStatementBeginCase(token: Token) {

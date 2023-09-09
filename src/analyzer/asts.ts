@@ -8,6 +8,7 @@ import { NumberSize } from '../shared/numbers/sizes';
 import { smallestNumberSize } from '../shared/numbers/utils';
 import { Pos } from '../shared/pos';
 import { ok, Result } from '../shared/result';
+import { when } from '../shared/when';
 import { ClassSym, EnumSym, FuncSym, InterfaceSym, ParamSym, VarSym } from './symbolTable';
 
 export interface ASTThatHasJoeDoc {
@@ -42,6 +43,18 @@ export abstract class AST {
 	constructor(pos: Pos, parent: AST | undefined) {
 		this.pos = pos;
 		this.parent = parent;
+	}
+
+	/** Sets a child's parent AST as this, and returns the child */
+	setChildsParent<T extends AST>(child: T): T {
+		child.parent = this;
+
+		return child;
+	}
+
+	/** Sets childrens' parent ASTs as this, and returns the children */
+	setChildrensParent<T extends AST>(children: T[]): T[] {
+		return children.map((child) => this.setChildsParent(child));
 	}
 
 	/**
@@ -237,7 +250,7 @@ export class ASTBlockStatement extends AST {
 	// factory function
 	static _(expressions: AST[], pos: Pos, parent: AST): ASTBlockStatement {
 		const ast = new ASTBlockStatement(pos, parent);
-		ast.expressions = expressions;
+		ast.expressions = ast.setChildrensParent(expressions);
 		return ast;
 	}
 
@@ -336,12 +349,25 @@ export class ASTClassDeclaration extends ASTDeclaration {
 		}
 
 		ast.modifiers = modifiers;
-		ast.name = name;
+		ast.name = ast.setChildsParent(name);
 		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
 		ast.extends = ASTTypeList.wrapArray(_extends, pos);
 		ast.implements = ASTTypeList.wrapArray(_implements, pos);
-		ast.body = body;
+		ast.body = ast.setChildsParent(body);
+
+		// update FQNs
+		ast.updateFqns();
+
 		return ast;
+	}
+
+	public updateFqns() {
+		this.body.expressions.forEach((expr) => {
+			if (expr instanceof ASTFunctionDeclaration) {
+				expr.name.setAbsoluteFqn(`${this.name.fqn}.`);
+				expr.updateFqns();
+			}
+		});
 	}
 
 	toString(): string {
@@ -405,7 +431,7 @@ export class ASTEnumDeclaration extends ASTDeclaration {
 		}
 
 		ast.modifiers = modifiers;
-		ast.name = name;
+		ast.name = ast.setChildsParent(name);
 		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
 		ast.extends = ASTTypeList.wrapArray(_extends, pos);
 		ast.body = body;
@@ -456,6 +482,8 @@ export class ASTForStatement extends AST implements ASTThatHasRequiredBody {
 }
 
 export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, ASTThatHasModifiers, ASTThatHasTypeParams {
+	static readonly AnonRegex = /#f_anon__\d{1,6}/;
+
 	kind = 'FunctionDeclaration';
 	joeDoc: ASTJoeDoc | undefined;
 	modifiers: ASTModifier[] = [];
@@ -497,12 +525,24 @@ export class ASTFunctionDeclaration extends AST implements ASTThatHasJoeDoc, AST
 		}
 
 		ast.modifiers = modifiers;
-		ast.name = name;
+		ast.name = ast.setChildsParent(name);
 		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
 		ast.params = ASTTypeList.wrapArray(params, pos);
 		ast.returnTypes = ASTTypeList.wrapArray(returnTypes, pos);
 		ast.body = body;
+
+		// update FQNs
+		ast.updateFqns();
+
 		return ast;
+	}
+
+	public updateFqns() {
+		this.params.items.forEach((expr) => {
+			if (expr instanceof ASTParameter) {
+				expr.name.setAbsoluteFqn(`${this.name.fqn}.`);
+			}
+		});
 	}
 
 	toString(): string {
@@ -539,9 +579,11 @@ export class ASTFunctionSignature extends AST implements ASTThatHasTypeParams {
 		parent: AST,
 	): ASTFunctionSignature {
 		const ast = new ASTFunctionSignature(pos, parent);
+
 		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
 		ast.params = ASTTypeList.wrapArray(params, pos);
 		ast.returnTypes = ASTTypeList.wrapArray(returnTypes, pos);
+
 		return ast;
 	}
 
@@ -574,11 +616,38 @@ export class ASTIdentifier extends AST {
 		return ast;
 	}
 
-	/** Eg: prependParentToFqn('C.') */
+	/**
+	 * Prepends a new parent to the fqn.
+	 *
+	 * Eg:
+	 * ```ts
+	 * // existing fqn: 'C.D'
+	 * prependParentToFqn('B.')
+	 * // updated fqn: 'B.C.D'
+	 * ```
+	 */
 	prependParentToFqn(newParentWithTrailingDot: string) {
 		// ignore if it's empty
 		if (newParentWithTrailingDot.length > 1) {
 			this.fqn = `${newParentWithTrailingDot}${this.fqn}`;
+		}
+	}
+
+	/**
+	 * Overrides and resets the fqn to the given value with the name.
+	 *
+	 * Eg:
+	 * ```ts
+	 * // existing name: 'foo'
+	 * // existing fqn: 'C.foo'
+	 * setAbsoluteFqn('B.C.')
+	 * // updated fqn: 'B.C.foo'
+	 * ```
+	 */
+	setAbsoluteFqn(fqnWithTrailingDot: string) {
+		// ignore if it's empty
+		if (fqnWithTrailingDot.length > 1) {
+			this.fqn = `${fqnWithTrailingDot}${this.name}`;
 		}
 	}
 
@@ -659,7 +728,7 @@ export class ASTInterfaceDeclaration extends ASTDeclaration {
 		}
 
 		ast.modifiers = modifiers;
-		ast.name = name;
+		ast.name = ast.setChildsParent(name);
 		ast.typeParams = ASTTypeList.wrapArray(typeParams, pos);
 		ast.extends = ASTTypeList.wrapArray(_extends, pos);
 		ast.body = body;
@@ -966,7 +1035,7 @@ export class ASTParameter extends AST {
 		const ast = new ASTParameter(pos, parent);
 		ast.modifiers = modifiers;
 		ast.isRest = isRest;
-		ast.name = name;
+		ast.name = ast.setChildsParent(name);
 		ast.type = type;
 
 		// only set if it's not undefined
@@ -978,7 +1047,7 @@ export class ASTParameter extends AST {
 	}
 
 	toString(): string {
-		const modifiersString = this.modifiers.length > 0 ? `${this.modifiers.map((modifier) => modifier.toString()).join(' ')} ` : '';
+		const modifiersString = this.modifiers.length > 0 ? this.modifiers.map((modifier) => `${modifier.toString()} `).join() : '';
 		const restString = this.isRest ? '...' : '';
 		const typeString = `: ${this.type.toString()}`;
 		const defaultValueString = this.defaultValue ? ` = ${this.defaultValue.toString()}` : '';
@@ -1385,6 +1454,14 @@ export class ASTTypeRange extends AST {
 
 /** Can be used as `extends` or `implements` */
 export type ASTExtOrImpl = ASTIdentifier | ASTMemberExpression | ASTTypeInstantiationExpression;
+export function isASTExtOrImplInstanceOf(ast: ASTExtOrImpl, identifier: ASTType): boolean {
+	return when(ast.constructor.name, {
+		[ASTIdentifier.name]: () => ast === identifier,
+		[ASTMemberExpression.name]: () => (ast as ASTMemberExpression).property === identifier,
+		[ASTTypeInstantiationExpression.name]: () => (ast as ASTTypeInstantiationExpression).base === identifier,
+		'...': () => false,
+	});
+}
 
 export type ASTTypeExceptPrimitive = ASTArrayOf | ASTFunctionSignature | ASTTypeRange | ASTExtOrImpl;
 

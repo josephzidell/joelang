@@ -1,5 +1,8 @@
 import { Compiler } from './src/compiler/compiler';
 import System from './src/compiler/system';
+import loggers from './src/shared/log';
+
+const log = loggers.compiler;
 
 // Asynchronous function to check system requirements and compile the code
 async function main(slicedArgs: string[]) {
@@ -22,11 +25,11 @@ async function main(slicedArgs: string[]) {
 		await main(process.argv.slice(2));
 	} catch (error) {
 		// Log the error message and exit the process
-		console.error((error as Error).message);
+		log.warn((error as Error).message);
 		if (process.argv.includes('-d')) {
-			console.error((error as Error).stack);
+			log.warn((error as Error).stack);
 		}
-		console.error('\nExiting...');
+		log.warn('\nExiting...');
 		process.exit(1);
 	}
 })();

@@ -1,4 +1,4 @@
-import _, { random } from 'lodash';
+import _ from 'lodash';
 import { Simplify } from 'type-fest';
 import { primitiveTypes } from '../lexer/types';
 import { regexFlags } from '../lexer/util';
@@ -17,9 +17,12 @@ import {
 	validNodeTypesAsMemberObject,
 } from '../parser/types';
 import Context from '../shared/context';
+import loggers, { DedentFunc } from '../shared/log';
 import { Maybe, maybeIfNotUndefined } from '../shared/maybe';
 import { NumberSize, numberSizesAll } from '../shared/numbers/sizes';
+import { Pos } from '../shared/pos';
 import { CreateResultFrom, error, ok, Result } from '../shared/result';
+import { when } from '../shared/when';
 import {
 	AssignableASTs,
 	AST,
@@ -105,8 +108,6 @@ import Semantics from './semantics';
 import SymbolError from './symbolError';
 import { SymbolInfo, SymbolKind, SymbolTable, SymTree } from './symbolTable';
 import visitorMap from './visitorMap';
-import { Pos } from '../shared/pos';
-import loggers, { DedentFunc } from '../shared/log';
 
 const log = loggers.analyzer;
 
@@ -529,7 +530,7 @@ export default class SemanticAnalyzer {
 	 */
 	private handleASTDeclaration(
 		node: Node,
-		ast: ASTDeclaration,
+		ast: AST & ASTDeclaration,
 		parentFqn: string,
 		nodeType: NT,
 		extensionsListVisitor: (node: Node) => Result<ASTTypeList<ASTExtOrImpl>, AnalysisError | SemanticError | SymbolError>,
@@ -537,9 +538,11 @@ export default class SemanticAnalyzer {
 			kind: SymbolKind;
 			symNodeName: string;
 			/** Curry func to set the type params in the symbol table */
-			setTypeParamsCurry: (ast: ASTDeclaration) => (typeParams: ASTTypeList<ASTTypeParameter>) => Result<SymbolInfo, SymbolError>;
+			setTypeParamsCurry: (
+				ast: AST & ASTDeclaration,
+			) => (typeParams: ASTTypeList<ASTTypeParameter>) => Result<SymbolInfo, SymbolError>;
 			/** Curry func to set the extends in the symbol table */
-			setExtendsCurry: (ast: ASTDeclaration) => (_extends: ASTTypeList<ASTExtOrImpl>) => Result<SymbolInfo, SymbolError>;
+			setExtendsCurry: (ast: AST & ASTDeclaration) => (_extends: ASTTypeList<ASTExtOrImpl>) => Result<SymbolInfo, SymbolError>;
 		},
 	): Result<string, AnalysisError | SemanticError | SymbolError> {
 		let symNodeName = symbolTableStuff.symNodeName;
@@ -566,13 +569,8 @@ export default class SemanticAnalyzer {
 					ast.name = result.value;
 					ast.name.prependParentToFqn(parentFqn);
 
-					// update the symbol table's node name
-					SymbolTable.tree.updateSymNodeName(ast.name.name, ast.name.fqn);
-
-					// rename the symbol, ignoring a false response which
-					// would indicate the old name wasn't deleted, since
-					// the old anon name is random and won't be used
-					const updateResult = SymbolTable.updateSymbolName(
+					// update the symbol table
+					const updateResult = SymbolTable.updateName(
 						symNodeName,
 						ast.name.name,
 						ast.name.fqn,
@@ -750,22 +748,22 @@ export default class SemanticAnalyzer {
 						);
 
 						return error(childHandler.analysisError(child), this.ast);
-					} else {
-						// not acceptable but optional
-
-						// call fallback if relevant
-						// in this scenario, there is a child, but it is not the right type, which means
-						// the handler is not going to be called, so we need to call the fallback
-						if (typeof childHandler.options?.fallbackIfNotRequiredAndChildNotThere === 'function') {
-							childHandler.options.fallbackIfNotRequiredAndChildNotThere();
-
-							log.info('Optional handler', handlerName, 'using fallback');
-						} else {
-							log.info('Optional handler', handlerName, 'skipped');
-						}
-
-						continue;
 					}
+
+					// not acceptable but optional
+
+					// call fallback if relevant
+					// in this scenario, there is a child, but it is not the right type, which means
+					// the handler is not going to be called, so we need to call the fallback
+					if (typeof childHandler.options?.fallbackIfNotRequiredAndChildNotThere === 'function') {
+						childHandler.options.fallbackIfNotRequiredAndChildNotThere();
+
+						log.info('Optional handler', handlerName, 'using fallback');
+					} else {
+						log.info('Optional handler', handlerName, 'skipped');
+					}
+
+					continue;
 				}
 
 				// at this point, we know the child is acceptable, so we can call the callback
@@ -784,13 +782,13 @@ export default class SemanticAnalyzer {
 				if (callbackResult.isError()) {
 					log.warnAndDedent(dedentFuncMatch, 'Handler', handlerName, 'failed because callback returned error');
 
-					dedentFuncMain();
+					log.warnAndDedent(dedentFuncMain, 'end handleNodesChildrenOfDifferentTypes');
 
 					return callbackResult;
-				} else {
-					// log the callback result
-					log.successAndDedent(dedentFuncMatch, 'Handler', handlerName);
 				}
+
+				// log the callback result
+				log.successAndDedent(dedentFuncMatch, 'Handler', handlerName);
 			}
 
 			// call fallback if relevant
@@ -811,19 +809,20 @@ export default class SemanticAnalyzer {
 			if (child) {
 				log.info('next child', childIndex, '/', node.children.length, child?.type);
 			} else {
-				log.success('no more children');
-
-				break; // exit loop
+				// do not exit the loop, so that we can process more
+				// possible required handlers or fallbacks
 			}
 		}
 
 		// there should be no more children
 		const moreChildrenResult = this.ensureNoMoreChildren(child);
 		if (moreChildrenResult.isError()) {
+			log.warnAndDedent(dedentFuncMain, 'end handleNodesChildrenOfDifferentTypes');
+
 			return moreChildrenResult;
 		}
 
-		log.successAndDedent(dedentFuncMain, 'end handleNodesChildrenOfDifferentTypes');
+		log.successAndDedent(dedentFuncMain, 'no more children; end handleNodesChildrenOfDifferentTypes');
 
 		return ok(undefined);
 	}
@@ -1314,7 +1313,7 @@ export default class SemanticAnalyzer {
 		// Add to symbol table and start a new SymNode.
 		// The node name is either the class name or an auto-generated name.
 		// This auto-generated name could never collide with a user-defined name since it's not a valid identifier.
-		let symNodeName = `#c_anon__${random(100_000, false)}`;
+		let symNodeName = `#c_anon__${_.random(100_000, false)}`;
 		let symNodeFqn = `${parentFqn}${symNodeName}`;
 		log.warn(`Generated temp name for class: ${symNodeName}`);
 
@@ -1352,18 +1351,8 @@ export default class SemanticAnalyzer {
 					ast.name = result.value;
 					ast.name.prependParentToFqn(parentFqn);
 
-					// update the symbol table's node name
-					SymbolTable.tree.updateSymNodeName(ast.name.name, ast.name.fqn);
-
 					// rename the symbol
-					const updateResult = SymbolTable.updateSymbolName(
-						symNodeName,
-						ast.name.name,
-						ast.name.fqn,
-						'class',
-						this.ctx(ast),
-						true,
-					);
+					const updateResult = SymbolTable.updateName(symNodeName, ast.name.name, ast.name.fqn, 'class', this.ctx(ast), true);
 					if (updateResult.isError()) {
 						return updateResult;
 					}
@@ -1590,7 +1579,7 @@ export default class SemanticAnalyzer {
 		// Add to symbol table and start a new SymNode.
 		// The node name is either the enum name or an auto-generated name.
 		// This auto-generated name could never collide with a user-defined name since it's not a valid identifier.
-		const symNodeName = `#e_anon__${random(100_000, false)}`;
+		const symNodeName = `#e_anon__${_.random(100_000, false)}`;
 		const symNodeFqn = `${parentFqn}${symNodeName}`;
 		log.warn(`Generated temp name for class: ${symNodeName}`);
 
@@ -1611,11 +1600,11 @@ export default class SemanticAnalyzer {
 		const handlingResult = this.handleASTDeclaration(node, ast, parentFqn, NT.ExtensionsList, this.visitExtensionsList, {
 			kind: 'enum',
 			symNodeName,
-			setTypeParamsCurry: (ast: ASTDeclaration) => (typeParams: ASTTypeList<ASTTypeParameter>) => {
+			setTypeParamsCurry: (ast: AST & ASTDeclaration) => (typeParams: ASTTypeList<ASTTypeParameter>) => {
 				// add the type params to the symbol table
 				return SymbolTable.setEnumTypeParams(ast.name.name, typeParams);
 			},
-			setExtendsCurry: (ast: ASTDeclaration) => (_extends: ASTTypeList<ASTExtOrImpl>) => {
+			setExtendsCurry: (ast: AST & ASTDeclaration) => (_extends: ASTTypeList<ASTExtOrImpl>) => {
 				// add the extends to the symbol table
 				return SymbolTable.setEnumExtends(ast.name.name, _extends);
 			},
@@ -1747,7 +1736,7 @@ export default class SemanticAnalyzer {
 		// Add to symbol table and start a new SymNode.
 		// The node name is either the function name or an auto-generated name.
 		// This auto-generated name could never collide with a user-defined name since it's not a valid identifier.
-		let symNodeName = `#f_anon__${random(100_000, false)}`;
+		let symNodeName = `#f_anon__${_.random(100_000, false)}`;
 		let symNodeFqn = `${parentFqn}${symNodeName}`;
 		const dedentFunc = log.indentWithInfo('visiting FunctionDeclaration', symNodeName);
 
@@ -1785,7 +1774,7 @@ export default class SemanticAnalyzer {
 						// [ ] TODO deal with passing an anon func as an arg
 						// [ ] TODO deal with an array of anon funcs (with postfix if), or in a tuple, or POJO
 
-						log.warnAndDedent(dedentFunc, 'Failed when visiting Identifier:', result.error.message);
+						log.warn('Failed when visiting Identifier:', result.error.message);
 
 						return result;
 					}
@@ -1793,22 +1782,10 @@ export default class SemanticAnalyzer {
 					ast.name = result.value;
 					ast.name.prependParentToFqn(parentFqn);
 
-					// update the symbol table's node name
-					SymbolTable.tree.updateSymNodeName(ast.name.name, ast.name.fqn);
-
-					// rename the symbol, ignoring a false response which
-					// would indicate the old name wasn't deleted, since
-					// the old anon name is random and won't be used
-					const updateResult = SymbolTable.updateSymbolName(
-						symNodeName,
-						ast.name.name,
-						ast.name.fqn,
-						'function',
-						this.ctx(ast),
-						true,
-					);
+					// update the symbol table
+					const updateResult = SymbolTable.updateName(symNodeName, ast.name.name, ast.name.fqn, 'function', this.ctx(ast), true);
 					if (updateResult.isError()) {
-						log.warnAndDedent(dedentFunc, 'Failed to update symbol name:', updateResult.error.message);
+						log.warn('Failed to update symbol name:', updateResult.error.message);
 
 						return updateResult;
 					}
@@ -1844,7 +1821,7 @@ export default class SemanticAnalyzer {
 				callback: (child) => {
 					const visitResult = this.visitParametersList(child);
 					if (visitResult.isError()) {
-						log.warnAndDedent(dedentFunc, 'Failed when visiting ParametersList:', visitResult.error.message);
+						log.warn('Failed when visiting ParametersList:', visitResult.error.message);
 
 						return visitResult;
 					}
@@ -1854,7 +1831,7 @@ export default class SemanticAnalyzer {
 					// add the parameters to the symbol table
 					const setResults = SymbolTable.setFunctionParams(symNodeName, ast.params);
 					if (setResults.isError()) {
-						log.warnAndDedent(dedentFunc, 'Failed when setting function params in Symbol Table:', setResults.error.message);
+						log.warn('Failed when setting function params in Symbol Table:', setResults.error.message);
 
 						return setResults;
 					}
@@ -1882,7 +1859,7 @@ export default class SemanticAnalyzer {
 						}),
 					);
 					if (insertionResults.isError()) {
-						log.warnAndDedent(dedentFunc, 'Failed when inserting params into Symbol Table:', insertionResults.error.message);
+						log.warn('Failed when inserting params into Symbol Table:', insertionResults.error.message);
 
 						return insertionResults;
 					}
@@ -1909,11 +1886,7 @@ export default class SemanticAnalyzer {
 							// add the return types to the symbol table
 							const setResults = SymbolTable.setFunctionReturnTypes(symNodeName, ast.returnTypes, ast.pos);
 							if (setResults.isError()) {
-								log.warnAndDedent(
-									dedentFunc,
-									'Failed when setting function return types in Symbol Table:',
-									setResults.error.message,
-								);
+								log.warn('Failed when setting function return types in Symbol Table:', setResults.error.message);
 
 								return setResults;
 							}
@@ -1921,7 +1894,7 @@ export default class SemanticAnalyzer {
 							return ok(undefined);
 						}
 						case 'error':
-							log.warnAndDedent(dedentFunc, 'Failed when visiting FunctionReturns:', visitResult.error.message);
+							log.warn('Failed when visiting FunctionReturns:', visitResult.error.message);
 
 							return visitResult;
 					}
@@ -2016,7 +1989,7 @@ export default class SemanticAnalyzer {
 							}
 							break;
 						case 'error':
-							log.warnAndDedent(dedentFunc, 'Failed when visiting BlockStatement:', visitResult.error.message);
+							log.warn('Failed when visiting BlockStatement:', visitResult.error.message);
 
 							return visitResult;
 							break;
@@ -2078,15 +2051,12 @@ export default class SemanticAnalyzer {
 				required: false,
 				callback: (child) => {
 					const visitResult = this.visitParametersList(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.params = visitResult.value;
-							return ok(undefined);
-							break;
-						case 'error':
-							return visitResult;
-							break;
+					if (visitResult.isError()) {
+						return visitResult;
 					}
+
+					ast.params = visitResult.value;
+					return ok(undefined);
 				},
 				options: {
 					fallbackIfNotRequiredAndChildNotThere: () => {
@@ -2101,15 +2071,12 @@ export default class SemanticAnalyzer {
 				required: false,
 				callback: (child) => {
 					const visitResult = this.visitFunctionReturns(child);
-					switch (visitResult.outcome) {
-						case 'ok':
-							ast.returnTypes = visitResult.value;
-							return ok(undefined);
-							break;
-						case 'error':
-							return visitResult;
-							break;
+					if (visitResult.isError()) {
+						return visitResult;
 					}
+
+					ast.returnTypes = visitResult.value;
+					return ok(undefined);
 				},
 				options: {
 					fallbackIfNotRequiredAndChildNotThere: () => {
@@ -2240,7 +2207,7 @@ export default class SemanticAnalyzer {
 		// Add to symbol table and start a new SymNode.
 		// The node name is either the interface name or an auto-generated name.
 		// This auto-generated name could never collide with a user-defined name since it's not a valid identifier.
-		let symNodeName = `#i_anon__${random(100_000, false)}`;
+		let symNodeName = `#i_anon__${_.random(100_000, false)}`;
 		const symNodeFqn = `${parentFqn}${symNodeName}`;
 		const dedentFunc = log.indentWithInfo('visiting InterfaceDeclaration', symNodeName);
 
@@ -2261,11 +2228,11 @@ export default class SemanticAnalyzer {
 		const handlingResult = this.handleASTDeclaration(node, ast, parentFqn, NT.ExtensionsList, this.visitExtensionsList, {
 			kind: 'interface',
 			symNodeName,
-			setTypeParamsCurry: (ast: ASTDeclaration) => (typeParams: ASTTypeList<ASTTypeParameter>) => {
+			setTypeParamsCurry: (ast: AST & ASTDeclaration) => (typeParams: ASTTypeList<ASTTypeParameter>) => {
 				// add the type params to the symbol table
 				return SymbolTable.setInterfaceTypeParams(ast.name.name, typeParams);
 			},
-			setExtendsCurry: (ast: ASTDeclaration) => (_extends: ASTTypeList<ASTExtOrImpl>) => {
+			setExtendsCurry: (ast: AST & ASTDeclaration) => (_extends: ASTTypeList<ASTExtOrImpl>) => {
 				// add the extends to the symbol table
 				return SymbolTable.setInterfaceExtends(ast.name.name, _extends);
 			},
@@ -2569,7 +2536,15 @@ export default class SemanticAnalyzer {
 
 		// before pushing to the stack, get the func that this is in
 		const maybeIsIn = this.isIn([ASTFunctionDeclaration]);
-		const parentFqn = maybeIsIn.has() && typeof maybeIsIn.value.name !== 'undefined' ? `${maybeIsIn.value.name.fqn}.` : '';
+		const parentFqn = maybeIsIn.has()
+			? when(maybeIsIn.value.constructor.name, {
+					[ASTFunctionDeclaration.name]: () =>
+						typeof (maybeIsIn.value as ASTFunctionDeclaration).name.fqn !== 'undefined'
+							? `${(maybeIsIn.value as ASTFunctionDeclaration).name.fqn}.`
+							: '',
+					'...': () => '',
+			  })
+			: '';
 
 		// now add to stack
 		this.stack.push(ast); // push pointer to this AST Node

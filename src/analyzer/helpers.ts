@@ -14,6 +14,7 @@ import {
 	ASTBlockStatement,
 	ASTBoolLiteral,
 	ASTCallExpression,
+	ASTFunctionDeclaration,
 	ASTFunctionSignature,
 	ASTIdentifier,
 	ASTMemberExpression,
@@ -235,6 +236,21 @@ class Helpers {
 				// // look up the callee in the symbol table
 				// const lookupResult = symbolTable.lookup(callExpr.callee.);
 				return errorCouldNotInfer(`CallExpression using ${callExpr.callee.constructor.name}`);
+			}
+			case ASTFunctionDeclaration: {
+				const func = expr as ASTFunctionDeclaration;
+
+				return ok(
+					ASTFunctionSignature._(
+						{
+							typeParams: func.typeParams,
+							params: func.params,
+							returnTypes: func.returnTypes,
+						},
+						expr.pos,
+						expr,
+					),
+				);
 			}
 			case ASTIdentifier: {
 				const identifier = expr as ASTIdentifier;
@@ -829,7 +845,7 @@ class Helpers {
 		}
 
 		// TODO more work needed here. Discover inferred type of CallExpression, MemberExpression, MemberListExpression, and more
-		return error(SemanticError.TODOThisIsTemp(`Semantic.inferType(${expr.constructor.name}) needs to be handled`, expr, ctx));
+		return error(SemanticError.TODOThisIsTemp(`Analyzer/Helpers.inferType(${expr.constructor.name}) needs to be handled`, expr, ctx));
 	}
 
 	public static inferASTTypeFromMultipleASTAssignables(
